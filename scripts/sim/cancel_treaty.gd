@@ -12,10 +12,25 @@ func _init(p_canceller := "", p_treaty_id := 0) -> void:
 	treaty_id = p_treaty_id
 
 
+## "points" if the cancellation was refused for want of diplomacy points.
+var reason := ""
+
+
 func execute(gs: Node) -> bool:
+	reason = ""
 	for t: Treaty in gs.treaties:
-		if t.id == treaty_id:
-			return Diplomacy.cancel_treaty(gs, canceller, t)
+		if t.id != treaty_id:
+			continue
+		if not t.involves(canceller) or not t.active_on(Clock.days_elapsed):
+			return false
+		var cost := Diplomacy.cost_of("cancel", t.kind)
+		if not Diplomacy.can_afford(gs, canceller, cost):
+			reason = "points"
+			return false
+		if not Diplomacy.cancel_treaty(gs, canceller, t):
+			return false
+		Diplomacy.spend(gs, canceller, cost)
+		return true
 	return false
 
 

@@ -17,8 +17,22 @@ func _init(p_from := "", p_to := "", p_kind := "") -> void:
 
 
 func execute(gs: Node) -> bool:
+	var block := Diplomacy.proposal_block(gs, from, to, kind)
+	if block != "":
+		result = {"ok": false, "reason": block, "accepted": false}
+		return false
+	var cost := Diplomacy.cost_of("propose", kind)
+	if not Diplomacy.can_afford(gs, from, cost):
+		result = {"ok": false, "reason": "points", "accepted": false}
+		return false
 	result = Diplomacy.propose_treaty(gs, from, to, kind)
-	return result.ok
+	if not result.ok:
+		return false
+	# The effort is spent whether or not they agree; a refusal gives part of it back.
+	Diplomacy.spend(gs, from, cost)
+	if not result.accepted:
+		Diplomacy.gain(gs, from, cost * Diplomacy.cfg.points.refusal_refund)
+	return true
 
 
 func to_dict() -> Dictionary:

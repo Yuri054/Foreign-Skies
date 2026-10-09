@@ -37,6 +37,8 @@ func _initialize() -> void:
 	await _test_join_prompt()
 	await _test_incoming_offer()
 	await _test_nation_menu()
+	await _test_perspective()
+	await _test_points_ui()
 
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
@@ -77,14 +79,14 @@ func _test_panel() -> void:
 	_check(panel._list.get_item_text(0).contains("Russia") or panel._list.get_item_text(0).contains("Britain") or panel._list.get_item_text(0).contains("United Kingdom"), "the friendliest nation comes first (%s)" % panel._list.get_item_text(0))
 
 	_check(gs.nations["FRA"].diplomacy_points == 50.0, "every nation starts with 50 diplomacy points")
-	_check(panel._points.text == "Diplomacy points: 50", "the diplomacy panel shows them (%s)" % panel._points.text)
+	_check(panel._points.text.begins_with("Diplomacy points: 50 (+") and panel._points.text.ends_with("a month)"), "the diplomacy panel shows them with the monthly income (%s)" % panel._points.text)
 	var bar: Node = main.get_node("UI/TopBar")
 	_check(bar._points.text == "Diplomacy 50", "and so does the top bar (%s)" % bar._points.text)
 	gs.nations["FRA"].diplomacy_points = 73.0
 	gs.economy_updated.emit()
 	panel._refresh()
 	await process_frame
-	_check(bar._points.text == "Diplomacy 73" and panel._points.text == "Diplomacy points: 73", "both follow the number")
+	_check(bar._points.text == "Diplomacy 73" and panel._points.text.begins_with("Diplomacy points: 73"), "both follow the number")
 	gs.nations["FRA"].diplomacy_points = 50.0
 	gs.economy_updated.emit()
 	var ger := 0
@@ -133,6 +135,22 @@ func _test_panel() -> void:
 	panel._gift_amount.value = 5.0
 	panel._on_gift()
 	_check(is_equal_approx(gs.nations["FRA"].treasury, treasury - 5.0), "a gift costs the treasury")
+	# Costs in diplomacy points are on the buttons, and a poor nation cannot press them.
+	panel._selected = "ITA"
+	panel._refresh_detail()
+	_check(panel._propose_buttons["alliance"].text == "Alliance (40)" and panel._propose_buttons["nap"].text == "Non-aggression (15)", "the treaty buttons show their cost in points")
+	_check(panel._gift.text == "Send gift (5 points)", "so does the gift (%s)" % panel._gift.text)
+	panel._selected = "GER"
+	panel._refresh_detail()
+	_check(panel._declare.text.begins_with("Declare war ("), "and declaring war (%s)" % panel._declare.text)
+	gs.nations["FRA"].diplomacy_points = 4.0
+	panel._refresh()
+	panel._selected = "ITA"
+	panel._refresh_detail()
+	_check(panel._propose_buttons["alliance"].disabled and panel._propose_buttons["alliance"].tooltip_text.contains("Not enough diplomacy points"), "with 4 points the buttons are off, and say why")
+	_check(panel._gift.disabled, "and the gift")
+	gs.nations["FRA"].diplomacy_points = 50.0
+	panel._refresh()
 	panel.toggle()
 
 
@@ -263,47 +281,48 @@ func _test_incoming_offer() -> void:
 
 func _test_nation_menu() -> void:
 	_quiet("FRA")
-	var menu: Node = get_first_node_in_group("nation_menu")
+	var panel: Node = get_first_node_in_group("nation_stats")
 	var mil: Node = get_first_node_in_group("military_panel")
 	mil.clear_selection()
-	_check(menu != null and not menu.visible, "the nation menu exists and starts closed")
+	panel.close_window()
+	_check(panel != null and not panel.visible, "the country panel exists and starts closed")
 	var ger: int = gs.nations["GER"].provinces[0]
 	var fra: int = gs.nations["FRA"].provinces[0]
-	main.map_view.province_ordered.emit(fra)
-	await process_frame
-	_check(not menu.visible, "right-clicking your own land opens nothing")
 	main.map_view.province_ordered.emit(ger)
 	await process_frame
 	await process_frame
-	_check(menu.visible and menu._tag == "GER", "right-clicking German land opens Germany's menu")
-	_check(menu._name.text == "German Empire" and menu._flag.tag == "GER", "with its name and flag")
-	_check(menu._actions.text.contains("diplomacy points: 50"), "and your diplomacy points above the actions (%s)" % menu._actions.text)
-	_check(menu._lines.text.contains("Troops:") and menu._lines.text.contains("under arms"), "its troops (%s)" % menu._lines.text.get_slice("
-", 1))
-	_check(menu._lines.text.contains("Alliances: ") and menu._lines.text.contains("Austria-Hungary"), "its alliances")
-	_check(menu._lines.text.contains("At war with: nobody"), "and wars")
-	_check(menu._cb_ids.has("reconquest") and menu._declare.is_visible_in_tree(), "the actions include declaring war with a casus belli")
-	_check(menu.get_global_rect().position.x >= 0.0 and menu.get_global_rect().end.x <= root.get_visible_rect().size.x + 1.0, "and it stays on screen")
-	var flag_size: Vector2 = menu._flag.size
-	_check(flag_size.x > 30.0 and flag_size.y > 20.0, "the flag has room (%s)" % str(flag_size))
+	_check(panel.visible and panel.shown_tag() == "GER", "right-clicking German land opens the country panel on Germany")
+	_check(panel.position.x < 20.0 and panel.position.y >= 40.0 and panel.size.y > 380.0, "docked on the left of the screen, tall (%s, %s)" % [str(panel.position), str(panel.size)])
+	_check(panel._name.text == "German Empire" and panel._flag.tag == "GER", "with its name and flag")
+	_check(panel._actions_box.is_visible_in_tree() and panel._declare.is_visible_in_tree(), "and the actions you can take: declaring war")
+	_check(panel._cb_ids.has("reconquest"), "with a casus belli to pick")
 	var before: int = gs.command_log.size()
-	menu._on_declare()
+	panel._on_declare()
 	await process_frame
-	_check(gs.at_war("FRA", "GER") and gs.command_log.size() == before + 1, "declaring war from the menu works")
 	await process_frame
-	_check(menu._lines.text.contains("At war with: YOU") and menu._peace.is_visible_in_tree() and not menu._war_row.is_visible_in_tree(), "and the menu now offers peace talks")
-	menu.close()
-	_check(not menu.visible, "it closes")
+	_check(gs.at_war("FRA", "GER") and gs.command_log.size() == before + 1, "declaring war from the panel works")
+	_check(panel._peace.is_visible_in_tree() and not panel._war_row.is_visible_in_tree(), "and the panel then offers peace talks")
 
-	# A friendly nation shows its ties, and a treaty can be cancelled from the menu.
+	# Right-clicking another nation changes the panel to it.
 	main.map_view.province_ordered.emit(gs.nations["RUS"].provinces[0])
 	await process_frame
-	_check(menu._tag == "RUS" and menu._lines.text.contains("France"), "Russia's menu lists France among its alliances")
-	_check(menu._cancel_box.get_child_count() >= 1, "with a button to cancel the alliance")
-	menu.close()
+	await process_frame
+	_check(panel.shown_tag() == "RUS" and panel._name.text == "Russian Empire", "right-clicking Russia changes the panel to Russia")
+	_check(panel._cancel_box.get_child_count() >= 1, "with a button to cancel the alliance with France")
+	# Your own nation: figures, no actions.
+	main.map_view.province_ordered.emit(fra)
+	await process_frame
+	await process_frame
+	_check(panel.shown_tag() == "FRA" and not panel._actions_box.visible, "right-clicking your own land shows your own nation, without actions")
+	panel.close_window()
+	_check(not panel.visible, "the X closes it")
+	panel.show_nation("ITA")
+	await process_frame
+	_check(panel.visible and panel.position.x < 20.0 and panel.shown_tag() == "ITA", "it opens in the same place again")
 
-	# With armies selected a right click is an order, not a menu; Shift forces the menu.
+	# With armies selected a right click is an order, not a nation.
 	_quiet("FRA")
+	panel.close_window()
 	var army_province := 0
 	for a in Mil.armies_of(gs, "FRA"):
 		army_province = a.province
@@ -319,6 +338,147 @@ func _test_nation_menu() -> void:
 			target = n
 	main.map_view.province_ordered.emit(target)
 	await process_frame
-	_check(gs.command_log.size() == orders + 1 and not menu.visible, "right-clicking with armies selected gives the order")
+	_check(gs.command_log.size() == orders + 1 and not panel.visible, "right-clicking with armies selected gives the order and shows no panel")
 	mil.clear_selection()
 	mil.toggle()
+
+
+func _test_perspective() -> void:
+	_quiet("FRA")
+	gs.set_war("FRA", "GER", true)
+	var view: Sprite2D = main.map_view
+	var Mode = view.get_script().Mode
+	var menu: Node = get_first_node_in_group("nation_stats")
+	var palette: Node = null
+	for c in main.get_node("UI").get_children():
+		if c.get_script() != null and "map_modes" in c.get_script().resource_path:
+			palette = c
+	menu.close_window()
+	view.set_mode(Mode.DIPLOMACY)
+	await process_frame
+	var ger: int = gs.nations["GER"].provinces[0]
+	var fra: int = gs.nations["FRA"].provinces[0]
+	_check(view.diplomacy_viewpoint() == "FRA", "the Diplomacy map starts from the player's point of view")
+	view.province_ordered.emit(ger)
+	await process_frame
+	await process_frame
+	_check(view.diplomacy_viewpoint() == "GER", "right-clicking Germany in the Diplomacy mode moves the point of view to Germany")
+	_check(menu.visible and menu.shown_tag() == "GER", "and the country panel changes to Germany as well")
+	_check(view.diplomacy_color("GER") == view.SELF_COLOR, "Germany is painted as the viewer")
+	_check(view.diplomacy_color("FRA") == view.WAR_COLOR, "France is its enemy at war")
+	_check(view.diplomacy_color("AUH") == view.ALLY_COLOR, "Austria-Hungary its ally")
+	var rus: Color = view.diplomacy_color("RUS")
+	_check(rus.r > rus.g, "and Russia, which Germany dislikes, is on the hostile side of the scale")
+	_check(view.legend().title.contains("German"), "the legend names Germany (%s)" % view.legend().title)
+	_check(palette._view_label.visible and palette._view_label.text.contains("German") and palette._view_back.text.contains("France"), "the palette says whose view it is and offers the way back")
+
+	var dip: Node = get_first_node_in_group("diplomacy_panel")
+	dip.toggle()
+	await process_frame
+	await process_frame
+	_check(dip._perspective_row.visible and dip._perspective.text.contains("German"), "the Diplomacy window says it is seen from Germany")
+	_check("GER" not in dip._tags and "FRA" in dip._tags, "it lists everyone but Germany, France included")
+	_check(dip._list.get_item_text(0).contains("Austria-Hungary") and dip._list.get_item_text(0).contains("ally"), "Germany's closest friend first (%s)" % dip._list.get_item_text(0))
+	_check(not dip._declare.is_visible_in_tree() and not dip._propose_buttons["alliance"].is_visible_in_tree() and not dip._gift.is_visible_in_tree(), "there are no actions: they are not France's to take")
+	_check(dip._treaties.is_visible_in_tree(), "but the treaties are shown")
+	dip._back.pressed.emit()
+	await process_frame
+	await process_frame
+	_check(view.diplomacy_viewpoint() == "FRA" and not dip._perspective_row.visible and dip._declare.is_visible_in_tree() or dip._peace.is_visible_in_tree(), "Back returns to France's view, with its actions")
+	dip.close_window()
+
+	view.province_ordered.emit(ger)
+	await process_frame
+	view.province_ordered.emit(fra)
+	await process_frame
+	_check(view.diplomacy_viewpoint() == "FRA" and view.viewpoint == "", "right-clicking your own nation returns to your view")
+	view.province_ordered.emit(ger)
+	await process_frame
+	view.set_mode(Mode.POLITICAL)
+	await process_frame
+	_check(view.viewpoint == "" and not palette._view_label.visible, "leaving the Diplomacy mode drops the borrowed point of view")
+	view.province_ordered.emit(ger)
+	await process_frame
+	_check(menu.visible and menu.shown_tag() == "GER", "in other modes a right click shows the nation in the country panel")
+	menu.close_window()
+	gs.set_war("FRA", "GER", false)
+
+
+func Diplomacy_income(tag: String) -> float:
+	return D.point_income(gs, tag)
+
+
+func _test_points_ui() -> void:
+	_quiet("FRA")
+	var panel: Node = get_first_node_in_group("diplomacy_panel")
+	var stats: Node = get_first_node_in_group("nation_stats")
+	var eco: Node = get_first_node_in_group("economy_panel")
+	var bar: Node = main.get_node("UI/TopBar")
+	panel.toggle()
+	await process_frame
+	await process_frame
+	panel._selected = "ITA"
+	panel._refresh_detail()
+	await process_frame
+
+	# Buying points.
+	_check(panel._buy.visible and panel._buy.text == "Buy 10 points (£3.0M)", "the Diplomacy window offers to buy points (%s)" % panel._buy.text)
+	var money: float = gs.nations["FRA"].treasury
+	panel._on_buy()
+	await process_frame
+	await process_frame
+	_check(gs.nations["FRA"].diplomacy_points == 60.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 3.0), "buying gives ten points for £3M")
+	_check(panel._buy.text == "Buy 10 points (£3.8M)" and bar._points.text == "Diplomacy 60", "the price rises, and the top bar follows (%s)" % panel._buy.text)
+	gs.nations["FRA"].diplomacy_points = 200.0
+	panel._refresh()
+	_check(panel._buy.disabled and panel._buy.tooltip_text.contains("full"), "a full stock switches the button off")
+	gs.nations["FRA"].diplomacy_points = 50.0
+	panel._refresh()
+
+	# Improving relations.
+	_check(panel._improve.text == "Improve relations (10)" and not panel._improve.disabled, "the window has an Improve relations button with its cost (%s)" % panel._improve.text)
+	_check(panel._improve.tooltip_text.contains("year"), "and says what it does")
+	panel._on_improve()
+	await process_frame
+	await process_frame
+	_check(gs.relation_projects.size() == 1 and gs.nations["FRA"].diplomacy_points == 40.0, "pressing it starts an effort and spends 10 points")
+	_check(panel._improve.text == "Improving… (12 months left)" and panel._improve.disabled, "the button shows it under way")
+	_check(panel._projects.visible and panel._projects.text.contains("Italy"), "and the efforts are listed (%s)" % panel._projects.text)
+	_check(panel._detail.text.contains("improving relations: 12 months"), "and in the nation's details")
+	panel.close_window()
+
+	# The country panel has the same.
+	stats.show_nation("ESP")
+	await process_frame
+	await process_frame
+	_check(stats._improve.is_visible_in_tree() and stats._improve.text == "Improve relations (10)", "the country panel has the button too")
+	_check(stats._relation_label.is_visible_in_tree() and stats._relation_label.text.begins_with("Relations: +10  Neutral"), "with the relations beside it (%s)" % stats._relation_label.text.replace("\n", " / "))
+	_check(stats._relation_bar.is_visible_in_tree() and is_equal_approx(stats._bar_value, 10.0) and is_equal_approx(stats._bar_base, 10.0), "and a gauge of them")
+	stats._on_improve()
+	await process_frame
+	_check(gs.relation_projects.size() == 2 and stats._improve.disabled, "pressing it there works")
+	_check(stats._relation_label.text.contains("improving by 3 a month, 12 months left"), "and the relations say the effort is under way (%s)" % stats._relation_label.text.replace("\n", " / "))
+	stats.show_nation("SUI")
+	D.set_relation(gs, "FRA", "SUI", -70.0)
+	stats._refresh()
+	_check(stats._relation_label.text.begins_with("Relations: -70  Hostile") and stats._relation_label.text.contains("settling up toward +0"), "a low opinion is called hostile and shown settling back (%s)" % stats._relation_label.text.replace("\n", " / "))
+	D.set_relation(gs, "FRA", "SUI", 0.0)
+	gs.set_war("FRA", "ITA", true)
+	stats.show_nation("ITA")
+	_check(stats._relation_label.text.contains("at war"), "and a war is noted")
+	gs.set_war("FRA", "ITA", false)
+	stats.show_nation("ESP")
+	stats.close_window()
+
+	# Income sources in the top bar and the Economy window.
+	var tip: String = bar._chips["points"].tooltip_text
+	_check(tip.contains("program") and tip.contains("foreign ministry") and tip.contains("improving relations (10)"), "the top bar's tooltip lists the income sources and prices")
+	eco.toggle()
+	await process_frame
+	await process_frame
+	_check(eco._program_boxes.has("diplomatic_service") and eco._program_boxes["diplomatic_service"].text.contains("Diplomatic service"), "the Economy window lists the Diplomatic service program")
+	_check(eco._program_boxes["diplomatic_service"].tooltip_text.contains("diplomacy points"), "which says what it does (%s)" % eco._program_boxes["diplomatic_service"].tooltip_text)
+	eco._program_boxes["diplomatic_service"].toggled.emit(true)
+	await process_frame
+	_check(gs.nations["FRA"].programs.has("diplomatic_service") and bar._points_gain.text == "+%.1f" % Diplomacy_income("FRA"), "switching it on raises the income shown in the top bar (%s)" % bar._points_gain.text)
+	eco.close_window()

@@ -15,6 +15,8 @@ signal army_clicked(army_id: int, additive: bool)
 ## The icon of a battle in progress was clicked (its province).
 signal battle_clicked(province: int)
 signal mode_changed(mode: Mode, submode: String)
+## In the Diplomacy mode, whose point of view the map shows changed (see set_viewpoint).
+signal viewpoint_changed(tag: String)
 
 enum Mode { POLITICAL, RESOURCES, INCOME, POPULATION, BUILDINGS, PROVINCES, TERRAIN, MILITARY, DIPLOMACY }
 const MODE_NAMES := {
@@ -73,6 +75,8 @@ var _marks_texture: ImageTexture
 var _blocs_image: Image
 var _blocs_texture: ImageTexture
 var _repaint_queued := false
+## Diplomacy mode: the nation whose relations the map shows. "" means the player's own.
+var viewpoint := ""
 ## The mode and submode to go back to after push_mode.
 var _pushed_mode := -1
 var _pushed_submode := ""
@@ -123,6 +127,7 @@ func _ready() -> void:
 	GameState.treaty_changed.connect(_queue_repaint.unbind(2))
 	GameState.war_changed.connect(_queue_repaint.unbind(3))
 	GameState.player_changed.connect(_queue_repaint.unbind(1))
+	GameState.player_changed.connect(func(_t: String) -> void: set_viewpoint(""))
 	set_mode(Mode.POLITICAL)
 
 
@@ -141,6 +146,9 @@ func submodes(for_mode: Mode = mode) -> Array:
 
 
 func set_mode(new_mode: Mode, new_submode := "") -> void:
+	if new_mode != Mode.DIPLOMACY and viewpoint != "":
+		viewpoint = ""
+		viewpoint_changed.emit(GameState.player_tag)
 	mode = new_mode
 	var options := submodes(new_mode)
 	submode = ""
@@ -186,6 +194,26 @@ func pop_mode(pushed: Mode) -> void:
 		_pushed_mode = -1
 
 
+## The nation whose diplomatic point of view the Diplomacy mode shows: the one picked with
+## a right click, or the player's own.
+func diplomacy_viewpoint() -> String:
+	if viewpoint != "" and GameState.nations.has(viewpoint):
+		return viewpoint
+	return GameState.player_tag
+
+
+## Shows the Diplomacy mode from another nation's point of view: who it is allied with, at war
+## with, and how it is regarded. The player's own nation (or "") goes back to the player's view.
+func set_viewpoint(tag: String) -> void:
+	var wanted := "" if tag == GameState.player_tag or not GameState.nations.has(tag) else tag
+	if wanted == viewpoint:
+		return
+	viewpoint = wanted
+	if mode == Mode.DIPLOMACY:
+		repaint()
+	viewpoint_changed.emit(diplomacy_viewpoint())
+
+
 func _queue_repaint() -> void:
 	if mode != Mode.DIPLOMACY or _repaint_queued:
 		return
@@ -199,10 +227,11 @@ func _deferred_repaint() -> void:
 		repaint()
 
 
-## Colour of a nation in diplomacy mode, seen from the player's nation: the player's own,
-## allies, enemies at war, and everyone else on a hostile-to-friendly scale of opinion.
+## Colour of a nation in diplomacy mode, seen from the viewpoint nation (the player's unless
+## another was picked): its own, its allies, its enemies at war, and everyone else on a
+## hostile-to-friendly scale of how it regards them.
 func diplomacy_color(tag: String) -> Color:
-	var me: String = GameState.player_tag
+	var me := diplomacy_viewpoint()
 	if tag == me:
 		return SELF_COLOR
 	if GameState.at_war(me, tag):
@@ -324,7 +353,7 @@ func _mode_color() -> Color:
 ## and its color. Empty for modes that are not shaded.
 func legend() -> Dictionary:
 	if mode == Mode.DIPLOMACY:
-		return {"title": "Opinion of %s" % GameState.nations[GameState.player_tag].display_name if GameState.nations.has(GameState.player_tag) else "Opinion",
+		return {"title": "Opinion of %s" % GameState.nations[diplomacy_viewpoint()].display_name if GameState.nations.has(diplomacy_viewpoint()) else "Opinion",
 				"low": "hostile", "high": "friendly", "from": HOSTILE_COLOR, "to": FRIENDLY_COLOR}
 	if mode != Mode.RESOURCES and not MODE_COLORS.has(mode):
 		return {}

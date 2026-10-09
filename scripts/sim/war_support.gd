@@ -59,6 +59,7 @@ static func on_battle(gs: Node, record: Dictionary) -> void:
 	var loser: String = record.get("loser", "")
 	var home: bool = gs.province_owner[record.province] == winner
 	change(gs, winner, c.home_win_bonus if home else c.win_bonus)
+	Diplomacy.gain_prestige(gs, winner, Diplomacy.cfg.points.prestige.battle_win)
 	if loser != "":
 		change(gs, loser, -c.loss_penalty)
 

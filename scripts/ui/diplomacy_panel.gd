@@ -14,6 +14,12 @@ const BLOCKS := {
 	"allied": "You are allied.",
 	"nap": "A non-aggression pact stands: cancel it first.",
 	"mobilization": "A war without a cause needs more mobilization first.",
+	"points": "Not enough diplomacy points.",
+	"active": "You are already improving relations with them.",
+	"limit": "All your efforts are in use (three at a time).",
+	"maxed": "Relations cannot get any better.",
+	"full": "The stock of points is full.",
+	"money": "Not enough money.",
 	"exists": "That treaty already stands.",
 	"kind": "Unknown treaty.",
 }
@@ -25,6 +31,12 @@ const PROPOSALS := [
 ]
 
 var _points := Label.new()
+var _buy := Button.new()
+var _projects := Label.new()
+var _improve := Button.new()
+var _perspective := Label.new()
+var _back := Button.new()
+var _perspective_row := VBoxContainer.new()
 var _list := ItemList.new()
 var _detail := Label.new()
 var _treaties := ItemList.new()
@@ -37,12 +49,14 @@ var _gift_amount := SpinBox.new()
 var _gift := Button.new()
 var _peace := Button.new()
 var _status := Label.new()
+var _action_labels: Array[Label] = []
 var _scroll := ScrollContainer.new()
 var _box := VBoxContainer.new()
 
 var _tags: Array[String] = []
 var _selected := ""
 var _treaty_ids: Array[int] = []
+var _treaty_kinds: Array[String] = []
 var _cb_ids: Array[String] = []
 var _dirty := false
 const MapView := preload("res://scripts/map/map_view.gd")
@@ -71,8 +85,24 @@ func _ready() -> void:
 	_scroll.add_child(_box)
 	get_viewport().size_changed.connect(_fit_height)
 
-	_points.tooltip_text = "Nothing earns or spends diplomacy points yet."
+	_points.tooltip_text = "Diplomacy points are earned each month and spent on declaring war, proposing and cancelling treaties, and gifts."
+	_perspective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_perspective.custom_minimum_size = Vector2(170, 0)
+	_perspective.add_theme_color_override("font_color", Fmt.WARN)
+	_perspective_row.add_child(_perspective)
+	_back.focus_mode = Control.FOCUS_NONE
+	_back.pressed.connect(func() -> void: get_tree().call_group("map_view", "set_viewpoint", ""))
+	_perspective_row.add_child(_back)
+	_perspective_row.visible = false
+	left.add_child(_perspective_row)
 	left.add_child(_points)
+	_buy.focus_mode = Control.FOCUS_NONE
+	_buy.pressed.connect(_on_buy)
+	left.add_child(_buy)
+	_projects.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_projects.custom_minimum_size = Vector2(170, 0)
+	_projects.modulate = Fmt.DIM
+	left.add_child(_projects)
 
 	_list.custom_minimum_size = Vector2(0, 120)
 	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -97,7 +127,8 @@ func _ready() -> void:
 	_cancel.pressed.connect(_on_cancel)
 	_box.add_child(_cancel)
 
-	_box.add_child(_heading("War"))
+	_action_labels.append(_heading("War"))
+	_box.add_child(_action_labels.back())
 	var war_row := HBoxContainer.new()
 	_cb_picker.focus_mode = Control.FOCUS_NONE
 	_cb_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -117,7 +148,8 @@ func _ready() -> void:
 	_peace.pressed.connect(_on_peace)
 	_box.add_child(_peace)
 
-	_box.add_child(_heading("Propose"))
+	_action_labels.append(_heading("Propose"))
+	_box.add_child(_action_labels.back())
 	var grid := GridContainer.new()
 	grid.columns = 2
 	for p: Array in PROPOSALS:
@@ -135,6 +167,7 @@ func _ready() -> void:
 	var gift_label := Label.new()
 	gift_label.text = "Gift £M"
 	gift_row.add_child(gift_label)
+	_action_labels.append(gift_label)
 	_gift_amount.min_value = 1.0
 	_gift_amount.max_value = 100.0
 	_gift_amount.step = 1.0
@@ -146,6 +179,9 @@ func _ready() -> void:
 	_gift.pressed.connect(_on_gift)
 	gift_row.add_child(_gift)
 	_box.add_child(gift_row)
+	_improve.focus_mode = Control.FOCUS_NONE
+	_improve.pressed.connect(_on_improve)
+	_box.add_child(_improve)
 
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.custom_minimum_size = Vector2(250, 0)
@@ -158,10 +194,15 @@ func _ready() -> void:
 		else:
 			get_tree().call_group("map_view", "pop_mode", MapView.Mode.DIPLOMACY)
 	)
+	var view := get_tree().get_first_node_in_group("map_view")
+	if view != null:
+		view.viewpoint_changed.connect(_mark_dirty.unbind(1))
+		view.mode_changed.connect(_mark_dirty.unbind(2))
 	GameState.relations_changed.connect(_mark_dirty.unbind(2))
 	GameState.treaty_changed.connect(_mark_dirty.unbind(2))
 	GameState.war_changed.connect(_mark_dirty.unbind(3))
 	GameState.war_support_changed.connect(_mark_dirty.unbind(2))
+	GameState.diplomacy_points_changed.connect(_mark_dirty.unbind(2))
 	GameState.economy_updated.connect(_mark_dirty)
 	GameState.player_changed.connect(func(_t: String) -> void:
 		_selected = ""
@@ -183,6 +224,24 @@ func toggle() -> void:
 		_refresh()
 
 
+## Whose point of view the window shows: the one picked with a right click in the Diplomacy
+## map mode, else the player's own. Only the player's own view has actions.
+func _viewpoint() -> String:
+	var view := get_tree().get_first_node_in_group("map_view")
+	if view != null and view.mode == MapView.Mode.DIPLOMACY:
+		return view.diplomacy_viewpoint()
+	return GameState.player_tag
+
+
+func _acting() -> bool:
+	return _viewpoint() == GameState.player_tag
+
+
+## A nation as the text should call it: "you" for the player when acting, else its name.
+func _who(tag: String) -> String:
+	return "you" if tag == GameState.player_tag and _acting() else GameState.nations[tag].display_name
+
+
 ## Opens the panel on a nation (used by the right-click menu).
 func show_nation(tag: String) -> void:
 	if GameState.nations.has(tag) and tag != GameState.player_tag:
@@ -198,7 +257,7 @@ func set_province(id: int) -> void:
 	if id <= 0 or id >= GameState.province_owner.size():
 		return
 	var tag: String = GameState.province_owner[id]
-	if tag != GameState.player_tag and tag != _selected:
+	if tag != _viewpoint() and tag != _selected and (tag != GameState.player_tag or not _acting()):
 		_selected = tag
 		if visible:
 			_refresh()
@@ -221,10 +280,29 @@ func _fit_height() -> void:
 
 func _refresh() -> void:
 	_dirty = false
-	var me: String = GameState.player_tag
-	if not GameState.nations.has(me):
+	var player: String = GameState.player_tag
+	if not GameState.nations.has(player):
 		return
-	_points.text = "Diplomacy points: %d" % roundi(GameState.nations[me].diplomacy_points)
+	var me := _viewpoint()
+	var acting := me == player
+	_points.text = "Diplomacy points: %d (+%.1f a month)" % [roundi(GameState.nations[player].diplomacy_points), Diplomacy.point_income(GameState, player)]
+	_buy.visible = acting
+	_projects.visible = acting
+	if acting:
+		var price := Diplomacy.purchase_price(GameState, player)
+		_buy.text = "Buy %d points (£%.1fM)" % [int(Diplomacy.cfg.points.purchase.batch), price]
+		var buy_block := Diplomacy.purchase_block(GameState, player)
+		_buy.disabled = buy_block != ""
+		_buy.tooltip_text = BLOCKS[buy_block] if buy_block != "" else "Turn money into diplomacy points. The price rises with each purchase and eases back over the months."
+		var efforts: PackedStringArray = []
+		for p in Diplomacy.projects_of(GameState, player):
+			efforts.append("%s (%d months)" % [GameState.nations[p.to].display_name, p.months_left])
+		_projects.text = "Improving relations: " + ", ".join(efforts) if not efforts.is_empty() else ""
+		_projects.visible = not efforts.is_empty()
+	_perspective_row.visible = not acting
+	if not acting:
+		_perspective.text = "Seen from %s. Right-click a nation on the map to look from there." % GameState.nations[me].display_name
+		_back.text = "Back to %s" % GameState.nations[player].display_name
 	var tags: Array[String] = []
 	for tag: String in GameState.nations:
 		if tag != me and not GameState.nations[tag].provinces.is_empty():
@@ -246,9 +324,11 @@ func _refresh() -> void:
 	_refresh_detail()
 
 
-## Short tags for how a nation stands with you: war, ally, entente, guarantees, pacts.
+## Short tags for how a nation stands with the viewpoint nation: war, ally, entente,
+## guarantees, pacts.
 func _status_tags(me: String, tag: String) -> String:
 	var tags: PackedStringArray = []
+	var acting := me == GameState.player_tag
 	if GameState.at_war(me, tag):
 		tags.append("WAR")
 	for t in Diplomacy.treaties_between(GameState, me, tag):
@@ -256,11 +336,14 @@ func _status_tags(me: String, tag: String) -> String:
 			"alliance":
 				tags.append("entente" if t.terms.get("entente", false) else "ally")
 			"guarantee":
-				tags.append("you guarantee" if t.a == me else "guarantees you")
+				if acting:
+					tags.append("you guarantee" if t.a == me else "guarantees you")
+				else:
+					tags.append("protects it" if t.a == me else "protected by it")
 			"nap":
 				tags.append("pact")
 			"passage":
-				tags.append("passage" if t.b == me else "lets you cross" if t.a == tag else "")
+				tags.append("passage" if t.b == me else "lets it cross" if t.a == tag else "")
 	return ", ".join(tags)
 
 
@@ -275,12 +358,15 @@ static func _relation_color(r: float, war: bool) -> Color:
 
 
 func _refresh_detail() -> void:
-	var me: String = GameState.player_tag
+	var me := _viewpoint()
+	var acting := _acting()
 	var has := GameState.nations.has(_selected)
-	for c in [_treaties, _cancel, _cb_picker, _cb_info, _declare, _peace, _gift_amount, _gift]:
-		c.visible = has
+	_treaties.visible = has
+	for c in [_cancel, _cb_picker, _cb_info, _declare, _peace, _gift_amount, _gift, _improve] + _action_labels:
+		c.visible = has and acting
 	for b: Button in _propose_buttons.values():
-		b.visible = has
+		b.visible = has and acting
+	_status.visible = acting
 	if not has:
 		_detail.text = "No nation selected."
 		return
@@ -288,45 +374,63 @@ func _refresh_detail() -> void:
 	var lines: PackedStringArray = []
 	var r := Diplomacy.relation(GameState, me, _selected)
 	var base: float = GameState.relation_base.get(Diplomacy.pair_key(me, _selected), 0.0)
-	lines.append("%s: opinion of you %+d (settles at %+d)" % [n.display_name, roundi(r), roundi(base)])
+	lines.append("%s: opinion of %s %+d (settles at %+d)" % [n.display_name, _who(me), roundi(r), roundi(base)])
 	var bloc := Diplomacy.bloc_of(GameState, _selected)
 	lines.append("Bloc: %s. War support %d, mobilization %d%%, prestige %d." % [bloc if bloc != "" else "none", roundi(n.war_support), roundi(n.mobilization * 100.0), roundi(n.prestige)])
 	var grievance := Diplomacy.grievance(GameState, _selected, me)
 	if grievance >= 1.0:
-		lines.append("They resent you (%d)." % roundi(grievance))
+		lines.append("They resent %s (%d)." % [_who(me), roundi(grievance)])
 	if GameState.alarms.has("%s>%s" % [_selected, me]):
-		lines.append("Their mobilization threatens you.")
+		lines.append("Their mobilization threatens %s." % _who(me))
 	if GameState.alarms.has("%s>%s" % [me, _selected]):
-		lines.append("Your mobilization alarms them.")
+		lines.append("%s mobilization alarms them." % ("Your" if acting else GameState.nations[me].display_name + "'s"))
+	var effort_here: Variant = Diplomacy.improving(GameState, me, _selected)
+	if effort_here != null and acting:
+		lines.append("You are improving relations: %d months to go." % effort_here.months_left)
 	var war := GameState.war_between(me, _selected)
 	if war != null:
-		lines.append("At war since %s. War score: you %+.1f." % [war.start_date, Peace.war_score(GameState, war, me)])
+		lines.append("At war since %s. War score: %s %+.1f." % [war.start_date, _who(me), Peace.war_score(GameState, war, me)])
 	_detail.text = "\n".join(lines)
 	_refresh_actions()
 	_fit_height.call_deferred()
 
 
 func _refresh_actions() -> void:
-	var me: String = GameState.player_tag
+	var me := _viewpoint()
 	if not GameState.nations.has(_selected):
 		return
 	var tag := _selected
-	# Treaties between you.
+	# Treaties between the two.
 	var keep := -1
 	var picked := _treaties.get_selected_items()
 	if not picked.is_empty() and picked[0] < _treaty_ids.size():
 		keep = _treaty_ids[picked[0]]
 	_treaties.clear()
 	_treaty_ids.clear()
+	_treaty_kinds.clear()
 	for t in Diplomacy.treaties_between(GameState, me, tag):
 		_treaties.add_item(_treaty_text(t, me))
 		_treaty_ids.append(t.id)
+		_treaty_kinds.append(t.kind)
 		if t.id == keep:
 			_treaties.select(_treaties.item_count - 1)
 	if _treaties.item_count == 0:
 		_treaties.add_item("No treaties.")
 		_treaties.set_item_disabled(0, true)
 	_cancel.disabled = _treaties.get_selected_items().is_empty() or _treaty_ids.is_empty()
+	if not _acting():
+		return
+	var picked_now := _treaties.get_selected_items()
+	if not picked_now.is_empty() and picked_now[0] < _treaty_kinds.size():
+		var cancel_cost := Diplomacy.cost_of("cancel", _treaty_kinds[picked_now[0]])
+		_cancel.text = "Cancel treaty (%d points)" % int(cancel_cost) if cancel_cost > 0.0 else "Cancel treaty"
+		if not Diplomacy.can_afford(GameState, me, cancel_cost):
+			_cancel.disabled = true
+			_cancel.tooltip_text = "Not enough diplomacy points (need %d, have %d)." % [int(cancel_cost), roundi(Diplomacy.points(GameState, me))]
+		else:
+			_cancel.tooltip_text = ""
+	else:
+		_cancel.text = "Cancel treaty"
 
 	# War.
 	var war := GameState.war_between(me, tag)
@@ -347,34 +451,51 @@ func _refresh_actions() -> void:
 		var cb := _cb_ids[_cb_picker.selected]
 		var block := Diplomacy.declare_block(GameState, me, tag)
 		var gate := Diplomacy.declare_gate(GameState, me, cb)
-		_declare.disabled = block != "" or gate != ""
+		var war_cost := Diplomacy.cost_of("declare_war", cb)
+		var poor := not Diplomacy.can_afford(GameState, me, war_cost)
+		_declare.text = "Declare war (%d)" % int(war_cost) if war_cost > 0.0 else "Declare war"
+		_declare.disabled = block != "" or gate != "" or poor
 		_cb_info.text = BLOCKS.get(block, "") if block != "" else _cb_cost_text(cb, gate)
 
 	# Proposals and gifts.
 	for kind: String in _propose_buttons:
 		var block := Diplomacy.proposal_block(GameState, me, tag, kind)
 		var b: Button = _propose_buttons[kind]
-		b.disabled = block != ""
+		var cost := Diplomacy.cost_of("propose", kind)
+		var poor := not Diplomacy.can_afford(GameState, me, cost)
+		b.text = "%s (%d)" % [PROPOSALS.filter(func(p: Array) -> bool: return p[0] == kind)[0][1], int(cost)]
+		b.disabled = block != "" or poor
 		var need: int = Diplomacy.cfg.actions.treaty_accept[kind]
-		b.tooltip_text = "%s\n%s (their opinion of you %+d, needs %+d)" % [
-				PROPOSALS.filter(func(p: Array) -> bool: return p[0] == kind)[0][2],
-				BLOCKS.get(block, "Possible.") if block != "" else "Possible", roundi(Diplomacy.relation(GameState, tag, me)), need]
+		var verdict: String = BLOCKS.get(block, "") if block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(cost), roundi(Diplomacy.points(GameState, me))] if poor else "Possible")
+		b.tooltip_text = "%s\nCosts %d diplomacy points (half back if refused).\n%s (their opinion of you %+d, needs %+d)" % [
+				PROPOSALS.filter(func(p: Array) -> bool: return p[0] == kind)[0][2], int(cost), verdict,
+				roundi(Diplomacy.relation(GameState, tag, me)), need]
+	var improve_cost := Diplomacy.cost_of("improve_relations")
+	var improve_block := Diplomacy.improve_block(GameState, me, tag)
+	var effort: Variant = Diplomacy.improving(GameState, me, tag)
+	var improve_poor := not Diplomacy.can_afford(GameState, me, improve_cost)
+	_improve.text = "Improving… (%d months left)" % effort.months_left if effort != null else "Improve relations (%d)" % int(improve_cost)
+	_improve.disabled = improve_block != "" or improve_poor
+	_improve.tooltip_text = (BLOCKS.get(improve_block, "") if improve_block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(improve_cost), roundi(Diplomacy.points(GameState, me))] if improve_poor else "")) + "\n" + "For a year, each month the two nations think better of each other (+%d, and part of it lasts). %d points; up to %d efforts at a time." % [int(Diplomacy.cfg.points.improve.monthly), int(Diplomacy.cost_of("improve_relations")), int(Diplomacy.cfg.points.improve.max_active)]
 	var treasury: float = GameState.nations[me].treasury
+	var gift_cost := Diplomacy.cost_of("gift")
 	_gift_amount.max_value = maxf(1.0, floorf(treasury))
-	_gift.disabled = treasury < 1.0
+	_gift.text = "Send gift (%d points)" % int(gift_cost)
+	_gift.disabled = treasury < 1.0 or not Diplomacy.can_afford(GameState, me, gift_cost)
 
 
 func _treaty_text(t: Treaty, me: String) -> String:
 	var label: String = Diplomacy.cfg.treaties[t.kind].label
+	var other := t.other(me)
 	var extra: PackedStringArray = []
 	if t.terms.get("entente", false):
 		extra.append("entente")
 	if t.terms.get("defensive_only", false):
 		extra.append("defensive only")
 	if t.kind == "guarantee":
-		extra.append("you guarantee them" if t.a == me else "they guarantee you")
+		extra.append("%s guarantees %s" % [_who(t.a), _who(t.b)])
 	if t.kind == "passage":
-		extra.append("they let you cross" if t.b == me else "you let them cross")
+		extra.append("%s lets %s cross" % [_who(t.a), _who(t.b)])
 	if t.end_day >= 0:
 		extra.append("until %s" % Clock.date_after(t.end_day - Clock.days_elapsed))
 	return label + (" (%s)" % ", ".join(extra) if not extra.is_empty() else "")
@@ -393,6 +514,9 @@ func _cb_cost_text(cb: String, gate: String) -> String:
 	var text := ", ".join(parts) + "."
 	if cb == "none":
 		text += " Your neighbours and their guarantors will gain a claim against you."
+	var points_cost := Diplomacy.cost_of("declare_war", cb)
+	if points_cost > 0.0:
+		text += "\nCosts %d diplomacy points%s." % [int(points_cost), "" if Diplomacy.can_afford(GameState, GameState.player_tag, points_cost) else " (you have %d)" % roundi(Diplomacy.points(GameState, GameState.player_tag))]
 	if gate != "":
 		text += "\n%s (now %d%%, needs %d%%)" % [BLOCKS[gate], roundi(GameState.get_player().mobilization * 100.0), roundi(Diplomacy.cfg.crisis.min_mobilization * 100.0)]
 	return text
@@ -403,11 +527,34 @@ func _on_declare() -> void:
 		return
 	var cb := _cb_ids[_cb_picker.selected]
 	var name: String = GameState.nations[_selected].display_name
-	if GameState.issue(DeclareWar.new(GameState.player_tag, _selected, cb)):
+	var cmd := DeclareWar.new(GameState.player_tag, _selected, cb)
+	if GameState.issue(cmd):
 		_status.text = "You declared war on %s." % name
 		_status.modulate = Fmt.WARN
 	else:
-		_status.text = "The declaration was refused."
+		_status.text = BLOCKS["points"] if cmd.reason == "points" else "The declaration was refused."
+		_status.modulate = Fmt.BAD
+	_refresh()
+
+
+func _on_buy() -> void:
+	var cmd := BuyPoints.new(GameState.player_tag)
+	if GameState.issue(cmd):
+		_status.text = "You bought %d diplomacy points." % int(Diplomacy.cfg.points.purchase.batch)
+		_status.modulate = Fmt.GOOD
+	else:
+		_status.text = BLOCKS.get(cmd.reason, "That is not possible.")
+		_status.modulate = Fmt.BAD
+	_refresh()
+
+
+func _on_improve() -> void:
+	var cmd := ImproveRelations.new(GameState.player_tag, _selected)
+	if GameState.issue(cmd):
+		_status.text = "You begin to improve relations with %s." % GameState.nations[_selected].display_name
+		_status.modulate = Fmt.GOOD
+	else:
+		_status.text = BLOCKS.get(cmd.reason, "That is not possible.")
 		_status.modulate = Fmt.BAD
 	_refresh()
 
@@ -435,11 +582,12 @@ func _on_propose(kind: String) -> void:
 
 func _on_gift() -> void:
 	var amount := _gift_amount.value
-	if GameState.issue(Gift.new(GameState.player_tag, _selected, amount)):
+	var cmd := Gift.new(GameState.player_tag, _selected, amount)
+	if GameState.issue(cmd):
 		_status.text = "You sent £%.0fM to %s." % [amount, GameState.nations[_selected].display_name]
 		_status.modulate = Fmt.GOOD
 	else:
-		_status.text = "You cannot afford that."
+		_status.text = BLOCKS["points"] if cmd.reason == "points" else "You cannot afford that."
 		_status.modulate = Fmt.BAD
 	_refresh()
 
@@ -448,9 +596,13 @@ func _on_cancel() -> void:
 	var picked := _treaties.get_selected_items()
 	if picked.is_empty() or picked[0] >= _treaty_ids.size():
 		return
-	if GameState.issue(CancelTreaty.new(GameState.player_tag, _treaty_ids[picked[0]])):
+	var cmd := CancelTreaty.new(GameState.player_tag, _treaty_ids[picked[0]])
+	if GameState.issue(cmd):
 		_status.text = "Treaty cancelled."
 		_status.modulate = Fmt.WARN
+	elif cmd.reason == "points":
+		_status.text = BLOCKS["points"]
+		_status.modulate = Fmt.BAD
 	_refresh()
 
 

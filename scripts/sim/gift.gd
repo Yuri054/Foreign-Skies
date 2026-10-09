@@ -13,8 +13,20 @@ func _init(p_from := "", p_to := "", p_amount := 0.0) -> void:
 	amount = p_amount
 
 
+## "points" if the gift was refused for want of diplomacy points.
+var reason := ""
+
+
 func execute(gs: Node) -> bool:
-	return Diplomacy.gift(gs, from, to, amount)
+	reason = ""
+	var cost := Diplomacy.cost_of("gift")
+	if not Diplomacy.can_afford(gs, from, cost):
+		reason = "points"
+		return false
+	if not Diplomacy.gift(gs, from, to, amount):
+		return false
+	Diplomacy.spend(gs, from, cost)
+	return true
 
 
 func to_dict() -> Dictionary:

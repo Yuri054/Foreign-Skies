@@ -11,6 +11,12 @@ var Mil
 var DeclareC
 var CancelC
 var AnswerJoinC
+var ProposeTreatyC
+var GiftC
+var BuyC
+var ImproveC
+var ProgramC
+var Eco
 var clock: Node
 
 
@@ -31,6 +37,12 @@ func _initialize() -> void:
 	DeclareC = load("res://scripts/sim/declare_war.gd")
 	CancelC = load("res://scripts/sim/cancel_treaty.gd")
 	AnswerJoinC = load("res://scripts/sim/answer_join.gd")
+	ProposeTreatyC = load("res://scripts/sim/propose_treaty.gd")
+	GiftC = load("res://scripts/sim/gift.gd")
+	BuyC = load("res://scripts/sim/buy_points.gd")
+	ImproveC = load("res://scripts/sim/improve_relations.gd")
+	ProgramC = load("res://scripts/sim/set_program.gd")
+	Eco = load("res://scripts/sim/economy.gd")
 
 	_test_blocs()
 	_test_treaties()
@@ -44,6 +56,10 @@ func _initialize() -> void:
 	_test_joins()
 	_test_player_join()
 	_test_crisis()
+	_test_points()
+	_test_income_sources()
+	_test_buying()
+	_test_improving()
 	_test_player_crisis()
 
 	print("FAILURES: ", _failures)
@@ -360,7 +376,7 @@ func _test_player_join() -> void:
 	_check(gs.issue(AnswerJoinC.new(d.id, true)), "France joins")
 	_settle()
 	_check(gs.at_war("FRA", "GER") and gs.at_war("RUS", "GER") and gs.at_war("AUH", "FRA"), "and brings Russia in, and the other side's allies are called against it")
-	_check(gs.nations["FRA"].prestige == prestige_before + 5.0, "defending a guaranteed nation earns prestige")
+	_check(absf(gs.nations["FRA"].prestige - (prestige_before + 5.0)) < 0.5, "defending a guaranteed nation earns prestige")
 	_check(gs.command_log.back().type == "AnswerJoin" and gs.command_log.back().joins, "the answer is in the command log")
 
 
@@ -425,3 +441,204 @@ func _test_player_crisis() -> void:
 	_check(gs.pending_joins.size() == 1 and gs.pending_joins[0].tag == "FRA" and gs.pending_joins[0].ally == "RUS", "France is asked to join once Russia has mobilized and entered")
 	_check(gs.pending_joins[0].kind == "alliance_called" and clock.paused, "as a called ally, with time held")
 	_check(not gs.at_war("FRA", "GER") and gs.at_war("RUS", "AUH"), "while Russia is already at war")
+
+
+func _test_points() -> void:
+	_fresh()
+	var C: Dictionary = D.cfg.points
+	_check(gs.nations["FRA"].diplomacy_points == 50.0 and C.max == 200, "a nation starts with 50 points and can hold 200")
+	_check(D.cost_of("declare_war", "none") == 30.0 and D.cost_of("declare_war", "reconquest") == 10.0 and D.cost_of("declare_war", "ally_called") == 0.0, "an unjustified war costs 30, a claim 10, a called ally nothing")
+	_check(D.cost_of("propose", "alliance") == 40.0 and D.cost_of("cancel", "nap") == 10.0 and D.cost_of("gift") == 5.0, "treaties, cancelling and gifts have prices")
+
+	# Income.
+	var fra: Dictionary = D.point_income_parts(gs, "FRA")
+	_check(fra.base == 3.0 and fra.output == 1.5 and is_equal_approx(fra.total, 4.5), "France earns 3 and a bonus for being a top-five economy (%.1f)" % fra.total)
+	_check(is_equal_approx(D.point_income(gs, "LUX"), 3.0), "a small nation earns the base (3)")
+	gs.nations["LUX"].prestige = 50.0
+	_check(is_equal_approx(D.point_income(gs, "LUX"), 5.0), "prestige adds 0.04 a point")
+	gs.nations["LUX"].prestige = -500.0
+	_check(D.point_income(gs, "LUX") == 1.0, "but income never falls below 1")
+	gs.nations["LUX"].prestige = 0.0
+	D.step_month(gs)
+	_check(is_equal_approx(gs.nations["FRA"].diplomacy_points, 54.5) and is_equal_approx(gs.nations["LUX"].diplomacy_points, 53.0), "each month adds the income")
+	gs.nations["FRA"].diplomacy_points = 199.0
+	D.step_month(gs)
+	_check(gs.nations["FRA"].diplomacy_points == 200.0, "and stops at the maximum")
+	var seen := []
+	gs.diplomacy_points_changed.connect(func(tag: String, v: float) -> void: seen.append([tag, v]))
+	D.spend(gs, "FRA", 20.0)
+	_check(seen.size() == 1 and seen[0] == ["FRA", 180.0], "spending sends a signal")
+	D.spend(gs, "FRA", 1000.0)
+	_check(gs.nations["FRA"].diplomacy_points == 0.0, "and cannot go below zero")
+
+	# Declaring war.
+	_fresh()
+	var cmd = DeclareC.new("FRA", "GER", "reconquest")
+	_check(gs.issue(cmd) and gs.nations["FRA"].diplomacy_points == 40.0, "declaring war on a claim costs 10 points")
+	_fresh()
+	gs.nations["FRA"].diplomacy_points = 9.0
+	cmd = DeclareC.new("FRA", "GER", "reconquest")
+	_check(not gs.issue(cmd) and cmd.reason == "points" and not gs.at_war("FRA", "GER") and gs.nations["FRA"].diplomacy_points == 9.0, "with 9 points the declaration is refused and nothing is spent")
+	_fresh()
+	gs.nations["GER"].mobilization = 0.5
+	gs.nations["GER"].diplomacy_points = 29.0
+	cmd = DeclareC.new("GER", "BEL", "none")
+	_check(not gs.issue(cmd) and cmd.reason == "points", "a war with no justification needs 30")
+	gs.nations["GER"].diplomacy_points = 30.0
+	_check(gs.issue(DeclareC.new("GER", "BEL", "none")) and gs.nations["GER"].diplomacy_points == 0.0, "and uses them up")
+	_fresh()
+	gs.issue(DeclareC.new("FRA", "GER", "reconquest"))
+	var after: float = gs.nations["FRA"].diplomacy_points
+	_check(not gs.issue(DeclareC.new("FRA", "GER", "reconquest")) and gs.nations["FRA"].diplomacy_points == after, "a refused declaration for another reason costs nothing")
+
+	# Internal moves are free: a nation bound to a war, or retaliating, spends nothing.
+	_fresh()
+	gs.nations["GER"].mobilization = 0.5
+	D.declare_war(gs, "GER", "BEL", "none")
+	_check(gs.nations["GER"].diplomacy_points == 50.0, "the rules' own declarations (war plans, retaliation, joins) are free")
+	_settle()
+	_check(gs.nations["GBR"].diplomacy_points >= 50.0 and gs.nations["FRA"].diplomacy_points >= 50.0, "as is joining a war")
+
+	# Treaties.
+	_fresh()
+	var prop = ProposeTreatyC.new("FRA", "ITA", "nap")
+	_check(gs.issue(prop) and prop.result.accepted and gs.nations["FRA"].diplomacy_points == 35.0, "a pact Italy accepts costs 15 points")
+	_fresh()
+	prop = ProposeTreatyC.new("ESP", "POR", "nap")
+	_check(gs.issue(prop) and not prop.result.accepted and is_equal_approx(gs.nations["ESP"].diplomacy_points, 42.5), "a refused one costs half: 7.5 of the 15 come back")
+	_fresh()
+	gs.nations["FRA"].diplomacy_points = 14.0
+	prop = ProposeTreatyC.new("FRA", "ITA", "nap")
+	_check(not gs.issue(prop) and prop.result.reason == "points" and not D.has_treaty(gs, "nap", "FRA", "ITA") and gs.nations["FRA"].diplomacy_points == 14.0, "14 points do not buy a pact")
+	gs.nations["FRA"].diplomacy_points = 50.0
+	prop = ProposeTreatyC.new("FRA", "RUS", "alliance")
+	_check(not gs.issue(prop) and prop.result.reason == "exists" and gs.nations["FRA"].diplomacy_points == 50.0, "a proposal that cannot be made costs nothing")
+
+	# Cancelling and gifts.
+	_fresh()
+	var nap = D.add_treaty(gs, "nap", "FRA", "ITA")
+	gs.nations["FRA"].diplomacy_points = 9.0
+	var cancel = CancelC.new("FRA", nap.id)
+	_check(not gs.issue(cancel) and cancel.reason == "points" and D.has_treaty(gs, "nap", "FRA", "ITA"), "cancelling a pact needs 10 points")
+	gs.nations["FRA"].diplomacy_points = 10.0
+	_check(gs.issue(CancelC.new("FRA", nap.id)) and not D.has_treaty(gs, "nap", "FRA", "ITA") and gs.nations["FRA"].diplomacy_points == 0.0, "and spends them")
+	_fresh()
+	var money: float = gs.nations["FRA"].treasury
+	var gift = GiftC.new("FRA", "ITA", 5.0)
+	_check(gs.issue(gift) and gs.nations["FRA"].diplomacy_points == 45.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 5.0), "a gift costs 5 points as well as the money")
+	gs.nations["FRA"].diplomacy_points = 4.0
+	gift = GiftC.new("FRA", "ITA", 5.0)
+	_check(not gs.issue(gift) and gift.reason == "points" and is_equal_approx(gs.nations["FRA"].treasury, money - 5.0), "and is refused when the points are short, the money untouched")
+
+
+func _test_income_sources() -> void:
+	_fresh()
+	var base: float = D.point_income(gs, "FRA")
+	_check(gs.issue(ProgramC.new("FRA", "diplomatic_service", true)), "the Diplomatic service program can be switched on")
+	var parts: Dictionary = D.point_income_parts(gs, "FRA")
+	_check(is_equal_approx(parts.program, 1.5) and is_equal_approx(parts.total, base + 1.5), "and adds 1.5 a month (%.1f to %.1f)" % [base, parts.total])
+	gs.issue(ProgramC.new("FRA", "diplomatic_service", false))
+	_check(is_equal_approx(D.point_income(gs, "FRA"), base), "switched off, it adds nothing")
+
+	var capital: int = gs.nations["FRA"].capital
+	var elsewhere := 0
+	for id: int in gs.nations["FRA"].provinces:
+		if id != capital:
+			elsewhere = id
+			break
+	_check(Eco.build_problem(gs, "FRA", elsewhere, "foreign_ministry", false) == "Only in the capital", "the Foreign ministry can only be built in the capital")
+	_check(Eco.build_problem(gs, "FRA", capital, "foreign_ministry", false) == "", "which it can be")
+	gs.province_buildings[capital]["foreign_ministry"] = 2
+	parts = D.point_income_parts(gs, "FRA")
+	_check(is_equal_approx(parts.ministry, 1.0), "each level adds 0.5 (two levels: %.1f)" % parts.ministry)
+	gs.province_buildings[capital]["foreign_ministry"] = 3
+	_check(Eco.build_problem(gs, "FRA", capital, "foreign_ministry", false) == "Fully built", "it stops at three levels")
+	gs.set_controller(capital, "GER")
+	_check(D.point_income_parts(gs, "FRA").ministry == 0.0, "an occupied capital earns nothing")
+	gs.set_controller(capital, "FRA")
+	_check(is_equal_approx(D.point_income_parts(gs, "FRA").ministry, 1.5), "and it comes back with the capital")
+	gs.province_buildings[capital].erase("foreign_ministry")
+
+	# Prestige: fades, and comes from treaties.
+	gs.nations["FRA"].prestige = 100.0
+	D.step_month(gs)
+	_check(is_equal_approx(gs.nations["FRA"].prestige, 99.0), "prestige fades 1% a month")
+	gs.nations["FRA"].prestige = 0.0
+	gs.nations["SUI"].prestige = 0.0
+	var prop = ProposeTreatyC.new("FRA", "SUI", "guarantee")
+	gs.issue(prop)
+	_check(prop.result.accepted and is_equal_approx(gs.nations["FRA"].prestige, 1.0) and is_equal_approx(gs.nations["SUI"].prestige, 1.0), "a new guarantee earns both sides a point of prestige")
+	var win := 0.0
+	gs.nations["FRA"].prestige = 0.0
+	var WS = load("res://scripts/sim/war_support.gd")
+	WS.on_battle(gs, {"winner": "FRA", "loser": "GER", "province": gs.nations["FRA"].provinces[0]})
+	_check(is_equal_approx(gs.nations["FRA"].prestige, 0.25), "a battle won earns a quarter point")
+
+
+func _test_buying() -> void:
+	_fresh()
+	var money: float = gs.nations["FRA"].treasury
+	_check(is_equal_approx(D.purchase_price(gs, "FRA"), 3.0), "ten points first cost £3M")
+	var buy = BuyC.new("FRA")
+	_check(gs.issue(buy) and gs.nations["FRA"].diplomacy_points == 60.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 3.0), "buying gives ten points for the money")
+	_check(is_equal_approx(D.purchase_price(gs, "FRA"), 3.75), "and the next batch costs a quarter more")
+	gs.issue(BuyC.new("FRA"))
+	_check(is_equal_approx(D.purchase_price(gs, "FRA"), 3.0 * 1.25 * 1.25), "again")
+	D.step_month(gs)
+	_check(D.purchase_price(gs, "FRA") < 3.0 * 1.25 * 1.25 and D.purchase_price(gs, "FRA") > 3.0, "the price eases back each month (%.2f)" % D.purchase_price(gs, "FRA"))
+	for i in 40:
+		D.step_month(gs)
+		gs.nations["FRA"].diplomacy_points = 50.0
+	_check(D.purchase_price(gs, "FRA") < 3.1, "and returns to normal in time")
+	gs.nations["FRA"].diplomacy_points = 195.0
+	gs.issue(BuyC.new("FRA"))
+	_check(gs.nations["FRA"].diplomacy_points == 200.0, "points bought never pass the maximum")
+	buy = BuyC.new("FRA")
+	_check(not gs.issue(buy) and buy.reason == "full", "and nothing can be bought once the stock is full")
+	gs.nations["FRA"].diplomacy_points = 50.0
+	gs.nations["FRA"].treasury = 1.0
+	buy = BuyC.new("FRA")
+	_check(not gs.issue(buy) and buy.reason == "money" and gs.nations["FRA"].diplomacy_points == 50.0, "without the money it is refused")
+
+
+func _test_improving() -> void:
+	_fresh()
+	var rel: float = D.relation(gs, "FRA", "ITA")
+	var base: float = gs.relation_base[D.pair_key("FRA", "ITA")]
+	var cmd = ImproveC.new("FRA", "ITA")
+	_check(gs.issue(cmd) and gs.nations["FRA"].diplomacy_points == 40.0 and gs.relation_projects.size() == 1, "improving relations costs 10 points and starts an effort")
+	_check(D.improving(gs, "FRA", "ITA").months_left == 12, "that lasts twelve months")
+	cmd = ImproveC.new("FRA", "ITA")
+	_check(not gs.issue(cmd) and cmd.reason == "active" and gs.nations["FRA"].diplomacy_points == 40.0, "the same effort cannot be started twice, and costs nothing")
+	D.step_month(gs)
+	_check(D.relation(gs, "FRA", "ITA") >= rel + 1.5, "each month they warm to each other (%.1f to %.1f)" % [rel, D.relation(gs, "FRA", "ITA")])
+	_check(is_equal_approx(gs.relation_base[D.pair_key("FRA", "ITA")], base + 0.25), "and a little of it lasts")
+	_check(D.improving(gs, "FRA", "ITA").months_left == 11, "the effort counts down")
+	for i in 11:
+		D.step_month(gs)
+	_check(D.improving(gs, "FRA", "ITA") == null and gs.relation_projects.is_empty(), "after a year it is over")
+	_check(is_equal_approx(gs.relation_base[D.pair_key("FRA", "ITA")], base + 3.0), "leaving what they settle at three points higher")
+	# Limits.
+	_fresh()
+	gs.nations["FRA"].diplomacy_points = 100.0
+	for tag in ["ITA", "ESP", "SUI"]:
+		gs.issue(ImproveC.new("FRA", tag))
+	var fourth = ImproveC.new("FRA", "BEL")
+	_check(not gs.issue(fourth) and fourth.reason == "limit" and gs.relation_projects.size() == 3, "only three efforts at a time")
+	_fresh()
+	gs.set_war("FRA", "GER", true)
+	var at_war = ImproveC.new("FRA", "GER")
+	_check(not gs.issue(at_war) and at_war.reason == "at_war", "not with an enemy")
+	_fresh()
+	gs.issue(ImproveC.new("FRA", "ITA"))
+	gs.set_war("FRA", "ITA", true)
+	D.step_month(gs)
+	_check(gs.relation_projects.is_empty(), "a war ends an effort")
+	_fresh()
+	D.set_relation(gs, "FRA", "ITA", 100.0)
+	var maxed = ImproveC.new("FRA", "ITA")
+	_check(not gs.issue(maxed) and maxed.reason == "maxed", "and there is no improving what is already perfect")
+	_fresh()
+	gs.nations["FRA"].diplomacy_points = 9.0
+	var poor = ImproveC.new("FRA", "ITA")
+	_check(not gs.issue(poor) and poor.reason == "points", "it needs the points")

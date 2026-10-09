@@ -446,6 +446,8 @@ func _building_tip(def: Dictionary) -> String:
 	var requires: String = def.get("requires", "")
 	if requires == "coastal":
 		lines.append("Coastal provinces only.")
+	elif requires == "capital":
+		lines.append("The capital only; its points are lost while the capital is occupied.")
 	elif requires.begins_with("deposit:"):
 		lines.append("Needs a %s deposit." % Economy.cfg.resources[requires.trim_prefix("deposit:")].name.to_lower())
 	lines.append("Takes %d days." % def.build_days)
@@ -498,7 +500,10 @@ func _effects_text(effects: Dictionary) -> String:
 			"yield_coal": "coal output", "yield_iron": "iron output", "yield_wood": "timber output"}
 	var parts: PackedStringArray = []
 	for k in effects:
-		parts.append("+%d%% %s" % [roundi(effects[k] * 100.0), names[k]])
+		if k == "diplomacy":
+			parts.append("+%.1f diplomacy points a month" % effects[k])
+		else:
+			parts.append("+%d%% %s" % [roundi(effects[k] * 100.0), names[k]])
 	return ", ".join(parts)
 
 

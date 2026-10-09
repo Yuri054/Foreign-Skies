@@ -16,8 +16,22 @@ func _init(p_a := "", p_b := "", p_cb := "none", p_group := 0) -> void:
 	group = p_group
 
 
+## "points" if the declaration was refused for want of diplomacy points.
+var reason := ""
+
+
 func execute(gs: Node) -> bool:
-	return Diplomacy.declare_war(gs, a, b, casus_belli, group)
+	reason = ""
+	var cost := Diplomacy.cost_of("declare_war", casus_belli)
+	if not Diplomacy.can_declare(gs, a, b, casus_belli):
+		return false
+	if not Diplomacy.can_afford(gs, a, cost):
+		reason = "points"
+		return false
+	if not Diplomacy.declare_war(gs, a, b, casus_belli, group):
+		return false
+	Diplomacy.spend(gs, a, cost)
+	return true
 
 
 func to_dict() -> Dictionary:

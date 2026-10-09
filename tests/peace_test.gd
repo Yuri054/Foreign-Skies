@@ -216,6 +216,7 @@ func _test_terms() -> void:
 			back = false
 	_check(back, "ground France held but did not take goes back to Germany")
 	_check(war.peace.taker == "FRA" and war.peace.giver == "GER" and not war.peace.white and war.peace.terms.size() == 1, "the war records its terms")
+	_check(gs.nations["FRA"].prestige > 1.0 and gs.nations["GER"].prestige < -0.5 and absf(gs.nations["GER"].prestige + gs.nations["FRA"].prestige / 2.0) < 0.01, "peace terms earn the taker prestige and cost the giver half as much (%.1f, %.1f)" % [gs.nations["FRA"].prestige, gs.nations["GER"].prestige])
 	_check(war.log.back().kind == "peace" and war.log.back().text.contains("takes"), "and the log says who took what (%s)" % war.log.back().text.left(80))
 	_check(gs.occupation.is_empty() or not gs.occupation.has(take[0]), "occupation of the ceded ground is dropped")
 

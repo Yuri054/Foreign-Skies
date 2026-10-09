@@ -80,7 +80,7 @@ func _windows() -> Dictionary:
 		"economy": get_first_node_in_group("economy_panel"),
 		"military": get_first_node_in_group("military_panel"),
 		"diplomacy": get_first_node_in_group("diplomacy_panel"),
-		"nation menu": get_first_node_in_group("nation_menu"),
+		"country panel": get_first_node_in_group("nation_stats"),
 		"peace screen": get_first_node_in_group("peace_screen"),
 		"join prompt": get_first_node_in_group("join_prompt"),
 		"battle screen": get_first_node_in_group("battle_screen"),

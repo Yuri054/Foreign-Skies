@@ -31,6 +31,8 @@ var _strip_panel := PanelContainer.new()
 var _strip_title := Label.new()
 var _strip := HBoxContainer.new()
 var _sub_picker := OptionButton.new()
+var _view_label := Label.new()
+var _view_back := Button.new()
 
 
 func _ready() -> void:
@@ -63,6 +65,7 @@ func _ready() -> void:
 	_build_palette()
 
 	map_view.mode_changed.connect(func(_m: int, _s: String) -> void: _sync())
+	map_view.viewpoint_changed.connect(func(_t: String) -> void: _sync_view())
 	GameState.economy_updated.connect(_sync_legend)
 	GameState.player_changed.connect(func(_t: String) -> void: _sync_legend())
 	_sync()
@@ -133,6 +136,12 @@ func _build_strip() -> void:
 		map_view.set_mode(map_view.mode, _sub_picker.get_item_metadata(i))
 	)
 	row.add_child(_sub_picker)
+	# Diplomacy seen from another nation: who, and a way back.
+	_view_label.add_theme_color_override("font_color", Fmt.WARN)
+	row.add_child(_view_label)
+	_view_back.focus_mode = Control.FOCUS_NONE
+	_view_back.pressed.connect(func() -> void: map_view.set_viewpoint(""))
+	row.add_child(_view_back)
 	_boxed(row, _strip_panel)
 
 
@@ -225,6 +234,18 @@ func _sync() -> void:
 		_sub_picker.set_item_metadata(i, options[i][0])
 		if options[i][0] == map_view.submode:
 			_sub_picker.select(i)
+	_sync_view()
+
+
+## Shows whose point of view the Diplomacy map has, when it is not the player's.
+func _sync_view() -> void:
+	var other: String = map_view.diplomacy_viewpoint()
+	var shown: bool = map_view.mode == MapView.Mode.DIPLOMACY and other != GameState.player_tag
+	_view_label.visible = shown
+	_view_back.visible = shown
+	if shown:
+		_view_label.text = "· seen from %s" % GameState.nations[other].display_name
+		_view_back.text = "Back to %s" % GameState.nations[GameState.player_tag].display_name
 	_sync_legend()
 
 

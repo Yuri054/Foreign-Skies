@@ -14,6 +14,9 @@ var capital := 0
 ## Diplomacy points: a stock of diplomatic effort. Only the number exists so far; nothing
 ## earns or spends it yet.
 var diplomacy_points := 0.0
+## What a batch of bought diplomacy points costs, as a multiple of the base price: it rises with
+## each purchase and eases back each month.
+var points_price := 1.0
 ## How far the people stand behind the war, 0..100 (see WarSupport), and the level it returns
 ## to in peace. men_lost_month is this month's casualties, counted for WarSupport.
 var war_support := 55.0

@@ -11,8 +11,10 @@ const BattleScreen := preload("res://scripts/ui/battle_screen.gd")
 const DiplomacyPanel := preload("res://scripts/ui/diplomacy_panel.gd")
 const PeaceScreen := preload("res://scripts/ui/peace_screen.gd")
 const JoinPrompt := preload("res://scripts/ui/join_prompt.gd")
-const NationMenu := preload("res://scripts/ui/nation_menu.gd")
 const SettingsWindow := preload("res://scripts/ui/settings_window.gd")
+const MapView := preload("res://scripts/map/map_view.gd")
+const NationStats := preload("res://scripts/ui/nation_stats.gd")
+const RankingsWindow := preload("res://scripts/ui/rankings_window.gd")
 
 @onready var map_view: Sprite2D = $MapView
 @onready var camera: Camera2D = $Camera
@@ -47,10 +49,11 @@ func _ready() -> void:
 	ui.add_child(EconomyPanel.new())
 	ui.add_child(MilitaryPanel.new())
 	ui.add_child(DiplomacyPanel.new())
+	ui.add_child(NationStats.new())
+	ui.add_child(RankingsWindow.new())
 	ui.add_child(SettingsWindow.new())
 	ui.add_child(EventFeed.new())
 	ui.add_child(BattleScreen.new())
-	ui.add_child(NationMenu.new())
 	ui.add_child(PeaceScreen.new())
 	ui.add_child(JoinPrompt.new())
 	var queue := BuildQueue.new()
@@ -72,17 +75,22 @@ func _ready() -> void:
 	ui.add_child(picker)
 
 
-## A right click on a province: an order for the selected armies, or, with none selected (or
-## Shift held), the menu of the nation that owns the land if it is not the player's.
+## A right click on a province, as in the Paradox games: with armies selected it is an order.
+## Otherwise it picks the nation that owns the land: the country panel on the left changes to
+## it (your own nation too), and in the Diplomacy map mode the map's point of view moves to it
+## as well (your own nation returns it to yours). Holding Shift picks the nation for the panel
+## only, whatever the mode and whatever is selected.
 func _on_right_click(id: int) -> void:
+	var tag: String = GameState.province_owner[id]
+	var shift := Input.is_key_pressed(KEY_SHIFT)
 	var panel := get_tree().get_first_node_in_group("military_panel")
-	var ordering: bool = panel != null and panel.has_selection() and not Input.is_key_pressed(KEY_SHIFT)
-	if ordering:
+	if panel != null and panel.has_selection() and not shift:
 		get_tree().call_group("military_panel", "order_move", id)
 		return
-	var tag: String = GameState.province_owner[id]
-	if tag != GameState.player_tag:
-		get_tree().call_group("nation_menu", "open_nation", tag, get_viewport().get_mouse_position())
+	if map_view.mode == MapView.Mode.DIPLOMACY and not shift:
+		map_view.set_viewpoint(tag)
+		get_tree().call_group("diplomacy_panel", "set_province", id)
+	get_tree().call_group("nation_stats", "show_nation", tag)
 
 
 ## Centers the camera on a nation's population-weighted middle.

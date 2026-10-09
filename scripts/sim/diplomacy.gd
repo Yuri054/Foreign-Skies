@@ -42,6 +42,7 @@ static func load_scenario(gs: Node) -> void:
 	gs.alarms.clear()
 	gs.next_decision_id = 1
 	gs.pending_offers.clear()
+	gs.relation_projects.clear()
 	gs.next_offer_id = 1
 	gs.peace_cooldown.clear()
 	gs.indemnities.clear()
@@ -143,6 +144,9 @@ static func change_relation(gs: Node, a: String, b: String, delta: float) -> voi
 
 ## Monthly: every opinion moves a step toward its baseline.
 static func step_month(gs: Node) -> void:
+	_step_points(gs)
+	_step_projects(gs)
+	_step_prestige(gs)
 	_step_grievance(gs)
 	WarSupport.step_month(gs)
 	Peace.step_month(gs)
@@ -267,6 +271,182 @@ static func has_passage(gs: Node, host: String, mover: String) -> bool:
 	return t != null and not t.terms.get("entente", false)
 
 
+# --- Diplomacy points ----------------------------------------------------------------------
+
+## What an action costs in diplomacy points. `action` is declare_war (detail: the casus belli),
+## propose (the treaty kind), cancel (the treaty kind) or gift.
+static func cost_of(action: String, detail := "") -> float:
+	var costs: Dictionary = cfg.points.costs
+	if action == "gift" or action == "improve_relations":
+		return float(costs[action])
+	return float(costs.get(action, {}).get(detail, 0.0))
+
+
+static func points(gs: Node, tag: String) -> float:
+	return gs.nations[tag].diplomacy_points if gs.nations.has(tag) else 0.0
+
+
+static func can_afford(gs: Node, tag: String, cost: float) -> bool:
+	return points(gs, tag) >= cost
+
+
+## Takes points away (never below zero).
+static func spend(gs: Node, tag: String, amount: float) -> void:
+	if amount > 0.0:
+		_set_points(gs, tag, points(gs, tag) - amount)
+
+
+## Adds points (never past the maximum).
+static func gain(gs: Node, tag: String, amount: float) -> void:
+	if amount > 0.0:
+		_set_points(gs, tag, points(gs, tag) + amount)
+
+
+static func _set_points(gs: Node, tag: String, value: float) -> void:
+	var n: Nation = gs.nations[tag]
+	var v := clampf(value, 0.0, float(cfg.points.max))
+	if is_equal_approx(v, n.diplomacy_points):
+		return
+	n.diplomacy_points = v
+	gs.diplomacy_points_changed.emit(tag, v)
+
+
+## What a nation earns each month, and where it comes from: {base, prestige, output, program,
+## ministry, total}. The ministry only counts while the nation holds its capital.
+static func point_income_parts(gs: Node, tag: String) -> Dictionary:
+	var inc: Dictionary = cfg.points.income
+	var n: Nation = gs.nations[tag]
+	var base: float = inc.base
+	var prestige: float = n.prestige * inc.prestige_weight
+	var output := 0.0
+	var rank := Standings.rank_of(gs, tag, "gdp")
+	if rank > 0 and rank <= int(inc.top_output_count):
+		output = inc.top_output_bonus
+	var program := 0.0
+	for id: String in n.programs:
+		program += Economy.cfg.programs[id].effects.get("diplomacy", 0.0)
+	var ministry := 0.0
+	if n.capital > 0 and gs.province_controller[n.capital] == tag:
+		for type: String in gs.province_buildings[n.capital]:
+			ministry += Economy.cfg.buildings[type].effects.get("diplomacy", 0.0) * gs.province_buildings[n.capital][type]
+	return {"base": base, "prestige": prestige, "output": output, "program": program, "ministry": ministry,
+			"total": maxf(base + prestige + output + program + ministry, float(inc.min))}
+
+
+static func point_income(gs: Node, tag: String) -> float:
+	return point_income_parts(gs, tag).total
+
+
+## Monthly: every nation with land earns its income.
+static func _step_points(gs: Node) -> void:
+	for tag: String in gs.nations:
+		if not gs.nations[tag].provinces.is_empty():
+			gain(gs, tag, point_income(gs, tag))
+
+
+## Prestige fades a little each month.
+static func _step_prestige(gs: Node) -> void:
+	var keep: float = 1.0 - cfg.points.prestige.decay_per_month
+	for tag: String in gs.nations:
+		var n: Nation = gs.nations[tag]
+		n.prestige *= keep
+		n.points_price = lerpf(1.0, n.points_price, cfg.points.purchase.price_decay)
+
+
+## Prestige earned (or lost): a won battle, peace terms, a new treaty.
+static func gain_prestige(gs: Node, tag: String, amount: float) -> void:
+	if gs.nations.has(tag):
+		gs.nations[tag].prestige += amount
+
+
+# --- Buying points -------------------------------------------------------------------------
+
+## What the next batch of points costs the treasury, GBP millions.
+static func purchase_price(gs: Node, tag: String) -> float:
+	return cfg.points.purchase.base_cost * gs.nations[tag].points_price
+
+
+## Why a purchase cannot be made: "full" (the stock is at its maximum), "money", or "".
+static func purchase_block(gs: Node, tag: String) -> String:
+	if not gs.nations.has(tag):
+		return "unknown"
+	if points(gs, tag) >= float(cfg.points.max):
+		return "full"
+	if gs.nations[tag].treasury < purchase_price(gs, tag):
+		return "money"
+	return ""
+
+
+## Pays for a batch of points. The price of the next one rises. Returns false if it cannot be made.
+static func buy_points(gs: Node, tag: String) -> bool:
+	if purchase_block(gs, tag) != "":
+		return false
+	var n: Nation = gs.nations[tag]
+	n.treasury -= purchase_price(gs, tag)
+	n.points_price *= cfg.points.purchase.price_growth
+	gain(gs, tag, float(cfg.points.purchase.batch))
+	return true
+
+
+# --- Improving relations -------------------------------------------------------------------
+
+## Why `from` cannot start improving relations with `to` ("" if it can): unknown, at_war, active
+## (already under way), limit (every effort in use) or maxed (the opinion cannot go higher).
+static func improve_block(gs: Node, from: String, to: String) -> String:
+	if from == to or not gs.nations.has(from) or not gs.nations.has(to):
+		return "unknown"
+	if gs.at_war(from, to):
+		return "at_war"
+	if improving(gs, from, to) != null:
+		return "active"
+	if projects_of(gs, from).size() >= int(cfg.points.improve.max_active):
+		return "limit"
+	if relation(gs, from, to) >= float(cfg.relations.max) - 0.5:
+		return "maxed"
+	return ""
+
+
+## The effort `from` has under way with `to`, or null.
+static func improving(gs: Node, from: String, to: String) -> Variant:
+	for p: Dictionary in gs.relation_projects:
+		if p.from == from and p.to == to:
+			return p
+	return null
+
+
+static func projects_of(gs: Node, from: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for p: Dictionary in gs.relation_projects:
+		if p.from == from:
+			out.append(p)
+	return out
+
+
+## Starts an effort to improve relations: for a year, each month the two think better of each
+## other, and what their opinion settles at creeps up too. Returns false if it cannot be started.
+static func improve_relations(gs: Node, from: String, to: String) -> bool:
+	if improve_block(gs, from, to) != "":
+		return false
+	gs.relation_projects.append({"from": from, "to": to, "months_left": int(cfg.points.improve.months)})
+	gs.relations_changed.emit(from, to)
+	return true
+
+
+## Monthly: every effort does its work, and ends when its time is up or the two go to war.
+static func _step_projects(gs: Node) -> void:
+	var imp: Dictionary = cfg.points.improve
+	for i in range(gs.relation_projects.size() - 1, -1, -1):
+		var p: Dictionary = gs.relation_projects[i]
+		if gs.at_war(p.from, p.to):
+			gs.relation_projects.remove_at(i)
+			continue
+		change_relation(gs, p.from, p.to, imp.monthly)
+		_shift_baseline(gs, p.from, p.to, imp.base_monthly)
+		p.months_left -= 1
+		if p.months_left <= 0:
+			gs.relation_projects.remove_at(i)
+
+
 # --- Treaty proposals and gifts ------------------------------------------------------------
 
 ## Kinds of treaty a nation can propose.
@@ -312,6 +492,9 @@ static func propose_treaty(gs: Node, from: String, to: String, kind: String) -> 
 			add_treaty(gs, kind, to, from)
 		else:
 			add_treaty(gs, kind, from, to)
+		var worth: float = cfg.points.prestige.treaty.get(kind, 0.0)
+		gain_prestige(gs, from, worth)
+		gain_prestige(gs, to, worth)
 	return out
 
 

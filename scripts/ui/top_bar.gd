@@ -22,6 +22,7 @@ var _net := Label.new()
 var _population := Label.new()
 var _manpower := Label.new()
 var _points := Label.new()
+var _points_gain := Label.new()
 var _chips: Dictionary = {}
 var _date := Label.new()
 var _pause := Button.new()
@@ -29,6 +30,8 @@ var _speed_buttons: Array[Button] = []
 var _window_buttons: Dictionary = {}
 var _row := HBoxContainer.new()
 var _settings_button := Button.new()
+var _nation_button := Button.new()
+var _rankings_button := Button.new()
 
 
 func _ready() -> void:
@@ -65,13 +68,17 @@ func _ready() -> void:
 	_chips["treasury"] = _chip(money)
 	_chips["population"] = _chip(_population)
 	_chips["manpower"] = _chip(_manpower)
-	_chips["points"] = _chip(_points)
+	var points_box := HBoxContainer.new()
+	points_box.add_theme_constant_override("separation", 5)
+	points_box.add_child(_points)
+	points_box.add_child(_points_gain)
+	_chips["points"] = _chip(points_box)
 	for key in ["treasury", "population", "manpower", "points"]:
 		_row.add_child(_chips[key])
 	_chips["treasury"].tooltip_text = "Treasury (GBP millions), and what it gains or loses each month."
 	_chips["population"].tooltip_text = "People living in your provinces."
 	_chips["manpower"].tooltip_text = "Recruits in reserve, ready to be raised into units."
-	_chips["points"].tooltip_text = "Diplomacy points. Nothing earns or spends them yet."
+	_chips["points"].tooltip_text = "Diplomacy points."
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -116,8 +123,20 @@ func _ready() -> void:
 		_speed_buttons.append(b)
 	_row.add_child(speeds)
 
-	# The settings button, a gear, at the far right.
+	# The nation stats button and the settings button, a gear, at the far right.
 	_row.add_child(VSeparator.new())
+	_nation_button.text = "Nation"
+	_nation_button.toggle_mode = true
+	_nation_button.focus_mode = Control.FOCUS_NONE
+	_nation_button.tooltip_text = "Nation stats window (N)"
+	_nation_button.pressed.connect(func() -> void: get_tree().call_group("nation_stats", "toggle"))
+	_row.add_child(_nation_button)
+	_rankings_button.text = "Rankings"
+	_rankings_button.toggle_mode = true
+	_rankings_button.focus_mode = Control.FOCUS_NONE
+	_rankings_button.tooltip_text = "Rankings: how the nations compare (R)"
+	_rankings_button.pressed.connect(func() -> void: get_tree().call_group("rankings_window", "toggle"))
+	_row.add_child(_rankings_button)
 	_settings_button.toggle_mode = true
 	_settings_button.focus_mode = Control.FOCUS_NONE
 	_settings_button.custom_minimum_size = Vector2(30, 0)
@@ -130,6 +149,7 @@ func _ready() -> void:
 	Clock.pause_changed.connect(func(_p: bool) -> void: _refresh())
 	Clock.speed_changed.connect(func(_s: int) -> void: _refresh())
 	GameState.economy_updated.connect(_refresh)
+	GameState.diplomacy_points_changed.connect(func(_t: String, _v: float) -> void: _refresh())
 	GameState.player_changed.connect(func(_t: String) -> void: _refresh())
 	GameState.scenario_loaded.connect(_refresh)
 	GameState.join_requested.connect(func(_d: Dictionary) -> void: _refresh())
@@ -139,6 +159,15 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_width)
 	_bind_windows.call_deferred()
 	_refresh()
+
+
+## The tooltip of the diplomacy points chip: the stock, what it earns and where from, what it buys.
+func _points_tip(n: Nation) -> String:
+	var parts := Diplomacy.point_income_parts(GameState, n.tag)
+	var costs: Dictionary = Diplomacy.cfg.points.costs
+	return "Diplomacy points: %d of %d.\nEarns %+.1f a month (base %.1f, prestige %+.1f, output %+.1f, program %+.1f, foreign ministry %+.1f).\nMore from the Diplomatic service program and a Foreign ministry in the capital.\nSpent on declaring war, proposing and cancelling treaties, improving relations (%d) and gifts: an alliance %d, a guarantee %d, a pact %d, passage %d, a gift %d." % [
+			roundi(n.diplomacy_points), int(Diplomacy.cfg.points.max), parts.total, parts.base, parts.prestige, parts.output, parts.program, parts.ministry,
+			int(costs.improve_relations), int(costs.propose.alliance), int(costs.propose.guarantee), int(costs.propose.nap), int(costs.propose.passage), int(costs.gift)]
 
 
 ## A small dark box around a figure.
@@ -177,6 +206,12 @@ func _bind_windows() -> void:
 		var button: Button = _window_buttons[w[0]]
 		node.visibility_changed.connect(func() -> void: button.set_pressed_no_signal(node.visible))
 		button.set_pressed_no_signal(node.visible)
+	var ranks := get_tree().get_first_node_in_group("rankings_window")
+	if ranks != null:
+		ranks.visibility_changed.connect(func() -> void: _rankings_button.set_pressed_no_signal(ranks.visible))
+	var stats := get_tree().get_first_node_in_group("nation_stats")
+	if stats != null:
+		stats.visibility_changed.connect(func() -> void: _nation_button.set_pressed_no_signal(stats.visible))
 	var settings := get_tree().get_first_node_in_group("settings_window")
 	if settings != null:
 		settings.visibility_changed.connect(func() -> void: _settings_button.set_pressed_no_signal(settings.visible))
@@ -195,6 +230,10 @@ func _refresh() -> void:
 		_population.text = "Pop %.1fM" % (n.population / 1_000_000.0)
 		_manpower.text = "Manpower %dk" % roundi(n.manpower / 1000.0)
 		_points.text = "Diplomacy %d" % roundi(n.diplomacy_points)
+		var income := Diplomacy.point_income(GameState, n.tag)
+		_points_gain.text = "+%.1f" % income
+		_points_gain.modulate = Fmt.GOOD
+		_chips["points"].tooltip_text = _points_tip(n)
 	else:
 		_flag.tag = ""
 		_nation.text = "No nation"
@@ -203,6 +242,7 @@ func _refresh() -> void:
 		_population.text = ""
 		_manpower.text = ""
 		_points.text = ""
+		_points_gain.text = ""
 	_date.text = Clock.date_string()
 	var waiting := GameState.has_pending()
 	_pause.text = "Waiting" if waiting else ("Play" if Clock.paused else "Pause")
@@ -214,12 +254,13 @@ func _refresh() -> void:
 
 
 ## Makes the bar fit the screen's width: as it narrows, population goes, then manpower, then the
-## window buttons shrink to their key letters, then diplomacy points and the nation's name go.
+## window buttons shrink to their key letters, then diplomacy points and the nation's name go,
+## and on a very small screen the flag, the treasury's change and the treasury itself.
 func _fit_width() -> void:
 	if not is_inside_tree():
 		return
 	var available := get_viewport_rect().size.x
-	for level in 5:
+	for level in 7:
 		_apply_level(level)
 		if _row.get_combined_minimum_size().x + 16.0 <= available:
 			return
@@ -230,6 +271,11 @@ func _apply_level(level: int) -> void:
 	_chips["manpower"].visible = level < 2
 	_chips["points"].visible = level < 4
 	_nation.visible = level < 4
+	_net.visible = level < 5
+	_chips["treasury"].visible = level < 6
+	_flag.get_parent().visible = level < 5
+	_nation_button.text = "N" if level >= 3 else "Nation"
+	_rankings_button.text = "R" if level >= 3 else "Rankings"
 	for w: Array in WINDOWS:
 		var b: Button = _window_buttons[w[0]]
 		b.text = w[2] if level >= 3 else w[1]

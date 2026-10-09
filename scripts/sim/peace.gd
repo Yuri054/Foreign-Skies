@@ -329,6 +329,12 @@ static func make_peace(gs: Node, war: War, offer: Dictionary) -> void:
 	var text := "%s and %s make peace" % [gs.nations[war.a].display_name, gs.nations[war.b].display_name]
 	text += (": %s takes %s." % [gs.nations[taker].display_name, "; ".join(terms)]) if not terms.is_empty() else " (white peace)."
 	text += offer.get("note", "")
+	if not terms.is_empty():
+		# Terms earn the taker standing, and cost the giver some of it.
+		var pr: Dictionary = Diplomacy.cfg.points.prestige
+		var earned := minf(pr.peace_cap, offer.get("cost", 0.0) * pr.peace_per_score)
+		Diplomacy.gain_prestige(gs, taker, earned)
+		Diplomacy.gain_prestige(gs, giver, -earned * pr.peace_loser_share)
 	war.peace = {"taker": taker, "giver": giver, "terms": terms, "white": terms.is_empty(), "score": score_taker,
 			"forced": offer.forced, "date": Clock.date_string()}
 	war.add_log(Clock.date_string(), "peace", text)

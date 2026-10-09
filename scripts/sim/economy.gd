@@ -36,7 +36,7 @@ static func program_ids() -> Array:
 ## Summed fractional bonuses from a province's buildings and the owner's programs:
 ## gdp, industry, food, trade, growth, and yield_<resource>.
 static func modifiers(buildings: Dictionary, programs: Dictionary) -> Dictionary:
-	var m := {"gdp": 0.0, "industry": 0.0, "food": 0.0, "trade": 0.0, "growth": 0.0}
+	var m := {"gdp": 0.0, "industry": 0.0, "food": 0.0, "trade": 0.0, "growth": 0.0, "diplomacy": 0.0}
 	for r in resource_ids():
 		m["yield_" + r] = 0.0
 	for type in buildings:
@@ -107,6 +107,8 @@ static func build_problem(gs: Node, tag: String, id: int, type: String, check_mo
 	var requires: String = cfg.buildings[type].get("requires", "")
 	if requires == "coastal" and not MapData.provinces[id].coastal:
 		return "Needs a coastal province"
+	if requires == "capital" and id != n.capital:
+		return "Only in the capital"
 	if requires.begins_with("deposit:"):
 		var r := requires.trim_prefix("deposit:")
 		if gs.province_deposit[id].get(r, 0.0) < cfg.min_deposit:

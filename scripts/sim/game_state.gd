@@ -25,6 +25,8 @@ signal relations_changed(a: String, b: String)
 signal join_requested(decision: Dictionary)
 ## A join decision was settled, by the player or the AI.
 signal join_resolved(decision: Dictionary, joined: bool)
+## A nation's diplomacy points changed (spent or earned).
+signal diplomacy_points_changed(tag: String, value: float)
 ## A nation's war support moved.
 signal war_support_changed(tag: String, value: float)
 ## A peace offer is waiting for the player (see Peace.propose); time is held until it is answered.
@@ -112,6 +114,11 @@ var mobilization_calls: Dictionary = {}
 var alarms: Dictionary = {}
 ## AI nations called to join a war that are still mobilizing: "TAG|GROUP" -> join decision.
 var join_calls: Dictionary = {}
+## Each nation's figures month by month, for the rankings' charts: {day, date, values:
+## {tag: {metric: value}}}, oldest first (see Standings).
+var standings_history: Array[Dictionary] = []
+## Efforts to improve relations under way: {from, to, months_left}.
+var relation_projects: Array[Dictionary] = []
 ## Every command issued so far, in order.
 var command_log: Array[Dictionary] = []
 
@@ -179,6 +186,8 @@ func load_scenario(dir: String) -> void:
 	Clock.start(d[0], d[1], d[2])
 	Clock.paused = true
 	Diplomacy.load_scenario(self)
+	standings_history.clear()
+	Standings.record(self)
 	for pair: Array in scenario.get("starting_wars", []):
 		Diplomacy.start_war(self, pair[0], pair[1], scenario.get("start_crisis", false))
 	set_player(scenario.get("default_player", ""))
@@ -340,4 +349,5 @@ func _rebuild_nation_provinces() -> void:
 func _on_month_ticked() -> void:
 	Economy.step_month(self)
 	Diplomacy.step_month(self)
+	Standings.record(self)
 	economy_updated.emit()

@@ -23,7 +23,7 @@
 	"mobilization_output_penalty": 0.35,
 	"mobilization_rate": 0.15,
 	"buildings": {
-		"_note": "Province buildings. cost is GBP millions for level 1 and scales with the level being built. effects are fractional bonuses per level: 'trade' is tariff income as a share of the province's output (lost to blockade); 'yield_<resource>' raises extraction of a deposit above the base. materials are thousand tonnes needed for level 1 (scaled by level), taken from the national stockpile and bought at a markup if short. consumes is thousand tonnes per level per year. requires: 'coastal' needs a sea coast, 'deposit:<resource>' needs a deposit.",
+		"_note": "Province buildings. cost is GBP millions for level 1 and scales with the level being built. effects are fractional bonuses per level: 'trade' is tariff income as a share of the province's output (lost to blockade); 'yield_<resource>' raises extraction of a deposit above the base. materials are thousand tonnes needed for level 1 (scaled by level), taken from the national stockpile and bought at a markup if short. consumes is thousand tonnes per level per year. requires: 'coastal' needs a sea coast, 'deposit:<resource>' needs a deposit, 'capital' only the capital province. 'diplomacy' (in a building or program) is diplomacy points a month, not a share (a building's only counts in the capital the nation holds).",
 		"farmland": {
 			"name": "Farmland improvements",
 			"max_level": 3,
@@ -140,6 +140,20 @@
 			"effects": {
 				"yield_wood": 0.35
 			}
+		},
+		"foreign_ministry": {
+			"name": "Foreign ministry",
+			"max_level": 3,
+			"cost": 10.0,
+			"build_days": 200,
+			"requires": "capital",
+			"materials": {
+				"wood": 500,
+				"iron": 200
+			},
+			"effects": {
+				"diplomacy": 0.5
+			}
 		}
 	},
 	"programs": {
@@ -164,6 +178,13 @@
 			"cost_gdp_share": 0.005,
 			"effects": {
 				"growth": 0.01
+			}
+		},
+		"diplomatic_service": {
+			"name": "Diplomatic service",
+			"cost_gdp_share": 0.004,
+			"effects": {
+				"diplomacy": 1.5
 			}
 		}
 	},
