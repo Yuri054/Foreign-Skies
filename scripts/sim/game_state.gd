@@ -16,6 +16,9 @@ signal unit_trained(tag: String, province: int, type: String)
 signal province_controller_changed(id: int, old_controller: String, new_controller: String)
 signal fronts_changed
 signal fleets_changed
+## A day of fighting at sea in a zone, with the nations that fought.
+signal sea_battle_fought(zone: int, tags: Array)
+signal ship_sunk(tag: String, zone: int, type: String)
 signal ship_built(tag: String, province: int, type: String)
 signal war_changed(a: String, b: String, at_war: bool)
 ## A nation lost its last province and its armies broke up.
@@ -70,6 +73,9 @@ var next_fleet_id := 1
 ## Naval bases (dockyards) from the scenario: province id -> level. They count as a port for
 ## the navy, but not for the economy, so the 1914 trade figures stay as calibrated.
 var naval_bases: Dictionary = {}
+## Fights at sea now, by zone, and the accounts of those that have ended, by id.
+var sea_battles: Dictionary = {}
+var sea_battle_archive: Dictionary = {}
 ## front id -> Front.
 var fronts: Dictionary = {}
 var next_front_id := 1
@@ -184,6 +190,8 @@ func load_scenario(dir: String) -> void:
 	next_war_group = 1
 	engagements.clear()
 	battle_archive.clear()
+	sea_battles.clear()
+	sea_battle_archive.clear()
 	next_battle_id = 1
 	occupation.clear()
 	fronts.clear()

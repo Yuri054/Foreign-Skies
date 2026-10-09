@@ -20,7 +20,7 @@ func _init(p_tag := "", p_fleet := 0, p_zone := 0, p_port := 0) -> void:
 
 func execute(gs: Node) -> bool:
 	var f: Fleet = gs.fleets.get(fleet_id)
-	if f == null or f.tag != tag or f.fighting:
+	if f == null or f.tag != tag:
 		return false
 	var targets: Array = []
 	if port > 0:
@@ -46,6 +46,7 @@ func execute(gs: Node) -> bool:
 		route.pop_front()
 	# Keep the progress already made if the fleet is still heading into the same zone.
 	var keep_progress: bool = not f.is_in_port() and not f.path.is_empty() and not route.is_empty() and f.path[0] == route[0]
+	f.retreating = false
 	f.path.assign(route)
 	f.dest_port = port
 	f.entering = false

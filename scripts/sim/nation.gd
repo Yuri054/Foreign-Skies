@@ -48,6 +48,8 @@ var peacetime_army := 0
 var naval_budget := 0.0
 ## The part of naval_budget that is not ships: dockyards, bases, sailors ashore.
 var naval_overhead := 0.0
+## Squadrons lost at sea in all.
+var ships_lost := 0
 ## Squadrons being built: {type, province, days_left, days_total}.
 var shipbuilding: Array[Dictionary] = []
 ## Reserve recruits not yet in a unit; refilled monthly up to what budget.manpower_max

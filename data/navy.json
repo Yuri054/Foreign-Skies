@@ -26,7 +26,10 @@
 				"wood": 8
 			},
 			"color": "#3d4f73",
-			"capacity": 0
+			"capacity": 0,
+			"hull": 3.0,
+			"exposure": 4.0,
+			"crew": 4000
 		},
 		"cruiser": {
 			"name": "Cruiser squadron",
@@ -43,7 +46,10 @@
 				"wood": 4
 			},
 			"color": "#4a6a8a",
-			"capacity": 0
+			"capacity": 0,
+			"hull": 1.5,
+			"exposure": 2.0,
+			"crew": 2400
 		},
 		"destroyer": {
 			"name": "Destroyer flotilla",
@@ -60,7 +66,10 @@
 				"wood": 1
 			},
 			"color": "#6a8aa8",
-			"capacity": 0
+			"capacity": 0,
+			"hull": 1.0,
+			"exposure": 1.0,
+			"crew": 800
 		},
 		"submarine": {
 			"name": "Submarine flotilla",
@@ -77,7 +86,10 @@
 				"wood": 1
 			},
 			"color": "#33404f",
-			"capacity": 0
+			"capacity": 0,
+			"hull": 0.8,
+			"exposure": 1.0,
+			"crew": 300
 		},
 		"transport": {
 			"name": "Transport convoy",
@@ -94,7 +106,27 @@
 				"wood": 5
 			},
 			"color": "#8a7a4a",
-			"capacity": 40000
+			"capacity": 40000,
+			"hull": 1.0,
+			"exposure": 1.5,
+			"crew": 500
 		}
-	}
+	},
+	"combat": {
+		"contact_base": 0.5,
+		"damage_per_point": 0.05,
+		"min_strength": 0.05,
+		"morale_loss_per_damage": 3.0,
+		"morale_loss_base": 0.01,
+		"morale_regain": 0.01,
+		"rout_morale": 0.3,
+		"routed_loss": 0.0,
+		"submarine_evasion": 0.5,
+		"submarine_screen": 0.5
+	},
+	"repair_per_day": 0.01,
+	"port_morale_regain": 0.05,
+	"range_attrition": 0.004,
+	"range_attrition_morale": 0.01,
+	"range_floor": 0.1
 }

@@ -24,6 +24,13 @@ var entering := false
 var mission := "station"
 ## Set while the fleet is in a battle this day.
 var fighting := false
+## True from the day a fleet is found by an enemy until it is no longer fighting; fleets in a
+## fight need no new contact to go on.
+var engaged := false
+## True while a beaten fleet is making for port.
+var retreating := false
+## Days since the fleet left a port; beyond a ship's range its crews and hulls wear down.
+var days_out := 0
 
 
 func is_in_port() -> bool:
