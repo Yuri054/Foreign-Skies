@@ -552,7 +552,7 @@ func select_in_rect(rect: Rect2, additive := false) -> void:
 		if rect.has_point(MapData.provinces[a.province].center) and not ids.has(a.id):
 			ids.append(a.id)
 	_selected = ids
-	_sync_selection()
+	_sync_selection(true)
 	_refresh()
 
 
@@ -566,10 +566,10 @@ func _read_selection() -> void:
 
 
 ## Tells the map and the list which armies are selected.
-func _sync_selection() -> void:
+func _sync_selection(keep_fleets := false) -> void:
 	get_tree().call_group("army_layer", "set_selection", _selected.duplicate())
 	get_tree().call_group("army_action_bar", "set_selection", _selected.duplicate())
-	if not _selected.is_empty():
+	if not _selected.is_empty() and not keep_fleets:
 		get_tree().call_group("navy_panel", "clear_selection_quiet")
 	for i in _listed.size():
 		if _selected.has(_listed[i]):

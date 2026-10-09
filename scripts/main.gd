@@ -43,10 +43,8 @@ func _ready() -> void:
 		get_tree().call_group("military_panel", "select_army", id, additive)
 	)
 	map_view.box_selected.connect(func(rect: Rect2, additive: bool) -> void:
-		get_tree().call_group("navy_panel", "select_in_rect", rect, additive)
-		if not FleetLayer.fleets_in_rect(rect, GameState.player_tag).is_empty():
-			return
 		get_tree().call_group("military_panel", "select_in_rect", rect, additive)
+		get_tree().call_group("navy_panel", "select_in_rect", rect, additive)
 	)
 	map_view.fleets_clicked.connect(func(ids: Array, additive: bool) -> void:
 		var typed: Array[int] = []

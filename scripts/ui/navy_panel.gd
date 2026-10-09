@@ -269,15 +269,14 @@ func select_fleets(ids: Array[int], additive := false) -> void:
 	_refresh()
 
 
-## A box was dragged on the map: select the player's fleets inside it (if there are any; a box
-## with none leaves the selection to the army panel).
+## A box was dragged on the map: select the player's fleets inside it. The army panel selects
+## the armies in the same box, so the two selections coexist.
 func select_in_rect(rect: Rect2, additive := false) -> void:
 	var ids := FleetLayer.fleets_in_rect(rect, GameState.player_tag)
 	if ids.is_empty():
 		if not additive:
 			clear_selection_quiet()
 		return
-	get_tree().call_group("military_panel", "clear_selection")
 	var all: Array[int] = []
 	if additive:
 		all.append_array(_selected)
