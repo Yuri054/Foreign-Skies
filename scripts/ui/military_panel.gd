@@ -52,6 +52,8 @@ var _front_detail := Label.new()
 var _face_button := Button.new()
 var _draw_button := Button.new()
 var _deselect := Button.new()
+var _board := Button.new()
+var _land := Button.new()
 var _face_row := VBoxContainer.new()
 var _assign_button := Button.new()
 var _release_button := Button.new()
@@ -191,6 +193,17 @@ func _ready() -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		orders.add_child(b)
 	box.add_child(orders)
+	var sea_orders := HBoxContainer.new()
+	_board.text = "Board ship"
+	_board.tooltip_text = "Put the selected armies aboard a fleet with transports in the same port. Then send the fleet, or right click an overseas coast to sail and land in one order."
+	_board.pressed.connect(_on_board)
+	_land.text = "Disembark"
+	_land.tooltip_text = "Put the selected armies ashore in the port their fleet lies in. At sea, right click a coast to land."
+	_land.pressed.connect(_on_land)
+	for b in [_board, _land]:
+		b.focus_mode = Control.FOCUS_NONE
+		sea_orders.add_child(b)
+	box.add_child(sea_orders)
 	var by_type := HBoxContainer.new()
 	var by_type_label := Label.new()
 	by_type_label.text = "Split off"
@@ -387,16 +400,74 @@ func clear_selection() -> void:
 	_refresh()
 
 
-## Right click on the map: send the selected armies there.
+## Right click on the map: send the selected armies there. An embarked army lands there if its
+## fleet is off that coast; an army that cannot walk there sails if a fleet with transports lies
+## in its port.
 func order_move(province: int) -> void:
 	if _selected.is_empty() or _drawing or _picking_nation:
 		return
-	var failed := 0
+	var failed: Array[int] = []
 	for id in _selected.duplicate():
-		if not GameState.issue(MoveArmy.new(GameState.player_tag, id, province)):
-			failed += 1
-	if failed > 0:
-		get_tree().call_group("event_feed", "say", "%d of %d armies cannot reach %s." % [failed, _selected.size(), MapData.provinces[province].name], Fmt.WARN)
+		var a: Army = GameState.armies.get(id)
+		if a != null and a.embarked():
+			if not GameState.issue(DisembarkArmy.new(GameState.player_tag, id, province)):
+				failed.append(id)
+		elif not GameState.issue(MoveArmy.new(GameState.player_tag, id, province)):
+			failed.append(id)
+	if not failed.is_empty():
+		failed = _send_overseas(failed, province)
+	if not failed.is_empty():
+		get_tree().call_group("event_feed", "say", "%d of %d armies cannot reach %s." % [failed.size(), _selected.size(), MapData.provinces[province].name], Fmt.WARN)
+	_refresh()
+
+
+## Sends armies that could not walk to a coast by sea, one fleet per port. Returns those that
+## could not go.
+func _send_overseas(ids: Array[int], province: int) -> Array[int]:
+	var left: Array[int] = []
+	var by_port := {}
+	for id in ids:
+		var a: Army = GameState.armies.get(id)
+		if a == null or a.embarked():
+			left.append(id)
+			continue
+		if not by_port.has(a.province):
+			by_port[a.province] = []
+		by_port[a.province].append(id)
+	for port: int in by_port:
+		var group: Array[int] = []
+		group.assign(by_port[port])
+		var sent := false
+		for f in Navy.fleets_in_port(GameState, port):
+			if f.tag == GameState.player_tag and SendOverseas.problem(GameState, GameState.player_tag, f.id, group, province) == "":
+				sent = GameState.issue(SendOverseas.new(GameState.player_tag, f.id, group, province))
+				break
+		if not sent:
+			left.append_array(group)
+	return left
+
+
+## Puts the selected armies aboard a fleet with room in their port.
+func _on_board() -> void:
+	var mine := GameState.player_tag
+	for id in _selected.duplicate():
+		var a: Army = GameState.armies.get(id)
+		if a == null or a.embarked():
+			continue
+		for f in Navy.fleets_in_port(GameState, a.province):
+			if f.tag == mine and GameState.issue(EmbarkArmy.new(mine, id, f.id)):
+				break
+	_refresh()
+
+
+## Puts the selected embarked armies ashore, in the port their fleet is in.
+func _on_land() -> void:
+	for id in _selected.duplicate():
+		var a: Army = GameState.armies.get(id)
+		if a != null and a.embarked():
+			var f: Fleet = GameState.fleets.get(a.fleet_id)
+			if f != null and f.is_in_port():
+				GameState.issue(DisembarkArmy.new(GameState.player_tag, id, f.port))
 	_refresh()
 
 
@@ -449,6 +520,8 @@ func _read_selection() -> void:
 ## Tells the map and the list which armies are selected.
 func _sync_selection() -> void:
 	get_tree().call_group("army_layer", "set_selection", _selected.duplicate())
+	if not _selected.is_empty():
+		get_tree().call_group("navy_panel", "clear_selection_quiet")
 	for i in _listed.size():
 		if _selected.has(_listed[i]):
 			_list.select(i, false)
@@ -512,6 +585,8 @@ func _refresh_list() -> void:
 		var text := "%s · %s · %s" % [a.display_name, MapData.provinces[a.province].name, Fmt.people(a.men())]
 		if a.fighting:
 			text += " · FIGHTING"
+		elif a.embarked():
+			text += " · aboard"
 		elif not a.supplied:
 			text += " · no supply"
 		elif not a.path.is_empty():
@@ -537,11 +612,15 @@ func _refresh_detail() -> void:
 			armies.append(GameState.armies[id])
 	_icon_picker.disabled = armies.is_empty()
 	_deselect.disabled = armies.is_empty()
+	_board.disabled = armies.is_empty() or armies.all(func(x: Army) -> bool: return x.embarked() or Navy.fleets_in_port(GameState, x.province).filter(func(f: Fleet) -> bool: return f.tag == x.tag).is_empty())
+	_land.disabled = armies.is_empty() or not armies.any(func(x: Army) -> bool: return x.embarked() and GameState.fleets.has(x.fleet_id) and GameState.fleets[x.fleet_id].is_in_port())
 	if armies.is_empty():
 		_refresh_split_picker(null)
 		_detail.text = "No army selected."
 		_merge.disabled = true
 		_split.disabled = true
+		_board.disabled = true
+		_land.disabled = true
 		return
 	_updating = true
 	for i in _icon_picker.item_count:
@@ -570,6 +649,11 @@ func _refresh_detail() -> void:
 		"%s on %s%s" % [MapData.provinces[a.province].name, Military.terrain_of(a.province).name.to_lower(),
 				"" if a.supplied else " — OUT OF SUPPLY"],
 	]
+	if a.embarked() and GameState.fleets.has(a.fleet_id):
+		var ship: Fleet = GameState.fleets[a.fleet_id]
+		lines.append("Aboard %s, %s." % [ship.display_name, "in port" if ship.is_in_port() else "at sea in the " + MapData.sea_zones[ship.zone].name])
+	elif a.landing_days > 0:
+		lines.append("Just landed: fights at half strength and is not dug in for %d more days." % a.landing_days)
 	if a.front_id != 0 and GameState.fronts.has(a.front_id):
 		lines.append("On the %s." % GameState.fronts[a.front_id].display_name)
 	if not a.path.is_empty():

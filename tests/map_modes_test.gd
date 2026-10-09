@@ -47,7 +47,7 @@ func _initialize() -> void:
 	var names: PackedStringArray = []
 	for b: Button in palette._buttons:
 		names.append(b.text)
-	_check(names == PackedStringArray(["Political", "Diplomacy", "Economy", "Population", "Military", "Terrain"]), "the palette has the six kinds (%s)" % ", ".join(names))
+	_check(names == PackedStringArray(["Political", "Diplomacy", "Economy", "Population", "Military", "Terrain", "Sea"]), "the palette has the seven kinds (%s)" % ", ".join(names))
 	_check(palette._buttons[0].button_pressed and view.mode == Mode.POLITICAL, "it starts on Political")
 	_check(not palette._strip.visible, "a kind with one map has no strip of variants")
 
@@ -103,8 +103,13 @@ func _initialize() -> void:
 	_check(first == Mode.BUILDINGS and view.mode == Mode.INCOME, "3 returns to Economy where it was left, and again steps on (%d)" % view.mode)
 	_key(KEY_1, true)
 	_check(view.mode == Mode.INCOME, "Ctrl and a number does nothing here")
-	_key(KEY_7)
+	_key(KEY_8)
 	_check(view.mode == Mode.INCOME, "nor does a number past the palette")
+	_key(KEY_7)
+	_check(view.mode == Mode.SEA_CONTROL, "7 shows the sea control map")
+	_key(KEY_7)
+	_check(view.mode == Mode.BLOCKADE and not view.legend().is_empty(), "and again the blockade map, with a legend")
+	_key(KEY_1)
 
 	# The Diplomacy window shows the Diplomacy map while it is open.
 	var dip: Node = get_first_node_in_group("diplomacy_panel")

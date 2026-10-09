@@ -16,11 +16,17 @@ signal army_clicked(army_id: int, additive: bool)
 signal battle_clicked(province: int)
 ## A sea zone was clicked (0 when a province or nothing was).
 signal sea_zone_selected(zone: int)
+## A banner of fleets was clicked (their ids); `additive` if Shift was held.
+signal fleets_clicked(ids: Array, additive: bool)
+## The icon of a sea battle was clicked (its zone).
+signal sea_battle_clicked(zone: int)
+## Right click on water: orders (send the selected fleets there).
+signal zone_ordered(zone: int)
 signal mode_changed(mode: Mode, submode: String)
 ## In the Diplomacy mode, whose point of view the map shows changed (see set_viewpoint).
 signal viewpoint_changed(tag: String)
 
-enum Mode { POLITICAL, RESOURCES, INCOME, POPULATION, BUILDINGS, PROVINCES, TERRAIN, MILITARY, DIPLOMACY }
+enum Mode { POLITICAL, RESOURCES, INCOME, POPULATION, BUILDINGS, PROVINCES, TERRAIN, MILITARY, DIPLOMACY, SEA_CONTROL, BLOCKADE }
 const MODE_NAMES := {
 	Mode.POLITICAL: "Political",
 	Mode.RESOURCES: "Resources",
@@ -31,9 +37,16 @@ const MODE_NAMES := {
 	Mode.TERRAIN: "Terrain",
 	Mode.MILITARY: "Military",
 	Mode.DIPLOMACY: "Diplomacy",
+	Mode.SEA_CONTROL: "Sea control",
+	Mode.BLOCKADE: "Blockade",
 }
 ## Modes whose colors depend on data that changes as the game runs.
-const DYNAMIC_MODES := [Mode.INCOME, Mode.BUILDINGS, Mode.MILITARY, Mode.DIPLOMACY]
+const DYNAMIC_MODES := [Mode.INCOME, Mode.BUILDINGS, Mode.MILITARY, Mode.DIPLOMACY, Mode.SEA_CONTROL, Mode.BLOCKADE]
+## The modes that tint the sea zones.
+const NAVAL_MODES := [Mode.SEA_CONTROL, Mode.BLOCKADE]
+const BLOCKADE_COLOR := Color(0.78, 0.12, 0.1)
+const CONTESTED_COLOR := Color(0.6, 0.1, 0.1)
+const ZONE_TEXTURE_WIDTH := 64
 ## Diplomacy mode: opinion of the player runs from HOSTILE through NEUTRAL to FRIENDLY.
 const HOSTILE_COLOR := Color(0.82, 0.25, 0.22)
 const NEUTRAL_COLOR := Color(0.8, 0.8, 0.76)
@@ -80,6 +93,8 @@ var _marks_image: Image
 var _marks_texture: ImageTexture
 var _blocs_image: Image
 var _blocs_texture: ImageTexture
+var _zone_image: Image
+var _zone_texture: ImageTexture
 var _repaint_queued := false
 ## Diplomacy mode: the nation whose relations the map shows. "" means the player's own.
 var viewpoint := ""
@@ -115,6 +130,9 @@ func _ready() -> void:
 	_material.set_shader_parameter("marks", _marks_texture)
 	_material.set_shader_parameter("blocs", _blocs_texture)
 	_material.set_shader_parameter("sea_zones", ImageTexture.create_from_image(MapData.sea_zones_image))
+	_zone_image = Image.create(ZONE_TEXTURE_WIDTH, 1, false, Image.FORMAT_RGBA8)
+	_zone_texture = ImageTexture.create_from_image(_zone_image)
+	_material.set_shader_parameter("zone_colors", _zone_texture)
 	_material.set_shader_parameter("lookup_width", LOOKUP_WIDTH)
 	_material.set_shader_parameter("max_id", max_id)
 	_material.set_shader_parameter("map_size", Vector2(MapData.map_size))
@@ -129,6 +147,9 @@ func _ready() -> void:
 		if mode in DYNAMIC_MODES and mode != Mode.DIPLOMACY:
 			repaint()
 	)
+	# Ships come and go every day; repaint the sea modes at most once a frame.
+	GameState.fleets_changed.connect(_queue_naval_repaint)
+	GameState.blockade_changed.connect(_queue_naval_repaint.unbind(2))
 	# Opinions change all the time; repaint the diplomacy mode at most once a frame.
 	GameState.relations_changed.connect(_queue_repaint.unbind(2))
 	GameState.treaty_changed.connect(_queue_repaint.unbind(2))
@@ -166,6 +187,8 @@ func set_mode(new_mode: Mode, new_submode := "") -> void:
 	_material.set_shader_parameter("mode", 1 if mode == Mode.PROVINCES else 0)
 	_material.set_shader_parameter("occupation_stripes", mode == Mode.POLITICAL)
 	_material.set_shader_parameter("diplomacy", mode == Mode.DIPLOMACY)
+	_material.set_shader_parameter("zone_paint", mode in NAVAL_MODES)
+	_material.set_shader_parameter("hatch_marks", mode == Mode.BLOCKADE)
 	repaint()
 	mode_changed.emit(mode, submode)
 
@@ -228,6 +251,19 @@ func _queue_repaint() -> void:
 	_deferred_repaint.call_deferred()
 
 
+func _queue_naval_repaint() -> void:
+	if not mode in NAVAL_MODES or _repaint_queued:
+		return
+	_repaint_queued = true
+	_deferred_naval_repaint.call_deferred()
+
+
+func _deferred_naval_repaint() -> void:
+	_repaint_queued = false
+	if mode in NAVAL_MODES:
+		repaint()
+
+
 func _deferred_repaint() -> void:
 	_repaint_queued = false
 	if mode == Mode.DIPLOMACY:
@@ -280,6 +316,33 @@ func repaint() -> void:
 	_owner_texture.update(_owner_image)
 	if mode == Mode.DIPLOMACY:
 		_paint_diplomacy_marks()
+	if mode in NAVAL_MODES:
+		_paint_zones()
+	if mode == Mode.BLOCKADE:
+		_paint_blockade_marks()
+
+
+## Tints every sea zone by who holds it (contested zones dark red; zones nobody holds stay clear).
+func _paint_zones() -> void:
+	_zone_image.fill(Color(0, 0, 0, 0))
+	for zone: int in GameState.sea_control:
+		var c: Dictionary = GameState.sea_control[zone]
+		var color := CONTESTED_COLOR
+		if not c.contested and not c.holders.is_empty():
+			color = GameState.nations[c.holders[0]].color
+		_zone_image.set_pixel(zone, 0, Color(color, 0.62 if mode == Mode.SEA_CONTROL else 0.45))
+	_zone_texture.update(_zone_image)
+
+
+## Hatches the coastal provinces of nations whose trade is being cut off.
+func _paint_blockade_marks() -> void:
+	for id in range(1, MapData.provinces.size()):
+		@warning_ignore("integer_division")
+		var px := Vector2i(id % LOOKUP_WIDTH, id / LOOKUP_WIDTH)
+		var n: Nation = GameState.nations[GameState.province_owner[id]]
+		var hatched := n.blockade >= 0.05 and not MapData.zones_of_port(id).is_empty()
+		_marks_image.set_pixelv(px, BLOCKADE_COLOR.lightened(0.25) if hatched else Color(0, 0, 0, 0))
+	_marks_texture.update(_marks_image)
 
 
 ## Fills the hatch (guaranteed nations) and bloc outline textures for diplomacy mode.
@@ -328,6 +391,10 @@ func _paint_color(id: int, value: float) -> Color:
 		return Color(Military.terrain_of(id).color)
 	if mode == Mode.DIPLOMACY:
 		return diplomacy_color(GameState.province_owner[id])
+	if mode == Mode.BLOCKADE:
+		return NO_DATA_COLOR.lerp(BLOCKADE_COLOR, clampf(GameState.nations[GameState.province_owner[id]].blockade, 0.0, 1.0))
+	if mode == Mode.SEA_CONTROL:
+		return NO_DATA_COLOR.lerp(GameState.owner_color(id), 0.55)
 	if mode == Mode.MILITARY or mode == Mode.POLITICAL:
 		# Who holds the ground. Political stripes occupied provinces with the owner's colour
 		# (in the shader); Military paints them solid in the occupier's colour.
@@ -359,6 +426,8 @@ func _mode_color() -> Color:
 ## What the legend should show for the current mode: a title, the ends of the color scale,
 ## and its color. Empty for modes that are not shaded.
 func legend() -> Dictionary:
+	if mode == Mode.BLOCKADE:
+		return {"title": "Trade cut off by blockade", "low": "none", "high": "all", "from": NO_DATA_COLOR, "to": BLOCKADE_COLOR}
 	if mode == Mode.DIPLOMACY:
 		return {"title": "Opinion of %s" % GameState.nations[diplomacy_viewpoint()].display_name if GameState.nations.has(diplomacy_viewpoint()) else "Opinion",
 				"low": "hostile", "high": "friendly", "from": HOSTILE_COLOR, "to": FRIENDLY_COLOR}
@@ -422,10 +491,17 @@ func _finish_press(_screen_pos: Vector2) -> void:
 		box_selected.emit(_box_rect(), Input.is_key_pressed(KEY_SHIFT))
 	else:
 		var layer := get_tree().get_first_node_in_group("army_layer")
+		var fleet_layer := get_tree().get_first_node_in_group("fleet_layer")
 		var battle: int = layer.pick_battle_at(get_global_mouse_position()) if layer != null else 0
 		var hit: int = layer.pick_at(get_global_mouse_position()) if layer != null else 0
+		var sea_battle: int = fleet_layer.pick_battle_at(get_global_mouse_position()) if fleet_layer != null else 0
+		var fleets: Array[int] = fleet_layer.pick_at(get_global_mouse_position()) if fleet_layer != null else []
 		if battle > 0:
 			battle_clicked.emit(battle)
+		elif sea_battle > 0:
+			sea_battle_clicked.emit(sea_battle)
+		elif not fleets.is_empty():
+			fleets_clicked.emit(fleets, Input.is_key_pressed(KEY_SHIFT))
 		elif hit > 0:
 			army_clicked.emit(hit, Input.is_key_pressed(KEY_SHIFT))
 		else:
@@ -479,3 +555,5 @@ func _unhandled_input(event: InputEvent) -> void:
 		var target := _province_under_mouse()
 		if target > 0:
 			province_ordered.emit(target)
+		elif _zone_under_mouse() > 0:
+			zone_ordered.emit(_zone_under_mouse())

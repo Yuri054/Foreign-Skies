@@ -258,7 +258,11 @@ func _refresh_overview(n: Nation) -> void:
 	_clear(_alerts)
 	var problems: PackedStringArray = []
 	if n.blockade > 0.0:
-		problems.append("Blockaded: imports and exports are cut by %d%%." % roundi(n.blockade * 100.0))
+		var by: PackedStringArray = []
+		for t in n.blockade_by:
+			by.append(GameState.nations[t].display_name)
+		var cause := (" Enemy ships hold the sea routes (%s)." % ", ".join(by)) if not by.is_empty() else ""
+		problems.append("Blockaded: imports and exports are cut by %d%%.%s" % [roundi(n.blockade * 100.0), cause])
 	if n.treasury < 0.0:
 		problems.append("The treasury is in debt.")
 	elif b.net < 0.0:

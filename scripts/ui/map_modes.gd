@@ -1,6 +1,6 @@
 extends VBoxContainer
 ## The map mode palette, in the style of the Paradox games: a row of buttons for the kinds of
-## map (Political, Diplomacy, Economy, Population, Military, Terrain) in the bottom left corner.
+## map (Political, Diplomacy, Economy, Population, Military, Terrain, Sea) in the bottom left corner.
 ## Above it, a strip for the kind you are looking at lists its variants as chips (Economy:
 ## tax income, coal, iron ore, timber, buildings), and a colour legend shows what the shading
 ## means. Keys 1 to 6 pick a kind; pressing the key again steps through its variants. Each kind
@@ -92,6 +92,11 @@ func _build_groups() -> void:
 				"items": [
 					{"label": "Terrain", "mode": MapView.Mode.TERRAIN, "sub": "", "tip": ""},
 					{"label": "Provinces", "mode": MapView.Mode.PROVINCES, "sub": "", "tip": "The raw province colours, for checking the map."},
+				]},
+		{"label": "Sea", "tip": "Who holds the sea zones, and which nations are blockaded.",
+				"items": [
+					{"label": "Sea control", "mode": MapView.Mode.SEA_CONTROL, "sub": "", "tip": "Sea zones tinted by the nation whose warships hold them; dark red where enemy fleets contest them."},
+					{"label": "Blockade", "mode": MapView.Mode.BLOCKADE, "sub": "", "tip": "Nations shaded by how much of their trade is cut off; their ports hatched; sea zones tinted by who holds them."},
 				]},
 	]
 

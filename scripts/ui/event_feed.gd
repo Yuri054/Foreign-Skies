@@ -4,10 +4,16 @@ extends VBoxContainer
 
 const LIFETIME := 9.0
 const MAX_LINES := 6
+## A blockade is announced when it reaches this level.
+const BLOCKADE_NOTICE := 0.1
 
 ## Provinces where a battle was announced and is still going.
 var _active: Dictionary = {}
 var _fought_today: Dictionary = {}
+## The same for sea battles, by zone, and the nations whose blockade has been announced.
+var _sea_active: Dictionary = {}
+var _sea_fought_today: Dictionary = {}
+var _blockaded: Dictionary = {}
 
 
 func _ready() -> void:
@@ -30,10 +36,61 @@ func _ready() -> void:
 		say("%s holds no land: its armies (%s men) disband." % [_name(tag), Fmt.people(men)], Fmt.WARN)
 	)
 	_connect_diplomacy()
+	_connect_navy()
 	GameState.war_changed.connect(func(a: String, b: String, at_war: bool) -> void:
 		var text := "%s and %s are now at war." if at_war else "%s and %s have made peace."
 		say(text % [_name(a), _name(b)], Fmt.BAD if at_war else Fmt.GOOD)
 	)
+
+
+## Naval battles, ships sunk and launched, blockades beginning and lifting.
+func _connect_navy() -> void:
+	GameState.sea_battle_fought.connect(func(zone: int, tags: Array) -> void:
+		_sea_fought_today[zone] = tags
+	)
+	GameState.fleets_changed.connect(_end_of_sea_day)
+	GameState.ship_sunk.connect(func(tag: String, zone: int, type: String) -> void:
+		var mine: bool = tag == GameState.player_tag
+		say("%s lost a %s in the %s." % [_name(tag), Navy.cfg.types[type].name.to_lower(), MapData.sea_zones[zone].name], Fmt.BAD if mine else Fmt.GOOD)
+	)
+	GameState.ship_built.connect(func(tag: String, province: int, type: String) -> void:
+		if tag == GameState.player_tag:
+			say("%s launched at %s." % [Navy.cfg.types[type].name, MapData.provinces[province].name], Fmt.GOOD)
+	)
+	GameState.blockade_changed.connect(func(tag: String, value: float) -> void:
+		var was: bool = _blockaded.get(tag, false)
+		var now := value >= BLOCKADE_NOTICE
+		if now == was and not (was and value <= 0.001):
+			return
+		if was and value <= 0.001:
+			_blockaded[tag] = false
+			say("The blockade of %s is lifted." % _name(tag), Fmt.GOOD if tag != GameState.player_tag else Fmt.GOOD)
+		elif now and not was:
+			_blockaded[tag] = true
+			var by: PackedStringArray = []
+			for t in GameState.nations[tag].blockade_by:
+				by.append(_name(t))
+			say("%s is being blockaded%s." % [_name(tag), (" by " + ", ".join(by)) if not by.is_empty() else ""],
+					Fmt.BAD if tag == GameState.player_tag else Fmt.WARN)
+	)
+
+
+func _end_of_sea_day() -> void:
+	for zone in _sea_active.keys():
+		if not _sea_fought_today.has(zone):
+			_sea_active.erase(zone)
+	for zone in _sea_fought_today:
+		if _sea_active.has(zone):
+			continue
+		_sea_active[zone] = true
+		var tags: Array = _sea_fought_today[zone]
+		if tags.has(GameState.player_tag):
+			var names: PackedStringArray = []
+			for t in tags:
+				if not names.has(_name(t)):
+					names.append(_name(t))
+			say("Naval battle in the %s: %s." % [MapData.sea_zones[zone].name, " vs ".join(names)], Fmt.WARN)
+	_sea_fought_today.clear()
 
 
 ## Treaties, calls to arms, alarms and peace offers.

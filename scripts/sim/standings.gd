@@ -14,6 +14,7 @@ const METRICS := [
 	{"id": "income", "label": "Income", "kind": "money", "tip": "What the state takes in each month (GBP millions)."},
 	{"id": "treasury", "label": "Treasury", "kind": "money", "tip": "Money in the treasury (GBP millions); a debt is negative."},
 	{"id": "army", "label": "Army", "kind": "men", "tip": "Men under arms and in training."},
+	{"id": "navy", "label": "Navy", "kind": "count", "tip": "Squadrons of warships and transports afloat."},
 	{"id": "manpower", "label": "Manpower", "kind": "men", "tip": "The pool of men that could be called up."},
 	{"id": "provinces", "label": "Provinces", "kind": "count", "tip": "Provinces owned."},
 	{"id": "diplomacy_points", "label": "Diplomacy points", "kind": "points", "tip": "The stock of diplomatic effort, spent on declarations, treaties and gifts."},
@@ -46,6 +47,11 @@ static func value(gs: Node, tag: String, id: String) -> float:
 			return n.treasury
 		"army":
 			return Military.men_in_service(gs, tag)
+		"navy":
+			var ships := 0
+			for f in Navy.fleets_of(gs, tag):
+				ships += f.ships.size()
+			return float(ships)
 		"manpower":
 			return b.get("manpower_pool", 0.0)
 		"provinces":

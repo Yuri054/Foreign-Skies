@@ -9,6 +9,9 @@ uniform sampler2D marks : filter_nearest, repeat_disable;   // diplomacy: hatch 
 uniform sampler2D blocs : filter_nearest, repeat_disable;   // diplomacy: bloc colour, alpha > 0.5 = in a bloc
 uniform sampler2D sea_zones : filter_nearest, repeat_disable; // red channel = sea zone id
 uniform bool show_zones = false;
+uniform sampler2D zone_colors : filter_nearest, repeat_disable; // 64x1: tint of each sea zone, alpha 0 = none
+uniform bool zone_paint = false;
+uniform bool hatch_marks = false; // hatch the provinces `marks` flags, outside the diplomacy mode too
 uniform int selected_zone = 0;
 uniform int hover_zone = 0;
 uniform bool diplomacy = false;
@@ -88,7 +91,7 @@ void fragment() {
 		}
 	}
 
-	if (diplomacy && id > 0) {
+	if ((diplomacy || hatch_marks) && id > 0) {
 		vec4 mark = mark_color(id);
 		if (mark.a > 0.5) {
 			// Hatching for guaranteed nations.
@@ -136,6 +139,10 @@ void fragment() {
 
 	if (id == SEA) {
 		int zone = zone_at(UV);
+		if (zone > 0 && zone_paint) {
+			vec4 tint = texelFetch(zone_colors, ivec2(zone, 0), 0);
+			col = mix(col, tint.rgb, tint.a);
+		}
 		if (zone > 0) {
 			if (show_zones || zone == selected_zone) {
 				for (int i = 0; i < 4; i++) {

@@ -50,7 +50,7 @@ func _test_standings() -> void:
 	var ids: PackedStringArray = []
 	for m: Dictionary in S.METRICS:
 		ids.append(m.id)
-	_check(ids.size() == 11 and "diplomacy_points" in ids and "population" in ids and "treasury" in ids and "war_support" in ids, "eleven figures can be ranked (%s)" % ", ".join(ids))
+	_check(ids.size() == 12 and "navy" in ids and "diplomacy_points" in ids and "population" in ids and "treasury" in ids and "war_support" in ids, "twelve figures can be ranked (%s)" % ", ".join(ids))
 	var pop: Array = S.ranking(gs, "population")
 	_check(pop.size() == 20, "every nation with land is ranked (%d)" % pop.size())
 	var sorted := true

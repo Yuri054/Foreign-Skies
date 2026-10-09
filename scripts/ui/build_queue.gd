@@ -26,6 +26,7 @@ func _ready() -> void:
 	add_child(_list)
 
 	GameState.economy_updated.connect(_refresh)
+	GameState.fleets_changed.connect(_refresh)
 	GameState.player_changed.connect(func(_t: String) -> void: _refresh())
 	Clock.day_ticked.connect(_refresh)
 	_refresh()
@@ -36,16 +37,19 @@ func _refresh() -> void:
 		_list.remove_child(c)
 		c.queue_free()
 	var n := GameState.get_player()
-	visible = n != null and not n.construction.is_empty()
+	visible = n != null and not (n.construction.is_empty() and n.shipbuilding.is_empty())
 	if not visible:
 		return
 
+	# Buildings and ships together, soonest to finish first.
+	var jobs: Array[Dictionary] = []
+	for job in n.construction:
+		jobs.append({"label": Economy.cfg.buildings[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total})
+	for job in n.shipbuilding:
+		jobs.append({"label": Navy.cfg.types[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total})
 	var title := Label.new()
-	title.text = "Under construction (%d)" % n.construction.size()
+	title.text = "Under construction (%d)" % jobs.size()
 	_list.add_child(title)
-
-	# Soonest to finish first.
-	var jobs := n.construction.duplicate()
 	jobs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.days_left < b.days_left)
 	for i in mini(jobs.size(), MAX_ROWS):
 		_list.add_child(_make_row(jobs[i]))
@@ -64,7 +68,7 @@ func _make_row(job: Dictionary) -> Control:
 	button.flat = true
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
-	button.text = "%s, %s  (%dd)" % [Economy.cfg.buildings[job.type].name, MapData.provinces[job.province].name, job.days_left]
+	button.text = "%s, %s  (%dd)" % [job.label, MapData.provinces[job.province].name, job.days_left]
 	button.tooltip_text = "Click to go to the province"
 	var id: int = job.province
 	button.pressed.connect(func() -> void: province_clicked.emit(id))

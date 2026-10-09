@@ -6,6 +6,8 @@ const MilitaryPanel := preload("res://scripts/ui/military_panel.gd")
 const BuildQueue := preload("res://scripts/ui/build_queue.gd")
 const MapModes := preload("res://scripts/ui/map_modes.gd")
 const ArmyLayer := preload("res://scripts/map/army_layer.gd")
+const NavyPanel := preload("res://scripts/ui/navy_panel.gd")
+const NavalBattleScreen := preload("res://scripts/ui/naval_battle_screen.gd")
 const AIOverlay := preload("res://scripts/map/ai_overlay.gd")
 const EventFeed := preload("res://scripts/ui/event_feed.gd")
 const BattleScreen := preload("res://scripts/ui/battle_screen.gd")
@@ -30,6 +32,7 @@ func _ready() -> void:
 	map_view.sea_zone_selected.connect(_on_sea_zone_selected)
 	var army_layer := ArmyLayer.new()
 	add_child(army_layer)
+	add_child(FleetLayer.new())
 	add_child(AIOverlay.new())
 	map_view.province_hovered.connect(army_layer.set_hover)
 	map_view.province_selected.connect(army_layer.set_expanded)
@@ -40,7 +43,21 @@ func _ready() -> void:
 		get_tree().call_group("military_panel", "select_army", id, additive)
 	)
 	map_view.box_selected.connect(func(rect: Rect2, additive: bool) -> void:
+		get_tree().call_group("navy_panel", "select_in_rect", rect, additive)
+		if not FleetLayer.fleets_in_rect(rect, GameState.player_tag).is_empty():
+			return
 		get_tree().call_group("military_panel", "select_in_rect", rect, additive)
+	)
+	map_view.fleets_clicked.connect(func(ids: Array, additive: bool) -> void:
+		var typed: Array[int] = []
+		typed.assign(ids)
+		get_tree().call_group("navy_panel", "select_fleets", typed, additive)
+	)
+	map_view.sea_battle_clicked.connect(func(zone: int) -> void:
+		get_tree().call_group("naval_battle_screen", "open_battle", GameState.sea_battles.get(zone, {}).get("id", 0))
+	)
+	map_view.zone_ordered.connect(func(zone: int) -> void:
+		get_tree().call_group("navy_panel", "order_zone", zone)
 	)
 	camera.limit_left = 0
 	camera.limit_top = 0
@@ -51,12 +68,14 @@ func _ready() -> void:
 
 	ui.add_child(EconomyPanel.new())
 	ui.add_child(MilitaryPanel.new())
+	ui.add_child(NavyPanel.new())
 	ui.add_child(DiplomacyPanel.new())
 	ui.add_child(NationStats.new())
 	ui.add_child(RankingsWindow.new())
 	ui.add_child(SettingsWindow.new())
 	ui.add_child(EventFeed.new())
 	ui.add_child(BattleScreen.new())
+	ui.add_child(NavalBattleScreen.new())
 	ui.add_child(PeaceScreen.new())
 	ui.add_child(JoinPrompt.new())
 	var queue := BuildQueue.new()
@@ -86,6 +105,9 @@ func _ready() -> void:
 func _on_right_click(id: int) -> void:
 	var tag: String = GameState.province_owner[id]
 	var shift := Input.is_key_pressed(KEY_SHIFT)
+	var navy := get_tree().get_first_node_in_group("navy_panel")
+	if navy != null and navy.has_selection() and not shift and navy.order_port(id):
+		return
 	var panel := get_tree().get_first_node_in_group("military_panel")
 	if panel != null and panel.has_selection() and not shift:
 		get_tree().call_group("military_panel", "order_move", id)
@@ -115,6 +137,7 @@ func _focus_on(tag: String) -> void:
 func _on_sea_zone_selected(zone: int) -> void:
 	if zone <= 0:
 		return
+	get_tree().call_group("navy_panel", "clear_selection_quiet")
 	var z: Dictionary = MapData.sea_zones[zone]
 	var next: PackedStringArray = []
 	for n in MapData.sea_adjacency[zone]:
@@ -125,6 +148,8 @@ Borders: %s
 
 
 func _on_province_selected(id: int) -> void:
+	get_tree().call_group("navy_panel", "clear_selection_quiet")
+	get_tree().call_group("navy_panel", "set_province", id)
 	get_tree().call_group("economy_panel", "set_province", id)
 	get_tree().call_group("military_panel", "set_province", id)
 	get_tree().call_group("diplomacy_panel", "set_province", id)

@@ -5,7 +5,7 @@ extends FloatingWindow
 ## nation anywhere to see it in the country panel. Open with the Rankings button beside the
 ## settings gear, or R.
 
-const TABLE_COLUMNS := ["population", "gdp", "income", "treasury", "army", "prestige", "provinces"]
+const TABLE_COLUMNS := ["population", "gdp", "income", "treasury", "army", "navy", "prestige", "provinces"]
 const TREND_LEADERS := 5
 const YOU_COLOR := Color(0.78, 0.88, 1.0)
 

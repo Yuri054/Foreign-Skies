@@ -97,6 +97,7 @@ func _ready() -> void:
 	GameState.war_support_changed.connect(_mark_dirty.unbind(2))
 	GameState.diplomacy_points_changed.connect(_mark_dirty.unbind(2))
 	GameState.armies_changed.connect(_mark_dirty)
+	GameState.fleets_changed.connect(_mark_dirty)
 	GameState.player_changed.connect(func(_t: String) -> void:
 		_chosen = ""
 		_mark_dirty()
@@ -205,10 +206,17 @@ func _refresh() -> void:
 	var military := _section("Military")
 	var armies := Military.armies_of(GameState, tag)
 	_row(military, "Under arms", "%s in %d %s" % [Fmt.people(Military.men_in_service(GameState, tag)), armies.size(), "army" if armies.size() == 1 else "armies"], _rank(ranks.army, tag))
+	var squadrons := int(Standings.value(GameState, tag, "navy"))
+	if squadrons > 0 or n.naval_budget > 0.0:
+		_row(military, "Navy", "%d %s afloat" % [squadrons, "squadron" if squadrons == 1 else "squadrons"], _rank(ranks.navy, tag))
 	_row(military, "Recruit reserve", Fmt.people(n.manpower))
 	_row(military, "Manpower pool", Fmt.people(b.get("manpower_pool", 0.0)))
 	_row(military, "Mobilization", "%d%%" % roundi(n.mobilization * 100.0))
 	_row(military, "Army upkeep", "£%.1fM a month" % Fmt.monthly(b.get("army", 0.0)))
+	if n.naval_budget > 0.0:
+		_row(military, "Navy upkeep", "£%.1fM a month" % Fmt.monthly(n.naval_budget))
+	if n.blockade > 0.005:
+		_row(military, "Blockade", "%d%% of trade cut" % roundi(n.blockade * 100.0), "", Fmt.BAD)
 
 	var politics := _section("Politics")
 	var floor_support: float = Diplomacy.cfg.war_support.floor
@@ -264,7 +272,7 @@ func _fill_picker(shown: String) -> void:
 
 ## Every nation with land, by each figure that can be ranked: tag -> value, per figure.
 func _ranks() -> Dictionary:
-	var out := {"population": {}, "gdp": {}, "revenue": {}, "treasury": {}, "army": {}, "prestige": {}}
+	var out := {"population": {}, "gdp": {}, "revenue": {}, "treasury": {}, "army": {}, "navy": {}, "prestige": {}}
 	for tag: String in GameState.nations:
 		var n: Nation = GameState.nations[tag]
 		if n.provinces.is_empty():
@@ -274,6 +282,7 @@ func _ranks() -> Dictionary:
 		out.revenue[tag] = n.budget.get("revenue", 0.0)
 		out.treasury[tag] = n.treasury
 		out.army[tag] = Military.men_in_service(GameState, tag)
+		out.navy[tag] = Standings.value(GameState, tag, "navy")
 		out.prestige[tag] = n.prestige
 	return out
 
