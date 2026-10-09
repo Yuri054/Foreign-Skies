@@ -1,0 +1,58 @@
+class_name DesignateFront
+extends Command
+## Draws a front: a named line of adjacent provinces. Armies are assigned separately.
+
+var tag: String
+var front_name: String
+var provinces: Array[int]
+## For a border front: the nation it faces (the line is then worked out, not given).
+var against: String
+## Id of the new front (filled in by execute).
+var front_id := 0
+
+
+func _init(p_tag := "", p_name := "", p_provinces: Array[int] = [], p_against := "") -> void:
+	tag = p_tag
+	front_name = p_name
+	provinces = p_provinces
+	against = p_against
+
+
+## Why the line is not valid, or "" if it is.
+static func problem(gs: Node, p_tag: String, line: Array[int], p_against := "") -> String:
+	if not p_against.is_empty():
+		if not gs.nations.has(p_tag) or not gs.nations.has(p_against) or p_against == p_tag:
+			return "Choose another nation to face."
+		if Military.border_provinces(gs, p_tag, p_against).is_empty():
+			return "You share no border with %s." % gs.nations[p_against].display_name
+		return ""
+	if not gs.nations.has(p_tag) or line.is_empty():
+		return "A front needs at least one province."
+	for i in line.size():
+		if line[i] < 1 or line[i] >= gs.province_owner.size():
+			return "Unknown province."
+		if i > 0 and not Military.neighbors(line[i - 1]).has(line[i]):
+			return "The provinces of a front must border each other."
+	return ""
+
+
+func execute(gs: Node) -> bool:
+	if not problem(gs, tag, provinces, against).is_empty():
+		return false
+	var f := Front.new()
+	f.id = gs.next_front_id
+	gs.next_front_id += 1
+	f.tag = tag
+	f.display_name = front_name
+	if f.display_name.is_empty():
+		f.display_name = "Front vs %s" % gs.nations[against].display_name if not against.is_empty() else "Front %d" % f.id
+	f.against = against
+	f.provinces = Military.border_provinces(gs, tag, against) if not against.is_empty() else provinces.duplicate()
+	gs.fronts[f.id] = f
+	front_id = f.id
+	gs.fronts_changed.emit()
+	return true
+
+
+func to_dict() -> Dictionary:
+	return {"type": "DesignateFront", "tag": tag, "name": front_name, "provinces": provinces, "against": against}

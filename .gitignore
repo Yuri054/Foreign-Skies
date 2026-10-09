@@ -1,0 +1,8 @@
+# Godot
+.godot/
+*.translation
+
+# Exports and editor leftovers
+export_presets.cfg
+export/
+.mono/

@@ -1,0 +1,212 @@
+{
+	"_note": "Economy constants. Money is GBP millions per year unless noted; people are head counts.",
+	"gdp_per_capita": 40.0,
+	"reference_density": 100.0,
+	"density_exponent": 0.35,
+	"density_min": 0.6,
+	"density_max": 2.0,
+	"industry_share_min": 0.12,
+	"industry_share_max": 0.45,
+	"food_per_km2": 70.0,
+	"food_import_cost": 12.0,
+	"food_state_share": 0.1,
+	"famine_output_penalty": 0.6,
+	"blockade_trade_loss": 0.3,
+	"default_tax_rate": 0.1,
+	"min_tax_rate": 0.05,
+	"max_tax_rate": 0.4,
+	"tax_drag": 1.2,
+	"civil_share": 0.5,
+	"baseline_growth": 0.015,
+	"manpower_share": 0.12,
+	"soldier_upkeep": 70.0,
+	"mobilization_output_penalty": 0.35,
+	"mobilization_rate": 0.15,
+	"buildings": {
+		"_note": "Province buildings. cost is GBP millions for level 1 and scales with the level being built. effects are fractional bonuses per level: 'trade' is tariff income as a share of the province's output (lost to blockade); 'yield_<resource>' raises extraction of a deposit above the base. materials are thousand tonnes needed for level 1 (scaled by level), taken from the national stockpile and bought at a markup if short. consumes is thousand tonnes per level per year. requires: 'coastal' needs a sea coast, 'deposit:<resource>' needs a deposit.",
+		"farmland": {
+			"name": "Farmland improvements",
+			"max_level": 3,
+			"cost": 3.0,
+			"build_days": 90,
+			"effects": {
+				"food": 0.2
+			},
+			"materials": {
+				"wood": 400
+			}
+		},
+		"factory": {
+			"name": "Factory district",
+			"max_level": 3,
+			"cost": 6.0,
+			"build_days": 150,
+			"effects": {
+				"gdp": 0.08,
+				"industry": 0.25
+			},
+			"materials": {
+				"iron": 1500,
+				"coal": 800
+			},
+			"consumes": {
+				"coal": 600,
+				"iron": 400
+			}
+		},
+		"railway": {
+			"name": "Railway network",
+			"max_level": 3,
+			"cost": 8.0,
+			"build_days": 180,
+			"effects": {
+				"gdp": 0.06,
+				"food": 0.05
+			},
+			"materials": {
+				"iron": 2500,
+				"wood": 600
+			},
+			"consumes": {
+				"coal": 400
+			}
+		},
+		"port": {
+			"name": "Port",
+			"max_level": 3,
+			"cost": 7.0,
+			"build_days": 150,
+			"requires": "coastal",
+			"effects": {
+				"gdp": 0.05,
+				"trade": 0.06
+			},
+			"materials": {
+				"wood": 1200,
+				"iron": 600
+			}
+		},
+		"market": {
+			"name": "Trading house",
+			"max_level": 3,
+			"cost": 5.0,
+			"build_days": 100,
+			"effects": {
+				"gdp": 0.03,
+				"trade": 0.04
+			},
+			"materials": {
+				"wood": 800
+			}
+		},
+		"coal_mine": {
+			"name": "Coal mine",
+			"max_level": 3,
+			"cost": 4.0,
+			"build_days": 120,
+			"requires": "deposit:coal",
+			"materials": {
+				"wood": 600,
+				"iron": 500
+			},
+			"effects": {
+				"yield_coal": 0.35
+			}
+		},
+		"iron_mine": {
+			"name": "Iron mine",
+			"max_level": 3,
+			"cost": 4.0,
+			"build_days": 120,
+			"requires": "deposit:iron",
+			"materials": {
+				"wood": 600,
+				"iron": 500
+			},
+			"effects": {
+				"yield_iron": 0.35
+			}
+		},
+		"sawmill": {
+			"name": "Sawmill",
+			"max_level": 3,
+			"cost": 2.5,
+			"build_days": 90,
+			"requires": "deposit:wood",
+			"materials": {
+				"iron": 500,
+				"wood": 300
+			},
+			"effects": {
+				"yield_wood": 0.35
+			}
+		}
+	},
+	"programs": {
+		"_note": "National programs, switched on or off. Upkeep is a share of the nation's GDP per year. 'growth' adds to yearly economic growth.",
+		"agri_subsidies": {
+			"name": "Agricultural subsidies",
+			"cost_gdp_share": 0.004,
+			"effects": {
+				"food": 0.15
+			}
+		},
+		"industrial_subsidies": {
+			"name": "Industrial subsidies",
+			"cost_gdp_share": 0.006,
+			"effects": {
+				"industry": 0.2,
+				"gdp": 0.03
+			}
+		},
+		"education": {
+			"name": "Education reform",
+			"cost_gdp_share": 0.005,
+			"effects": {
+				"growth": 0.01
+			}
+		}
+	},
+	"resources": {
+		"_note": "Raw resources, in thousand tonnes per year. price is GBP per tonne. industry_demand is kt used per GBP million of industrial output, pop_demand is kt per inhabitant. shortage: output lost per unit of unmet demand (1.0 = all demand unmet).",
+		"coal": {
+			"name": "Coal",
+			"color": "#3a3a3a",
+			"price": 0.6,
+			"industry_demand": 160.0,
+			"pop_demand": 0.00025,
+			"shortage": {
+				"industry": 0.5,
+				"gdp": 0.15
+			}
+		},
+		"iron": {
+			"name": "Iron ore",
+			"color": "#b5532a",
+			"price": 0.5,
+			"industry_demand": 34.0,
+			"pop_demand": 0.0,
+			"shortage": {
+				"industry": 0.5,
+				"gdp": 0.1
+			}
+		},
+		"wood": {
+			"name": "Timber",
+			"color": "#3f8f3a",
+			"price": 0.9,
+			"industry_demand": 12.0,
+			"pop_demand": 0.0002,
+			"shortage": {
+				"industry": 0.1,
+				"gdp": 0.05
+			}
+		}
+	},
+	"extraction_base": 0.3,
+	"min_deposit": 50,
+	"trade_state_share": 0.5,
+	"stockpile_months": 3,
+	"stockpile_share": 0.25,
+	"import_markup": 1.5
+}

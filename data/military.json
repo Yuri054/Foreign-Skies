@@ -1,0 +1,71 @@
+{
+	"_note": "Military constants. Money is GBP millions; sizes are men; speeds are km per day; attack is per 1000 men at full morale.",
+	"field_share": 0.9,
+	"icons": {
+		"auto": "Automatic",
+		"infantry": "Infantry",
+		"cavalry": "Cavalry",
+		"artillery": "Artillery",
+		"guard": "Guard",
+		"fortress": "Fortress garrison",
+		"reserve": "Reserve"
+	},
+	"size_marks": [[150000, "XXX"], [50000, "XX"], [10000, "X"]],
+	"unit_types": {
+		"infantry": {"name": "Infantry division", "size": 12000, "attack": 1.0, "speed": 15.0, "cost": 0.6, "train_days": 30, "color": "#5b6f8a", "share": 0.75},
+		"cavalry": {"name": "Cavalry division", "size": 4000, "attack": 0.8, "speed": 25.0, "cost": 0.5, "train_days": 45, "color": "#8a7a4a", "share": 0.05},
+		"artillery": {"name": "Artillery brigade", "size": 3000, "attack": 3.0, "speed": 12.0, "cost": 1.2, "train_days": 60, "color": "#8a4a4a", "share": 0.20}
+	},
+	"terrain": {
+		"plains": {"name": "Plains", "defense": 1.0, "move": 1.0, "occupy_days": 5, "color": "#d9d38a"},
+		"forest": {"name": "Forest", "defense": 1.2, "move": 1.5, "occupy_days": 7, "color": "#4f8a4a"},
+		"hills": {"name": "Hills", "defense": 1.3, "move": 1.4, "occupy_days": 7, "color": "#a58f5a"},
+		"mountains": {"name": "Mountains", "defense": 1.6, "move": 2.4, "occupy_days": 10, "color": "#8c8c92"},
+		"marsh": {"name": "Marsh", "defense": 1.1, "move": 2.0, "occupy_days": 8, "color": "#5f8f88"},
+		"urban": {"name": "Urban", "defense": 1.4, "move": 1.0, "occupy_days": 12, "color": "#b0626a"}
+	},
+	"combat": {
+		"casualties_per_point": 7.0,
+		"morale_floor_effect": 0.5,
+		"morale_loss_per_casualty": 8.0,
+		"morale_loss_base": 0.01,
+		"morale_regain": 0.02,
+		"rout_morale": 0.25,
+		"routed_loss": 0.1,
+		"min_strength": 0.01,
+		"max_entrenchment": 5,
+		"entrench_days_per_level": 4,
+		"entrench_defense_per_level": 0.12
+	},
+	"supply": {
+		"range": 3.0,
+		"railway_hop_cost": 0.5,
+		"attrition": 0.004,
+		"attrition_morale": 0.01,
+		"reinforce_rate": 0.01
+	},
+	"movement": {
+		"min_days": 1,
+		"railway_speedup": 0.6,
+		"strait_days": 2
+	},
+	"occupation": {
+		"income_share": 0.25
+	},
+	"generals": {
+		"GBR": [["John French", 1.0], ["Douglas Haig", 1.05], ["Horace Smith-Dorrien", 1.05]],
+		"FRA": [["Joseph Joffre", 1.05], ["Ferdinand Foch", 1.1], ["Charles Lanrezac", 0.95], ["Joseph Gallieni", 1.05]],
+		"GER": [["Helmuth von Moltke", 0.95], ["Alexander von Kluck", 1.0], ["Karl von Bülow", 1.0], ["Erich von Falkenhayn", 1.05], ["Paul von Hindenburg", 1.1]],
+		"AUH": [["Conrad von Hötzendorf", 0.95], ["Viktor Dankl", 1.0]],
+		"ITA": [["Luigi Cadorna", 0.95], ["Armando Diaz", 1.05]],
+		"BEL": [["Gérard Leman", 1.0], ["Albert I", 1.0]],
+		"ESP": [["Valeriano Weyler", 0.9]],
+		"NED": [["C.J. Snijders", 0.95]],
+		"RUS": [["Nikolai Nikolaevich", 1.05], ["Aleksei Brusilov", 1.1], ["Nikolai Ruzsky", 1.0], ["Pavel Rennenkampf", 0.95], ["Alexander Samsonov", 0.9], ["Nikolai Ivanov", 1.0], ["Alexei Evert", 0.95]],
+		"SRB": [["Radomir Putnik", 1.1], ["Živojin Mišić", 1.1], ["Stepa Stepanović", 1.05], ["Petar Bojović", 1.05]],
+		"BUL": [["Nikola Zhekov", 1.0], ["Radko Dimitriev", 1.0]],
+		"ROM": [["Constantin Prezan", 1.0], ["Alexandru Averescu", 1.0]],
+		"GRE": [["Panagiotis Danglis", 0.95]],
+		"OTT": [["Liman von Sanders", 1.0], ["Enver Pasha", 0.9]]
+	}
+}

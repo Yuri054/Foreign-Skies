@@ -1,0 +1,879 @@
+id	name	terrain
+1	Banja Luka	hills
+2	Banskobystrický	mountains
+3	Baranya	hills
+4	Bjelovarsko-bilogorska	hills
+5	Bohinj	mountains
+6	Bozen	mountains
+7	Bratislavský	plains
+8	Brodsko-Posavska	marsh
+9	Brodsko-Posavska (2)	marsh
+10	Budapest	urban
+11	Burgenland	plains
+12	Bács-Kiskun	plains
+13	Central Bosnia	mountains
+14	Doboj	plains
+15	Dubrovacko-Neretvanska	mountains
+16	Fejér	plains
+17	Foča	mountains
+18	Gyor-Moson-Sopron	plains
+19	Herzegovina-Neretva	mountains
+20	Ilirska Bistrica	hills
+21	Istarska	hills
+22	Jihomoravský	plains
+23	Jihočeský	hills
+24	Karlovacka	hills
+25	Karlovarský	hills
+26	Kocevje	forest
+27	Komárom-Esztergom	plains
+28	Koprivničko-Križevačka	plains
+29	Královéhradecký	hills
+30	Krško	hills
+31	Kärnten	mountains
+32	Liberecký	mountains
+33	Licko-Senjska	mountains
+34	Ljubljana	hills
+35	Moravskoslezský	hills
+36	Niederösterreich	plains
+37	Nitriansky	plains
+38	Nova Goriška	mountains
+39	Oberösterreich	plains
+40	Olomoucký	plains
+41	Osjecko-Baranjska	plains
+42	Pardubický	plains
+43	Pest	plains
+44	Plzeňský	forest
+45	Prague	urban
+46	Primorsko-Goranska	plains
+47	Salzburg	mountains
+48	Sarajevo-romanija	mountains
+49	Sisacko-Moslavacka	marsh
+50	Slovenska Bistrica	hills
+51	Somogy	plains
+52	Splitsko-Dalmatinska	mountains
+53	Steiermark	mountains
+54	Středočeský	plains
+55	Tirol	mountains
+56	Tolna	plains
+57	Trebinje	mountains
+58	Trenciansky	hills
+59	Trento	mountains
+60	Trnavský	plains
+61	Tuzla	plains
+62	Una-Sana	hills
+63	Varaždinska	hills
+64	Vas	hills
+65	Veszprém	hills
+66	Viroviticko-Podravska	plains
+67	Vlasenica	mountains
+68	Vorarlberg	mountains
+69	Vukovarsko-Srijemska	plains
+70	Vysočina	hills
+71	West Bosnia	mountains
+72	Wien	urban
+73	Zadarska	mountains
+74	Zagrebacka	hills
+75	Zala	hills
+76	Zenica-Doboj	mountains
+77	Zlínský	hills
+78	Ústecký	hills
+79	Šibensko-Kninska	mountains
+80	Žilinský	mountains
+81	Antwerp	plains
+82	Belgian Luxembourg	forest
+83	Brussels	urban
+84	East Flanders	plains
+85	Flemish Brabant	plains
+86	Hainaut	plains
+87	Liege	hills
+88	Limburg	plains
+89	Namur	hills
+90	West Flanders	plains
+91	Hovedstaden	plains
+92	Midtjylland 1	plains
+93	Midtjylland 2	plains
+94	Nordjylland	plains
+95	Sjaælland	plains
+96	Syddanmark 1	plains
+97	Syddanmark 2	plains
+98	Albacete 1	plains
+99	Albacete 2	plains
+100	Alicante	plains
+101	Almería	hills
+102	Asturias	mountains
+103	Badajoz 1	hills
+104	Badajoz 2	plains
+105	Baleares	hills
+106	Barcelona	hills
+107	Bizkaia	hills
+108	Burgos 1	mountains
+109	Burgos 2	plains
+110	Cantabria	mountains
+111	Castellón	hills
+112	Ceuta	urban
+113	Ciudad Real 1	plains
+114	Ciudad Real 2	plains
+115	Cuenca 1	hills
+116	Cuenca 2	hills
+117	Cáceres 1	hills
+118	Cáceres 2	hills
+119	Cádiz	hills
+120	Córdoba 1	hills
+121	Córdoba 2	plains
+122	Gerona	hills
+123	Gipuzkoa	hills
+124	Granada 1	mountains
+125	Granada 2	mountains
+126	Guadalajara 1	hills
+127	Guadalajara 2	plains
+128	Huelva	hills
+129	Huesca 1	mountains
+130	Huesca 2	plains
+131	Jaén 1	hills
+132	Jaén 2	plains
+133	La Coruña	hills
+134	La Rioja	hills
+135	León 1	mountains
+136	León 2	plains
+137	Lugo	hills
+138	Lérida 1	mountains
+139	Lérida 2	plains
+140	Madrid	plains
+141	Murcia	plains
+142	Málaga	hills
+143	Navarra	hills
+144	Orense	hills
+145	Palencia	plains
+146	Pontevedra	hills
+147	Salamanca 1	plains
+148	Salamanca 2	hills
+149	Segovia	mountains
+150	Sevilla 1	plains
+151	Sevilla 2	marsh
+152	Soria	hills
+153	Tarragona	plains
+154	Teruel 1	mountains
+155	Teruel 2	hills
+156	Toledo 1	plains
+157	Toledo 2	plains
+158	Valencia	plains
+159	Valladolid	plains
+160	Zamora	plains
+161	Zaragoza 1	plains
+162	Zaragoza 2	plains
+163	Álava	hills
+164	Ávila	mountains
+165	Ain	hills
+166	Aisne	plains
+167	Allier	plains
+168	Alpes-Maritimes	mountains
+169	Alpes-de-Haute-Provence	mountains
+170	Ardennes	forest
+171	Ardèche	hills
+172	Ariège	mountains
+173	Aube	plains
+174	Aude	hills
+175	Aveyron	hills
+176	Bouches-du-Rhône	marsh
+177	Calvados	plains
+178	Cantal	mountains
+179	Charente	plains
+180	Charente-Maritime	marsh
+181	Cher	plains
+182	Corrèze	hills
+183	Corse-du-Sud	mountains
+184	Creuse	hills
+185	Côte-d'Or	hills
+186	Côtes-d'Armor	hills
+187	Deux-Sèvres	plains
+188	Dordogne	forest
+189	Doubs	hills
+190	Drôme	hills
+191	Essonne	plains
+192	Eure	plains
+193	Eure-et-Loir	plains
+194	Finistère	hills
+195	Gard	hills
+196	Gers	plains
+197	Gironde	forest
+198	Haute-Corse	mountains
+199	Haute-Garonne	plains
+200	Haute-Loire	hills
+201	Haute-Marne	plains
+202	Haute-Rhin	hills
+203	Haute-Savoie	mountains
+204	Haute-Saône	plains
+205	Haute-Vienne	plains
+206	Hautes-Alpes	mountains
+207	Hautes-Pyrénées	mountains
+208	Hérault	plains
+209	Ille-et-Vilaine	plains
+210	Indre	plains
+211	Indre-et-Loire	plains
+212	Isère	mountains
+213	Jura	hills
+214	Landes	forest
+215	Loir-et-Cher	forest
+216	Loire	hills
+217	Loire-Atlantique	plains
+218	Loiret	forest
+219	Lot	hills
+220	Lot-et-Garonne	plains
+221	Lozère	mountains
+222	Maine-et-Loire	plains
+223	Manche	plains
+224	Marne	plains
+225	Mayenne	plains
+226	Meurthe-et-Moselle	plains
+227	Meuse	hills
+228	Morbihan	hills
+229	Nièvre	hills
+230	Nord	plains
+231	Oise	forest
+232	Orne	forest
+233	Paris	urban
+234	Pas-de-Calais	plains
+235	Puy-de-Dôme	hills
+236	Pyrénées-Atlantiques	mountains
+237	Pyrénées-Orientales	mountains
+238	Rhône	plains
+239	Sarthe	plains
+240	Savoie	mountains
+241	Saône-et-Loire	plains
+242	Seien-et-Marne	forest
+243	Seine-Maritime	plains
+244	Somme	plains
+245	Tarn	hills
+246	Tarn-et-Garonne	plains
+247	Var	hills
+248	Vaucluse	hills
+249	Vendée	plains
+250	Vienne	plains
+251	Vosges	mountains
+252	Yonne	plains
+253	Yvelines	plains
+254	Aberdeenshire	hills
+255	Angus	hills
+256	Argyll and Bute	mountains
+257	Barnsley	plains
+258	Belfast	urban
+259	Birmingham	urban
+260	Bridgend	hills
+261	Buckinghamshire	forest
+262	Cambridgeshire	marsh
+263	Cardiff	urban
+264	Carmarthenshire	hills
+265	Cavan	marsh
+266	Ceredigion	hills
+267	Cheshire East	plains
+268	Clare	hills
+269	Cork	hills
+270	Cornwall	hills
+271	Cumbria	mountains
+272	Denbighshire	hills
+273	Derbyshire	hills
+274	Devon	hills
+275	Donegal	mountains
+276	Dorset	hills
+277	Down	hills
+278	Dublin	urban
+279	Dumfries and Galloway	hills
+280	Dungannon	plains
+281	Durham	hills
+282	East Ayrshire	hills
+283	East Riding of Yorkshire	plains
+284	East Sussex	plains
+285	Edinburgh	urban
+286	Eilean Siar	hills
+287	Essex	plains
+288	Fermanagh	marsh
+289	Fife	plains
+290	Galway	hills
+291	Glasgow	urban
+292	Gloucestershire	hills
+293	Gwynedd	mountains
+294	Hampshire	forest
+295	Herefordshire	plains
+296	Hertfordshire	plains
+297	Highland 1	mountains
+298	Highland 2	mountains
+299	Highland 3	mountains
+300	Highland 4	mountains
+301	Isle of Wight	plains
+302	Kent	plains
+303	Kerry	mountains
+304	Kildare	plains
+305	Kilkenny	plains
+306	Lancashire	hills
+307	Laoighis	plains
+308	Leicestershire	plains
+309	Leitrim	hills
+310	Limerick	plains
+311	Lincolnshire	plains
+312	Lisburn	plains
+313	Liverpool	urban
+314	London	urban
+315	Manchester	urban
+316	Mayo	hills
+317	Meath	plains
+318	Monaghan	plains
+319	Monmouthshire	hills
+320	Moray	hills
+321	Moyle	hills
+322	Norfolk	plains
+323	North Tipperary	plains
+324	North Yorkshire 1	plains
+325	North Yorkshire 2	hills
+326	Northamptonshire	plains
+327	Northumberland	hills
+328	Nottinghamshire	plains
+329	Offaly	marsh
+330	Orkney	plains
+331	Oxfordshire	plains
+332	Pembrokeshire	hills
+333	Perthshire and Kinross	mountains
+334	Powys	hills
+335	Roscommon	marsh
+336	Scottish Borders	hills
+337	Shropshire	hills
+338	Sligo	hills
+339	Somerset	plains
+340	South Ayrshire	hills
+341	South Lanarkshire	hills
+342	South Tipperary	plains
+343	Staffordshire	plains
+344	Stirling	hills
+345	Strabane	hills
+346	Suffolk	plains
+347	Surrey	forest
+348	Warwickshire	plains
+349	Waterford	plains
+350	West Sussex	plains
+351	Westmeath	marsh
+352	Wexford	plains
+353	Wicklow	mountains
+354	Wiltshire	plains
+355	Worcestershire	plains
+356	Baden-Württemberg 1	plains
+357	Baden-Württemberg 2	hills
+358	Baden-Württemberg 3	hills
+359	Baden-Württemberg 4	hills
+360	Bas-Rhin	plains
+361	Bayern 1	forest
+362	Bayern 2	hills
+363	Bayern 3	forest
+364	Bayern 4	hills
+365	Bayern 5	plains
+366	Bayern 6	forest
+367	Bayern 7	mountains
+368	Berlin	urban
+369	Brandenburg 1	forest
+370	Brandenburg 2	marsh
+371	Brandenburg 3	forest
+372	Brandenburg 4	forest
+373	Bremen	urban
+374	Greater Poland 1	plains
+375	Greater Poland 2	plains
+376	Greater Poland 3	plains
+377	Greater Poland 4	plains
+378	Hamburg	urban
+379	Hessen 1	hills
+380	Hessen 2	hills
+381	Hessen 3	plains
+382	Kuyavian-Pomeranian 1	plains
+383	Kuyavian-Pomeranian 2	plains
+384	Lower Silesian 1	plains
+385	Lower Silesian 2	hills
+386	Lower Silesian 3	mountains
+387	Lubusz 1	forest
+388	Lubusz 2	forest
+389	Mecklenburg-Vorpommern 1	plains
+390	Mecklenburg-Vorpommern 2	forest
+391	Mecklenburg-Vorpommern 3	plains
+392	Moselle	plains
+393	Niedersachsen 1	marsh
+394	Niedersachsen 2	marsh
+395	Niedersachsen 3	forest
+396	Niedersachsen 4	plains
+397	Niedersachsen 5	marsh
+398	Niedersachsen 6	hills
+399	Nordrhein-Westfalen 1	plains
+400	Nordrhein-Westfalen 2	plains
+401	Nordrhein-Westfalen 3	hills
+402	Nordrhein-Westfalen 4	plains
+403	Opole	plains
+404	Pomeranian 1	plains
+405	Pomeranian 2	plains
+406	Pomeranian 3	forest
+407	Rheinland-Pfalz 1	hills
+408	Rheinland-Pfalz 2	hills
+409	Rheinland-Pfalz 3	hills
+410	Saarland	hills
+411	Sachsen 1	hills
+412	Sachsen 2	hills
+413	Sachsen-Anhalt 1	plains
+414	Sachsen-Anhalt 2	hills
+415	Sachsen-Anhalt 3	plains
+416	Schleswig-Holstein 1	marsh
+417	Schleswig-Holstein 2	plains
+418	Silesian 1	plains
+419	Silesian 2	mountains
+420	Thüringen 1	forest
+421	Thüringen 2	hills
+422	Warmian-Masurian	marsh
+423	West Pomeranian 1	plains
+424	West Pomeranian 2	forest
+425	West Pomeranian 3	forest
+426	Łódź 1	plains
+427	Łódź 2	plains
+428	Agrigento	hills
+429	Alessandria	plains
+430	Ancona	hills
+431	Aoste	mountains
+432	Arezzo	hills
+433	Asti	hills
+434	Avellino	mountains
+435	Bari	plains
+436	Barletta-Andria Trani	plains
+437	Belluno	mountains
+438	Benevento	hills
+439	Bergamo	mountains
+440	Bologna	plains
+441	Brescia	mountains
+442	Brindisi	plains
+443	Cagliari	plains
+444	Caltanissetta	hills
+445	Campobasso	mountains
+446	Caserta	plains
+447	Catania	mountains
+448	Catanzaro	hills
+449	Chieti	hills
+450	Como	mountains
+451	Cosenza	mountains
+452	Cremona	plains
+453	Crotene	plains
+454	Cuneo	mountains
+455	Enna	hills
+456	Ferrara	marsh
+457	Firenze	hills
+458	Foggia	plains
+459	Forlì-Cesena	plains
+460	Frosinone	hills
+461	Genova	hills
+462	Grosseto	marsh
+463	L'Aquila	mountains
+464	Latina	marsh
+465	Lecce	plains
+466	Lucca	plains
+467	Macerata	hills
+468	Mantova	plains
+469	Massa-Carrara	mountains
+470	Matera	hills
+471	Messina	mountains
+472	Milano	plains
+473	Modena	plains
+474	Napoli	urban
+475	Nuoro	mountains
+476	Ogliastra	mountains
+477	Olbia-Tempio	hills
+478	Oristrano	marsh
+479	Padova	plains
+480	Palermo	hills
+481	Parma	hills
+482	Pavia	plains
+483	Perugia	hills
+484	Pesaro e Urbino	hills
+485	Piacenza	plains
+486	Pisa	plains
+487	Pordenone	plains
+488	Potenza	mountains
+489	Ravenna	marsh
+490	Reggio Calabria	mountains
+491	Reggio Emilia	plains
+492	Rieti	hills
+493	Roma	plains
+494	Rovigo	marsh
+495	Salerno	hills
+496	Sassari	hills
+497	Savona	hills
+498	Siena	hills
+499	Siracusa	hills
+500	Sondrio	mountains
+501	Taranto	plains
+502	Teramo	hills
+503	Terni	hills
+504	Trapani	plains
+505	Treviso	plains
+506	Turin	hills
+507	Udine	mountains
+508	Venezia	marsh
+509	Verbano-Cusio-Ossola	mountains
+510	Vercelli	plains
+511	Verona	plains
+512	Vicenza	plains
+513	Viterbo	plains
+514	Luxembourg	hills
+515	Drenthe	marsh
+516	Flevoland	marsh
+517	Friesland	marsh
+518	Gelderland	forest
+519	Groningen	marsh
+520	Limburg (2)	plains
+521	Noord-Brabant	plains
+522	Noord-Holland	marsh
+523	Overijssel	plains
+524	Utrecht	marsh
+525	Zeeland	marsh
+526	Zuid-Holland	marsh
+527	Aveiro	plains
+528	Beja	plains
+529	Braga	hills
+530	Bragança	hills
+531	Castelo Branco	hills
+532	Coimbra	hills
+533	Faro	hills
+534	Guarda	hills
+535	Leiria	plains
+536	Lisboa	plains
+537	Portalegre	plains
+538	Porto	plains
+539	Santarém	plains
+540	Setúbal	plains
+541	Viana do Castelo	hills
+542	Vila Real	hills
+543	Viseu	hills
+544	Évora	plains
+545	Basel-Stadt	urban
+546	Bern	mountains
+547	Fribourg	hills
+548	Genève	urban
+549	Graubünden	mountains
+550	Lucerne	hills
+551	Sankt Gallen	hills
+552	Schwyz	mountains
+553	Ticino	mountains
+554	Valais	mountains
+555	Vaud	hills
+556	Zürich	plains
+557	Berat	hills
+558	Dibër	mountains
+559	Elbasan	hills
+560	Fier	plains
+561	Gjirokastër	mountains
+562	Korçë	mountains
+563	Kukës	mountains
+564	Shkodër	mountains
+565	Tiranë	hills
+566	Vlorë	hills
+567	Alba	hills
+568	Arad	plains
+569	Bihor	hills
+570	Bistrita-Nasaud	mountains
+571	Borsod-Abaúj-Zemplén	hills
+572	Brasov	mountains
+573	Békés	plains
+574	Caras-Severin	mountains
+575	Carpathian Ruthenia	mountains
+576	Cluj	hills
+577	Covasna	mountains
+578	Csongrád	plains
+579	Czernowitz	hills
+580	Hajdú-Bihar	plains
+581	Harghita	mountains
+582	Heves	hills
+583	Hunedoara	mountains
+584	Južno-Backi	plains
+585	Južno-Banatski	plains
+586	Jász-Nagykun-Szolnok	plains
+587	Košický	hills
+588	Krakow	hills
+589	Lemberg	hills
+590	Maramures	mountains
+591	Mures	hills
+592	Nógrád	hills
+593	Prešov	mountains
+594	Rzeszow	hills
+595	Salaj	hills
+596	Satu Mare	plains
+597	Severno-Backi	plains
+598	Severno-Banatski	plains
+599	Sibiu	hills
+600	Srednje-Banatski	plains
+601	Sremski	plains
+602	Stanislau	mountains
+603	Suceava	mountains
+604	Szabolcs-Szatmár-Bereg	plains
+605	Tarnopol	hills
+606	Timis	plains
+607	Zapadno-Backi	plains
+608	Blagoevgrad	mountains
+609	Burgas	hills
+610	Gabrovo	mountains
+611	Haskovo	hills
+612	Kardzhali	mountains
+613	Kyustendil	mountains
+614	Lovech	hills
+615	Montana	hills
+616	Pazardzhik	hills
+617	Pernik	mountains
+618	Pleven	plains
+619	Plovdiv	plains
+620	Razgrad	plains
+621	Ruse	plains
+622	Shumen	hills
+623	Sliven	mountains
+624	Smolyan	mountains
+625	Sofia	mountains
+626	Sofia City	urban
+627	Stara Zagora	plains
+628	Targovishte	hills
+629	Varna	plains
+630	Veliko Tarnovo	hills
+631	Vidin	plains
+632	Vratsa	mountains
+633	Yambol	plains
+634	Shetland Islands	plains
+635	Masuria	forest
+636	Anatoliki Makedonia kai Thraki 1	hills
+637	Anatoliki Makedonia kai Thraki 2	plains
+638	Attica	urban
+639	Dytiki Ellada	hills
+640	Dytiki Makedonia	mountains
+641	Ionioi Nisoi	hills
+642	Ipeiros	mountains
+643	Kentriki Makedonia 1	hills
+644	Kentriki Makedonia 2	hills
+645	Kriti	mountains
+646	Notio Aigaio	hills
+647	Peloponnisos 1	mountains
+648	Peloponnisos 2	hills
+649	Stereá Elláda 1	mountains
+650	Stereá Elláda 2	hills
+651	Thessalia 1	plains
+652	Thessalia 2	mountains
+653	Voreio Aigaio	hills
+654	Berane	mountains
+655	Cetinje	mountains
+656	Nikšic	mountains
+657	Pljevlja	mountains
+658	Podgorica	mountains
+659	Constantinople	urban
+660	Edirne	plains
+661	Kirklareli	forest
+662	Tekirdag	hills
+663	Arges	mountains
+664	Bacau	hills
+665	Botosani	plains
+666	Braila	marsh
+667	Bucuresti	urban
+668	Buzau	hills
+669	Calarasi	plains
+670	Constanta	plains
+671	Dobrich	plains
+672	Dolj	plains
+673	Dâmbovita	hills
+674	Galati	plains
+675	Giurgiu	plains
+676	Gorj	mountains
+677	Ialomita	plains
+678	Iasi	hills
+679	Mehedinti	hills
+680	Neamt	mountains
+681	Olt	plains
+682	Prahova	mountains
+683	Silistra	plains
+684	Teleorman	plains
+685	Tulcea	marsh
+686	Vaslui	hills
+687	Vrancea	mountains
+688	Vâlcea	mountains
+689	Belgrade	urban
+690	Borski	mountains
+691	Branicevski	hills
+692	Brod	mountains
+693	Gevgelija	plains
+694	Jablanicki	hills
+695	Kavadartsi	hills
+696	Kolubarski	hills
+697	Kosovska Mitrovica	hills
+698	Kočani	hills
+699	Kumanovo	hills
+700	Macvanski	plains
+701	Mavrovo and Rostusa	mountains
+702	Moravicki	hills
+703	Nišavski	hills
+704	Pcinjski	hills
+705	Pirotski	mountains
+706	Pomoravski	plains
+707	Pomoravski (2)	plains
+708	Prilep	hills
+709	Priština	plains
+710	Raški	mountains
+711	Struga	mountains
+712	Toplicki	hills
+713	Uroševac	hills
+714	Zajecarski	hills
+715	Zlatiborski	mountains
+716	Đakovica	mountains
+717	Šumadijski	hills
+718	Klaipedos	forest
+719	Konigsberg 1	forest
+720	Konigsberg 2	forest
+721	Adygea	mountains
+722	Alytaus	forest
+723	Arkhangelsk 1	forest
+724	Arkhangelsk 2	forest
+725	Arkhangelsk 3	forest
+726	Arkhangelsk 4	forest
+727	Arkhangelsk 5	forest
+728	Astrakhan	marsh
+729	Bashkortostan 1	hills
+730	Bashkortostan 2	hills
+731	Belgorod	hills
+732	Brest	marsh
+733	Bryansk	forest
+734	Burtnieku	forest
+735	Central Finland	forest
+736	Central Ostrobothnia	forest
+737	Chechnya	mountains
+738	Chelyabinsk	hills
+739	Cherkasy	hills
+740	Chernihiv	plains
+741	Chuvashia	hills
+742	Comrat	hills
+743	Crimea	hills
+744	Criuleni	hills
+745	Dagestan	mountains
+746	Donetsk	hills
+747	Finland Proper	plains
+748	Gomel	marsh
+749	Grodno	forest
+750	Gulbene	forest
+751	Harju	forest
+752	Hiiu	forest
+753	Hîncesti	hills
+754	Ivanovo	forest
+755	Jekabpils	forest
+756	Kabardin-Balkar	mountains
+757	Kainuu	forest
+758	Kalmyk	plains
+759	Kaluga	hills
+760	Karachay-Cherkess	mountains
+761	Karelia 1	hills
+762	Karelia 2	forest
+763	Karelia 3	forest
+764	Kauno	forest
+765	Kharkiv	plains
+766	Kherson	plains
+767	Kiev	hills
+768	Kiev (city)	urban
+769	Kirovohrad	plains
+770	Komi 1	forest
+771	Komi 2	forest
+772	Komi 3	forest
+773	Komi 4	forest
+774	Komi 5	forest
+775	Komi 6	forest
+776	Komi 7	forest
+777	Kostroma	forest
+778	Krasnodar	hills
+779	Kursk	hills
+780	Kymenlaakso	forest
+781	Lapland	forest
+782	Lipetsk	plains
+783	Lublin	plains
+784	Luhansk	hills
+785	Madona	hills
+786	Mari El	forest
+787	Masovian	plains
+788	Minsk	forest
+789	Minsk (city)	urban
+790	Mogilev	forest
+791	Mordovia	plains
+792	Moscow	urban
+793	Moscow Governorate	forest
+794	Murmansk	hills
+795	Mykolayiv	plains
+796	Nenets	marsh
+797	Nizhny Novgorod	hills
+798	North Karelia	forest
+799	North Ossetia	mountains
+800	Northern Ostrobothnia	forest
+801	Northern Savonia	forest
+802	Novgorod	forest
+803	Odessa	plains
+804	Ogre	forest
+805	Orenburg 1	plains
+806	Orenburg 2	hills
+807	Oryol	hills
+808	Ostrobothnia	plains
+809	Panevezio	forest
+810	Penza	hills
+811	Perm 1	forest
+812	Perm 2	forest
+813	Perm 3	hills
+814	Petrograd 1	forest
+815	Petrograd 2	forest
+816	Pirkanmaa	forest
+817	Podlachian	forest
+818	Podolia	hills
+819	Poltava	plains
+820	Pskov	marsh
+821	Päijät-Häme	forest
+822	Pärnu	forest
+823	Rezeknes	forest
+824	Riga	urban
+825	Rivne	marsh
+826	Rostov 1	plains
+827	Rostov 2	plains
+828	Ryazan	plains
+829	Rîşcani	hills
+830	Saare	forest
+831	Saint Petersburg	urban
+832	Saldus	forest
+833	Samara	plains
+834	Saratov 1	hills
+835	Saratov 2	hills
+836	Satakunta	forest
+837	Sevastopol	hills
+838	Simbirsk	hills
+839	Smolensk	hills
+840	South Karelia	forest
+841	Southern Ostrobothnia	plains
+842	Southern Savonia	forest
+843	Stavropol	hills
+844	Sumy	forest
+845	Sîngerei	hills
+846	Talsi	forest
+847	Tambov	plains
+848	Tartu	forest
+849	Tatarstan	plains
+850	Tavastia Proper	forest
+851	Tsaritsyn 1	hills
+852	Tsaritsyn 2	plains
+853	Tula	hills
+854	Tver 1	forest
+855	Tver 2	forest
+856	Udmurtia	forest
+857	Utenos	forest
+858	Uusimaa	plains
+859	Vilniaus	forest
+860	Vinnytsia	hills
+861	Vitebsk	forest
+862	Vladimir	forest
+863	Vologda 1	forest
+864	Vologda 2	forest
+865	Vologda 3	forest
+866	Volyn	marsh
+867	Voronezh	hills
+868	Vyatka 1	forest
+869	Vyatka 2	forest
+870	Võru	hills
+871	Yaroslavl	forest
+872	Yekaterinburg 1	hills
+873	Yekaterinburg 2	hills
+874	Yekaterinoslav	plains
+875	Zaporizhzhya	plains
+876	Zhytomyr	forest
+877	Świętokrzyskie	hills
+878	Šiauliai	forest

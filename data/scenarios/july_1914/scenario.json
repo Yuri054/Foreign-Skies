@@ -1,0 +1,247 @@
+{
+	"name": "July 1914",
+	"description": "Austria-Hungary has just declared war on Serbia. Europe's alliances are about to be tested.",
+	"start_date": [1914, 7, 28],
+	"default_player": "FRA",
+	"_note": "Economic and military figures are rough estimates (GBP millions) meant to be refined. development, agri_yield and intensity are calibrated so default revenue, food self-sufficiency and 1913 coal, iron and timber consumption match estimates.",
+	"_starting_buildings_note": "Mines and sawmills already working in provinces with a deposit; level 2 gives exactly the deposit's listed output.",
+	"starting_buildings": {"coal_mine": 2, "iron_mine": 2, "sawmill": 2},
+	"nations": {
+		"GBR": {"war_support": 55, "capital": 314, "development": 0.67, "intensity": {"coal": 1.72, "iron": 1.09, "wood": 0.51}, "agri_yield": 0.816, "peacetime_army": 250000, "naval_budget": 51, "treasury": 35, "government": "constitutional_monarchy"},
+		"FRA": {"war_support": 65, "capital": 233, "development": 1.216, "intensity": {"coal": 0.71, "iron": 1.0, "wood": 1.29}, "agri_yield": 1.069, "peacetime_army": 790000, "naval_budget": 19, "treasury": 33, "government": "republic"},
+		"GER": {"war_support": 70, "capital": 368, "development": 0.903, "intensity": {"coal": 1.47, "iron": 1.51, "wood": 1.21}, "agri_yield": 1.344, "peacetime_army": 800000, "naval_budget": 23, "treasury": 45, "government": "constitutional_monarchy"},
+		"BEL": {"war_support": 70, "capital": 83, "development": 0.687, "intensity": {"coal": 1.16, "iron": 1.98, "wood": 0.68}, "agri_yield": 1.812, "peacetime_army": 48000, "naval_budget": 0.5, "treasury": 5, "government": "constitutional_monarchy"},
+		"NED": {"capital": 522, "development": 0.825, "intensity": {"coal": 0.39, "iron": 0.12, "wood": 0.72}, "agri_yield": 1.695, "peacetime_army": 70000, "naval_budget": 3, "treasury": 4, "government": "constitutional_monarchy"},
+		"LUX": {"capital": 514, "development": 1.901, "intensity": {"coal": 4.17, "iron": 50.37, "wood": 1.29}, "agri_yield": 1.225, "peacetime_army": 500, "naval_budget": 0, "treasury": 0.4, "government": "constitutional_monarchy"},
+		"SUI": {"capital": 546, "development": 0.707, "intensity": {"coal": 0.48, "iron": 0.09, "wood": 1.73}, "agri_yield": 0.795, "peacetime_army": 40000, "naval_budget": 0, "treasury": 2, "government": "republic"},
+		"ITA": {"war_support": 40, "capital": 493, "development": 0.598, "intensity": {"coal": 0.21, "iron": 0.11, "wood": 0.58}, "agri_yield": 1.715, "peacetime_army": 300000, "naval_budget": 11, "treasury": 16, "government": "constitutional_monarchy"},
+		"ESP": {"capital": 140, "development": 0.56, "intensity": {"coal": 0.43, "iron": 0.42, "wood": 0.91}, "agri_yield": 0.688, "peacetime_army": 100000, "naval_budget": 4, "treasury": 6, "government": "constitutional_monarchy"},
+		"POR": {"capital": 536, "development": 0.591, "intensity": {"coal": 0.15, "iron": 0.09, "wood": 0.95}, "agri_yield": 0.883, "peacetime_army": 30000, "naval_budget": 1, "treasury": 2, "government": "republic"},
+		"DEN": {"capital": 91, "development": 1.438, "intensity": {"coal": 0.59, "iron": 0.11, "wood": 1.69}, "agri_yield": 1.066, "peacetime_army": 20000, "naval_budget": 2, "treasury": 2, "government": "constitutional_monarchy"},
+		"AUH": {"war_support": 60, "capital": 72, "development": 0.743, "intensity": {"coal": 0.64, "iron": 0.48, "wood": 1.88}, "agri_yield": 1.142, "peacetime_army": 400000, "naval_budget": 8, "treasury": 24, "government": "constitutional_monarchy"},
+		"ALB": {"capital": 565, "development": 0.465, "intensity": {"coal": 0.01, "iron": 0.02, "wood": 0.86}, "agri_yield": 0.403, "peacetime_army": 5000, "naval_budget": 0, "treasury": 0.1, "government": "constitutional_monarchy"},
+		"BUL": {"capital": 625, "development": 0.637, "intensity": {"coal": 0.12, "iron": 0.04, "wood": 1.14}, "agri_yield": 0.909, "peacetime_army": 51500, "naval_budget": 0.5, "treasury": 2, "government": "constitutional_monarchy"},
+		"GRE": {"capital": 638, "development": 0.726, "intensity": {"coal": 0.1, "iron": 0.05, "wood": 0.68}, "agri_yield": 0.387, "peacetime_army": 24500, "naval_budget": 1.5, "treasury": 3, "government": "constitutional_monarchy"},
+		"MNE": {"capital": 655, "development": 0.574, "intensity": {"coal": 0.04, "iron": 0.04, "wood": 2.17}, "agri_yield": 0.211, "peacetime_army": 2000, "naval_budget": 0, "treasury": 0.1, "government": "constitutional_monarchy"},
+		"OTT": {"capital": 659, "development": 0.455, "intensity": {"coal": 0.14, "iron": 0.03, "wood": 0.76}, "agri_yield": 1.205, "peacetime_army": 13000, "naval_budget": 0.8, "treasury": 6, "government": "constitutional_monarchy"},
+		"ROM": {"capital": 667, "development": 0.652, "intensity": {"coal": 0.28, "iron": 0.11, "wood": 2.33}, "agri_yield": 1.333, "peacetime_army": 98000, "naval_budget": 0.8, "treasury": 5, "government": "constitutional_monarchy"},
+		"SRB": {"war_support": 75, "capital": 689, "development": 0.535, "intensity": {"coal": 0.16, "iron": 0.09, "wood": 1.33}, "agri_yield": 0.839, "peacetime_army": 45000, "naval_budget": 0, "treasury": 2, "government": "constitutional_monarchy"},
+		"RUS": {"war_support": 55, "capital": 831, "development": 0.667, "intensity": {"coal": 0.31, "iron": 0.52, "wood": 1.8}, "agri_yield": 0.417, "peacetime_army": 1219500, "naval_budget": 35, "treasury": 20, "government": "constitutional_monarchy"}
+	},
+	"_deployment_note": "Where each nation's peacetime army stands (garrison towns and frontier districts). 90% of peacetime_army is in divisions, dealt out by weight; the rest is the recruit reserve. Nations not listed use their most populous provinces. Province names must match provinces.tsv and be owned by the nation.",
+	"deployment": {
+		"FRA": [
+			{"name": "1ère Armée (Nancy)", "at": "Meurthe-et-Moselle", "weight": 4},
+			{"name": "2e Armée (Épinal)", "at": "Vosges", "weight": 3},
+			{"name": "3e Armée (Verdun)", "at": "Meuse", "weight": 2},
+			{"name": "4e Armée (Sedan)", "at": "Ardennes", "weight": 2},
+			{"name": "5e Armée (Laon)", "at": "Aisne", "weight": 2},
+			{"name": "Armée du Nord (Lille)", "at": "Nord", "weight": 1},
+			{"name": "Armée des Alpes", "at": "Savoie", "weight": 1},
+			{"name": "Garnison de Paris", "at": "Paris", "weight": 1},
+			{"name": "Corps colonial", "at": "Bouches-du-Rhône", "weight": 1},
+			{"name": "Armée de Belfort", "at": "Doubs", "weight": 1}
+		],
+		"GER": [
+			{"name": "Metz Garrison", "at": "Moselle", "weight": 4},
+			{"name": "Strasbourg Garrison", "at": "Bas-Rhin", "weight": 2},
+			{"name": "Rhine Army (Cologne)", "at": "Nordrhein-Westfalen 4", "weight": 3},
+			{"name": "Koblenz Corps", "at": "Rheinland-Pfalz 1", "weight": 1},
+			{"name": "Frankfurt Corps", "at": "Hessen 3", "weight": 1},
+			{"name": "Berlin Garrison", "at": "Berlin", "weight": 2},
+			{"name": "Posen Army", "at": "Greater Poland 2", "weight": 2},
+			{"name": "East Prussia Army", "at": "Warmian-Masurian", "weight": 2},
+			{"name": "Breslau Corps", "at": "Lower Silesian 1", "weight": 2},
+			{"name": "Danzig Corps", "at": "Pomeranian 2", "weight": 2},
+			{"name": "Bavarian Army (Munich)", "at": "Bayern 5", "weight": 2},
+			{"name": "Württemberg Corps", "at": "Baden-Württemberg 1", "weight": 1},
+			{"name": "Hamburg Garrison", "at": "Hamburg", "weight": 1}
+		],
+		"GBR": [
+			{"name": "British Expeditionary Force", "at": "Hampshire", "weight": 4},
+			{"name": "London District", "at": "London", "weight": 1},
+			{"name": "Irish Command", "at": "Dublin", "weight": 1},
+			{"name": "Scottish Command", "at": "Edinburgh", "weight": 1},
+			{"name": "Northern Command", "at": "North Yorkshire 1", "weight": 1}
+		],
+		"BEL": [
+			{"name": "Field Army", "at": "Brussels", "weight": 2},
+			{"name": "Liège Fortress", "at": "Liege", "weight": 1},
+			{"name": "Namur Fortress", "at": "Namur", "weight": 1},
+			{"name": "Antwerp Fortress", "at": "Antwerp", "weight": 2}
+		],
+		"NED": [
+			{"name": "Field Army", "at": "Utrecht", "weight": 2},
+			{"name": "Southern Command", "at": "Noord-Brabant", "weight": 1},
+			{"name": "Northern Command", "at": "Groningen", "weight": 1}
+		],
+		"ITA": [
+			{"name": "Armata del Nord-Ovest", "at": "Turin", "weight": 2},
+			{"name": "Armata di Lombardia", "at": "Milano", "weight": 2},
+			{"name": "Armata del Veneto", "at": "Verona", "weight": 2},
+			{"name": "Armata del Friuli", "at": "Udine", "weight": 2},
+			{"name": "Guarnigione di Roma", "at": "Roma", "weight": 1},
+			{"name": "Armata dell'Emilia", "at": "Bologna", "weight": 1},
+			{"name": "Armata del Sud", "at": "Napoli", "weight": 1},
+			{"name": "Armata di Sicilia", "at": "Palermo", "weight": 1}
+		],
+		"ESP": [
+			{"name": "Ejército del Centro", "at": "Madrid", "weight": 2},
+			{"name": "Capitanía de Cataluña", "at": "Barcelona", "weight": 1},
+			{"name": "Capitanía de Andalucía", "at": "Sevilla 1", "weight": 1},
+			{"name": "Capitanía de Castilla", "at": "Valladolid", "weight": 1}
+		],
+		"POR": [
+			{"name": "Exército de Lisboa", "at": "Lisboa", "weight": 2},
+			{"name": "Exército do Porto", "at": "Porto", "weight": 1}
+		],
+		"SUI": [
+			{"name": "Armee (Bern)", "at": "Bern", "weight": 2},
+			{"name": "Grenzbrigade Basel", "at": "Basel-Stadt", "weight": 1},
+			{"name": "Armee (Zürich)", "at": "Zürich", "weight": 1},
+			{"name": "Gebirgstruppen", "at": "Graubünden", "weight": 1}
+		],
+		"DEN": [
+			{"name": "Copenhagen Army", "at": "Hovedstaden", "weight": 2},
+			{"name": "Funen Army", "at": "Syddanmark 2", "weight": 1}
+		],
+		"LUX": [
+			{"name": "Compagnie des Volontaires", "at": "Luxembourg", "weight": 1}
+		],
+		"AUH": [
+			{"name": "Vienna Garrison", "at": "Wien", "weight": 2},
+			{"name": "Budapest Corps", "at": "Budapest", "weight": 2},
+			{"name": "Prague Corps", "at": "Prague", "weight": 1},
+			{"name": "Tyrol Command", "at": "Tirol", "weight": 1},
+			{"name": "Bosnia Command", "at": "Sarajevo-romanija", "weight": 2},
+			{"name": "Galicia Corps", "at": "Žilinský", "weight": 2},
+			{"name": "Styria Corps", "at": "Steiermark", "weight": 1}
+		],
+		"RUS": [
+			{"name": "Warsaw Military District", "at": "Masovian", "weight": 4},
+			{"name": "Vilna Military District", "at": "Vilniaus", "weight": 3},
+			{"name": "Kovno Garrison", "at": "Kauno", "weight": 1},
+			{"name": "Brest-Litovsk Garrison", "at": "Brest", "weight": 2},
+			{"name": "Grodno Corps", "at": "Grodno", "weight": 2},
+			{"name": "Lublin Corps", "at": "Lublin", "weight": 2},
+			{"name": "Kiev Military District", "at": "Kiev (city)", "weight": 3},
+			{"name": "Volhynia Corps", "at": "Volyn", "weight": 2},
+			{"name": "Podolia Corps", "at": "Podolia", "weight": 2},
+			{"name": "Odessa Military District", "at": "Odessa", "weight": 2},
+			{"name": "Sevastopol Fortress", "at": "Sevastopol", "weight": 1},
+			{"name": "Petersburg Military District", "at": "Saint Petersburg", "weight": 3},
+			{"name": "Riga Corps", "at": "Riga", "weight": 1},
+			{"name": "Finland Corps", "at": "Uusimaa", "weight": 1},
+			{"name": "Reval Garrison", "at": "Harju", "weight": 1},
+			{"name": "Moscow Military District", "at": "Moscow", "weight": 2},
+			{"name": "Minsk Corps", "at": "Minsk (city)", "weight": 1},
+			{"name": "Kuban Corps", "at": "Krasnodar", "weight": 1}
+		],
+		"SRB": [
+			{"name": "Belgrade Army", "at": "Belgrade", "weight": 3},
+			{"name": "Morava Army (Niš)", "at": "Nišavski", "weight": 2},
+			{"name": "Kolubara Corps", "at": "Kolubarski", "weight": 2},
+			{"name": "Vardar Army (Kumanovo)", "at": "Kumanovo", "weight": 2},
+			{"name": "Kosovo Corps", "at": "Priština", "weight": 1}
+		],
+		"GRE": [
+			{"name": "Army of Athens", "at": "Attica", "weight": 2},
+			{"name": "Army of Macedonia (Salonika)", "at": "Kentriki Makedonia 1", "weight": 3},
+			{"name": "Army of Epirus", "at": "Ipeiros", "weight": 2},
+			{"name": "Thessaly Corps", "at": "Thessalia 1", "weight": 1}
+		],
+		"BUL": [
+			{"name": "Sofia Garrison", "at": "Sofia City", "weight": 3},
+			{"name": "Plovdiv Corps", "at": "Plovdiv", "weight": 2},
+			{"name": "Varna Corps", "at": "Varna", "weight": 1},
+			{"name": "Burgas Corps", "at": "Burgas", "weight": 1},
+			{"name": "Danube Army (Ruse)", "at": "Ruse", "weight": 1}
+		],
+		"ROM": [
+			{"name": "Bucharest Garrison", "at": "Bucuresti", "weight": 3},
+			{"name": "Army of Moldavia (Iasi)", "at": "Iasi", "weight": 2},
+			{"name": "Army of Oltenia", "at": "Dolj", "weight": 2},
+			{"name": "Dobruja Corps", "at": "Constanta", "weight": 1},
+			{"name": "Galati Corps", "at": "Galati", "weight": 1}
+		],
+		"OTT": [
+			{"name": "Constantinople Garrison", "at": "Constantinople", "weight": 3},
+			{"name": "Army of Thrace (Edirne)", "at": "Edirne", "weight": 3}
+		],
+		"MNE": [
+			{"name": "Royal Army", "at": "Cetinje", "weight": 1},
+			{"name": "Podgorica Corps", "at": "Podgorica", "weight": 1}
+		],
+		"ALB": [
+			{"name": "Gendarmerie (Tirana)", "at": "Tiranë", "weight": 1}
+		]
+	},
+	"blocs": {
+		"Entente": ["GBR", "FRA", "RUS", "SRB", "MNE"],
+		"Central Powers": ["GER", "AUH"]
+	},
+	"neutral_pacts": {
+		"Triple Alliance (Italy neutral at start)": ["ITA", "GER", "AUH"]
+	},
+	"guarantees": [
+		{"guarantor": "GBR", "guaranteed": "BEL"},
+		{"guarantor": "GER", "guaranteed": "BEL", "note": "1839 Treaty of London signatory"},
+		{"guarantor": "FRA", "guaranteed": "BEL"}
+	],
+	"_alliances_note": "Treaty web read by Diplomacy.load_scenario. Italy is in no bloc: the neutral_pacts entry above gives it a defensive-only alliance with Germany and Austria-Hungary plus the neutrality clause. An entente term marks a friendship that calls for a join decision rather than binding automatically. passage entries are {host, mover}; nap entries {a, b}; relations entries {a, b, value} override the baseline worked out from blocs and treaties.",
+	"alliances": [
+		{"a": "FRA", "b": "RUS", "note": "Franco-Russian Alliance, 1894"},
+		{"a": "GBR", "b": "FRA", "terms": {"entente": true}, "note": "Entente Cordiale, 1904"},
+		{"a": "GBR", "b": "RUS", "terms": {"entente": true}, "note": "Anglo-Russian Convention, 1907"},
+		{"a": "GER", "b": "AUH", "note": "Dual Alliance, 1879"},
+		{"a": "RUS", "b": "SRB", "terms": {"defensive_only": true}, "note": "Russian protection of Serbia"},
+		{"a": "SRB", "b": "MNE", "note": "Serbo-Montenegrin military convention"},
+		{"a": "GBR", "b": "POR", "terms": {"defensive_only": true}, "note": "Anglo-Portuguese Alliance, 1373"}
+	],
+	"passage": [],
+	"nap": [],
+	"_war_plans_note": "Strategic intent as data (see data/diplomacy.json, plans). Germany's army marches through Belgium once it is at war with France.",
+	"war_plans": [
+		{"nation": "GER", "enemy": "FRA", "through": "BEL", "delay_days": 1, "note": "Schlieffen Plan"}
+	],
+	"relations": [
+		{"a": "GER", "b": "FRA", "value": -45},
+		{"a": "AUH", "b": "SRB", "value": -80},
+		{"a": "AUH", "b": "RUS", "value": -45},
+		{"a": "GBR", "b": "GER", "value": -30},
+		{"a": "RUS", "b": "GER", "value": -35},
+		{"a": "FRA", "b": "AUH", "value": -25},
+		{"a": "ITA", "b": "AUH", "value": -25, "note": "Italia irredenta"},
+		{"a": "ITA", "b": "FRA", "value": 15},
+		{"a": "ITA", "b": "GBR", "value": 20},
+		{"a": "BUL", "b": "SRB", "value": -55, "note": "Second Balkan War"},
+		{"a": "BUL", "b": "GRE", "value": -45},
+		{"a": "BUL", "b": "ROM", "value": -35},
+		{"a": "GRE", "b": "OTT", "value": -40},
+		{"a": "ROM", "b": "AUH", "value": -15},
+		{"a": "ROM", "b": "RUS", "value": 10},
+		{"a": "OTT", "b": "RUS", "value": -45},
+		{"a": "OTT", "b": "GER", "value": 25},
+		{"a": "ALB", "b": "SRB", "value": -40},
+		{"a": "ALB", "b": "MNE", "value": -35},
+		{"a": "DEN", "b": "GER", "value": -20, "note": "Schleswig"},
+		{"a": "NED", "b": "GER", "value": -5},
+		{"a": "BEL", "b": "GER", "value": -10},
+		{"a": "BEL", "b": "FRA", "value": 25},
+		{"a": "BEL", "b": "GBR", "value": 30},
+		{"a": "ESP", "b": "FRA", "value": 10},
+		{"a": "POR", "b": "ESP", "value": -5}
+	],
+	"_claims_note": "Land a nation says is rightfully its own, by province name. Whoever holds it gives the claimant a casus belli: reconquest, or border_claim (only while the province touches the claimant's land).",
+	"claims": [
+		{"holder": "FRA", "kind": "reconquest", "provinces": ["Bas-Rhin", "Moselle"], "note": "Alsace-Lorraine"},
+		{"holder": "DEN", "kind": "reconquest", "provinces": ["Schleswig-Holstein 1"], "note": "North Schleswig"},
+		{"holder": "ITA", "kind": "border_claim", "provinces": ["Trento", "Nova Goriška", "Istarska"], "note": "Italia irredenta"},
+		{"holder": "SRB", "kind": "border_claim", "provinces": ["Sarajevo-romanija", "Central Bosnia", "Južno-Backi"], "note": "Bosnia and Vojvodina"},
+		{"holder": "AUH", "kind": "border_claim", "provinces": ["Belgrade", "Branicevski"], "note": "Punishing Serbia"},
+		{"holder": "ROM", "kind": "border_claim", "provinces": ["Cluj", "Alba", "Hunedoara", "Brasov", "Sibiu"], "note": "Transylvania"}
+	],
+	"_start_crisis_note": "With start_crisis the allies of the starting wars are called at once and the crisis loop (Diplomacy.step_day) plays out from day one.",
+	"start_crisis": true,
+	"starting_wars": [["AUH", "SRB"]]
+}

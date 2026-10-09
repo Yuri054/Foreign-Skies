@@ -1,0 +1,143 @@
+{
+	"_note": "Constants for Diplomacy (scripts/sim/diplomacy.gd). Opinions run -100..100 between two nations; each pair has a baseline (from blocs and treaties, or set in the scenario) that the opinion drifts back to.",
+	"relations": {
+		"min": -100,
+		"max": 100,
+		"neutral": 0,
+		"same_bloc": 25,
+		"opposed_blocs": -25,
+		"drift_per_month": 1.0
+	},
+	"treaties": {
+		"_note": "Directed treaties run from a to b (a guarantees b, a lets b's armies cross); the rest bind both. relation_bonus is added to the pair's baseline while the treaty stands.",
+		"alliance": {"label": "Alliance", "directed": false, "relation_bonus": 40},
+		"guarantee": {"label": "Guarantee", "directed": true, "relation_bonus": 10},
+		"nap": {"label": "Non-aggression pact", "directed": false, "relation_bonus": 15},
+		"passage": {"label": "Passage rights", "directed": true, "relation_bonus": 5},
+		"neutral_pact": {"label": "Neutrality clause", "directed": false, "relation_bonus": 0}
+	},
+	"war": {
+		"_note": "Declaring a war (Diplomacy.declare_war). A casus belli sets what a declaration costs: target_relations is added to the target's opinion of the aggressor and world_relations to every other nation's; prestige goes to the aggressor. 'none' is always allowed. unprovoked_aggression is not declared on, it is earned: a war with no casus belli gives it, for cb_years, to the aggressor's land neighbours and the guarantors of its victim.",
+		"casus_belli": {
+			"border_claim": {"label": "Border claim", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 0},
+			"reconquest": {"label": "Reconquest", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 5},
+			"guarantee_defence": {"label": "Defence of a guaranteed nation", "target_relations": -30, "world_relations": 0, "prestige": 5, "war_support": 5},
+			"ally_called": {"label": "Ally called to arms", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 0},
+			"unprovoked_aggression": {"label": "Unprovoked aggression", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 5},
+			"none": {"label": "No justification", "target_relations": -50, "world_relations": -20, "prestige": -15, "war_support": -10}
+		},
+		"cb_years": 5,
+		"provocation": {
+			"grievance_on_unprovoked_war": 40,
+			"grievance_decay_per_month": 2,
+			"retaliation_threshold": 60
+		},
+		"cancel": {
+			"_note": "What it costs the cancelling nation to tear up a treaty: partner_relations (the other party's opinion), world_relations (everyone else's), prestige.",
+			"nap": {"partner_relations": -30, "world_relations": -15, "prestige": -10},
+			"alliance": {"partner_relations": -40, "world_relations": 0, "prestige": -5},
+			"guarantee": {"partner_relations": -20, "world_relations": 0, "prestige": -10},
+			"passage": {"partner_relations": -5, "world_relations": 0, "prestige": 0},
+			"neutral_pact": {"partner_relations": 0, "world_relations": 0, "prestige": 0}
+		}
+	},
+	"join": {
+		"_note": "Join decisions (Diplomacy.offer_joins). A declaration offers every ally and guarantor of the nations in the war a choice. Bound obligations are alliance_defence (the original target was attacked), alliance_called (an ally at war calls you; defensive-only alliances are not bound by it), and guarantee (the original target is a guaranteed nation). An entente is optional: an AI nation joins when its opinion of an enemy is at or below entente_join_relation. Declining a bound obligation costs what decline says: ally_relations (the opinion of the nation you let down), prestige, and end_treaty (the treaty lapses). The AI always honours a bound obligation unless it would have to fight an ally or a pact partner.",
+		"entente_join_relation": -40,
+		"decline": {
+			"alliance_defence": {"ally_relations": -40, "prestige": -10, "end_treaty": true},
+			"alliance_called": {"ally_relations": -25, "prestige": -5, "end_treaty": false},
+			"guarantee": {"ally_relations": -30, "prestige": -10, "end_treaty": true},
+			"entente": {"ally_relations": 0, "prestige": 0, "end_treaty": false}
+		}
+	},
+	"crisis": {
+		"_note": "Mobilization as a diplomatic act (Diplomacy.step_day). Allies bound only defensively (defensive_only) are not called up. A nation whose mobilization reaches alarm_level alarms each land neighbour it is not allied with or at war with, once: alarm_relations is added to their opinion of it, they resent it (alarm_grievance), and their allies are called up. An AI nation answers whoever alarms it with match_response times their mobilization, or call_response times that of whoever alarmed its ally, and eases back by ai_step_down a day when nothing threatens it. A nation called to join a war mobilizes to called_level and joins when it reaches join_mobilization. Nations at war are pushed up to war_floor by war_step_up a day. A war with no casus belli needs min_mobilization first. The alarm clears once mobilization falls below alarm_clear_level.",
+		"alarm_level": 0.3,
+		"alarm_clear_level": 0.15,
+		"alarm_relations": -10,
+		"alarm_grievance": 15,
+		"match_response": 0.5,
+		"call_response": 0.8,
+		"join_mobilization": 0.4,
+		"called_level": 0.5,
+		"ai_step_up": 0.08,
+		"ai_step_down": 0.01,
+		"war_floor": 0.5,
+		"war_step_up": 0.05,
+		"min_mobilization": 0.3
+	},
+	"peace": {
+		"_note": "War score and peace (scripts/sim/peace.gd). Score is -100..100 from a nation's side of one pairwise war: ground held (occupation_points times the share of the other nation's population and GDP, weighted), the capital, and battles won (battle_per_kmen points per thousand men the loser lost, scaled by how lopsided, capped; they fade by decay_per_month). The side that takes terms pays for them in score: a province costs province_scale times its share (half if the taker already holds it, doubled for a capital); an indemnity costs indemnity_points_per_year times its share of revenue times its years; the clauses have flat prices. A nation that has lost its capital to the taker pays nothing. ai: a nation made to give refuses while its own score is above accept_loss; a white peace is refused while its score is above refuse_white_when_winning; a losing AI (seek_peace_score) offers the ground held, up to surrender_budget_share of the enemy's score; a long stalemate offers white peace; a refused proposer waits refuse_cooldown_days; making peace alone costs separate_peace_relations with those still fighting.",
+		"score": {
+			"max": 100,
+			"occupation_points": 100,
+			"pop_weight": 0.5,
+			"gdp_weight": 0.5,
+			"capital_points": 25,
+			"battle_per_kmen": 0.15,
+			"battle_cap": 10,
+			"battle_ratio_min": 0.5,
+			"battle_ratio_max": 2.0,
+			"decay_per_month": 0.02
+		},
+		"price": {
+			"province_scale": 100,
+			"occupied_discount": 0.5,
+			"capital_multiplier": 2.0,
+			"indemnity_points_per_year": 20,
+			"max_share": 0.5,
+			"max_months": 60,
+			"release_ally": 10,
+			"disarm_border_per_year": 2,
+			"disarm_years_max": 10
+		},
+		"ai": {
+			"accept_loss": -5,
+			"refuse_white_when_winning": 20,
+			"seek_peace_score": -30,
+			"surrender_budget_share": 0.8,
+			"stalemate_days": 270,
+			"stalemate_band": 15,
+			"refuse_cooldown_days": 30,
+			"separate_peace_relations": -25,
+			"separate_peace_prestige": -5
+		}
+	},
+	"war_support": {
+		"_note": "War support (scripts/sim/war_support.gd), 0..100. A government sets what a nation starts with and returns to in peace (recovery_per_month). At war it falls each month by weariness plus casualty_weight times the share of its men lost that month, blockade_weight times the blockade, and occupied_weight times the share of its people under enemy control; a battle won raises it by win_bonus (home_win_bonus on its own soil) and a battle lost lowers it by loss_penalty. While at war it multiplies tax and recruitment (economy_mult) and the fighting power of its armies (morale_mult) along a curve through the at_0, at_50 and at_100 values. At or below floor an AI accepts any terms it can be made to pay and seeks peace; at or below white_peace_below it is forced into a white peace with every enemy it is not clearly losing to (score at least white_peace_score); at surrender_at it can be made to give anything. A war with no casus belli also costs support (casus_belli.war_support).",
+		"start": {"constitutional_monarchy": 60, "republic": 55, "default": 55},
+		"recovery_per_month": 3,
+		"weariness": 0.5,
+		"casualty_weight": 150,
+		"blockade_weight": 10,
+		"occupied_weight": 20,
+		"win_bonus": 2,
+		"home_win_bonus": 3,
+		"loss_penalty": 1.5,
+		"economy_mult": {"at_0": 0.7, "at_50": 1.0, "at_100": 1.0},
+		"morale_mult": {"at_0": 0.75, "at_50": 1.0, "at_100": 1.1},
+		"debt_weight": 15,
+		"debt_cap": 6,
+		"debt_weight": 15,
+		"debt_cap": 6,
+		"floor": 25,
+		"white_peace_below": 15,
+		"white_peace_score": -20,
+		"surrender_at": 0
+	},
+	"plans": {
+		"_note": "War plans (scenario.json, war_plans): an AI nation at war with `enemy` for delay_days declares war on `through` (a neutral in the way) with no casus belli, as soon as its mobilization allows it. It pays the usual price: world opinion, prestige, war support, and the neutral's guarantors are called. The player's nation never acts on a plan.",
+		"default_delay_days": 1
+	},
+	"actions": {
+		"_note": "Player diplomacy (Diplomacy.propose_treaty, Diplomacy.gift). A proposal is accepted when the other nation's opinion of the proposer is at least treaty_accept for the kind; an alliance also needs the two not to be in opposed blocs. A gift of N million raises the receiver's opinion by gift_relation_per_million times N, to at most gift_max_relation more per gift.",
+		"treaty_accept": {"alliance": 40, "guarantee": -25, "nap": 10, "passage": 30},
+		"gift_relation_per_million": 0.5,
+		"gift_max_relation": 20
+	},
+	"points": {
+		"_note": "Diplomacy points: a nation's stock of diplomatic effort. For now only the number exists (Nation.diplomacy_points, shown in the UI): nothing earns or spends them yet. A scenario nation can set its own with diplomacy_points.",
+		"start": 50
+	}
+}
