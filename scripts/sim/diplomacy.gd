@@ -268,13 +268,12 @@ static func guaranteed_by(gs: Node, tag: String) -> Array[String]:
 	return out
 
 
-## Whether `mover`'s armies may cross `host`'s land by treaty. A binding alliance opens it;
-## an entente (a friendship, not a pact) does not.
+## Whether `mover`'s armies may cross `host`'s land by treaty. Any alliance opens it, an entente
+## (a friendship) as much as a binding pact.
 static func has_passage(gs: Node, host: String, mover: String) -> bool:
 	if host == mover or has_treaty(gs, "passage", host, mover):
 		return true
-	var t := find_treaty(gs, "alliance", host, mover)
-	return t != null and not t.terms.get("entente", false)
+	return find_treaty(gs, "alliance", host, mover) != null
 
 
 # --- Diplomacy points ----------------------------------------------------------------------

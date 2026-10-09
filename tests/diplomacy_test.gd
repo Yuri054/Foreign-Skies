@@ -86,6 +86,7 @@ func _test_treaties() -> void:
 	_check(D.guaranteed_by(gs, "GBR") == ["BEL"], "Britain guarantees Belgium")
 	_check(D.has_treaty(gs, "guarantee", "GBR", "BEL") and not D.has_treaty(gs, "guarantee", "BEL", "GBR"), "guarantees run one way")
 	_check(D.has_passage(gs, "FRA", "RUS"), "allies may cross each other's land")
+	_check(D.has_passage(gs, "GBR", "FRA") and D.has_passage(gs, "FRA", "GBR"), "so may entente partners")
 	_check(not D.has_passage(gs, "BEL", "GER"), "Germany has no right to cross Belgium")
 	_check(D.treaties_of(gs, "BEL", "guarantee").size() == 3, "treaties_of filters by kind")
 	for t: Object in gs.treaties:
@@ -249,7 +250,7 @@ func _test_passage() -> void:
 	var fra: int = gs.nations["FRA"].provinces[0]
 	var bel: int = gs.nations["BEL"].provinces[0]
 	_check(Mil.can_enter(gs, "RUS", fra), "an ally's armies may enter French ground")
-	_check(not Mil.can_enter(gs, "GBR", fra), "an Entente partner's may not")
+	_check(Mil.can_enter(gs, "GBR", fra), "and so may an Entente partner's")
 	_check(not Mil.can_enter(gs, "GER", bel), "Germany may not enter neutral Belgium")
 	D.add_treaty(gs, "passage", "BEL", "GER")
 	_check(Mil.can_enter(gs, "GER", bel) and not Mil.can_enter(gs, "BEL", gs.nations["GER"].provinces[0]), "a passage treaty opens Belgium to Germany, one way")

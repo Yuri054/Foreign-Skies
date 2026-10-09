@@ -5,7 +5,7 @@ extends SceneTree
 ## Run: godot --headless --path . -s res://tests/navy_ui_test.gd
 
 const PORTSMOUTH := 294
-const BREMEN := 373  # German, on the German Bight: no land route from Britain
+const BREMEN := 91  # Copenhagen: on an island, no land route from Britain
 
 var _failures := 0
 var gs: Node
@@ -192,7 +192,7 @@ func _test_yard(panel: Node) -> void:
 
 
 func _test_overseas(military: Node) -> void:
-	gs.set_war("GBR", "GER", true)
+	gs.set_war("GBR", "DEN", true)
 	var a = load("res://scripts/sim/military.gd").new_army(gs, "GBR", "Expedition", PORTSMOUTH)
 	for i in 3:
 		a.units.append(load("res://scripts/sim/unit.gd").new("infantry"))
@@ -225,7 +225,7 @@ func _test_overseas(military: Node) -> void:
 	var layer: Node = get_first_node_in_group("fleet_layer")
 	layer.queue_redraw()
 	await process_frame
-	gs.set_war("GBR", "GER", false)
+	gs.set_war("GBR", "DEN", false)
 
 
 func _test_sea_modes() -> void:
