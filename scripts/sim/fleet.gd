@@ -20,6 +20,9 @@ var dest_port := 0
 var move_days_left := 0.0
 ## True while the fleet is making its way into dest_port.
 var entering := false
+## Province the fleet is carrying armies to: they land when it reaches a zone that province
+## opens on (0 = none).
+var landing := 0
 ## Standing orders, a key of "missions" in data/navy.json.
 var mission := "station"
 ## Set while the fleet is in a battle this day.

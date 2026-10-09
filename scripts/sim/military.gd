@@ -15,6 +15,9 @@ static var terrain: PackedStringArray = []
 ## Land neighbours by province (the map never changes, so they are worked out once). Callers
 ## must not modify the arrays.
 static var _neighbor_cache: Dictionary = {}
+## Answers of home_connected, kept for one day.
+static var _home_cache: Dictionary = {}
+static var _home_day := -1
 
 
 static func load_config() -> void:
@@ -53,6 +56,30 @@ static func neighbors(id: int) -> Array:
 	return out
 
 
+## Neighbours an army of `tag` can reach from a province: the land and strait neighbours, and
+## across short stretches of sea (the Irish Sea, Corsica, Sardinia) the provinces on the other
+## side, as long as no enemy holds the water between.
+static func neighbors_for(gs: Node, tag: String, id: int) -> Array:
+	var out: Array = neighbors(id)
+	var extra: Array = []
+	for n in MapData.adjacency.get(id, PackedInt32Array()):
+		if MapData.sea_links.get(Vector2i(mini(id, n), maxi(id, n)), "") == "sea" and crossing_open(gs, tag, id, n):
+			extra.append(n)
+	return out + extra if not extra.is_empty() else out
+
+
+## Whether a short sea crossing between two provinces is free of enemy ships.
+static func crossing_open(gs: Node, tag: String, a: int, b: int) -> bool:
+	var zones: Array[int] = MapData.zones_of_port(a)
+	for z in MapData.zones_of_port(b):
+		if not zones.has(z):
+			zones.append(z)
+	for z in zones:
+		if not Blockade.blockaders(gs, tag, z).is_empty():
+			return false
+	return true
+
+
 ## Whether armies of a nation may stand in a province: its own ground, ground it holds, or
 ## ground of a nation it is at war with, or ground whose owner and holder both let it cross
 ## (an ally, or a passage treaty; see Diplomacy.has_passage).
@@ -69,7 +96,7 @@ static func can_enter(gs: Node, tag: String, id: int) -> bool:
 static func armies_at(gs: Node, id: int) -> Array[Army]:
 	var out: Array[Army] = []
 	for a: Army in gs.armies.values():
-		if a.province == id:
+		if a.province == id and not a.embarked():
 			out.append(a)
 	return out
 
@@ -100,7 +127,10 @@ static func move_days(gs: Node, tag: String, speed: float, from: int, to: int) -
 	var days: float = km / speed * terrain_of(to).move
 	if gs.province_controller[to] == tag:
 		days /= 1.0 + cfg.movement.railway_speedup * gs.province_buildings[to].get("railway", 0)
-	if MapData.sea_links.has(Vector2i(mini(from, to), maxi(from, to))):
+	var link: String = MapData.sea_links.get(Vector2i(mini(from, to), maxi(from, to)), "")
+	if link == "sea":
+		days += cfg.movement.sea_link_days
+	elif link != "":
 		days += cfg.movement.strait_days
 	return maxf(ceilf(days), cfg.movement.min_days)
 
@@ -121,7 +151,7 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 		var cur: int = open.pop_at(bi)
 		if cur == to:
 			break
-		for n: int in neighbors(cur):
+		for n: int in neighbors_for(gs, tag, cur):
 			if not can_enter(gs, tag, n):
 				continue
 			var nd: float = dist[cur] + move_days(gs, tag, speed, cur, n)
@@ -142,7 +172,7 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 ## Supply distance in hops from the nearest province the nation controls (railways make a hop
 ## cheaper); INF if it is farther than the supply range.
 static func supply_cost(gs: Node, tag: String, from: int) -> float:
-	if gs.province_controller[from] == tag:
+	if gs.province_controller[from] == tag and home_connected(gs, tag, from):
 		return 0.0
 	var limit: float = cfg.supply.range
 	var dist := {from: 0.0}
@@ -153,7 +183,7 @@ static func supply_cost(gs: Node, tag: String, from: int) -> float:
 			if dist[open[i]] < dist[open[bi]]:
 				bi = i
 		var cur: int = open.pop_at(bi)
-		if gs.province_controller[cur] == tag:
+		if gs.province_controller[cur] == tag and home_connected(gs, tag, cur):
 			return dist[cur]
 		for n: int in neighbors(cur):
 			var step: float = cfg.supply.railway_hop_cost if gs.province_buildings[n].get("railway", 0) > 0 else 1.0
@@ -164,6 +194,45 @@ static func supply_cost(gs: Node, tag: String, from: int) -> float:
 			if not open.has(n):
 				open.append(n)
 	return INF
+
+
+## Whether ground a nation holds is tied to its homeland: it joins ground the nation owns by
+## land, or a port in its region has a clear sea route to a home port (no enemy-held zone on
+## the way). Ground that is neither (a pocket cut off by the enemy) supplies nobody. Answers are
+## kept for the day.
+static func home_connected(gs: Node, tag: String, id: int) -> bool:
+	if gs.province_owner[id] == tag:
+		return true
+	if _home_day != Clock.days_elapsed:
+		_home_cache.clear()
+		_home_day = Clock.days_elapsed
+	var key := "%s:%d" % [tag, id]
+	if _home_cache.has(key):
+		return _home_cache[key]
+	# The region of ground the nation holds around this province.
+	var seen := {id: true}
+	var queue := [id]
+	var home := false
+	var ports: Array[int] = []
+	while not queue.is_empty() and not home:
+		var cur: int = queue.pop_back()
+		if gs.province_owner[cur] == tag:
+			home = true
+			break
+		if not MapData.zones_of_port(cur).is_empty():
+			ports.append(cur)
+		for n: int in neighbors(cur):
+			if not seen.has(n) and gs.province_controller[n] == tag:
+				seen[n] = true
+				queue.append(n)
+	if not home:
+		for p in ports:
+			if Navy.sea_route_home(gs, tag, p):
+				home = true
+				break
+	for k in seen:
+		_home_cache["%s:%d" % [tag, k]] = home
+	return home
 
 
 ## Defence multiplier for an army that is holding the province: terrain times entrenchment.
@@ -407,7 +476,7 @@ static func _train(gs: Node) -> void:
 
 static func _move(gs: Node, armies: Array) -> void:
 	for a: Army in armies:
-		if a.path.is_empty():
+		if a.path.is_empty() or a.embarked():
 			continue
 		a.still_days = 0
 		a.move_days_left -= 1.0
@@ -433,6 +502,8 @@ static func _move(gs: Node, armies: Array) -> void:
 static func _by_province(armies: Array) -> Dictionary:
 	var at := {}
 	for a: Army in armies:
+		if a.embarked():
+			continue
 		if not at.has(a.province):
 			at[a.province] = []
 		at[a.province].append(a)
@@ -761,7 +832,16 @@ static func _collapse_nations(gs: Node) -> void:
 static func _upkeep_and_occupy(gs: Node) -> bool:
 	var armies: Array = gs.armies.values()
 	for a: Army in armies:
+		if a.embarked():
+			a.supplied = true
+			continue
+		if a.landing_days > 0:
+			a.landing_days -= 1
 		a.supplied = supply_cost(gs, a.tag, a.province) < INF
+		if not a.supplied and a.landed_supply > 0:
+			a.supplied = true
+		if a.landed_supply > 0:
+			a.landed_supply -= 1
 		if not a.supplied:
 			var before := a.men()
 			for i in range(a.units.size() - 1, -1, -1):

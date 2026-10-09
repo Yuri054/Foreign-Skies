@@ -26,8 +26,12 @@ func execute(gs: Node) -> bool:
 		others.append(f)
 	for f in others:
 		target.ships.append_array(f.ships)
+		for a: Army in gs.armies.values():
+			if a.fleet_id == f.id:
+				a.fleet_id = target.id
 		gs.fleets.erase(f.id)
 	target.path.clear()
+	target.landing = 0
 	target.entering = false
 	target.dest_port = 0
 	gs.fleets_changed.emit()

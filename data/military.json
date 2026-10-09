@@ -47,7 +47,13 @@
 	"movement": {
 		"min_days": 1,
 		"railway_speedup": 0.6,
-		"strait_days": 2
+		"strait_days": 2,
+		"sea_link_days": 4
+	},
+	"landing": {
+		"power_mult": 0.5,
+		"days": 5,
+		"supply_days": 20
 	},
 	"occupation": {
 		"income_share": 0.25

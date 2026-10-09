@@ -22,9 +22,10 @@ func power() -> float:
 	return def().attack * strength * lerpf(Military.cfg.combat.morale_floor_effect, 1.0, morale)
 
 
-## Men this squadron can carry overseas.
+## Men this squadron can carry overseas. A damaged transport carries as many as a whole one;
+## only a sunk one carries nothing.
 func capacity() -> int:
-	return int(def().capacity * strength)
+	return def().capacity
 
 
 func to_dict() -> Dictionary:

@@ -31,6 +31,8 @@ func execute(gs: Node) -> bool:
 	var f: Fleet = gs.fleets.get(fleet_id)
 	if f == null or f.tag != tag or f.fighting or ship_indices.is_empty() or ship_indices.size() >= f.ships.size():
 		return false
+	if not Navy.armies_aboard(gs, f).is_empty():
+		return false
 	var picked: Array[Ship] = []
 	for i in ship_indices:
 		if i < 0 or i >= f.ships.size() or picked.has(f.ships[i]):

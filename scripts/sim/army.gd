@@ -27,6 +27,17 @@ var fighting := false
 var icon := "auto"
 ## Front this army is assigned to (0 = none).
 var front_id := 0
+## Fleet the army is embarked in (0 = on land). An embarked army stands in the port it left
+## until it lands; it cannot fight, move or be supplied by land (see Navy).
+var fleet_id := 0
+## Days left in which a fresh landing fights at a penalty and has not dug in.
+var landing_days := 0
+## Days left in which the supplies that came ashore with the army last.
+var landed_supply := 0
+
+
+func embarked() -> bool:
+	return fleet_id > 0
 
 
 func men() -> float:
@@ -40,7 +51,8 @@ func power() -> float:
 	var total := 0.0
 	for u in units:
 		total += u.power()
-	return total * general_skill
+	var landing: float = Military.cfg.landing.power_mult if landing_days > 0 else 1.0
+	return total * general_skill * landing
 
 
 ## Mean morale, weighted by men.
@@ -71,7 +83,7 @@ func shown_icon() -> String:
 
 
 func entrenchment() -> int:
-	if not path.is_empty():
+	if not path.is_empty() or landing_days > 0:
 		return 0
 	return mini(Military.cfg.combat.max_entrenchment, still_days / int(Military.cfg.combat.entrench_days_per_level))
 
@@ -107,4 +119,4 @@ func to_dict() -> Dictionary:
 	for u in units:
 		list.append(u.to_dict())
 	return {"id": id, "tag": tag, "name": display_name, "province": province, "units": list,
-			"general": general_name, "skill": general_skill, "icon": icon, "front": front_id}
+			"general": general_name, "skill": general_skill, "icon": icon, "front": front_id, "fleet": fleet_id}

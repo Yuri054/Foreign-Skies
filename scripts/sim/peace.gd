@@ -369,7 +369,7 @@ static func _move_capital(gs: Node, tag: String) -> void:
 static func _withdraw_armies(gs: Node, pair: Array) -> void:
 	var moved := false
 	for a: Army in gs.armies.values().duplicate():
-		if a.tag not in pair or Military.can_enter(gs, a.tag, a.province):
+		if a.tag not in pair or a.embarked() or Military.can_enter(gs, a.tag, a.province):
 			continue
 		moved = true
 		a.path.clear()

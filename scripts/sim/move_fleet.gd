@@ -36,6 +36,7 @@ func execute(gs: Node) -> bool:
 		f.path.clear()
 		f.entering = false
 		f.dest_port = 0
+		f.landing = 0
 		return true
 	var starts: Array = MapData.zones_of_port(f.port) if f.is_in_port() else [f.zone]
 	path = Navy.find_path(f.speed(), starts, targets)
@@ -47,6 +48,7 @@ func execute(gs: Node) -> bool:
 	# Keep the progress already made if the fleet is still heading into the same zone.
 	var keep_progress: bool = not f.is_in_port() and not f.path.is_empty() and not route.is_empty() and f.path[0] == route[0]
 	f.retreating = false
+	f.landing = 0
 	f.path.assign(route)
 	f.dest_port = port
 	f.entering = false

@@ -17,7 +17,7 @@ func _init(p_tag := "", p_army := 0, p_destination := 0) -> void:
 
 func execute(gs: Node) -> bool:
 	var a: Army = gs.armies.get(army_id)
-	if a == null or a.tag != tag or destination < 1 or destination >= gs.province_owner.size():
+	if a == null or a.tag != tag or a.embarked() or destination < 1 or destination >= gs.province_owner.size():
 		return false
 	if destination == a.province:
 		Military.leave_front(gs, a)

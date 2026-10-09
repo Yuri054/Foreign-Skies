@@ -128,6 +128,147 @@ static func new_fleet(gs: Node, tag: String, fleet_name: String, port: int) -> F
 	return f
 
 
+# ------------------------------------------------------------------ carrying armies
+
+## Armies embarked in a fleet.
+static func armies_aboard(gs: Node, f: Fleet) -> Array[Army]:
+	var out: Array[Army] = []
+	for a: Army in gs.armies.values():
+		if a.fleet_id == f.id:
+			out.append(a)
+	out.sort_custom(func(x: Army, y: Army) -> bool: return x.id < y.id)
+	return out
+
+
+static func men_aboard(gs: Node, f: Fleet) -> float:
+	var total := 0.0
+	for a in armies_aboard(gs, f):
+		total += a.men()
+	return total
+
+
+## Men the fleet can still take.
+static func free_capacity(gs: Node, f: Fleet) -> float:
+	return f.capacity() - men_aboard(gs, f)
+
+
+## Why an army cannot board a fleet, or "" if it can.
+static func embark_problem(gs: Node, tag: String, a: Army, f: Fleet) -> String:
+	if a == null or f == null or a.tag != tag or f.tag != tag:
+		return "Invalid order."
+	if a.embarked():
+		return "Already aboard"
+	if not f.is_in_port() or f.port != a.province or f.is_moving():
+		return "The fleet must lie in the army's port"
+	if a.fighting or a.attacking or not a.path.is_empty():
+		return "The army is busy"
+	if a.men() > free_capacity(gs, f):
+		return "Not enough transports"
+	return ""
+
+
+## Whether ships of a nation can get from a port to one of its home ports without crossing
+## water an enemy holds: what keeps a bridgehead supplied.
+static func sea_route_home(gs: Node, tag: String, port: int) -> bool:
+	var targets: Array[int] = []
+	for id: int in gs.nations[tag].provinces:
+		if gs.province_controller[id] == tag and port_level(gs, id) > 0:
+			for z in MapData.zones_of_port(id):
+				if not targets.has(z):
+					targets.append(z)
+	var seen := {}
+	var todo: Array[int] = []
+	for z in MapData.zones_of_port(port):
+		if Blockade.blockaders(gs, tag, z).is_empty():
+			seen[z] = true
+			todo.append(z)
+	while not todo.is_empty():
+		var z: int = todo.pop_back()
+		if targets.has(z):
+			return true
+		for n: int in MapData.sea_adjacency[z]:
+			if not seen.has(n) and Blockade.blockaders(gs, tag, n).is_empty():
+				seen[n] = true
+				todo.append(n)
+	return false
+
+
+## Puts an embarked army ashore in a province. A landing from the sea onto ground the enemy
+## holds or defends is an assault: the army fights at a penalty and has not dug in until
+## `landing.days` have passed.
+static func land_army(gs: Node, a: Army, province: int, from_sea: bool) -> void:
+	var assault := false
+	if from_sea:
+		var holder: String = gs.province_controller[province]
+		assault = holder != a.tag and (gs.at_war(a.tag, holder) or gs.at_war(a.tag, gs.province_owner[province]))
+		for b in Military.armies_at(gs, province):
+			if gs.at_war(a.tag, b.tag):
+				assault = true
+	a.fleet_id = 0
+	a.province = province
+	a.path.clear()
+	a.still_days = 0
+	a.landing_days = Military.cfg.landing.days if assault else 0
+	a.landed_supply = Military.cfg.landing.supply_days if from_sea else 0
+	a.attacking = false
+	for b in Military.armies_at(gs, province):
+		if b != a and gs.at_war(a.tag, b.tag):
+			a.attacking = true
+	gs.armies_changed.emit()
+
+
+## After the day's fighting: armies whose fleet is gone are lost with it, a convoy that lost
+## transports drowns the men it can no longer carry, and fleets that have reached their landing
+## put their armies ashore.
+static func settle_embarked(gs: Node) -> void:
+	var aboard := {}
+	for a: Army in gs.armies.values():
+		if a.fleet_id > 0:
+			if not aboard.has(a.fleet_id):
+				aboard[a.fleet_id] = []
+			aboard[a.fleet_id].append(a)
+	for fid: int in aboard:
+		var f: Fleet = gs.fleets.get(fid)
+		var list: Array = aboard[fid]
+		if f == null:
+			for a: Army in list:
+				_drown(gs, a, 1.0, "was lost with its convoy")
+			continue
+		var men := 0.0
+		for a: Army in list:
+			men += a.men()
+		if men > f.capacity():
+			var frac := (men - f.capacity()) / men
+			for a: Army in list:
+				_drown(gs, a, frac, "lost men when transports went down")
+		if f.landing > 0 and not f.is_moving() and f.zone > 0 and MapData.zones_of_port(f.landing).has(f.zone):
+			for a: Army in list:
+				if gs.armies.has(a.id) and Military.can_enter(gs, a.tag, f.landing):
+					land_army(gs, a, f.landing, true)
+			if armies_aboard(gs, f).is_empty():
+				f.landing = 0
+
+
+static func _drown(gs: Node, a: Army, frac: float, what: String) -> void:
+	var before := a.men()
+	if frac >= 1.0:
+		a.units.clear()
+	else:
+		for u in a.units:
+			u.strength *= 1.0 - frac
+		for i in range(a.units.size() - 1, -1, -1):
+			if a.units[i].strength < Military.cfg.combat.min_strength:
+				a.units.remove_at(i)
+	var lost := before - a.men()
+	Military._add_loss(gs, a.tag, [], lost, "losses")
+	for war in gs.wars_of(a.tag):
+		war.add_log(Clock.date_string(), "sinking", "%s's %s %s (%dk men)." % [
+				gs.nations[a.tag].display_name, a.display_name, what, roundi(lost / 1000.0)])
+	if a.units.is_empty():
+		gs.armies.erase(a.id)
+	gs.armies_changed.emit()
+
+
 # ------------------------------------------------------------------ shipbuilding
 
 ## What building `count` squadrons of a type would cost, shaped like Economy.build_plan: gold,
@@ -251,6 +392,7 @@ static func step_day(gs: Node) -> void:
 	for f: Fleet in gs.fleets.values():
 		_sail(f)
 	NavalCombat.step_day(gs)
+	settle_embarked(gs)
 	Blockade.step_day(gs)
 	if built:
 		Economy.recompute(gs)
