@@ -1,10 +1,13 @@
 extends FloatingWindow
+
+const NavyPanel := preload("res://scripts/ui/navy_panel.gd")
+
 ## Military overview of the player's nation: mobilization, manpower, the list of armies with
 ## orders (merge, split, map symbol), fronts, recruiting, and a switch to put nations at war
 ## for testing until diplomacy exists. Clicking a province selects the player's armies
 ## standing there (dragging a box selects every army inside it); a right click on another
 ## province sends the selected armies to it. A front is a line of provinces drawn on the map
-## with armies assigned to it: they spread along the line and hold it. Toggle with M.
+## with armies assigned to it: they spread along the line and hold it. Toggle with M. Its Navy tab (N) holds the fleets, shipyard and sea state.
 
 var _slider := HSlider.new()
 var _slider_label := Label.new()
@@ -60,6 +63,7 @@ var _release_button := Button.new()
 var _delete_button := Button.new()
 var _draw_row := VBoxContainer.new()
 var _front_name := LineEdit.new()
+var _navy := NavyPanel.new()
 
 ## Ids of the selected armies; the list mirrors it.
 var _selected: Array[int] = []
@@ -92,6 +96,7 @@ func _ready() -> void:
 	_tabs.add_child(_fronts_scroll)
 	_tabs.add_child(_recruit_scroll)
 	_tabs.add_child(_wars_scroll)
+	_tabs.add_child(_navy)
 	_tabs.focus_mode = Control.FOCUS_NONE
 	_tabs.tab_changed.connect(func(_i: int) -> void: _fit_height.call_deferred())
 	for sc: ScrollContainer in [_scroll, _fronts_scroll, _recruit_scroll, _wars_scroll]:
@@ -364,6 +369,19 @@ func toggle() -> void:
 		_refresh()
 
 
+## Opens the window on a tab by its name (or closes it, with `open` false).
+func show_tab(tab_name: String, open := true) -> void:
+	if not open:
+		close_window()
+		return
+	for i in _tabs.get_tab_count():
+		if _tabs.get_child(i).name == tab_name:
+			_tabs.current_tab = i
+	visible = true
+	move_to_front()
+	_refresh()
+
+
 ## The map's selected province changed: select the player's armies standing there, or, while
 ## a front is being drawn, add the province to the line.
 func set_province(id: int) -> void:
@@ -587,7 +605,7 @@ func _fit_height() -> void:
 	if not is_inside_tree():
 		return
 	var boxes: Array[Control] = [_box, _fronts_box, _recruit_box, _wars_box]
-	var wanted := boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y
+	var wanted := _navy.content_height() if _tabs.current_tab == 4 else boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y
 	fit_window(minf(wanted, 460.0) + 34.0)
 
 

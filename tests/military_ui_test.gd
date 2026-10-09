@@ -184,7 +184,7 @@ func _initialize() -> void:
 	await process_frame
 	panel.visible = true
 	panel._refresh()
-	_check(panel._tabs.get_tab_count() == 4 and panel._tabs.get_tab_title(3) == "Wars", "the Military panel has Armies, Fronts, Recruit and Wars tabs")
+	_check(panel._tabs.get_tab_count() == 5 and panel._tabs.get_tab_title(3) == "Wars" and panel._tabs.get_tab_title(4) == "Navy", "the Military panel has Armies, Fronts, Recruit, Wars and Navy tabs")
 	_check(panel._wars_list.item_count == 0 and panel._war_summary.text.contains("No wars"), "it starts empty")
 	gs.set_war("FRA", "GER", true)
 	gs.set_war("GBR", "ITA", true)

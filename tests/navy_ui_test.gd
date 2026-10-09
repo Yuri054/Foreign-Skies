@@ -22,6 +22,13 @@ func _check(cond: bool, msg: String) -> void:
 		print("ok:   ", msg)
 
 
+func _key(code: int) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.pressed = true
+	return e
+
+
 func _zone(zone_name: String) -> int:
 	for z in map.sea_zones:
 		if z.get("name", "") == zone_name:
@@ -53,9 +60,16 @@ func _initialize() -> void:
 	var layer: Node = get_first_node_in_group("fleet_layer")
 	var military: Node = get_first_node_in_group("military_panel")
 	_check(panel != null and layer != null, "the Navy panel and the fleet layer exist")
+	var window: Node = military
+	_check(panel.get_parent().get_parent() == window._tabs or panel.get_parent() == window._tabs, "the Navy panel is a tab of the Military window")
+	panel._unhandled_key_input(_key(KEY_N))
+	await process_frame
+	_check(window.visible and panel.is_visible_in_tree(), "N opens the Military window on the Navy tab")
+	panel._unhandled_key_input(_key(KEY_N))
+	_check(not window.visible, "and closes it again")
 	panel.toggle()
 	await process_frame
-	_check(panel.visible, "the panel opens")
+	_check(panel.is_visible_in_tree(), "the panel opens")
 
 	await _test_markers_and_selection(panel, layer, military)
 	await _test_orders(panel, layer)

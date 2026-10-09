@@ -1,10 +1,10 @@
-extends FloatingWindow
+extends VBoxContainer
 ## Navy overview of the player's nation: the fleets with orders (mission, merge, split, back to
 ## port), the shipyard of the selected province (build squadrons), and the state of the sea:
 ## upkeep, strength against enemies, who holds which zone and who is blockaded. Clicking a fleet
 ## banner selects its fleets (dragging a box selects every fleet inside it); a right click on
 ## water sends the selected fleets there, and a right click on a port brings them in.
-## Toggle with N.
+## It is a tab of the Military window; N opens it.
 
 const TABS := ["Fleets", "Shipyard", "Sea"]
 
@@ -50,7 +50,7 @@ var _split_sig := "?"
 
 func _ready() -> void:
 	add_to_group("navy_panel")
-	visible = false
+	name = "Navy"
 	_build_fleets_tab()
 	_build_yard_tab()
 	_build_sea_tab()
@@ -65,9 +65,8 @@ func _ready() -> void:
 	_tabs.tab_changed.connect(func(_i: int) -> void:
 		_refresh()
 		_fit_height.call_deferred())
+	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(_tabs)
-	setup_window("Navy", true, Vector2(520, 0), 2)
-	get_viewport().size_changed.connect(_fit_height)
 	GameState.fleets_changed.connect(_refresh)
 	GameState.economy_updated.connect(_refresh)
 	GameState.player_changed.connect(func(_t: String) -> void:
@@ -208,16 +207,18 @@ func _build_sea_tab() -> void:
 
 # ------------------------------------------------------------------ selection and orders
 
+## Opens the Military window on this tab, or closes it if it is already showing it.
 func toggle() -> void:
-	visible = not visible
-	if visible:
+	var shown := is_visible_in_tree()
+	get_tree().call_group("military_panel", "show_tab", name, not shown)
+	if not shown:
 		_refresh()
 
 
 ## The map's selected province changed: the shipyard tab follows it.
 func set_province(id: int) -> void:
 	_province = id
-	if visible:
+	if is_visible_in_tree():
 		_refresh_yard()
 
 
@@ -237,7 +238,7 @@ func clear_selection_quiet() -> void:
 		return
 	_selected.clear()
 	get_tree().call_group("fleet_layer", "set_selection", _selected.duplicate())
-	if visible:
+	if is_visible_in_tree():
 		_refresh()
 
 
@@ -411,7 +412,7 @@ func _on_show() -> void:
 # ------------------------------------------------------------------ refreshing
 
 func _refresh() -> void:
-	if not visible or GameState.get_player() == null:
+	if not is_visible_in_tree() or GameState.get_player() == null:
 		return
 	match _tabs.current_tab:
 		0:
@@ -425,11 +426,13 @@ func _refresh() -> void:
 
 
 func _fit_height() -> void:
-	if not is_inside_tree():
-		return
+	get_tree().call_group("military_panel", "_fit_height")
+
+
+## Height of what the current tab holds, for the Military window to fit itself to.
+func content_height() -> float:
 	var boxes: Array[Control] = [_fleet_box, _yard_box, _sea_box]
-	var wanted := boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y
-	fit_window(minf(wanted, 460.0) + 34.0)
+	return boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y + 34.0
 
 
 static func _where(f: Fleet) -> String:
