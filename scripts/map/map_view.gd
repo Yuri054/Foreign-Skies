@@ -47,8 +47,7 @@ const NAVAL_MODES := [Mode.SEA_CONTROL, Mode.BLOCKADE]
 const BLOCKADE_COLOR := Color(0.78, 0.12, 0.1)
 const CONTESTED_COLOR := Color(0.6, 0.1, 0.1)
 const ZONE_TEXTURE_WIDTH := 64
-## The colours of the player's fronts, in order (the army layer draws their lines in the same ones).
-const FRONT_COLORS := [Color(0.95, 0.55, 0.2), Color(0.35, 0.85, 0.5), Color(0.75, 0.5, 0.95), Color(0.95, 0.4, 0.55), Color(0.4, 0.75, 0.95)]
+
 ## Diplomacy mode: opinion of the player runs from HOSTILE through NEUTRAL to FRIENDLY.
 const HOSTILE_COLOR := Color(0.82, 0.25, 0.22)
 const NEUTRAL_COLOR := Color(0.8, 0.8, 0.76)
@@ -96,10 +95,6 @@ var _marks_texture: ImageTexture
 var _blocs_image: Image
 var _blocs_texture: ImageTexture
 var _zone_image: Image
-var _tint_image: Image
-var _tint_texture: ImageTexture
-## The front shown boldest (set by the army layer).
-var front_highlight := 0
 var _zone_texture: ImageTexture
 var _repaint_queued := false
 ## Diplomacy mode: the nation whose relations the map shows. "" means the player's own.
@@ -136,10 +131,6 @@ func _ready() -> void:
 	_material.set_shader_parameter("marks", _marks_texture)
 	_material.set_shader_parameter("blocs", _blocs_texture)
 	_material.set_shader_parameter("sea_zones", ImageTexture.create_from_image(MapData.sea_zones_image))
-	_tint_image = _lookup_image.duplicate()
-	_tint_image.fill(Color(0, 0, 0, 0))
-	_tint_texture = ImageTexture.create_from_image(_tint_image)
-	_material.set_shader_parameter("front_tints", _tint_texture)
 	_zone_image = Image.create(ZONE_TEXTURE_WIDTH, 1, false, Image.FORMAT_RGBA8)
 	_zone_texture = ImageTexture.create_from_image(_zone_image)
 	_material.set_shader_parameter("zone_colors", _zone_texture)
@@ -158,9 +149,6 @@ func _ready() -> void:
 			repaint()
 	)
 	# Ships come and go every day; repaint the sea modes at most once a frame.
-	GameState.fronts_changed.connect(paint_fronts)
-	GameState.player_changed.connect(func(_t: String) -> void: paint_fronts())
-	GameState.scenario_loaded.connect(paint_fronts)
 	GameState.fleets_changed.connect(_queue_naval_repaint)
 	GameState.blockade_changed.connect(_queue_naval_repaint.unbind(2))
 	# Opinions change all the time; repaint the diplomacy mode at most once a frame.
@@ -333,30 +321,6 @@ func repaint() -> void:
 		_paint_zones()
 	if mode == Mode.BLOCKADE:
 		_paint_blockade_marks()
-
-
-## Washes the provinces of the player's fronts in each front's colour (the chosen front more
-## strongly), so the ground a front covers reads at a glance as well as its line.
-func paint_fronts() -> void:
-	if _tint_image == null:
-		return
-	_tint_image.fill(Color(0, 0, 0, 0))
-	var index := 0
-	for f: Front in GameState.fronts.values():
-		if f.tag != GameState.player_tag:
-			continue
-		var color: Color = FRONT_COLORS[index % FRONT_COLORS.size()]
-		index += 1
-		var strength := 0.34 if f.id == front_highlight else 0.2
-		for p in f.provinces:
-			@warning_ignore("integer_division")
-			_tint_image.set_pixelv(Vector2i(p % LOOKUP_WIDTH, p / LOOKUP_WIDTH), Color(color, strength))
-	_tint_texture.update(_tint_image)
-
-
-func set_front_highlight(id: int) -> void:
-	front_highlight = id
-	paint_fronts()
 
 
 ## Tints every sea zone by who holds it (contested zones dark red; zones nobody holds stay clear).

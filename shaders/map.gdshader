@@ -14,7 +14,6 @@ uniform bool zone_paint = false;
 uniform bool hatch_marks = false; // hatch the provinces `marks` flags, outside the diplomacy mode too
 uniform int selected_zone = 0;
 uniform int hover_zone = 0;
-uniform sampler2D front_tints : filter_nearest, repeat_disable; // fronts: tint colour and strength per province
 uniform bool diplomacy = false;
 uniform int lookup_width = 256;
 uniform int max_id = 0;
@@ -60,11 +59,6 @@ vec4 mark_color(int id) {
 	return texelFetch(marks, p, 0);
 }
 
-vec4 front_tint(int id) {
-	ivec2 p = ivec2(id % lookup_width, id / lookup_width);
-	return texelFetch(front_tints, p, 0);
-}
-
 vec4 bloc_color(int id) {
 	ivec2 p = ivec2(id % lookup_width, id / lookup_width);
 	return texelFetch(blocs, p, 0);
@@ -94,19 +88,6 @@ void fragment() {
 			float px_per_screen = max(fwidth(UV.x) * map_size.x, 0.001);
 			float band = fract((map_px.x + map_px.y) / (px_per_screen * stripe_px));
 			col = band < 0.5 ? col : owner_rgb;
-		}
-	}
-
-	if (id > 0) {
-		// Diagonal stripes of the front's colour over the ground it covers.
-		vec4 tint = front_tint(id);
-		if (tint.a > 0.0) {
-			vec2 map_px = UV * map_size;
-			float px_per_screen = max(fwidth(UV.x) * map_size.x, 0.001);
-			float band = fract((map_px.x + map_px.y) / (px_per_screen * 16.0));
-			if (band < 0.45) {
-				col = mix(col, tint.rgb, clamp(tint.a * 2.4, 0.0, 0.9));
-			}
 		}
 	}
 

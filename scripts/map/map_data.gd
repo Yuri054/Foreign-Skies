@@ -36,6 +36,10 @@ var sea_zones_image: Image
 var _ports_of_zone: Dictionary = {}
 
 var _id_by_rgb: Dictionary = {}
+## Borders between provinces (tools/build_borders.py), loaded when first asked for:
+## Vector2i(lower id, higher id) -> Array of PackedVector2Array polylines in bitmap pixels.
+var _borders: Dictionary = {}
+var _borders_loaded := false
 
 
 func _init() -> void:
@@ -130,6 +134,27 @@ func sea_zone_at_pixel(px: Vector2i) -> int:
 		return 0
 	return sea_zones_image.get_pixel(clampi(px.x / ZONE_SCALE, 0, sea_zones_image.get_width() - 1),
 			clampi(px.y / ZONE_SCALE, 0, sea_zones_image.get_height() - 1)).r8
+
+
+## The stretches of border between two provinces, as polylines in bitmap pixels (empty if they
+## do not touch).
+func border_lines(a: int, b: int) -> Array:
+	if not _borders_loaded:
+		_load_borders()
+	return _borders.get(Vector2i(mini(a, b), maxi(a, b)), [])
+
+
+func _load_borders() -> void:
+	_borders_loaded = true
+	for row in read_table(MAP_DIR + "borders.tsv"):
+		var line := PackedVector2Array()
+		for pair in str(row.points).split(";"):
+			var xy := pair.split(",")
+			line.append(Vector2(int(xy[0]), int(xy[1])))
+		var key := Vector2i(int(row.id_a), int(row.id_b))
+		if not _borders.has(key):
+			_borders[key] = []
+		_borders[key].append(line)
 
 
 ## Province ids that open on a sea zone.
