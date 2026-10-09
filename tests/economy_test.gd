@@ -244,6 +244,7 @@ func _initialize() -> void:
 	var gbr2 = gs.nations["GBR"]
 	var ind0: float = gbr2.budget.industry
 	var exp0: float = gbr2.budget.resource_exports
+	gbr2.blockade_pinned = 1.0
 	gbr2.blockade = 1.0
 	Eco.recompute(gs)
 	_check(gbr2.budget.resource_exports == 0.0 and exp0 > 0.0, "blockade ends coal exports")
@@ -254,6 +255,7 @@ func _initialize() -> void:
 	_check(gbr2.stock.wood < wood_stock, "stockpile is drawn down by the blockade")
 	_check(gbr2.budget.resources.wood.shortage > 0.0, "timber shortage appears once the stockpile is gone")
 	_check(gbr2.budget.industry < ind0 * 0.99, "shortages cut industry")
+	gbr2.blockade_pinned = -1.0
 	gbr2.blockade = 0.0
 	Eco.recompute(gs)
 	_check(gbr2.budget.resources.wood.shortage == 0.0, "lifting the blockade ends the shortage")

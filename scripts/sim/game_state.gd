@@ -19,6 +19,7 @@ signal fleets_changed
 ## A day of fighting at sea in a zone, with the nations that fought.
 signal sea_battle_fought(zone: int, tags: Array)
 signal ship_sunk(tag: String, zone: int, type: String)
+signal blockade_changed(tag: String, value: float)
 signal ship_built(tag: String, province: int, type: String)
 signal war_changed(a: String, b: String, at_war: bool)
 ## A nation lost its last province and its armies broke up.
@@ -76,6 +77,8 @@ var naval_bases: Dictionary = {}
 ## Fights at sea now, by zone, and the accounts of those that have ended, by id.
 var sea_battles: Dictionary = {}
 var sea_battle_archive: Dictionary = {}
+## Who holds each sea zone today, by zone (see Blockade.update_control).
+var sea_control: Dictionary = {}
 ## front id -> Front.
 var fronts: Dictionary = {}
 var next_front_id := 1
@@ -192,6 +195,7 @@ func load_scenario(dir: String) -> void:
 	battle_archive.clear()
 	sea_battles.clear()
 	sea_battle_archive.clear()
+	sea_control.clear()
 	next_battle_id = 1
 	occupation.clear()
 	fronts.clear()

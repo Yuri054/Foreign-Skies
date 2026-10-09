@@ -251,6 +251,7 @@ static func step_day(gs: Node) -> void:
 	for f: Fleet in gs.fleets.values():
 		_sail(f)
 	NavalCombat.step_day(gs)
+	Blockade.step_day(gs)
 	if built:
 		Economy.recompute(gs)
 		gs.economy_updated.emit()

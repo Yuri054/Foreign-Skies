@@ -128,5 +128,25 @@
 	"port_morale_regain": 0.05,
 	"range_attrition": 0.004,
 	"range_attrition_morale": 0.01,
-	"range_floor": 0.1
+	"range_floor": 0.1,
+	"blockade": {
+		"min_power": 1.0,
+		"base_weight": 1.0,
+		"per_port_level": 0.75,
+		"per_market_level": 0.25,
+		"second_zone_share": 0.35,
+		"max": 0.9,
+		"land_leak": 0.5,
+		"rise_per_day": 0.015,
+		"fall_per_day": 0.02,
+		"recompute_step": 0.04,
+		"assess_days": 4,
+		"outlets": [
+			"North Atlantic",
+			"Norwegian Sea",
+			"Atlantic Iberia",
+			"Western Approaches",
+			"Eastern Mediterranean"
+		]
+	}
 }

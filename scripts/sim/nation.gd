@@ -39,8 +39,16 @@ var mobilization := 0.0
 var programs: Dictionary = {}
 ## Buildings under construction: {province, type, days_total, days_left}.
 var construction: Array[Dictionary] = []
-## 0..1 share of trade and food imports cut off by enemy naval control (phase 7).
+## 0..1 share of trade and food imports cut off by enemy naval control (see Blockade).
 var blockade := 0.0
+## What the enemy's grip on the sea would cut off (0..1), the nations whose ships hold it, and
+## the value of `blockade` when the economy was last recomputed (see Blockade).
+var blockade_target := 0.0
+var blockade_by: Array = []
+var blockade_applied := 0.0
+## A level (0..1) that overrides the navy, for tests and scenarios that must not depend on the
+## fleets; negative means the navy decides.
+var blockade_pinned := -1.0
 ## Soldiers in service at mobilization 0.
 var peacetime_army := 0
 ## Yearly naval cost, GBP millions: the shore establishment plus the upkeep of the ships (set
