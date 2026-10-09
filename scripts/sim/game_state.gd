@@ -153,6 +153,12 @@ var ai_reserve: Dictionary = {}
 ## for a new one.
 var ai_campaign: Dictionary = {}
 var ai_campaign_wait: Dictionary = {}
+## The naval AI: tag -> {assign: {fleet id: zone}}, the landings it is preparing (tag -> {enemy,
+## target, port, fleet, armies, phase, started}), when it may look for another, and what it lacks.
+var ai_navy: Dictionary = {}
+var ai_landing: Dictionary = {}
+var ai_landing_wait: Dictionary = {}
+var ai_navy_need: Dictionary = {}
 ## The month (year * 12 + month) in which each AI nation last weighed treaties.
 var ai_diplo_stamp: Dictionary = {}
 ## The month (year * 12 + month) in which each AI nation last did its budget.

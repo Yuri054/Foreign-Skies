@@ -36,6 +36,10 @@ static func load_scenario(gs: Node) -> void:
 	gs.ai_diplo_stamp.clear()
 	gs.ai_budget_stamp.clear()
 	gs.ai_campaign_wait.clear()
+	gs.ai_navy.clear()
+	gs.ai_landing.clear()
+	gs.ai_landing_wait.clear()
+	gs.ai_navy_need.clear()
 	gs.ai_declarations = {"total": 0, "unjustified": 0}
 	var s: Dictionary = gs.scenario
 	var base: Dictionary = cfg.temperament.default
@@ -119,6 +123,8 @@ static func think(gs: Node, tag: String) -> void:
 		_timed("defence", func() -> void: AIDefense.step(gs, tag))
 		_timed("offence", func() -> void: AIOffense.step(gs, tag))
 		_timed("forces", func() -> void: AIForces.step(gs, tag))
+		_timed("navy", func() -> void: AINavy.step(gs, tag))
+		_timed("landing", func() -> void: AILanding.step(gs, tag))
 	_timed("diplomacy", func() -> void: AIDiplomacy.step(gs, tag))
 	_timed("budget", func() -> void: AIBudget.step(gs, tag))
 

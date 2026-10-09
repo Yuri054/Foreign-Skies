@@ -19,6 +19,7 @@ static func step(gs: Node, tag: String) -> void:
 	_taxes(gs, tag)
 	_programs(gs, tag)
 	_buildings(gs, tag)
+	AINavy.build(gs, tag)
 	_points(gs, tag)
 
 

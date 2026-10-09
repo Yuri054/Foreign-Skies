@@ -13,7 +13,7 @@ extends RefCounted
 
 static func in_campaign(gs: Node, tag: String, army_id: int) -> bool:
 	var c: Variant = gs.ai_campaign.get(tag)
-	return c != null and army_id in c.armies
+	return (c != null and army_id in c.armies) or AILanding.involves(gs, tag, army_id)
 
 
 static func step(gs: Node, tag: String) -> void:
@@ -202,7 +202,7 @@ static func _available(gs: Node, tag: String) -> Array[Army]:
 	var all := Military.armies_of(gs, tag)
 	all.sort_custom(func(x: Army, y: Army) -> bool: return x.power() > y.power() or (x.power() == y.power() and x.id < y.id))
 	for a in all:
-		if a.id == reserve or not a.path.is_empty() or a.fighting or gs.province_controller[a.province] != tag:
+		if a.id == reserve or not a.path.is_empty() or a.fighting or a.embarked() or gs.province_controller[a.province] != tag or AILanding.involves(gs, tag, a.id):
 			continue
 		if a.front_id != 0:
 			if left.get(a.front_id, 0) < 2:

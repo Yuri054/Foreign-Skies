@@ -379,25 +379,9 @@ func _on_split() -> void:
 		_refresh()
 
 
-## The nearest port the nation may use, by sea route, for a fleet.
-func _nearest_port(f: Fleet) -> int:
-	var targets: Array[int] = []
-	var port_of := {}
-	for z in range(1, MapData.sea_zones.size()):
-		for p in MapData.ports_in_zone(z):
-			if Navy.can_dock(GameState, f.tag, p):
-				targets.append(z)
-				if not port_of.has(z):
-					port_of[z] = p
-				break
-	var starts: Array = [f.zone] if f.zone > 0 else MapData.zones_of_port(f.port)
-	var path := Navy.find_path(f.speed(), starts, targets)
-	return port_of[path[-1]] if not path.is_empty() else 0
-
-
 func _on_home() -> void:
 	for f in _selected_fleets():
-		var p := _nearest_port(f)
+		var p := Navy.nearest_port(GameState, f)
 		if p > 0 and p != f.port:
 			GameState.issue(MoveFleet.new(GameState.player_tag, f.id, 0, p))
 	_refresh()

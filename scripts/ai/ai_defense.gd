@@ -90,7 +90,7 @@ static func _tables(gs: Node, fronts: Array[Front]) -> Array:
 static func _idle(gs: Node, tag: String) -> Array[Army]:
 	var out: Array[Army] = []
 	for a in Military.armies_of(gs, tag):
-		if a.path.is_empty() and not a.fighting and not AIOffense.in_campaign(gs, tag, a.id):
+		if a.path.is_empty() and not a.fighting and not a.embarked() and not AIOffense.in_campaign(gs, tag, a.id):
 			out.append(a)
 	return out
 

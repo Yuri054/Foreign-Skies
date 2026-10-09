@@ -128,6 +128,31 @@ static func new_fleet(gs: Node, tag: String, fleet_name: String, port: int) -> F
 	return f
 
 
+## The nearest port (by sea route) a fleet may use, or 0 if there is none. A fleet in a zone
+## that a port opens on counts that port at no distance.
+static func nearest_port(gs: Node, f: Fleet) -> int:
+	var targets: Array[int] = []
+	var port_of := {}
+	for z in range(1, MapData.sea_zones.size()):
+		for p in MapData.ports_in_zone(z):
+			if can_dock(gs, f.tag, p):
+				targets.append(z)
+				if not port_of.has(z):
+					port_of[z] = p
+				break
+	var starts: Array = [f.zone] if f.zone > 0 else MapData.zones_of_port(f.port)
+	var path := find_path(f.speed(), starts, targets)
+	return port_of[path[-1]] if not path.is_empty() else 0
+
+
+## Days a fleet of a speed needs to sail along a path of zones (the first is where it starts).
+static func path_days(speed: float, path: Array) -> float:
+	var total := 0.0
+	for i in range(1, path.size()):
+		total += zone_days(speed, path[i - 1], path[i])
+	return total
+
+
 # ------------------------------------------------------------------ carrying armies
 
 ## Armies embarked in a fleet.
