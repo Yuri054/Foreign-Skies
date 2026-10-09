@@ -14,6 +14,8 @@ signal box_selected(rect: Rect2, additive: bool)
 signal army_clicked(army_id: int, additive: bool)
 ## The icon of a battle in progress was clicked (its province).
 signal battle_clicked(province: int)
+## A sea zone was clicked (0 when a province or nothing was).
+signal sea_zone_selected(zone: int)
 signal mode_changed(mode: Mode, submode: String)
 ## In the Diplomacy mode, whose point of view the map shows changed (see set_viewpoint).
 signal viewpoint_changed(tag: String)
@@ -57,6 +59,10 @@ var mode: Mode = Mode.POLITICAL
 var submode := ""
 var selected_id := 0
 var hover_id := 0
+var selected_zone := 0
+var hover_zone := 0
+## Whether the borders of every sea zone are drawn (Z toggles it).
+var show_zones := false
 
 ## Drag selection: where the left button went down (screen and map), and whether it has
 ## moved far enough to be a box rather than a click.
@@ -108,6 +114,7 @@ func _ready() -> void:
 	_material.set_shader_parameter("owners", _owner_texture)
 	_material.set_shader_parameter("marks", _marks_texture)
 	_material.set_shader_parameter("blocs", _blocs_texture)
+	_material.set_shader_parameter("sea_zones", ImageTexture.create_from_image(MapData.sea_zones_image))
 	_material.set_shader_parameter("lookup_width", LOOKUP_WIDTH)
 	_material.set_shader_parameter("max_id", max_id)
 	_material.set_shader_parameter("map_size", Vector2(MapData.map_size))
@@ -379,7 +386,26 @@ func legend() -> Dictionary:
 func select(id: int) -> void:
 	selected_id = id
 	_material.set_shader_parameter("selected_id", id)
+	select_zone(0)
 	province_selected.emit(id)
+
+
+## Selects a sea zone (0 clears it). A zone and a province are never selected together.
+func select_zone(zone: int) -> void:
+	if zone == selected_zone:
+		return
+	selected_zone = zone
+	_material.set_shader_parameter("selected_zone", zone)
+	if zone > 0 and selected_id != 0:
+		selected_id = 0
+		_material.set_shader_parameter("selected_id", 0)
+		province_selected.emit(0)
+	sea_zone_selected.emit(zone)
+
+
+func set_show_zones(on: bool) -> void:
+	show_zones = on
+	_material.set_shader_parameter("show_zones", on)
 
 
 func _box_rect() -> Rect2:
@@ -403,7 +429,12 @@ func _finish_press(_screen_pos: Vector2) -> void:
 		elif hit > 0:
 			army_clicked.emit(hit, Input.is_key_pressed(KEY_SHIFT))
 		else:
-			select(maxi(_province_under_mouse(), 0))
+			var id := maxi(_province_under_mouse(), 0)
+			var zone := _zone_under_mouse() if id == 0 else 0
+			if zone > 0:
+				select_zone(zone)
+			else:
+				select(id)
 
 
 func _province_under_mouse() -> int:
@@ -411,8 +442,18 @@ func _province_under_mouse() -> int:
 	return MapData.province_at_pixel(px)
 
 
+func _zone_under_mouse() -> int:
+	return MapData.sea_zone_at_pixel(Vector2i(to_local(get_global_mouse_position()).floor()))
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Z 			and not event.ctrl_pressed and not event.alt_pressed:
+		set_show_zones(not show_zones)
+	elif event is InputEventMouseMotion:
+		var zone := _zone_under_mouse()
+		if zone != hover_zone:
+			hover_zone = zone
+			_material.set_shader_parameter("hover_zone", zone)
 		var id := maxi(_province_under_mouse(), 0)
 		if id != hover_id:
 			hover_id = id

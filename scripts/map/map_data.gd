@@ -8,6 +8,8 @@ const SEA := 0
 const BACKGROUND := -1
 ## Ground area of one bitmap pixel (see tools/build_map.py).
 const KM2_PER_PX := 0.48
+## Bitmap pixels per pixel of the sea zone image.
+const ZONE_SCALE := 4
 const BACKGROUND_COLOR := Color8(128, 128, 128)
 
 var provinces_image: Image
@@ -20,6 +22,18 @@ var nations: Dictionary = {}
 var adjacency: Dictionary = {}
 ## Sea crossings, keyed by Vector2i(lower id, higher id) -> "strait" or "sea".
 var sea_links: Dictionary = {}
+## Sea zones (see tools/build_sea_zones.py), indexed by zone id; element 0 is an unused
+## placeholder. Each is {id, name, seed, center (a water point in bitmap pixels), area}.
+var sea_zones: Array[Dictionary] = [{}]
+## zone id -> PackedInt32Array of the zones it touches.
+var sea_adjacency: Dictionary = {}
+## province id -> {zone, zone2}: the zone a coastal province opens on, and a second one (0 if
+## none). Coastal provinces whose water is in no zone (the Arctic, the Caspian) have no entry.
+var port_zones: Dictionary = {}
+## One pixel per ZONE_SCALE bitmap pixels; the red channel is the zone id.
+var sea_zones_image: Image
+## Zone id -> province ids that open on it.
+var _ports_of_zone: Dictionary = {}
 
 var _id_by_rgb: Dictionary = {}
 
@@ -29,6 +43,7 @@ func _init() -> void:
 	_load_provinces()
 	_load_coastal()
 	_load_adjacencies()
+	_load_sea_zones()
 	_load_nations()
 
 
@@ -73,6 +88,63 @@ func _load_adjacencies() -> void:
 		_link(a, b)
 		if row.kind != "land":
 			sea_links[Vector2i(mini(a, b), maxi(a, b))] = row.kind
+
+
+func _load_sea_zones() -> void:
+	var path := MAP_DIR + "sea_zones.png"
+	if ResourceLoader.exists(path):
+		sea_zones_image = (load(path) as Texture2D).get_image()
+	else:
+		sea_zones_image = Image.load_from_file(ProjectSettings.globalize_path(path))
+	sea_zones_image.convert(Image.FORMAT_RGB8)
+	for row in read_table(MAP_DIR + "sea_zones.tsv"):
+		var id := int(row.id)
+		while sea_zones.size() <= id:
+			sea_zones.append({})
+		sea_zones[id] = {
+			"id": id,
+			"name": row.name,
+			"seed": Vector2(int(row.x), int(row.y)),
+			"center": Vector2(int(row.cx), int(row.cy)),
+			"area": int(row.area),
+		}
+		sea_adjacency[id] = PackedInt32Array()
+	for row in read_table(MAP_DIR + "sea_adjacency.tsv"):
+		for pair in [[int(row.id_a), int(row.id_b)], [int(row.id_b), int(row.id_a)]]:
+			var list: PackedInt32Array = sea_adjacency[pair[0]]
+			list.append(pair[1])
+			sea_adjacency[pair[0]] = list
+	for row in read_table(MAP_DIR + "ports.tsv"):
+		var pid := int(row.id)
+		port_zones[pid] = {"zone": int(row.zone), "zone2": int(row.zone2)}
+		for z in [int(row.zone), int(row.zone2)]:
+			if z > 0:
+				var list: PackedInt32Array = _ports_of_zone.get(z, PackedInt32Array())
+				list.append(pid)
+				_ports_of_zone[z] = list
+
+
+## Sea zone id at a pixel of the bitmap: 0 on land and on water that belongs to no zone.
+func sea_zone_at_pixel(px: Vector2i) -> int:
+	if px.x < 0 or px.y < 0 or px.x >= map_size.x or px.y >= map_size.y or province_at_pixel(px) != SEA:
+		return 0
+	return sea_zones_image.get_pixel(clampi(px.x / ZONE_SCALE, 0, sea_zones_image.get_width() - 1),
+			clampi(px.y / ZONE_SCALE, 0, sea_zones_image.get_height() - 1)).r8
+
+
+## Province ids that open on a sea zone.
+func ports_in_zone(zone: int) -> PackedInt32Array:
+	return _ports_of_zone.get(zone, PackedInt32Array())
+
+
+## Zones a coastal province opens on (empty if it has no port).
+func zones_of_port(province: int) -> Array[int]:
+	var out: Array[int] = []
+	var e: Dictionary = port_zones.get(province, {})
+	for key in ["zone", "zone2"]:
+		if e.get(key, 0) > 0:
+			out.append(e[key])
+	return out
 
 
 func _load_nations() -> void:

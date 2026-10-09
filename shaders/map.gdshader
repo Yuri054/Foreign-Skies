@@ -7,6 +7,10 @@ uniform sampler2D lookup : filter_nearest, repeat_disable;  // color to paint ea
 uniform sampler2D owners : filter_nearest, repeat_disable;  // owner color, for borders
 uniform sampler2D marks : filter_nearest, repeat_disable;   // diplomacy: hatch colour, alpha > 0.5 = hatched
 uniform sampler2D blocs : filter_nearest, repeat_disable;   // diplomacy: bloc colour, alpha > 0.5 = in a bloc
+uniform sampler2D sea_zones : filter_nearest, repeat_disable; // red channel = sea zone id
+uniform bool show_zones = false;
+uniform int selected_zone = 0;
+uniform int hover_zone = 0;
 uniform bool diplomacy = false;
 uniform int lookup_width = 256;
 uniform int max_id = 0;
@@ -31,6 +35,10 @@ int id_at(vec2 uv) {
 	}
 	int id = c.r + c.g * 256;
 	return id > max_id ? BACKGROUND : id;
+}
+
+int zone_at(vec2 uv) {
+	return int(round(texture(sea_zones, uv).r * 255.0));
 }
 
 vec4 owner_color(int id) {
@@ -126,6 +134,25 @@ void fragment() {
 	col = mix(col, vec3(0.0), coast * 0.45);
 	col = mix(col, bloc_rgb, bloc_edge * 0.9);
 
+	if (id == SEA) {
+		int zone = zone_at(UV);
+		if (zone > 0) {
+			if (show_zones || zone == selected_zone) {
+				for (int i = 0; i < 4; i++) {
+					vec2 o = offsets[i] * 1.5;
+					if (id_at(UV + o) == SEA && zone_at(UV + o) != zone) {
+						col = mix(col, vec3(1.0), 0.45);
+						break;
+					}
+				}
+			}
+			if (zone == selected_zone) {
+				col = mix(col, vec3(1.0), 0.2);
+			} else if (zone == hover_zone && show_zones) {
+				col = mix(col, vec3(1.0), 0.08);
+			}
+		}
+	}
 	if (id > 0 && id == hover_id) {
 		col = mix(col, vec3(1.0), 0.15);
 	}

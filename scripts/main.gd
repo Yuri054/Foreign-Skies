@@ -27,6 +27,7 @@ func _ready() -> void:
 	UiSettings.apply_saved(get_window())
 	map_view.province_selected.connect(_on_province_selected)
 	map_view.province_ordered.connect(_on_right_click)
+	map_view.sea_zone_selected.connect(_on_sea_zone_selected)
 	var army_layer := ArmyLayer.new()
 	add_child(army_layer)
 	add_child(AIOverlay.new())
@@ -109,6 +110,18 @@ func _focus_on(tag: String) -> void:
 		weight += w
 	camera.position = sum / maxf(weight, 1.0)
 	camera.zoom = Vector2(0.6, 0.6)
+
+
+func _on_sea_zone_selected(zone: int) -> void:
+	if zone <= 0:
+		return
+	var z: Dictionary = MapData.sea_zones[zone]
+	var next: PackedStringArray = []
+	for n in MapData.sea_adjacency[zone]:
+		next.append(MapData.sea_zones[n].name)
+	info_label.text = "%s  (sea zone)
+Borders: %s
+%d ports open on it" % [z.name, ", ".join(next), MapData.ports_in_zone(zone).size()]
 
 
 func _on_province_selected(id: int) -> void:
