@@ -117,6 +117,30 @@ static func find_path(speed: float, from_zones: Array, to_zones: Array) -> Array
 	return path
 
 
+## Days from the nearest of `from_zones` to every zone a fleet of this speed can reach, as
+## find_path and path_days would give them one by one.
+static func days_to_all(speed: float, from_zones: Array) -> Dictionary:
+	var dist := {}
+	var open: Array[int] = []
+	for z: int in from_zones:
+		dist[z] = 0.0
+		open.append(z)
+	while not open.is_empty():
+		var best := 0
+		for i in open.size():
+			if dist[open[i]] < dist[open[best]] or (dist[open[i]] == dist[open[best]] and open[i] < open[best]):
+				best = i
+		var z: int = open[best]
+		open.remove_at(best)
+		for n: int in MapData.sea_adjacency[z]:
+			var d: float = dist[z] + zone_days(speed, z, n)
+			if not dist.has(n) or d < dist[n]:
+				dist[n] = d
+				if not open.has(n):
+					open.append(n)
+	return dist
+
+
 static func new_fleet(gs: Node, tag: String, fleet_name: String, port: int) -> Fleet:
 	var f := Fleet.new()
 	f.id = gs.next_fleet_id
@@ -162,6 +186,16 @@ static func armies_aboard(gs: Node, f: Fleet) -> Array[Army]:
 		if a.fleet_id == f.id:
 			out.append(a)
 	out.sort_custom(func(x: Army, y: Army) -> bool: return x.id < y.id)
+	return out
+
+
+## The fleets that have armies aboard, as a set of fleet ids (one pass over the armies, for
+## callers that would otherwise ask armies_aboard of every fleet).
+static func fleets_with_armies(gs: Node) -> Dictionary:
+	var out := {}
+	for a: Army in gs.armies.values():
+		if a.fleet_id > 0:
+			out[a.fleet_id] = true
 	return out
 
 
@@ -403,11 +437,29 @@ static func deploy_starting(gs: Node, dir: String) -> void:
 			by_name[key].ships.append(Ship.new(row.type))
 		need[province] = maxi(need.get(province, 1), cfg.types[row.type].min_port)
 	gs.naval_bases = need
+	_give_home_ports(gs, by_name)
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
 		n.shipbuilding.clear()
 		n.naval_overhead = maxf(0.0, n.naval_budget - ship_upkeep(gs, tag))
 	refresh_upkeep(gs)
+
+
+## A nation that starts with a navy starts with at least one port (the building, which also
+## brings trade): if it owns none, its biggest naval base gets a level 1 port.
+static func _give_home_ports(gs: Node, fleets: Dictionary) -> void:
+	var home := {}
+	for f: Fleet in fleets.values():
+		var best: int = home.get(f.tag, 0)
+		if best == 0 or gs.naval_bases.get(f.port, 0) > gs.naval_bases.get(best, 0):
+			home[f.tag] = f.port
+	for id in range(1, gs.province_owner.size()):
+		if gs.province_buildings[id].get("port", 0) > 0:
+			home.erase(gs.province_owner[id])
+	for tag: String in home:
+		var province: int = home[tag]
+		if gs.province_owner[province] == tag:
+			gs.province_buildings[province]["port"] = 1
 
 
 # ------------------------------------------------------------------ daily step

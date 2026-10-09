@@ -113,6 +113,8 @@ func _initialize() -> void:
 	ger.treasury = 1000.0
 	_check(not gs.issue(Build.new("GER", inland, "port")), "ports cannot be built inland")
 	_check(Eco.build_problem(gs, "GER", inland, "port") == "Needs a coastal province", "inland port gives a reason")
+	var stats0 = Eco.building_stats(gs, "GER")
+	_check(stats0.port.levels >= 1, "Germany starts with a port, as every nation that starts with a navy does")
 	var trade0: float = ger.budget.trade
 	var rev0: float = ger.budget.revenue
 	_check(gs.issue(Build.new("GER", coast, "port")) and gs.issue(Build.new("GER", inland, "market")), "port and trading house accepted")
@@ -120,7 +122,7 @@ func _initialize() -> void:
 		clock.advance_day()
 	_check(ger.budget.trade > trade0 and ger.budget.revenue > rev0, "port and market add trade income and revenue")
 	var stats = Eco.building_stats(gs, "GER")
-	_check(stats.port.levels == 1 and stats.port.provinces == 1 and stats.port.trade > 0.0, "port stats report its trade")
+	_check(stats.port.levels == stats0.port.levels + 1 and stats.port.trade > stats0.port.trade, "port stats report its trade")
 	_check(stats.market.levels == 1 and stats.market.income > 0.0, "market stats report income")
 	_check(stats.factory.levels == 1 and stats.factory.industry > 0.0 and stats.factory.gdp > 0.0, "factory stats report industry and output")
 	_check(stats.farmland.levels == 0 and stats.farmland.income == 0.0, "unbuilt types report nothing")

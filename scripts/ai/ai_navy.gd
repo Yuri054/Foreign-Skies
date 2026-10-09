@@ -12,6 +12,12 @@ extends RefCounted
 ## State: GameState.ai_navy, tag -> {assign: {fleet id: zone}}.
 
 
+## Fleets with armies aboard, refreshed at the start of each nation's turn.
+static var _carrying := {}
+
+
+
+
 static func cfg() -> Dictionary:
 	return AI.cfg.navy
 
@@ -23,6 +29,7 @@ static func step(gs: Node, tag: String) -> void:
 	if mem.is_empty():
 		mem = {"assign": {}}
 		gs.ai_navy[tag] = mem
+	_carrying = Navy.fleets_with_armies(gs)
 	_organize(gs, tag)
 	_station(gs, tag, mem)
 
@@ -46,7 +53,7 @@ static func role(f: Fleet) -> String:
 
 
 static func _free(gs: Node, f: Fleet) -> bool:
-	return f.is_in_port() and not f.is_moving() and not f.fighting and f.landing == 0 and Navy.armies_aboard(gs, f).is_empty()
+	return f.is_in_port() and not f.is_moving() and not f.fighting and f.landing == 0 and not _carrying.has(f.id)
 
 
 ## Splits mixed fleets in port: transports and submarines go apart, and a big fleet sends half
@@ -122,6 +129,23 @@ static func enemy_power_at(gs: Node, tag: String, zone: int) -> float:
 	return enemy_map(gs, tag).get(zone, 0.0)
 
 
+## Blockade.port_weights, kept for the day: every nation's station and cordon ask for the same
+## few nations' trade over and over, and it walks all their provinces.
+static var _weight_day := -1
+static var _weight_gs := 0
+static var _weight_cache: Dictionary = {}
+
+
+static func _weights(gs: Node, tag: String) -> Dictionary:
+	if _weight_day != Clock.days_elapsed or _weight_gs != gs.get_instance_id():
+		_weight_cache.clear()
+		_weight_day = Clock.days_elapsed
+		_weight_gs = gs.get_instance_id()
+	if not _weight_cache.has(tag):
+		_weight_cache[tag] = Blockade.port_weights(gs, tag)
+	return _weight_cache[tag]
+
+
 # --- Cordons ----------------------------------------------------------------------------------------
 
 ## The zones that, held together, would cut an enemy's ports off from the open sea: the shortest
@@ -148,7 +172,7 @@ static var _cordon_gs := 0
 static func _cordon_search(gs: Node, enemy: String) -> Array[int]:
 	var out: Array[int] = []
 	var starts: Array[int] = []
-	for z in Blockade.port_weights(gs, enemy):
+	for z in _weights(gs, enemy):
 		starts.append(z)
 	starts.sort()
 	if starts.is_empty():
@@ -212,7 +236,7 @@ static func targets(gs: Node, tag: String, enemies_at: Dictionary) -> Dictionary
 	var biggest := 0.0
 	for e in AI.enemies(gs, tag):
 		var sum := 0.0
-		var weights := Blockade.port_weights(gs, e)
+		var weights := _weights(gs, e)
 		for z in weights:
 			sum += weights[z]
 		trade[e] = sum
@@ -224,7 +248,7 @@ static func targets(gs: Node, tag: String, enemies_at: Dictionary) -> Dictionary
 			value[z] = value.get(z, 0.0) + float(c.w_blockade) * share / zones.size()
 			cordon[z] = true
 			offence[z] = true
-	var weights := Blockade.port_weights(gs, tag)
+	var weights := _weights(gs, tag)
 	var total := 0.0
 	for z in weights:
 		total += weights[z]
@@ -291,37 +315,102 @@ static func _set_mission(gs: Node, tag: String, f: Fleet, mission: String) -> vo
 		gs.issue_quiet(SetFleetMission.new(tag, f.id, mission))
 
 
+## The sea zones within `theatre_hops` of where a fleet is (or of the zones its port opens on).
+static func _theatre(f: Fleet) -> Dictionary:
+	var seen := {}
+	var edge: Array = MapData.zones_of_port(f.port) if f.is_in_port() else [f.zone]
+	for z: int in edge:
+		seen[z] = true
+	for _i in int(cfg().theatre_hops):
+		var next: Array = []
+		for z: int in edge:
+			for n: int in MapData.sea_adjacency[z]:
+				if not seen.has(n):
+					seen[n] = true
+					next.append(n)
+		edge = next
+	return seen
+
+
+## Which of a nation's fleets belong to a force at least as strong as the enemy navies it could
+## meet: {fleet id: bool}. Fleets within `theatre_hops` zones of each other form one force, and
+## the enemy fleets within that distance of any of them are weighed against it (ships far away on
+## other seas do not count, so Britain is not weighed against the Austrian fleet in the
+## Adriatic). A navy that is not strong keeps to its own waters.
+static func _strength(gs: Node, tag: String, fleets: Array[Fleet]) -> Dictionary:
+	var theatres: Array[Dictionary] = []
+	var parent: Array[int] = []
+	for i in fleets.size():
+		theatres.append(_theatre(fleets[i]))
+		parent.append(i)
+	for i in fleets.size():
+		for j in range(i + 1, fleets.size()):
+			if _in_theatre(theatres[i], fleets[j]):
+				var a := i
+				while parent[a] != a:
+					a = parent[a]
+				var b := j
+				while parent[b] != b:
+					b = parent[b]
+				parent[maxi(a, b)] = mini(a, b)
+	var own := {}
+	var seen := {}
+	for i in fleets.size():
+		var root := i
+		while parent[root] != root:
+			root = parent[root]
+		own[root] = own.get(root, 0.0) + fleets[i].power()
+		if not seen.has(root):
+			seen[root] = {}
+		seen[root].merge(theatres[i])
+	var theirs := {}
+	for g: Fleet in gs.fleets.values():
+		if g.tag == tag or not gs.at_war(tag, g.tag):
+			continue
+		for root: int in seen:
+			if _in_theatre(seen[root], g):
+				theirs[root] = theirs.get(root, 0.0) + g.power()
+	var out := {}
+	for i in fleets.size():
+		var root := i
+		while parent[root] != root:
+			root = parent[root]
+		out[fleets[i].id] = own[root] >= theirs.get(root, 0.0) * float(cfg().sortie_ratio)
+	return out
+
+
+static func _in_theatre(theatre: Dictionary, f: Fleet) -> bool:
+	var zones: Array = MapData.zones_of_port(f.port) if f.is_in_port() else [f.zone]
+	for z: int in zones:
+		if theatre.has(z):
+			return true
+	return false
+
+
 static func _station(gs: Node, tag: String, mem: Dictionary) -> void:
 	var c := cfg()
 	var odds := AI.required_odds(gs, tag)
 	var enemies_at := enemy_map(gs, tag)
 	var t := targets(gs, tag, enemies_at)
-	var own_total := 0.0
-	for f in Navy.fleets_of(gs, tag):
-		own_total += f.power()
-	var their_total := 0.0
-	for f: Fleet in gs.fleets.values():
-		if f.tag != tag and gs.at_war(tag, f.tag):
-			their_total += f.power()
-	# A navy weaker than its enemies' together keeps to its own waters (submarines excepted).
-	var strong: bool = own_total >= their_total * float(c.sortie_ratio)
 	var zones: Array = t.importance.keys()
 	zones.sort()
 	var committed := {}
 	var fleets: Array[Fleet] = []
 	for f in Navy.fleets_of(gs, tag):
 		if role(f) == "transport":
-			if not f.is_in_port() and not f.is_moving() and f.landing == 0 and Navy.armies_aboard(gs, f).is_empty():
+			if not f.is_in_port() and not f.is_moving() and f.landing == 0 and not _carrying.has(f.id):
 				go_home(gs, tag, f)
 			continue
 		fleets.append(f)
 	fleets.sort_custom(func(a: Fleet, b: Fleet) -> bool: return a.power() > b.power() or (a.power() == b.power() and a.id < b.id))
+	var day_cache := {}
+	var strong := _strength(gs, tag, fleets)
 	var assign: Dictionary = mem.assign
 	for id: int in assign.keys():
 		if not gs.fleets.has(id):
 			assign.erase(id)
 	for f in fleets:
-		if f.fighting or f.retreating or not Navy.armies_aboard(gs, f).is_empty():
+		if f.fighting or f.retreating or _carrying.has(f.id):
 			if f.zone > 0:
 				committed[f.zone] = committed.get(f.zone, 0.0) + f.power()
 			continue
@@ -336,23 +425,26 @@ static func _station(gs: Node, tag: String, mem: Dictionary) -> void:
 		var starts: Array = MapData.zones_of_port(f.port) if f.is_in_port() else [f.zone]
 		var best := 0
 		var best_score := -INF
+		var day_key := [f.speed(), starts]
+		if not day_cache.has(day_key):
+			day_cache[day_key] = Navy.days_to_all(f.speed(), starts)
+		var days: Dictionary = day_cache[day_key]
 		for z: int in zones:
 			if t.offence.has(z) and not t.importance.has(z):
 				continue
-			if t.offence.has(z) and not strong and role(f) != "raider":
+			if t.offence.has(z) and role(f) != "raider" and not strong.get(f.id, false):
 				continue
 			var need := odds * float(enemies_at.get(z, 0.0))
 			var have := f.power() + float(committed.get(z, 0.0))
 			if need > 0.0 and have < need:
 				continue
-			var route := Navy.find_path(f.speed(), starts, [z])
-			if route.is_empty():
+			if not days.has(z):
 				continue
 			# A zone already held is worth less to a second fleet, unless it is still outgunned.
 			var worth := float(t.importance[z])
 			if float(committed.get(z, 0.0)) >= maxf(need, float(Navy.cfg.blockade.min_power)):
 				worth *= float(c.stack_decay)
-			var score: float = worth - float(c.w_days) * Navy.path_days(f.speed(), route)
+			var score: float = worth - float(c.w_days) * float(days[z])
 			if z == previous:
 				score += float(c.hysteresis)
 			if score > best_score + 0.000001:
