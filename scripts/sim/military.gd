@@ -12,11 +12,15 @@ const KM_PER_PX := 0.6928
 static var cfg: Dictionary = {}
 ## Terrain type by province id (element 0 unused).
 static var terrain: PackedStringArray = []
+## Land neighbours by province (the map never changes, so they are worked out once). Callers
+## must not modify the arrays.
+static var _neighbor_cache: Dictionary = {}
 
 
 static func load_config() -> void:
 	cfg = JSON.parse_string(FileAccess.get_file_as_string(CONFIG_PATH))
 	assert(cfg is Dictionary, "military.json is invalid")
+	_neighbor_cache.clear()
 	terrain = PackedStringArray()
 	terrain.resize(MapData.provinces.size())
 	for i in terrain.size():
@@ -37,11 +41,15 @@ static func terrain_of(id: int) -> Dictionary:
 
 ## Land provinces (and strait crossings) one step away. Open-sea links need a navy.
 static func neighbors(id: int) -> Array:
+	var cached: Variant = _neighbor_cache.get(id)
+	if cached != null:
+		return cached
 	var out := []
 	for n in MapData.adjacency.get(id, PackedInt32Array()):
 		if MapData.sea_links.get(Vector2i(mini(id, n), maxi(id, n)), "") == "sea":
 			continue
 		out.append(n)
+	_neighbor_cache[id] = out
 	return out
 
 

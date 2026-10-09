@@ -264,22 +264,9 @@ static func _resolve(gs: Node, offer: Dictionary, accepted: bool) -> void:
 	gs.peace_resolved.emit(offer, accepted)
 
 
-## Whether an AI nation (the offer's target) takes the deal. A white peace is taken unless it
-## is winning clearly; a nation made to give refuses while it is not losing, unless its
-## capital is lost or its war support is at the floor; a nation offered terms it can afford
-## takes them.
+## Whether an AI nation (the offer's target) takes the deal: see AIPeace.accepts.
 static func acceptable(gs: Node, offer: Dictionary) -> bool:
-	var war: War = gs.war_between(offer.from, offer.to)
-	if war == null:
-		return false
-	var ai: Dictionary = cfg().ai
-	var mine := war_score(gs, war, offer.to)
-	var weary: bool = gs.nations[offer.to].war_support <= Diplomacy.cfg.war_support.floor
-	if offer.demands.is_empty():
-		return mine <= ai.refuse_white_when_winning or weary
-	if offer.mode == "offer":
-		return true
-	return offer.forced or mine <= ai.accept_loss or weary
+	return AIPeace.accepts(gs, offer)
 
 
 ## Terms a losing nation can offer a winner: the winner's ground it holds, dearest first,
@@ -464,26 +451,7 @@ static func step_month(gs: Node) -> void:
 	_ai_overtures(gs)
 
 
-## An AI nation losing badly offers the ground the enemy holds in return for peace; one in a
-## long stalemate offers a white peace. Offers to the player wait for an answer.
+## AI nations at war weigh a proposal each month (see AIPeace). Offers to the player wait for
+## an answer.
 static func _ai_overtures(gs: Node) -> void:
-	var ai: Dictionary = cfg().ai
-	for war: War in gs.wars.values().duplicate():
-		if gs.war_between(war.a, war.b) != war:
-			continue
-		for tag in [war.a, war.b]:
-			if tag == gs.player_tag:
-				continue
-			var enemy := war.other(tag)
-			var mine := war_score(gs, war, tag)
-			var demands: Array = []
-			var weary: bool = gs.nations[tag].war_support <= Diplomacy.cfg.war_support.floor
-			if mine <= ai.seek_peace_score:
-				demands = surrender_terms(gs, war, tag, enemy)
-			elif weary or (war.days_lasted(Clock.days_elapsed) >= ai.stalemate_days and absf(mine) <= ai.stalemate_band):
-				demands = []
-			else:
-				continue
-			var result := propose(gs, tag, enemy, "offer", demands)
-			if result.ok and result.accepted != false:
-				break
+	AIPeace.overtures(gs)

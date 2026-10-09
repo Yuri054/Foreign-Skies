@@ -377,15 +377,15 @@ func _test_overtures() -> void:
 	for id in range(1, gs.province_owner.size()):
 		if gs.province_owner[id] == "FRA" and gs.nations["GER"].provinces.find(id) < 0 and id != 233:
 			ceded += 1
-	_check(held_before > 0 and war.peace.giver == "GER" and war.peace.terms.size() == 1, "by ceding ground France holds")
+	_check(held_before > 0 and war.peace.giver == "GER" and war.peace.terms.size() >= 1 and not war.peace.white, "France, far ahead, names its price in ground it holds (and perhaps an indemnity)")
 
 	# A long stalemate ends in a white peace.
 	war = _war()
 	P.step_month(gs)
 	_check(gs.at_war("FRA", "GER"), "a young war goes on")
-	clock.days_elapsed += 300
+	clock.days_elapsed += 800
 	P.step_month(gs)
-	_check(not gs.at_war("FRA", "GER") and war.peace.white, "a stalemate of nine months ends in a white peace")
+	_check(not gs.at_war("FRA", "GER") and war.peace.white, "a stalemate of over two years ends in a white peace")
 
 	# An offer to the player waits for them.
 	war = _war()

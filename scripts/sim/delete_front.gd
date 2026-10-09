@@ -25,3 +25,7 @@ func execute(gs: Node) -> bool:
 
 func to_dict() -> Dictionary:
 	return {"type": "DeleteFront", "tag": tag, "front": front_id}
+
+
+func changes_economy() -> bool:
+	return false

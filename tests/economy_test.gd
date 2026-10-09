@@ -18,6 +18,7 @@ func _check(cond: bool, msg: String) -> void:
 func _initialize() -> void:
 	await process_frame
 	var gs: Node = root.get_node("GameState")
+	gs.ai_enabled = false  # these tests are about other systems; the AI has its own
 	var clock: Node = root.get_node("Clock")
 	var Eco = load("res://scripts/sim/economy.gd")
 	var Policy = load("res://scripts/sim/set_economy_policy.gd")

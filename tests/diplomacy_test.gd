@@ -31,6 +31,7 @@ func _check(cond: bool, msg: String) -> void:
 func _initialize() -> void:
 	await process_frame
 	gs = root.get_node("GameState")
+	gs.ai_enabled = false  # these tests are about other systems; the AI has its own
 	clock = root.get_node("Clock")
 	D = load("res://scripts/sim/diplomacy.gd")
 	Mil = load("res://scripts/sim/military.gd")
@@ -224,16 +225,14 @@ func _test_unprovoked() -> void:
 	_check(D.grievance(gs, "FRA", "GER") == 40.0, "the neighbours resent it")
 	_check(not D.provoked(gs, "FRA", "GER"), "not yet enough to strike")
 
-	# Resentment cools, and a provoked AI nation strikes back; the player's never does.
+	# Resentment cools.
 	D.step_month(gs)
 	_check(D.grievance(gs, "FRA", "GER") == 38.0, "grievance cools by a step a month")
 	D.add_grievance(gs, "NED", "GER", 70.0)
 	D.add_grievance(gs, "ESP", "GER", 70.0)
 	_check(D.provoked(gs, "NED", "GER"), "a Dutch grievance past the threshold is provoked")
 	D.step_month(gs)
-	_check(gs.at_war("NED", "GER") and gs.war_between("NED", "GER").casus_belli == "unprovoked_aggression", "the Netherlands declares on Germany")
-	_check(not gs.at_war("ESP", "GER"), "the player is never declared for")
-	_check(not gs.casus_belli.any(func(c: Dictionary) -> bool: return c.holder == "NED" and c.target == "GER"), "and the casus belli is used up")
+	_check(not gs.at_war("NED", "GER"), "the monthly step no longer declares for anyone: provoked AI nations answer through AIDiplomacy (see ai_diplomacy_test)")
 
 	# The casus belli lapses after its years.
 	_fresh()

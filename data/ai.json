@@ -1,0 +1,152 @@
+{
+	"_note": "AI constants. Every nation but the player's uses the same rules and the same default temperament; a scenario may override traits per nation (ai_traits) and give nations plans (ai_plans). Weights here are tuned in phase 6, step 8.",
+	"think_days": 3,
+	"temperament": {
+		"_note": "aggression and caution, 0 to 1. They scale the odds an AI wants before it attacks, the share of its army it commits and how readily it digs in or pulls back.",
+		"default": {"aggression": 0.5, "caution": 0.5}
+	},
+	"odds": {
+		"_note": "Attacker power over defender power wanted before an advance: the bold (aggression 1, caution 0) ask for `bold`, the cautious (aggression 0, caution 1) for `cautious`.",
+		"bold": 1.2,
+		"cautious": 2.0
+	},
+	"value": {
+		"_note": "AI.value of a province: its share of the owner's people and of its output (GDP plus industry), with a bonus when it is the capital.",
+		"people": 0.5,
+		"output": 0.5,
+		"capital_bonus": 0.5
+	},
+	"threat": {
+		"_note": "AI.threat: enemy power inside the province counts in full, power `hops` away is cut by `hop_decay` per hop; the sum is multiplied by 1 + stakes * value(province).",
+		"hops": 2,
+		"hop_decay": 0.5,
+		"stakes": 4.0
+	},
+	"defense": {
+		"_note": "reserve_share: share of a nation's power kept back as a reserve (scaled up by caution); needs reserve_min_armies armies. reserve_stay: the reserve moves only when another province is this many times more threatened than where it stands. merge_max_units: the most units in a stack the AI will form by merging. rebalance_ratio: an army changes front when one front is this many times better covered than another. retake_hops and retake_eta_spread: armies within that many hops, arriving within that many days of each other, may retake home ground.",
+		"reserve_share": 0.2,
+		"reserve_min_armies": 3,
+		"reserve_stay": 1.5,
+		"rebalance_ratio": 1.5,
+		"min_need": 1.0,
+		"merge_max_units": 10,
+		"retake_hops": 3,
+		"retake_eta_spread": 3
+	},
+	"offense": {
+		"_note": "max_share: share of a nation's power an aggression of 1 puts on offence. Target utility = w_plan * plan weight + w_value * AI.value + w_score * war score share + w_margin * (power over required odds, up to 2) - w_days * days to arrive - w_supply * supply hops; a target below min_utility is not attacked. retry_days: wait after finding nothing to attack. gather_days: give up if the force is not ready by then. fall_back_morale (scaled by 0.5 + caution) and fall_back_ratio (own power over the enemy's around the target): below them the stack falls back. plan_hops: how far an objective's weight reaches. reach_hops: armies this near may be sent, and reinforce_weight: the share of the power of enemy armies within support_hops that counts against an attack.",
+		"max_share": 1.0,
+		"w_plan": 3.0,
+		"w_value": 2.0,
+		"w_score": 2.0,
+		"w_margin": 0.5,
+		"w_days": 0.05,
+		"w_supply": 0.2,
+		"min_utility": 0.0,
+		"retry_days": 6,
+		"gather_days": 20,
+		"fall_back_morale": 0.4,
+		"fall_back_ratio": 0.8,
+		"plan_hops": 8,
+		"reach_hops": 8,
+		"support_hops": 4,
+		"reinforce_weight": 0.15
+	},
+	"forces": {
+		"_note": "Recruiting. war_multiplier: war strength as a multiple of the peacetime army. per_turn: units started per turn. max_training: units in training at once. treasury_floor: the treasury is never taken below it, plus deficit_months of any deficit. income_share: units in training cost at most this share of horizon_months of revenue. train_hops: how far behind the most threatened line it raises. mix: share of each unit type in the force.",
+		"war_multiplier": 3.0,
+		"per_turn": 2,
+		"max_training": 4,
+		"treasury_floor": 5.0,
+		"deficit_months": 3,
+		"income_share": 0.5,
+		"horizon_months": 2,
+		"train_hops": 2,
+		"mix": {"infantry": 0.75, "cavalry": 0.05, "artillery": 0.2}
+	},
+	"budget": {
+		"_note": "AIBudget, once a month. Taxes: up by tax_step (to tax_max, or tax_max_war at war) when the nation is in debt and cannot repay it in repay_months, or runs a deficit its treasury cannot carry for cushion_months; down toward the default when it is in surplus with more than rich_months of expenses in the bank. Programs: all dropped, one a month, when the treasury is under program_floor and the budget in deficit; the programs in program_order taken up, one a month, when the budget keeps program_margin after their cost and the treasury is twice program_floor. Buildings: one a month, at most max_construction at a time, only when net is at least build_min_net; among the candidates richest provinces, the capital and ground behind the fronts, the one with the best yearly return per pound (min_return; food counts food_value, a foreign ministry diplomacy_value while points are short, a railway near a front front_railway_bonus of the province's output, the capital times capital_multiplier), leaving build_floor in the treasury (double at war). Points: in a crisis, a batch is bought when the stock is under buy_below and buy_floor stays in the treasury.",
+		"enabled": true,
+		"tax_step": 0.02,
+		"tax_max": 0.25,
+		"tax_max_war": 0.35,
+		"repay_months": 18,
+		"cushion_months": 6,
+		"rich_months": 12,
+		"program_floor": 10,
+		"program_margin": 1.0,
+		"program_order": ["diplomatic_service", "education"],
+		"max_construction": 2,
+		"build_min_net": 0.0,
+		"build_floor": 10,
+		"candidates": 8,
+		"min_return": 0.05,
+		"food_value": 0.5,
+		"diplomacy_value": 3.0,
+		"front_railway_bonus": 0.05,
+		"capital_multiplier": 1.5,
+		"buy_below": 30,
+		"buy_floor": 10
+	},
+	"diplomacy": {
+		"_note": "AIDiplomacy. join: value = kind[kind] + w_ally_relation * opinion of the ally + w_enemy_relation * dislike of the enemies + w_border * share of enemies at its border + w_odds * (own side's share of power - 0.5) * 2 + w_support * war support above 50 - w_debt * debt (in months of revenue, at most 1) + w_decline * what declining costs; it joins at threshold. war: desire = w_hostile * dislike + w_grievance * grievance + w_plan if it has a plan against the target + w_cb if it has a casus belli; it never declares on a nation it made peace with in the last truce_days, nor without a motive of at least min_motive (desire without the casus belli); it declares when desire * (0.5 + aggression) reaches declare_threshold and the odds (its side's power over the target's side, with allies and guarantors) reach its required odds times odds_margin. With no casus belli it also needs a plan, aggression of at least unjustified_min_aggression, odds of unjustified_odds, and room under the cap (unjustified_share_max in this file). treaties: once a month it may propose the treaty of greatest value at least propose_threshold (alliance: w_need * how much stronger a hostile neighbour is + w_bloc + w_relation; guarantee: w_menace * the menace to the guaranteed + w_bloc + w_relation; nap: w_need + w_relation; passage: w_passage when an enemy lies beyond a neutral) and improve relations with a friend (within improve_window of the alliance bar) or a strong neighbour (improve_threshold), always keeping points_reserve diplomacy points. rival_relation: a neighbour below it is a rival.",
+		"join": {
+			"threshold": 30,
+			"kind": {"alliance_defence": 60, "guarantee": 45, "alliance_called": 40, "entente": 0},
+			"w_ally_relation": 20,
+			"w_enemy_relation": 30,
+			"w_border": 10,
+			"w_odds": 20,
+			"w_support": 10,
+			"w_debt": 10,
+			"w_decline": 15
+		},
+		"war": {
+			"declare_threshold": 0.9,
+			"min_motive": 0.4,
+			"truce_days": 365,
+			"w_hostile": 1.0,
+			"w_grievance": 1.5,
+			"w_plan": 1.0,
+			"w_cb": 0.5,
+			"odds_margin": 1.0,
+			"unjustified_min_aggression": 0.5,
+			"unjustified_odds": 4.0
+		},
+		"treaties": {
+			"points_reserve": 40,
+			"propose_threshold": 0.6,
+			"improve_threshold": 0.4,
+			"improve_window": 25,
+			"rival_relation": -10,
+			"w_need": 1.0,
+			"w_bloc": 0.5,
+			"w_relation": 0.5,
+			"w_menace": 1.0,
+			"w_passage": 0.8
+		}
+	},
+	"peace": {
+		"_note": "AIPeace. urge = -score * k_score + k_support * (support_ref - war support, if positive) + k_debt * months of revenue owed (at most debt_cap_months) + k_days_per_month * months at war + capital_lost if the enemy holds the capital - k_ally * allies still fighting (less by ally_boldness_discount for the bold). A nation made to give accepts terms costing no more than its urge, if its score is at most -loss_floor or its urge is at least seek_threshold; a white peace is taken while urge is at least -white_tolerance; offered terms are taken if they cost at least accept_share of the taker's score. Past seek_threshold a nation proposes peace; with score at least demand_score and war aims met by aims_enough it names its price: up to demand_budget_share of its score in provinces (aims first), then an indemnity of at most indemnity_max_share over indemnity_months. afford_share: the most of its monthly revenue a nation will commit to indemnities.",
+		"k_score": 1.0,
+		"k_support": 2.0,
+		"support_ref": 50,
+		"k_debt": 5.0,
+		"debt_cap_months": 6,
+		"k_days_per_month": 2.0,
+		"capital_lost": 40,
+		"k_ally": 15,
+		"ally_boldness_discount": 0.5,
+		"seek_threshold": 50,
+		"white_tolerance": 20,
+		"loss_floor": 5,
+		"accept_share": 0.5,
+		"demand_score": 25,
+		"aims_enough": 0.5,
+		"demand_budget_share": 0.8,
+		"indemnity_max_share": 0.25,
+		"indemnity_months": 12,
+		"afford_share": 0.4
+	},
+	"unjustified_share_max": 0.15
+}

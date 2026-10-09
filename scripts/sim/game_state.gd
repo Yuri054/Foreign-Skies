@@ -46,6 +46,8 @@ var player_tag := ""
 var nations: Dictionary = {}
 ## Indexed by province id (element 0 unused).
 var province_owner: PackedStringArray = []
+## Counts changes of ownership, so things worked out from the borders can be cached.
+var owner_version := 0
 var province_controller: PackedStringArray = []
 var province_population := PackedInt32Array()
 ## Province output before nation-wide modifiers; filled by Economy.recompute.
@@ -121,6 +123,28 @@ var standings_history: Array[Dictionary] = []
 var relation_projects: Array[Dictionary] = []
 ## Every command issued so far, in order.
 var command_log: Array[Dictionary] = []
+## AI temperament overrides by nation (aggression, caution), and the plans read from the
+## scenario: [{nation, enemy, posture, objectives: [{province, weight}]}]. See AI.
+var ai_traits: Dictionary = {}
+var ai_plans: Array[Dictionary] = []
+## Wars the AI has declared so far, and how many of them had no casus belli. Declarations by
+## the player do not count.
+var ai_declarations := {"total": 0, "unjustified": 0}
+## The AI's reserve army by nation: tag -> army id (see AIDefense).
+var ai_reserve: Dictionary = {}
+## The AI's campaign by nation (see AIOffense), and the day before which it will not look
+## for a new one.
+var ai_campaign: Dictionary = {}
+var ai_campaign_wait: Dictionary = {}
+## The month (year * 12 + month) in which each AI nation last weighed treaties.
+var ai_diplo_stamp: Dictionary = {}
+## The month (year * 12 + month) in which each AI nation last did its budget.
+var ai_budget_stamp: Dictionary = {}
+## False turns the computer players off (tests of the other systems, or watching a war
+## with nobody at the controls).
+var ai_enabled := true
+## Set by issue_quiet; the day's step recomputes the economy once if it is true.
+var economy_dirty := false
 
 
 func _ready() -> void:
@@ -129,6 +153,11 @@ func _ready() -> void:
 		Economy.step_day(self)
 		Military.step_day(self)
 		Diplomacy.step_day(self)
+		AI.step_day(self)
+		if economy_dirty:
+			economy_dirty = false
+			Economy.recompute(self)
+			economy_updated.emit()
 	)
 	Clock.month_ticked.connect(_on_month_ticked)
 
@@ -137,6 +166,7 @@ func load_scenario(dir: String) -> void:
 	Economy.load_config()
 	Military.load_config()
 	Diplomacy.load_config()
+	AI.load_config()
 	command_log.clear()
 	wars.clear()
 	war_history.clear()
@@ -166,6 +196,7 @@ func load_scenario(dir: String) -> void:
 	_build_starting_mines()
 	for id in range(1, count):
 		province_owner[id] = MapData.provinces[id].owner
+		owner_version += 1
 		province_controller[id] = MapData.provinces[id].owner
 	for row in MapData.read_table(dir + "provinces.tsv"):
 		province_population[int(row.id)] = int(row.population)
@@ -186,6 +217,8 @@ func load_scenario(dir: String) -> void:
 	Clock.start(d[0], d[1], d[2])
 	Clock.paused = true
 	Diplomacy.load_scenario(self)
+	AI.load_scenario(self)
+	economy_dirty = false
 	standings_history.clear()
 	Standings.record(self)
 	for pair: Array in scenario.get("starting_wars", []):
@@ -229,6 +262,7 @@ func transfer_province(id: int, tag: String) -> void:
 		return
 	province_owner[id] = tag
 	province_controller[id] = tag
+	owner_version += 1
 	occupation.erase(id)
 	# Construction by the old owner is lost with the province.
 	for job in nations[old].construction.duplicate():
@@ -328,6 +362,17 @@ func issue(cmd: Command) -> bool:
 	command_log.append(cmd.to_dict())
 	Economy.recompute(self)
 	economy_updated.emit()
+	return true
+
+
+## Runs a command from the AI: logged like any other, but the economy is not recomputed
+## now. Dozens of orders can follow in one day; the day's step recomputes once.
+func issue_quiet(cmd: Command) -> bool:
+	if not cmd.execute(self):
+		return false
+	command_log.append(cmd.to_dict())
+	if cmd.changes_economy():
+		economy_dirty = true
 	return true
 
 

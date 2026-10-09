@@ -8,6 +8,12 @@ extends RefCounted
 const CONFIG_PATH := "res://data/diplomacy.json"
 
 static var cfg: Dictionary = {}
+## Land neighbours of each nation, kept while ownership has not changed (see neighbor_nations).
+static var _neighbor_nations: Dictionary = {}
+static var _neighbor_version := -1
+static var _neighbor_gs := 0
+## Province ids of each claim, by the names it lists (the map never changes).
+static var _claim_cache: Dictionary = {}
 
 
 static func load_config() -> void:
@@ -551,11 +557,16 @@ static func _claim_applies(gs: Node, claim: Dictionary, b: String) -> bool:
 
 ## Province ids named by a scenario claim.
 static func claim_provinces(claim: Dictionary) -> Array[int]:
+	var key := ",".join(claim.provinces)
+	var cached: Variant = _claim_cache.get(key)
+	if cached != null:
+		return cached
 	var out: Array[int] = []
 	for pname: String in claim.provinces:
 		for id in range(1, MapData.provinces.size()):
 			if MapData.provinces[id].name == pname:
 				out.append(id)
+	_claim_cache[key] = out
 	return out
 
 
@@ -608,6 +619,7 @@ static func declare_war(gs: Node, a: String, b: String, cb := "none", group := 0
 	WarSupport.change(gs, a, rules.war_support)
 	if cb == "none":
 		_earn_unprovoked_aggression(gs, a, b)
+	AIDiplomacy.note_declaration(gs, a, cb)
 	offer_joins(gs, conflict.id, [a, b])
 	return true
 
@@ -629,12 +641,20 @@ static func _earn_unprovoked_aggression(gs: Node, aggressor: String, victim: Str
 
 ## Nations with land touching `tag`, not counting open-sea links.
 static func neighbor_nations(gs: Node, tag: String) -> Array[String]:
+	if _neighbor_version != gs.owner_version or _neighbor_gs != gs.get_instance_id():
+		_neighbor_nations.clear()
+		_neighbor_version = gs.owner_version
+		_neighbor_gs = gs.get_instance_id()
+	var cached: Variant = _neighbor_nations.get(tag)
+	if cached != null:
+		return cached
 	var out: Array[String] = []
 	for id: int in gs.nations[tag].provinces:
 		for n: int in Military.neighbors(id):
 			var o: String = gs.province_owner[n]
 			if o != tag and o not in out:
 				out.append(o)
+	_neighbor_nations[tag] = out
 	return out
 
 
@@ -656,17 +676,14 @@ static func provoked(gs: Node, holder: String, target: String) -> bool:
 			and "unprovoked_aggression" in casus_belli_options(gs, holder, target)
 
 
-## Monthly: resentment cools, dated casus belli lapse, and a provoked AI nation (never the
-## human player) strikes back. Phase 6 replaces the retaliation rule with real AI.
+## Monthly: resentment cools and dated casus belli lapse. A provoked AI nation strikes back
+## through AIDiplomacy (grievance is part of its desire for war).
 static func _step_grievance(gs: Node) -> void:
 	var decay: float = cfg.war.provocation.grievance_decay_per_month
 	for key: String in gs.grievance.keys():
 		gs.grievance[key] = maxf(0.0, gs.grievance[key] - decay)
 	var today: int = Clock.days_elapsed
 	gs.casus_belli = gs.casus_belli.filter(func(cb: Dictionary) -> bool: return cb.expires_day > today)
-	for cb: Dictionary in gs.casus_belli.duplicate():
-		if cb.holder != gs.player_tag and provoked(gs, cb.holder, cb.target):
-			declare_war(gs, cb.holder, cb.target, "unprovoked_aggression")
 
 
 # --- Cancelling treaties -------------------------------------------------------------------
@@ -824,15 +841,10 @@ static func _make_decision(gs: Node, g: Dictionary, tag: String, member: String)
 	return d
 
 
-## The AI's answer to a join decision. Bound obligations are honoured; an entente is joined
-## only against a nation the AI already despises.
+## The AI's answer to a join decision: a utility over the inputs in the decision (see
+## AIDiplomacy.join_value).
 static func _ai_joins(gs: Node, d: Dictionary) -> bool:
-	if d.kind != "entente":
-		return true
-	for e: String in d.enemies:
-		if relation(gs, d.tag, e) <= cfg.join.entente_join_relation:
-			return true
-	return false
+	return AIDiplomacy.joins(gs, d)
 
 
 ## `tag` enters the conflict on the side of the nation that asked, opening a war against
@@ -847,6 +859,7 @@ static func _join(gs: Node, d: Dictionary) -> bool:
 		if e == tag or gs.at_war(tag, e):
 			continue
 		gs.set_war(tag, e, true, d.cb, d.group)
+		AIDiplomacy.note_declaration(gs, tag, d.cb)
 		opened = true
 		var war: War = gs.war_between(tag, e)
 		war.add_log(Clock.date_string(), "join", "%s joins the war on the side of %s (%s)." % [
@@ -914,30 +927,12 @@ static func violate_border(gs: Node, violator: String, victim: String) -> void:
 ## Daily: mobilization alarms neighbours, AI nations answer it, wars pull nations up to a
 ## war footing, and called nations that have mobilized enough enter their wars.
 static func step_day(gs: Node) -> void:
-	_step_war_plans(gs)
 	_step_alarms(gs)
 	var changed := _step_mobilization(gs)
 	_step_join_calls(gs)
 	if changed:
 		Economy.recompute(gs)
 		gs.economy_updated.emit()
-
-
-## War plans: an AI nation at war with a plan's enemy marches through the neutral in the way,
-## which is a declaration of war with no casus belli (so it needs the mobilization for one).
-static func _step_war_plans(gs: Node) -> void:
-	for plan: Dictionary in gs.scenario.get("war_plans", []):
-		var tag: String = plan.nation
-		if tag == gs.player_tag:
-			continue
-		var war: War = gs.war_between(tag, plan.enemy)
-		if war == null:
-			continue
-		var delay: int = plan.get("delay_days", cfg.plans.default_delay_days)
-		if Clock.days_elapsed < war.start_day + delay:
-			continue
-		if can_declare(gs, tag, plan.through, "none"):
-			declare_war(gs, tag, plan.through, "none")
 
 
 ## A nation mobilizing past alarm_level alarms each land neighbour that is neither allied nor

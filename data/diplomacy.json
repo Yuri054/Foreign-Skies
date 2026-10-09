@@ -42,7 +42,7 @@
 		}
 	},
 	"join": {
-		"_note": "Join decisions (Diplomacy.offer_joins). A declaration offers every ally and guarantor of the nations in the war a choice. Bound obligations are alliance_defence (the original target was attacked), alliance_called (an ally at war calls you; defensive-only alliances are not bound by it), and guarantee (the original target is a guaranteed nation). An entente is optional: an AI nation joins when its opinion of an enemy is at or below entente_join_relation. Declining a bound obligation costs what decline says: ally_relations (the opinion of the nation you let down), prestige, and end_treaty (the treaty lapses). The AI always honours a bound obligation unless it would have to fight an ally or a pact partner.",
+		"_note": "Join decisions (Diplomacy.offer_joins). A declaration offers every ally and guarantor of the nations in the war a choice. Bound obligations are alliance_defence (the original target was attacked), alliance_called (an ally at war calls you; defensive-only alliances are not bound by it), and guarantee (the original target is a guaranteed nation). An entente is optional: an AI nation joins when its opinion of an enemy is at or below entente_join_relation. Declining a bound obligation costs what decline says: ally_relations (the opinion of the nation you let down), prestige, and end_treaty (the treaty lapses). The AI decides by utility (AIDiplomacy.join_value; data/ai.json, diplomacy), and never joins if it would have to fight an ally or a pact partner.",
 		"entente_join_relation": -40,
 		"decline": {
 			"alliance_defence": {"ally_relations": -40, "prestige": -10, "end_treaty": true},
@@ -68,7 +68,7 @@
 		"min_mobilization": 0.3
 	},
 	"peace": {
-		"_note": "War score and peace (scripts/sim/peace.gd). Score is -100..100 from a nation's side of one pairwise war: ground held (occupation_points times the share of the other nation's population and GDP, weighted), the capital, and battles won (battle_per_kmen points per thousand men the loser lost, scaled by how lopsided, capped; they fade by decay_per_month). The side that takes terms pays for them in score: a province costs province_scale times its share (half if the taker already holds it, doubled for a capital); an indemnity costs indemnity_points_per_year times its share of revenue times its years; the clauses have flat prices. A nation that has lost its capital to the taker pays nothing. ai: a nation made to give refuses while its own score is above accept_loss; a white peace is refused while its score is above refuse_white_when_winning; a losing AI (seek_peace_score) offers the ground held, up to surrender_budget_share of the enemy's score; a long stalemate offers white peace; a refused proposer waits refuse_cooldown_days; making peace alone costs separate_peace_relations with those still fighting.",
+		"_note": "War score and peace (scripts/sim/peace.gd). Score is -100..100 from a nation's side of one pairwise war: ground held (occupation_points times the share of the other nation's population and GDP, weighted), the capital, and battles won (battle_per_kmen points per thousand men the loser lost, scaled by how lopsided, capped; they fade by decay_per_month). The side that takes terms pays for them in score: a province costs province_scale times its share (half if the taker already holds it, doubled for a capital); an indemnity costs indemnity_points_per_year times its share of revenue times its years; the clauses have flat prices. A nation that has lost its capital to the taker pays nothing. ai: when an AI nation answers or proposes is decided by AIPeace (data/ai.json, the peace block); a losing AI offers the ground held, up to surrender_budget_share of the enemy's score; a refused proposer waits refuse_cooldown_days; making peace alone costs separate_peace_relations with those still fighting.",
 		"score": {
 			"max": 100,
 			"occupation_points": 100,
@@ -93,12 +93,7 @@
 			"disarm_years_max": 10
 		},
 		"ai": {
-			"accept_loss": -5,
-			"refuse_white_when_winning": 20,
-			"seek_peace_score": -30,
 			"surrender_budget_share": 0.8,
-			"stalemate_days": 270,
-			"stalemate_band": 15,
 			"refuse_cooldown_days": 30,
 			"separate_peace_relations": -25,
 			"separate_peace_prestige": -5
@@ -125,10 +120,6 @@
 		"white_peace_below": 15,
 		"white_peace_score": -20,
 		"surrender_at": 0
-	},
-	"plans": {
-		"_note": "War plans (scenario.json, war_plans): an AI nation at war with `enemy` for delay_days declares war on `through` (a neutral in the way) with no casus belli, as soon as its mobilization allows it. It pays the usual price: world opinion, prestige, war support, and the neutral's guarantors are called. The player's nation never acts on a plan.",
-		"default_delay_days": 1
 	},
 	"actions": {
 		"_note": "Player diplomacy (Diplomacy.propose_treaty, Diplomacy.gift). A proposal is accepted when the other nation's opinion of the proposer is at least treaty_accept for the kind; an alliance also needs the two not to be in opposed blocs. A gift of N million raises the receiver's opinion by gift_relation_per_million times N, to at most gift_max_relation more per gift.",

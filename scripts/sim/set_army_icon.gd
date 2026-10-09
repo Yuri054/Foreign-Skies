@@ -28,3 +28,7 @@ func execute(gs: Node) -> bool:
 
 func to_dict() -> Dictionary:
 	return {"type": "SetArmyIcon", "tag": tag, "armies": army_ids, "icon": icon}
+
+
+func changes_economy() -> bool:
+	return false

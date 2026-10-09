@@ -30,3 +30,7 @@ func execute(gs: Node) -> bool:
 
 func to_dict() -> Dictionary:
 	return {"type": "ImproveRelations", "from": from, "to": to}
+
+
+func changes_economy() -> bool:
+	return false

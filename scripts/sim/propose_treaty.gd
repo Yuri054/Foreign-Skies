@@ -37,3 +37,7 @@ func execute(gs: Node) -> bool:
 
 func to_dict() -> Dictionary:
 	return {"type": "ProposeTreaty", "from": from, "to": to, "kind": kind}
+
+
+func changes_economy() -> bool:
+	return false

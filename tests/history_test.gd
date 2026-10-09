@@ -23,6 +23,7 @@ func _check(cond: bool, msg: String) -> void:
 func _initialize() -> void:
 	await process_frame
 	gs = root.get_node("GameState")
+	gs.ai_enabled = true  # the AI starts the war on Belgium (it is switched off for the run-down below)
 	clock = root.get_node("Clock")
 	D = load("res://scripts/sim/diplomacy.gd")
 
@@ -59,14 +60,20 @@ func _test_chain() -> void:
 	_check(gs.nations["GER"].prestige <= -15.0, "Germany paid in prestige for the invasion (%d)" % gs.nations["GER"].prestige)
 	_check(D.relation(gs, "GBR", "GER") < -30.0, "and in Britain's opinion")
 
-	# Nobody fights, so the war runs down: Russia's debts and weariness end its war first,
-	# then the stalemate ends the rest.
+	gs.ai_enabled = false
+	# Nobody fights, so the war runs down: the AI's urge for peace (debt, weariness, time at war) ends
+	# the wars one after the other.
 	for i in 480:
 		clock.advance_day()
 		if gs.wars.is_empty():
 			break
 	_check(gs.wars.is_empty(), "by day %d every war has ended" % clock.days_elapsed)
-	_check(not gs.war_history.is_empty() and gs.war_history[0].involves("RUS"), "Russia is the first to leave")
+	var end_of := func(a: String, b: String) -> int:
+		for w in gs.war_history:
+			if (w.a == a and w.b == b) or (w.a == b and w.b == a):
+				return w.end_day
+		return 99999
+	_check(end_of.call("RUS", "GER") <= end_of.call("FRA", "GER") and end_of.call("RUS", "GER") < 99999, "Russia leaves the war no later than France")
 	_check(clock.year == 1915 or clock.year == 1914, "before the end of 1915")
 	for tag: String in gs.nations:
 		if gs.nations[tag].mobilization > 0.0 and gs.wars_of(tag).is_empty():

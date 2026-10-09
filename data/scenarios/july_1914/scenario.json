@@ -200,9 +200,21 @@
 	],
 	"passage": [],
 	"nap": [],
-	"_war_plans_note": "Strategic intent as data (see data/diplomacy.json, plans). Germany's army marches through Belgium once it is at war with France.",
-	"war_plans": [
-		{"nation": "GER", "enemy": "FRA", "through": "BEL", "delay_days": 1, "note": "Schlieffen Plan"}
+	"_ai_note": "AI data (see data/ai.json). ai_traits: {tag: {aggression, caution}} overrides for single nations (none for now: every nation uses the default). ai_plans: [{nation, enemy, posture, objectives: [{province, weight}]}], what a nation wants against an enemy, never what it does turn by turn (1914 plans, phase 6 step 4).",
+	"ai_traits": {},
+	"ai_plans": [
+		{"nation": "GER", "enemy": "BEL", "posture": "offensive", "note": "The Schlieffen Plan: through Liege to Brussels", "objectives": [
+			{"province": "Liege", "weight": 2}, {"province": "Brussels", "weight": 3}, {"province": "Antwerp", "weight": 2}]},
+		{"nation": "GER", "enemy": "FRA", "posture": "offensive", "note": "...and the road to Paris", "objectives": [
+			{"province": "Ardennes", "weight": 1}, {"province": "Aisne", "weight": 2}, {"province": "Marne", "weight": 2}, {"province": "Paris", "weight": 4}]},
+		{"nation": "FRA", "enemy": "GER", "posture": "offensive", "note": "Plan XVII: the lost provinces", "objectives": [
+			{"province": "Moselle", "weight": 3}, {"province": "Bas-Rhin", "weight": 3}, {"province": "Saarland", "weight": 2}]},
+		{"nation": "RUS", "enemy": "GER", "posture": "offensive", "note": "East Prussia", "objectives": [
+			{"province": "Warmian-Masurian", "weight": 3}, {"province": "Masuria", "weight": 2}]},
+		{"nation": "RUS", "enemy": "AUH", "posture": "offensive", "note": "Galicia", "objectives": [
+			{"province": "Lemberg", "weight": 3}, {"province": "Krakow", "weight": 2}]},
+		{"nation": "AUH", "enemy": "SRB", "posture": "offensive", "note": "Punitive expedition", "objectives": [
+			{"province": "Belgrade", "weight": 4}]}
 	],
 	"relations": [
 		{"a": "GER", "b": "FRA", "value": -45},

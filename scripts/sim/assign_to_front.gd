@@ -37,3 +37,7 @@ func execute(gs: Node) -> bool:
 
 func to_dict() -> Dictionary:
 	return {"type": "AssignToFront", "tag": tag, "front": front_id, "armies": army_ids}
+
+
+func changes_economy() -> bool:
+	return false
