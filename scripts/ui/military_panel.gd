@@ -77,6 +77,8 @@ var _drawing := false
 ## True while waiting for a click on the nation a new front should face.
 var _picking_nation := false
 var _draft: Array[int] = []
+## Whether the front being drawn or picked should take the selected armies once it exists.
+var _assign_new := false
 
 
 func _ready() -> void:
@@ -852,6 +854,28 @@ func _refresh_fronts() -> void:
 		MapData.provinces[weakest].name, Fmt.people(held[weakest])]
 
 
+## Starts a new front from the action bar: "draw" (click the provinces) or "face" (click a nation).
+## The selected armies are put on it once it exists.
+func begin_front(mode: String) -> void:
+	show_tab("Fronts")
+	if mode == "draw":
+		_begin_drawing()
+	else:
+		_begin_picking_nation()
+	_assign_new = true
+
+
+## Puts the selected armies on a front that has just been made, if the order came from the bar.
+func _assign_to_new(front_id: int) -> void:
+	if _assign_new and not _selected.is_empty():
+		var ids: Array[int] = []
+		for id in _selected:
+			if GameState.armies.has(id) and not GameState.armies[id].embarked():
+				ids.append(id)
+		if not ids.is_empty():
+			GameState.issue(AssignToFront.new(GameState.player_tag, front_id, ids))
+
+
 func _begin_picking_nation() -> void:
 	_end_drawing()
 	_picking_nation = true
@@ -868,6 +892,7 @@ func _pick_nation(id: int) -> void:
 		tag = GameState.province_controller[id]  # own land held by an enemy: face the occupier
 	var cmd := DesignateFront.new(GameState.player_tag, "", [], tag)
 	if GameState.issue(cmd):
+		_assign_to_new(cmd.front_id)
 		_front_selected = cmd.front_id
 		get_tree().call_group("army_layer", "set_selected_front", _front_selected)
 		_end_drawing()
@@ -887,6 +912,7 @@ func _begin_drawing() -> void:
 
 
 func _end_drawing() -> void:
+	_assign_new = false
 	_picking_nation = false
 	_face_row.visible = false
 	_drawing = false
@@ -921,6 +947,7 @@ func _add_to_draft(id: int) -> void:
 func _finish_drawing() -> void:
 	var cmd := DesignateFront.new(GameState.player_tag, _front_name.text.strip_edges(), _draft.duplicate())
 	if GameState.issue(cmd):
+		_assign_to_new(cmd.front_id)
 		_front_selected = cmd.front_id
 		get_tree().call_group("army_layer", "set_selected_front", _front_selected)
 		_end_drawing()

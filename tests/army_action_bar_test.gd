@@ -71,20 +71,49 @@ func _initialize() -> void:
 
 	# Fronts.
 	bar._fill_fronts()
-	_check(bar._front.get_popup().item_count == 1 and bar._front.get_popup().is_item_disabled(0), "with no front the menu says to draw one")
-	var front_cmd = load("res://scripts/sim/designate_front.gd")
+	var menu: PopupMenu = bar._front.get_popup()
+	_check(menu.item_count == 2 and menu.get_item_id(0) == bar.DRAW_FRONT and menu.get_item_id(1) == bar.FACE_FRONT, "with no front and no war the menu offers to draw one or to face a nation")
 	gs.set_war("FRA", "GER", true)
-	gs.issue(front_cmd.new("FRA", "Test front", [] as Array[int], "GER"))
 	bar._fill_fronts()
-	if gs.fronts.size() > 0:
-		_check(bar._front.get_popup().item_count == gs.fronts.size(), "a front appears in the menu")
-		bar._on_front(0)
-		await process_frame
-		var assigned = gs.armies[panel._selected[0]]
-		_check(assigned.front_id != 0 and not bar._release.disabled, "Assign to front puts the army on it, and Release opens")
-		bar._on_release()
-		await process_frame
-		_check(gs.armies[panel._selected[0]].front_id == 0, "Release takes it off")
+	var face_id := -1
+	for i in menu.item_count:
+		if menu.get_item_text(i).begins_with("Face German"):
+			face_id = menu.get_item_id(i)
+	_check(face_id >= bar.NEW_FRONT_BASE and gs.fronts.is_empty(), "at war it offers a new front against the enemy it borders")
+	bar._on_front(face_id)
+	await process_frame
+	var assigned = gs.armies[panel._selected[0]]
+	_check(gs.fronts.size() == 1 and assigned.front_id != 0 and not bar._release.disabled, "choosing it makes the front and puts the army on it, and Release opens")
+	bar._on_release()
+	await process_frame
+	_check(gs.armies[panel._selected[0]].front_id == 0, "Release takes it off")
+	bar._fill_fronts()
+	var assign_id := -1
+	for i in menu.item_count:
+		if menu.get_item_text(i).begins_with("Assign to"):
+			assign_id = menu.get_item_id(i)
+	_check(assign_id == 0, "the front is now in the menu to assign to")
+	bar._on_front(assign_id)
+	await process_frame
+	_check(gs.armies[panel._selected[0]].front_id == gs.fronts.keys()[0], "and assigns")
+	# Draw a line from the bar: the armies go on it when it is finished.
+	bar._on_release()
+	var fronts_before: int = gs.fronts.size()
+	bar._on_front(bar.DRAW_FRONT)
+	await process_frame
+	_check(panel._drawing and panel._assign_new and panel.visible and panel._tabs.current_tab == 1, "Draw opens the Fronts tab in drawing mode")
+	panel.set_province(nancy)
+	var neighbour := 0
+	for n in Mil.neighbors(nancy):
+		if gs.province_owner[n] == "FRA":
+			neighbour = n
+	panel.set_province(neighbour)
+	panel._finish_drawing()
+	await process_frame
+	_check(gs.fronts.size() == fronts_before + 1 and gs.armies[panel._selected[0]].front_id != 0, "finishing the line makes the front and puts the selected army on it")
+	bar._on_front(bar.FACE_FRONT)
+	_check(panel._picking_nation and panel._assign_new, "Face a nation waits for a click on that nation")
+	panel._end_drawing()
 
 	# March and halt.
 	var dest := 0

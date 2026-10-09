@@ -10,7 +10,7 @@ const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
 const PREVIEW_COLOR := Color(0.85, 0.95, 1.0, 0.85)
 const DRAFT_COLOR := Color(0.4, 0.95, 1.0)
-const FRONT_COLORS := [Color(0.95, 0.55, 0.2), Color(0.35, 0.85, 0.5), Color(0.75, 0.5, 0.95), Color(0.95, 0.4, 0.55), Color(0.4, 0.75, 0.95)]
+const FRONT_COLORS := [Color(0.95, 0.55, 0.2), Color(0.35, 0.85, 0.5), Color(0.75, 0.5, 0.95), Color(0.95, 0.4, 0.55), Color(0.4, 0.75, 0.95)]  # the same as MapView.FRONT_COLORS
 
 ## Ids of the armies the player has selected.
 var selected: Array[int] = []
@@ -110,6 +110,7 @@ func set_draft(line: Array[int]) -> void:
 
 func set_selected_front(id: int) -> void:
 	_selected_front = id
+	get_tree().call_group("map_view", "set_front_highlight", id)
 	queue_redraw()
 
 
@@ -368,28 +369,101 @@ func _draw_fronts(px: float) -> void:
 			continue
 		var color: Color = FRONT_COLORS[index % FRONT_COLORS.size()]
 		index += 1
-		var chosen := f.id == _selected_front
 		if f.provinces.is_empty():
 			continue
-		var width := (9.0 if chosen else 6.0) * px
-		# Join provinces that touch, so a border reads as a line.
-		for i in f.provinces.size():
-			for j in range(i + 1, f.provinces.size()):
-				if Military.neighbors(f.provinces[i]).has(f.provinces[j]):
-					draw_line(MapData.provinces[f.provinces[i]].center, MapData.provinces[f.provinces[j]].center,
-							Color(color, 0.55 if chosen else 0.4), width)
-		var line := PackedVector2Array()
+		var chosen := f.id == _selected_front
+		var w := (15.0 if chosen else 11.0) * px
+		var edges := _front_edges(f)
+		if chosen:
+			_capsules(f, edges, w + 16.0 * px, Color(color, 0.16))
+		_capsules(f, edges, w + 8.0 * px, Color(color, 0.22))
+		_capsules(f, edges, w + 3.5 * px, Color(0.03, 0.04, 0.07, 0.8))
+		_capsules(f, edges, w, Color(color, 0.92 if chosen else 0.78))
+		_capsules(f, edges, w * 0.28, Color(1, 1, 1, 0.55))
 		for p in f.provinces:
-			line.append(MapData.provinces[p].center)
-			draw_circle(MapData.provinces[p].center, width * 0.7, Color(color, 0.75 if chosen else 0.55))
-		var mid := line[line.size() / 2]
-		_pill("%s (%d)" % [f.display_name, f.army_ids.size()], mid + Vector2(0, 20.0 * px), px, color, 11)
+			var c: Vector2 = MapData.provinces[p].center
+			draw_arc(c, w * 0.62, 0.0, TAU, 20, Color(0.03, 0.04, 0.07, 0.85), 1.6 * px, true)
+			_chevron(f, p, c, w, color, px)
+		_front_label(f, color, px, chosen)
 		# Where each assigned army is meant to stand.
 		for id in f.army_ids:
 			var a: Army = GameState.armies.get(id)
 			var slot: int = f.slots.get(id, 0)
 			if a != null and slot != 0 and a.province != slot and chosen:
-				draw_dashed_line(MapData.provinces[a.province].center, MapData.provinces[slot].center, Color(color, 0.8), 1.5 * px, 5.0 * px)
+				draw_dashed_line(MapData.provinces[a.province].center, MapData.provinces[slot].center, Color(color, 0.85), 1.8 * px, 5.0 * px)
+				draw_circle(MapData.provinces[slot].center, 4.0 * px, Color(color, 0.9))
+
+
+## The links of a front's line: pairs of its provinces that border each other.
+func _front_edges(f: Front) -> Array:
+	var have := {}
+	for p in f.provinces:
+		have[p] = true
+	var out := []
+	for p in f.provinces:
+		for n: int in Military.neighbors(p):
+			if have.has(n) and p < n:
+				out.append([p, n])
+	return out
+
+
+## A line of round-capped segments through the front's provinces (one colour, one width).
+func _capsules(f: Front, edges: Array, width: float, color: Color) -> void:
+	for e in edges:
+		draw_line(MapData.provinces[e[0]].center, MapData.provinces[e[1]].center, color, width, true)
+	for p in f.provinces:
+		draw_circle(MapData.provinces[p].center, width * 0.5, color)
+
+
+## An arrowhead on a province of the front pointing at the enemy it faces.
+func _chevron(f: Front, province: int, centre: Vector2, w: float, color: Color, px: float) -> void:
+	var dir := Vector2.ZERO
+	for n: int in Military.neighbors(province):
+		var holder: String = GameState.province_controller[n]
+		var hostile := holder == f.against if not f.against.is_empty() else GameState.at_war(f.tag, holder)
+		if hostile and holder != f.tag:
+			dir += (MapData.provinces[n].center as Vector2) - centre
+	if dir.length() < 0.001:
+		return
+	dir = dir.normalized()
+	var side := Vector2(-dir.y, dir.x)
+	var tip := centre + dir * w * 1.9
+	var back := centre + dir * w * 0.95
+	var pts := PackedVector2Array([back + side * w * 0.8, tip, back - side * w * 0.8])
+	draw_polyline(pts, Color(0.03, 0.04, 0.07, 0.9), 4.6 * px, true)
+	draw_polyline(pts, color.lightened(0.35), 2.6 * px, true)
+
+
+## The front's name, its armies and their men, on a chip with a colour bar, over the middle of the line.
+func _front_label(f: Front, color: Color, px: float, chosen: bool) -> void:
+	var sum := Vector2.ZERO
+	for p in f.provinces:
+		sum += MapData.provinces[p].center
+	var mid := sum / f.provinces.size()
+	var anchor: Vector2 = MapData.provinces[f.provinces[0]].center
+	for p in f.provinces:
+		if (MapData.provinces[p].center as Vector2).distance_to(mid) < anchor.distance_to(mid):
+			anchor = MapData.provinces[p].center
+	var men := 0.0
+	for id in f.army_ids:
+		var a: Army = GameState.armies.get(id)
+		if a != null:
+			men += a.men()
+	var text := "%s" % f.display_name
+	var detail := "%d %s · %s" % [f.army_ids.size(), "army" if f.army_ids.size() == 1 else "armies", Fmt.people(men)]
+	var fs := int(roundf((12.0 if chosen else 11.0) * px))
+	var fs2 := int(roundf(9.5 * px))
+	var w1 := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var w2 := _font.get_string_size(detail, HORIZONTAL_ALIGNMENT_LEFT, -1, fs2).x
+	var pad := 5.0 * px
+	var size := Vector2(maxf(w1, w2) + pad * 2.0 + 5.0 * px, fs + fs2 + pad * 2.0 - 1.0 * px)
+	var rect := Rect2(anchor + Vector2(-size.x * 0.5, -size.y - 26.0 * px), size)
+	draw_rect(rect.grow(1.2 * px), Color(0, 0, 0, 0.55))
+	draw_rect(rect, Color(0.06, 0.08, 0.12, 0.92))
+	draw_rect(Rect2(rect.position, Vector2(4.0 * px, rect.size.y)), color)
+	draw_string(_font, rect.position + Vector2(pad + 4.0 * px, pad + fs * 0.85), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	draw_string(_font, rect.position + Vector2(pad + 4.0 * px, pad + fs + fs2 * 0.85), detail, HORIZONTAL_ALIGNMENT_LEFT, -1, fs2, Color(0.75, 0.8, 0.88))
+	draw_line(anchor + Vector2(0, -26.0 * px), anchor + Vector2(0, -8.0 * px), Color(color, 0.8), 1.6 * px, true)
 
 
 func _draw_draft(px: float) -> void:
@@ -399,9 +473,12 @@ func _draw_draft(px: float) -> void:
 	for p in _draft:
 		line.append(MapData.provinces[p].center)
 	if line.size() > 1:
-		draw_polyline(line, DRAFT_COLOR, 6.0 * px)
-	for p in line:
-		draw_circle(p, 6.0 * px, DRAFT_COLOR)
+		draw_polyline(line, Color(0.03, 0.04, 0.07, 0.8), 10.0 * px, true)
+		draw_polyline(line, DRAFT_COLOR, 6.0 * px, true)
+	for i in line.size():
+		draw_circle(line[i], 8.0 * px, Color(0.03, 0.04, 0.07, 0.85))
+		draw_circle(line[i], 6.0 * px, DRAFT_COLOR)
+		_pill("%d" % (i + 1), line[i] + Vector2(0, -16.0 * px), px, DRAFT_COLOR, 10)
 
 
 ## What an army is made of: a tiny symbol per unit type with how many of them, centred under

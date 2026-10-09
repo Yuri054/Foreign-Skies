@@ -23,6 +23,8 @@ var _symbol := MenuButton.new()
 var _show := Button.new()
 var _deselect := Button.new()
 var _front_ids: Array[int] = []
+## Enemies a new border front can face, in menu order.
+var _front_enemies: Array[String] = []
 var _detach_types: Array[String] = []
 var _symbol_ids: Array[String] = []
 
@@ -179,30 +181,63 @@ func _select(ids: Array[int]) -> void:
 	get_tree().call_group("military_panel", "select_ids", ids)
 
 
+const NEW_FRONT_BASE := 100
+const DRAW_FRONT := 200
+const FACE_FRONT := 201
+
+
 func _fill_fronts() -> void:
 	var popup := _front.get_popup()
 	popup.clear()
 	_front_ids.clear()
+	_front_enemies.clear()
 	for f: Front in GameState.fronts.values():
 		if f.tag == GameState.player_tag:
 			_front_ids.append(f.id)
 	_front_ids.sort()
 	for i in _front_ids.size():
 		var f: Front = GameState.fronts[_front_ids[i]]
-		popup.add_item("%s (%d)" % [f.display_name, f.army_ids.size()], i)
-	if _front_ids.is_empty():
-		popup.add_item("No fronts yet: draw one in the Military window", 0)
-		popup.set_item_disabled(0, true)
+		popup.add_item("Assign to %s (%d)" % [f.display_name, f.army_ids.size()], i)
+	var me := GameState.player_tag
+	var others: Array = GameState.nations.keys()
+	others.sort()
+	for tag: String in others:
+		if tag != me and GameState.at_war(me, tag) and not Military.border_provinces(GameState, me, tag).is_empty():
+			_front_enemies.append(tag)
+	if not _front_ids.is_empty() or not _front_enemies.is_empty():
+		popup.add_separator("New front")
+	for i in _front_enemies.size():
+		popup.add_item("Face %s" % GameState.nations[_front_enemies[i]].display_name, NEW_FRONT_BASE + i)
+	popup.add_item("Draw a line on the map…", DRAW_FRONT)
+	popup.add_item("Face a nation (click it)…", FACE_FRONT)
 
 
-func _on_front(index: int) -> void:
-	if index < 0 or index >= _front_ids.size():
+func _on_front(id: int) -> void:
+	var me := GameState.player_tag
+	if id == DRAW_FRONT or id == FACE_FRONT:
+		get_tree().call_group("military_panel", "begin_front", "draw" if id == DRAW_FRONT else "face")
 		return
 	var ids: Array[int] = []
 	for a in _armies():
 		if not a.embarked():
 			ids.append(a.id)
-	GameState.issue(AssignToFront.new(GameState.player_tag, _front_ids[index], ids))
+	if ids.is_empty():
+		return
+	var front := 0
+	if id >= NEW_FRONT_BASE and id < DRAW_FRONT:
+		var i := id - NEW_FRONT_BASE
+		if i >= _front_enemies.size():
+			return
+		var cmd := DesignateFront.new(me, "", [], _front_enemies[i])
+		if not GameState.issue(cmd):
+			return
+		front = cmd.front_id
+	elif id >= 0 and id < _front_ids.size():
+		front = _front_ids[id]
+	if front == 0:
+		return
+	GameState.issue(AssignToFront.new(me, front, ids))
+	get_tree().call_group("army_layer", "set_selected_front", front)
 	_refresh()
 
 
