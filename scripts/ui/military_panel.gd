@@ -417,8 +417,29 @@ func order_move(province: int) -> void:
 	if not failed.is_empty():
 		failed = _send_overseas(failed, province)
 	if not failed.is_empty():
-		get_tree().call_group("event_feed", "say", "%d of %d armies cannot reach %s." % [failed.size(), _selected.size(), MapData.provinces[province].name], Fmt.WARN)
+		get_tree().call_group("event_feed", "say", "%d of %d armies cannot reach %s. %s" % [failed.size(), _selected.size(), MapData.provinces[province].name, _why_not(failed, province)], Fmt.WARN)
 	_refresh()
+
+
+## The reason armies cannot get to a province, in a sentence.
+func _why_not(ids: Array[int], province: int) -> String:
+	var me := GameState.player_tag
+	if not Military.can_enter(GameState, me, province):
+		var holder: String = GameState.province_owner[province]
+		return "The border is closed: you are not at war with %s and have no passage." % GameState.nations[holder].display_name
+	var a: Army = GameState.armies.get(ids[0])
+	if a == null:
+		return ""
+	if a.embarked():
+		return "The fleet must be off that coast."
+	if MapData.zones_of_port(province).is_empty():
+		return "There is no land route."
+	var carriers := false
+	for f in Navy.fleets_in_port(GameState, a.province):
+		carriers = carriers or (f.tag == me and f.capacity() > 0)
+	if not carriers:
+		return "There is no land route, and no transports lie in %s: bring a fleet with transport squadrons there." % MapData.provinces[a.province].name
+	return "There is no land route, and the transports in port cannot take them (room, or no sea route)."
 
 
 ## Sends armies that could not walk to a coast by sea, one fleet per port. Returns those that

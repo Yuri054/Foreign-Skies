@@ -183,6 +183,8 @@ func _on_province_selected(id: int) -> void:
 		for z in MapData.zones_of_port(id):
 			zones.append(MapData.sea_zones[z].name)
 		lines.append("Port level %d on the %s" % [yard, " and ".join(zones)])
+	if yard == 0 and not MapData.zones_of_port(id).is_empty() and owner_tag == GameState.player_tag:
+		lines.append("Coast: landing craft can be built here (N opens the Navy panel).")
 	if not docked.is_empty():
 		var parts: PackedStringArray = []
 		for fl in docked:

@@ -300,9 +300,10 @@ static func building_in(gs: Node, tag: String, province: int) -> int:
 	return n
 
 
-## Largest number of squadrons a port can have on the slips at once.
+## Largest number of squadrons a port can have on the slips at once (a bare beach has the room
+## of a level 1 port, for the craft that need no harbour).
 static func yard_slots(gs: Node, province: int) -> int:
-	return port_level(gs, province) * cfg.slots_per_port_level
+	return maxi(port_level(gs, province), 1) * cfg.slots_per_port_level
 
 
 ## Why ships cannot be built now, or "" if they can.
@@ -317,7 +318,7 @@ static func build_problem(gs: Node, tag: String, province: int, type: String, co
 	if MapData.zones_of_port(province).is_empty():
 		return "Needs a coastal province"
 	var level := port_level(gs, province)
-	if level < 1:
+	if level < 1 and cfg.types[type].min_port > 0:
 		return "Needs a port"
 	if level < cfg.types[type].min_port:
 		return "Needs a level %d port" % cfg.types[type].min_port

@@ -60,12 +60,13 @@ func _initialize() -> void:
 	_test_ports()
 	_test_building()
 	_test_fleet_orders()
+	_test_landing_craft()
 	print("\n%s: %d failure(s)" % ["FAILED" if _failures > 0 else "PASSED", _failures])
 	quit(1 if _failures > 0 else 0)
 
 
 func _test_data() -> void:
-	_check(Nav.type_ids().size() == 5, "five ship types")
+	_check(Nav.type_ids().size() == 6 and Nav.cfg.types.has("landing_craft"), "six ship types, landing craft among them")
 	var bad := 0
 	for t in Nav.type_ids():
 		var d: Dictionary = Nav.cfg.types[t]
@@ -226,3 +227,31 @@ func _test_fleet_orders() -> void:
 	_check(gs.issue(MissionC.new("GBR", grand.id, "blockade")) and grand.mission == "blockade", "a fleet takes a mission")
 	_check(not gs.issue(MissionC.new("GBR", grand.id, "bogus")), "an unknown mission is refused")
 	_check(gs.command_log[-1].type == "SetFleetMission", "orders are in the command log")
+
+
+func _test_landing_craft() -> void:
+	var fra = gs.nations["FRA"]
+	fra.treasury = 50.0
+	var havre := 243  # Seine-Maritime: a coast with no port
+	_check(Nav.port_level(gs, havre) == 0, "Seine-Maritime has no port")
+	_check(Nav.build_problem(gs, "FRA", havre, "destroyer", 1) == "Needs a port", "a bare coast builds no warships")
+	_check(Nav.build_problem(gs, "FRA", havre, "landing_craft", 2) == "", "but builds landing craft")
+	_check(Nav.build_problem(gs, "FRA", 1, "landing_craft", 1) != "", "not inland")
+	_check(Nav.build_problem(gs, "FRA", havre, "landing_craft", 3) == "The yard is full", "two squadrons' room on a bare beach")
+	_check(gs.issue(RaiseC.new("FRA", havre, "landing_craft", 2)), "France orders two flotillas")
+	fra.shipbuilding[0].days_left = 1
+	fra.shipbuilding[1].days_left = 1
+	_days(1)
+	var fleets = Nav.fleets_in_port(gs, havre)
+	_check(fleets.size() == 1 and fleets[0].count_of("landing_craft") == 2 and fleets[0].capacity() == 40000, "they are launched on the beach and carry 40000 men")
+	var army = load("res://scripts/sim/military.gd").new_army(gs, "FRA", "Expedition", havre)
+	for i in 3:
+		army.units.append(load("res://scripts/sim/unit.gd").new("infantry"))
+	var ids: Array[int] = [army.id]
+	gs.set_war("FRA", "GBR", true)
+	var dest := 302  # Kent
+	var send = load("res://scripts/sim/send_overseas.gd")
+	_check(send.problem(gs, "FRA", fleets[0].id, ids, dest) == "", "an army can sail from the beach to Kent")
+	_check(gs.issue(send.new("FRA", fleets[0].id, ids, dest)), "the order is accepted")
+	_days(15)
+	_check(not army.embarked() and army.province == dest, "and lands in England")

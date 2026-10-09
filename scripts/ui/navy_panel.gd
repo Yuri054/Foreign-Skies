@@ -582,7 +582,8 @@ func _refresh_yard() -> void:
 	var mats: PackedStringArray = []
 	for r in def.materials:
 		mats.append("%s %s" % [Fmt.kt(def.materials[r] * count), Economy.cfg.resources[r].name.to_lower()])
-	var cost := "£%.1fM, %d days, needs a level %d port, %s" % [def.cost * count, def.build_days, def.min_port, ", ".join(mats)]
+	var needs := "needs a level %d port" % def.min_port if def.min_port > 0 else "can be built on any coast"
+	var cost := "£%.1fM, %d days, %s, %s" % [def.cost * count, def.build_days, needs, ", ".join(mats)]
 	if ok_province and problem.is_empty() or (ok_province and problem.begins_with("Not enough money")):
 		cost = "£%.1fM with materials, %d days" % [Navy.ship_plan(GameState, tag, type, count).total, def.build_days]
 	_build.disabled = not problem.is_empty()

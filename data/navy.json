@@ -110,6 +110,26 @@
 			"hull": 1.0,
 			"exposure": 1.5,
 			"crew": 500
+		},
+		"landing_craft": {
+			"name": "Landing craft flotilla",
+			"attack": 0.0,
+			"speed": 260.0,
+			"range_days": 4,
+			"detection": 0.5,
+			"upkeep": 0.1,
+			"cost": 0.5,
+			"build_days": 60,
+			"min_port": 0,
+			"materials": {
+				"iron": 3,
+				"wood": 3
+			},
+			"color": "#7a6a4a",
+			"capacity": 20000,
+			"hull": 0.6,
+			"exposure": 1.0,
+			"crew": 200
 		}
 	},
 	"combat": {
