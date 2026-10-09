@@ -151,6 +151,19 @@ func _on_province_selected(id: int) -> void:
 			parts.append("%s %s (%s)" % [a.tag, a.display_name, Fmt.people(a.men())])
 		lines.append("Armies: " + "; ".join(parts))
 
+	var yard := Navy.port_level(GameState, id)
+	var docked := Navy.fleets_in_port(GameState, id)
+	if yard > 0 and not MapData.zones_of_port(id).is_empty():
+		var zones: PackedStringArray = []
+		for z in MapData.zones_of_port(id):
+			zones.append(MapData.sea_zones[z].name)
+		lines.append("Port level %d on the %s" % [yard, " and ".join(zones)])
+	if not docked.is_empty():
+		var parts: PackedStringArray = []
+		for fl in docked:
+			parts.append("%s %s (%d squadrons)" % [fl.tag, fl.display_name, fl.ships.size()])
+		lines.append("Fleets: " + "; ".join(parts))
+
 	var made := Economy.province_output(population, p.area * MapData.KM2_PER_PX, GameState.nations[owner_tag],
 			GameState.province_buildings[id], GameState.province_deposit[id])
 	var deposits: PackedStringArray = []

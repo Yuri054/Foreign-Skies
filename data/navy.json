@@ -1,0 +1,100 @@
+{
+	"_note": "Navy constants. Money is GBP millions; upkeep is per year; speeds are km per day; materials are thousand tonnes per squadron; attack is per squadron at full strength and morale. A 'squadron' is a handful of hulls (see DESIGN.md phase 7).",
+	"port_days": 1,
+	"min_hop_days": 1,
+	"slots_per_port_level": 2,
+	"missions": {
+		"station": "Stationed",
+		"patrol": "Patrol",
+		"blockade": "Blockade",
+		"escort": "Escort",
+		"raid": "Raid"
+	},
+	"types": {
+		"dreadnought": {
+			"name": "Battle squadron",
+			"attack": 8.0,
+			"speed": 430.0,
+			"range_days": 14,
+			"detection": 1.0,
+			"upkeep": 2.0,
+			"cost": 10.0,
+			"build_days": 720,
+			"min_port": 3,
+			"materials": {
+				"iron": 120,
+				"wood": 8
+			},
+			"color": "#3d4f73",
+			"capacity": 0
+		},
+		"cruiser": {
+			"name": "Cruiser squadron",
+			"attack": 3.0,
+			"speed": 520.0,
+			"range_days": 30,
+			"detection": 1.5,
+			"upkeep": 0.8,
+			"cost": 4.0,
+			"build_days": 420,
+			"min_port": 2,
+			"materials": {
+				"iron": 40,
+				"wood": 4
+			},
+			"color": "#4a6a8a",
+			"capacity": 0
+		},
+		"destroyer": {
+			"name": "Destroyer flotilla",
+			"attack": 1.5,
+			"speed": 560.0,
+			"range_days": 8,
+			"detection": 1.0,
+			"upkeep": 0.4,
+			"cost": 1.5,
+			"build_days": 200,
+			"min_port": 1,
+			"materials": {
+				"iron": 8,
+				"wood": 1
+			},
+			"color": "#6a8aa8",
+			"capacity": 0
+		},
+		"submarine": {
+			"name": "Submarine flotilla",
+			"attack": 1.0,
+			"speed": 300.0,
+			"range_days": 25,
+			"detection": 0.4,
+			"upkeep": 0.3,
+			"cost": 1.2,
+			"build_days": 240,
+			"min_port": 1,
+			"materials": {
+				"iron": 6,
+				"wood": 1
+			},
+			"color": "#33404f",
+			"capacity": 0
+		},
+		"transport": {
+			"name": "Transport convoy",
+			"attack": 0.0,
+			"speed": 320.0,
+			"range_days": 20,
+			"detection": 0.8,
+			"upkeep": 0.3,
+			"cost": 1.0,
+			"build_days": 150,
+			"min_port": 1,
+			"materials": {
+				"iron": 20,
+				"wood": 5
+			},
+			"color": "#8a7a4a",
+			"capacity": 40000
+		}
+	}
+}

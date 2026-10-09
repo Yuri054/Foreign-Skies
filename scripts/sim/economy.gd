@@ -187,6 +187,7 @@ static func recompute(gs: Node) -> void:
 			# occupier collects a share of the tax.
 			sums[holder].gdp += o.gdp * Military.cfg.occupation.income_share
 
+	Navy.refresh_upkeep(gs)
 	for tag in gs.nations:
 		gs.nations[tag].budget = nation_budget(gs.nations[tag], sums[tag], WarSupport.economy_mult(gs, tag))
 

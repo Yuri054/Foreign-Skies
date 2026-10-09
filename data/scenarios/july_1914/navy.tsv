@@ -1,0 +1,63 @@
+tag	province	fleet	type	count
+GBR	330	Grand Fleet	dreadnought	4
+GBR	330	Grand Fleet	cruiser	2
+GBR	289	Battle Cruiser Fleet	cruiser	2
+GBR	289	Battle Cruiser Fleet	destroyer	3
+GBR	294	Channel Fleet	dreadnought	1
+GBR	294	Channel Fleet	cruiser	2
+GBR	294	Channel Fleet	destroyer	3
+GBR	294	Channel Fleet	transport	3
+GBR	302	Dover Patrol	destroyer	2
+GBR	302	Dover Patrol	submarine	2
+GBR	287	Harwich Force	destroyer	3
+GBR	287	Harwich Force	submarine	2
+GBR	274	Western Squadron	cruiser	1
+GBR	274	Western Squadron	destroyer	1
+FRA	194	Escadre de l'Atlantique	dreadnought	2
+FRA	194	Escadre de l'Atlantique	cruiser	2
+FRA	247	Armee Navale	dreadnought	2
+FRA	247	Armee Navale	cruiser	2
+FRA	247	Armee Navale	destroyer	3
+FRA	247	Armee Navale	submarine	1
+FRA	247	Armee Navale	transport	2
+FRA	223	Flottille de la Manche	destroyer	2
+FRA	223	Flottille de la Manche	submarine	2
+GER	394	High Seas Fleet	dreadnought	3
+GER	394	High Seas Fleet	cruiser	3
+GER	394	High Seas Fleet	destroyer	5
+GER	394	High Seas Fleet	submarine	2
+GER	417	Baltic Squadron	dreadnought	2
+GER	417	Baltic Squadron	cruiser	2
+GER	417	Baltic Squadron	destroyer	3
+GER	417	Baltic Squadron	submarine	1
+RUS	831	Baltic Fleet	dreadnought	1
+RUS	831	Baltic Fleet	cruiser	2
+RUS	831	Baltic Fleet	destroyer	4
+RUS	831	Baltic Fleet	submarine	2
+RUS	751	Reval Division	cruiser	1
+RUS	751	Reval Division	destroyer	2
+RUS	837	Black Sea Fleet	dreadnought	1
+RUS	837	Black Sea Fleet	cruiser	1
+RUS	837	Black Sea Fleet	destroyer	3
+RUS	837	Black Sea Fleet	submarine	1
+RUS	837	Black Sea Fleet	transport	2
+AUH	21	k.u.k. Kriegsmarine	dreadnought	2
+AUH	21	k.u.k. Kriegsmarine	cruiser	2
+AUH	21	k.u.k. Kriegsmarine	destroyer	3
+AUH	21	k.u.k. Kriegsmarine	submarine	1
+ITA	501	Squadra di Taranto	dreadnought	2
+ITA	501	Squadra di Taranto	cruiser	2
+ITA	501	Squadra di Taranto	destroyer	3
+ITA	442	Squadra di Brindisi	destroyer	2
+ITA	442	Squadra di Brindisi	submarine	1
+ITA	474	Squadra di Napoli	cruiser	1
+ITA	474	Squadra di Napoli	transport	2
+OTT	659	Ottoman Fleet	cruiser	1
+GRE	638	Hellenic Fleet	cruiser	1
+GRE	638	Hellenic Fleet	destroyer	1
+ESP	141	Spanish Fleet	cruiser	1
+ESP	141	Spanish Fleet	destroyer	1
+NED	522	Royal Netherlands Navy	cruiser	1
+DEN	91	Royal Danish Navy	cruiser	1
+POR	536	Portuguese Fleet	cruiser	1
+ROM	670	Romanian Fleet	destroyer	1

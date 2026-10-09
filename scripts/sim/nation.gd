@@ -43,8 +43,13 @@ var construction: Array[Dictionary] = []
 var blockade := 0.0
 ## Soldiers in service at mobilization 0.
 var peacetime_army := 0
-## Naval spending, GBP millions per year, until the navy exists (phase 7).
+## Yearly naval cost, GBP millions: the shore establishment plus the upkeep of the ships (set
+## by Navy.refresh_upkeep; the scenario gives the historical figure at the start).
 var naval_budget := 0.0
+## The part of naval_budget that is not ships: dockyards, bases, sailors ashore.
+var naval_overhead := 0.0
+## Squadrons being built: {type, province, days_left, days_total}.
+var shipbuilding: Array[Dictionary] = []
 ## Reserve recruits not yet in a unit; refilled monthly up to what budget.manpower_max
 ## allows after the men under arms.
 var manpower := 0

@@ -15,7 +15,8 @@ by distance through water (so a zone never leaps a peninsula). Writes:
 
 Fails if a zone is missing or empty or the zone graph is not connected. A coastal province whose
 water belongs to no zone (the Arctic and the Caspian) gets no port and is listed; one whose water
-is a pocket (an estuary) borrows the nearest zone within FALLBACK_CELLS.
+is a pocket (an estuary) borrows the nearest zone within FALLBACK_CELLS. port_overrides.tsv
+(id, zone, zone2: zone names, zone2 may be empty) pins a port to the zones a real harbour opens on.
 """
 import csv
 import sys
@@ -155,11 +156,20 @@ centers = {}
 with open(map_dir / "provinces.tsv", encoding="utf-8") as f:
     for r in csv.DictReader(f, delimiter="	"):
         centers[int(r["id"])] = (int(r["cx"]), int(r["cy"]))
+zone_ids = {name: zid for zid, name, _, _ in seeds}
+overrides = {}
+if (map_dir / "port_overrides.tsv").exists():
+    with open(map_dir / "port_overrides.tsv", encoding="utf-8") as f:
+        for r in csv.DictReader(f, delimiter="	"):
+            overrides[int(r["id"])] = (zone_ids[r["zone"]], zone_ids[r["zone2"]] if r["zone2"] else 0)
 missing = []
 with open(map_dir / "ports.tsv", "w", encoding="utf-8", newline="") as f:
     wr = csv.writer(f, delimiter="\t", lineterminator="\n")
     wr.writerow(["id", "zone", "zone2", "sea_px"])
     for pid in coastal:
+        if pid in overrides:
+            wr.writerow([pid, overrides[pid][0], overrides[pid][1], sum(counts.get(pid, {}).values())])
+            continue
         zs = {z: n for z, n in counts.get(pid, {}).items() if z > 0}
         if not zs:
             cx, cy = centers[pid]

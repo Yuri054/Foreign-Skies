@@ -15,6 +15,8 @@ signal unit_trained(tag: String, province: int, type: String)
 ## A province changed hands in war (occupation); the owner is unchanged.
 signal province_controller_changed(id: int, old_controller: String, new_controller: String)
 signal fronts_changed
+signal fleets_changed
+signal ship_built(tag: String, province: int, type: String)
 signal war_changed(a: String, b: String, at_war: bool)
 ## A nation lost its last province and its armies broke up.
 signal nation_collapsed(tag: String, men: int)
@@ -62,6 +64,12 @@ var province_buildings: Array[Dictionary] = []
 ## army id -> Army.
 var armies: Dictionary = {}
 var next_army_id := 1
+## id -> Fleet.
+var fleets: Dictionary = {}
+var next_fleet_id := 1
+## Naval bases (dockyards) from the scenario: province id -> level. They count as a port for
+## the navy, but not for the economy, so the 1914 trade figures stay as calibrated.
+var naval_bases: Dictionary = {}
 ## front id -> Front.
 var fronts: Dictionary = {}
 var next_front_id := 1
@@ -151,6 +159,7 @@ func _ready() -> void:
 	load_scenario(DEFAULT_SCENARIO)
 	Clock.day_ticked.connect(func() -> void:
 		Economy.step_day(self)
+		Navy.step_day(self)
 		Military.step_day(self)
 		Diplomacy.step_day(self)
 		AI.step_day(self)
@@ -165,6 +174,7 @@ func _ready() -> void:
 func load_scenario(dir: String) -> void:
 	Economy.load_config()
 	Military.load_config()
+	Navy.load_config()
 	Diplomacy.load_config()
 	AI.load_config()
 	command_log.clear()
@@ -206,6 +216,7 @@ func load_scenario(dir: String) -> void:
 		nations[tag] = Nation.new(tag, MapData.nations[tag], scenario.nations.get(tag, {}))
 	_rebuild_nation_provinces()
 	Military.deploy_starting(self)
+	Navy.deploy_starting(self, dir)
 	Economy.recompute(self)
 	# Start with half a full reserve of everything the nation uses.
 	for tag in nations:
