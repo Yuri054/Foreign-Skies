@@ -412,6 +412,13 @@ func has_selection() -> bool:
 	return not _selected.is_empty() or _drawing or _picking_nation
 
 
+## Selects exactly these armies (the action bar's merge and split use it).
+func select_ids(ids: Array[int]) -> void:
+	_selected = ids.filter(func(id: int) -> bool: return GameState.armies.has(id))
+	_sync_selection()
+	_refresh()
+
+
 func clear_selection() -> void:
 	_selected.clear()
 	_sync_selection()
@@ -559,6 +566,7 @@ func _read_selection() -> void:
 ## Tells the map and the list which armies are selected.
 func _sync_selection() -> void:
 	get_tree().call_group("army_layer", "set_selection", _selected.duplicate())
+	get_tree().call_group("army_action_bar", "set_selection", _selected.duplicate())
 	if not _selected.is_empty():
 		get_tree().call_group("navy_panel", "clear_selection_quiet")
 	for i in _listed.size():

@@ -36,6 +36,7 @@ var _view_back := Button.new()
 
 
 func _ready() -> void:
+	add_to_group("map_modes")
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_groups()
 	# Bottom left corner; grows upward.

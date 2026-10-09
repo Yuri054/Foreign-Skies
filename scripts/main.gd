@@ -3,6 +3,7 @@ extends Node2D
 const NationPicker := preload("res://scripts/ui/nation_picker.gd")
 const EconomyPanel := preload("res://scripts/ui/economy_panel.gd")
 const MilitaryPanel := preload("res://scripts/ui/military_panel.gd")
+const ArmyActionBar := preload("res://scripts/ui/army_action_bar.gd")
 const BuildQueue := preload("res://scripts/ui/build_queue.gd")
 const MapModes := preload("res://scripts/ui/map_modes.gd")
 const ArmyLayer := preload("res://scripts/map/army_layer.gd")
@@ -67,6 +68,7 @@ func _ready() -> void:
 
 	ui.add_child(EconomyPanel.new())
 	ui.add_child(MilitaryPanel.new())
+	ui.add_child(ArmyActionBar.new())
 	ui.add_child(DiplomacyPanel.new())
 	ui.add_child(NationStats.new())
 	ui.add_child(RankingsWindow.new())
