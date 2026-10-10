@@ -41,4 +41,4 @@ offset_bottom = -4.0
 grow_horizontal = 0
 grow_vertical = 0
 horizontal_alignment = 2
-text = "WASD pan  ·  Wheel zoom  ·  Click select  ·  Right-click orders / country panel / diplomatic view  ·  1-6 map modes  ·  E M F windows  ·  Space pause"
+text = "WASD pan  ·  Wheel zoom  ·  Click select  ·  Right-click orders / country panel / diplomatic view  ·  1-7 map modes  ·  E M F N windows  ·  Space pause  ·  Esc menu"

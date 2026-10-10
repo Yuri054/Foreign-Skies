@@ -6,6 +6,8 @@ extends FloatingWindow
 var _picker := OptionButton.new()
 var _note := Label.new()
 var _updating := false
+## Whether the window offers a way back to the main menu (the menu's own copy does not).
+var offer_quit_to_menu := true
 
 
 func _ready() -> void:
@@ -43,9 +45,55 @@ func _ready() -> void:
 		_sync()
 	)
 	box.add_child(reset)
-	setup_window("Settings", true, Vector2(300, 190), 3, true)
+
+	var sound := Label.new()
+	sound.text = "Sound"
+	box.add_child(sound)
+	for bus: String in Audio.BUSES:
+		box.add_child(_audio_row(bus))
+
+	var saves := Button.new()
+	saves.text = "Save and load… (F6)"
+	saves.focus_mode = Control.FOCUS_NONE
+	saves.pressed.connect(func() -> void: get_tree().call_group("save_window", "toggle"))
+	box.add_child(saves)
+	if offer_quit_to_menu:
+		var quit := Button.new()
+		quit.text = "Quit to menu"
+		quit.focus_mode = Control.FOCUS_NONE
+		quit.pressed.connect(func() -> void:
+			GameState.autosave_enabled = false
+			get_tree().change_scene_to_file.call_deferred("res://scenes/menu.tscn")
+		)
+		box.add_child(quit)
+	setup_window("Settings", true, Vector2(300, 360), 3, true)
 	fit_window(box.get_combined_minimum_size().y + 4.0)
 	_sync()
+
+
+## A bus's name, its volume slider and its mute box.
+func _audio_row(bus: String) -> Control:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = bus
+	label.custom_minimum_size = Vector2(70, 0)
+	row.add_child(label)
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.value = Audio.volume(bus)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.value_changed.connect(func(v: float) -> void: Audio.set_volume(bus, v))
+	row.add_child(slider)
+	var mute := CheckBox.new()
+	mute.text = "Mute"
+	mute.focus_mode = Control.FOCUS_NONE
+	mute.button_pressed = Audio.is_muted(bus)
+	mute.toggled.connect(func(on: bool) -> void: Audio.set_muted(bus, on))
+	row.add_child(mute)
+	return row
 
 
 func toggle() -> void:

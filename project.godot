@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="Grand Strategy Map"
-run/main_scene="res://scenes/main.tscn"
+config/name="Europa: The Last Battle"
+run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 MapData="*res://scripts/map/map_data.gd"
 Clock="*res://scripts/sim/clock.gd"
 GameState="*res://scripts/sim/game_state.gd"
+Audio="*res://scripts/audio.gd"
 
 [display]
 

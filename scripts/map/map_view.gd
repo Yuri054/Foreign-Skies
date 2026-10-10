@@ -139,6 +139,7 @@ func _ready() -> void:
 	_material.set_shader_parameter("map_size", Vector2(MapData.map_size))
 	material = _material
 
+	GameState.scenario_loaded.connect(repaint)
 	GameState.province_owner_changed.connect(func(_id: int, _old: String, _new: String) -> void: repaint())
 	GameState.province_controller_changed.connect(func(_id: int, _old: String, _new: String) -> void:
 		if mode == Mode.MILITARY or mode == Mode.POLITICAL:

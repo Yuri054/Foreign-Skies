@@ -1,0 +1,23 @@
+{
+	"_note": "Event name -> sound. file is under data/audio/, bus is one of the buses in default_bus_layout.tres, volume_db trims the file, cooldown is the least number of seconds between two plays of the event, so a month of events does not become noise. Replace any file with your own of the same name (tools/make_audio.py writes the stock ones).",
+	"events": {
+		"click":              {"file": "click.wav",     "bus": "Interface", "volume_db": -10.0, "cooldown": 0.05},
+		"battle":             {"file": "battle.wav",    "bus": "Effects",   "volume_db": -6.0,  "cooldown": 6.0},
+		"war_declared":       {"file": "war.wav",       "bus": "Effects",   "volume_db": -4.0,  "cooldown": 3.0},
+		"peace_signed":       {"file": "peace.wav",     "bus": "Effects",   "volume_db": -4.0,  "cooldown": 3.0},
+		"building_completed": {"file": "building.wav",  "bus": "Effects",   "volume_db": -8.0,  "cooldown": 2.0},
+		"unit_trained":       {"file": "unit.wav",      "bus": "Effects",   "volume_db": -6.0,  "cooldown": 2.0},
+		"treaty_signed":      {"file": "treaty.wav",    "bus": "Effects",   "volume_db": -6.0,  "cooldown": 2.0},
+		"join_request":       {"file": "join.wav",      "bus": "Interface", "volume_db": -4.0,  "cooldown": 2.0},
+		"nation_collapse":    {"file": "collapse.wav",  "bus": "Effects",   "volume_db": -4.0,  "cooldown": 5.0},
+		"ship_sunk":          {"file": "ship_sunk.wav", "bus": "Effects",   "volume_db": -5.0,  "cooldown": 4.0},
+		"blockade_begins":    {"file": "blockade.wav",  "bus": "Effects",   "volume_db": -5.0,  "cooldown": 5.0}
+	},
+	"music": {
+		"bus": "Music",
+		"volume_db": -6.0,
+		"fade_seconds": 3.0,
+		"calm": "music_calm.wav",
+		"war": "music_war.wav"
+	}
+}

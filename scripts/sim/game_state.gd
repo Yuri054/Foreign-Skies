@@ -43,10 +43,16 @@ signal peace_resolved(offer: Dictionary, accepted: bool)
 signal join_called(decision: Dictionary)
 ## `nation` mobilized far enough to alarm `neighbor`.
 signal mobilization_alarm(nation: String, neighbor: String)
+## A command the player gave (through `issue`, not the AI's `issue_quiet`) was carried out; `type`
+## is the command's class name. The tutorial listens for these.
+signal command_issued(type: String)
+signal game_saved(path: String)
 
 const DEFAULT_SCENARIO := "res://data/scenarios/july_1914/"
 
 var scenario: Dictionary = {}
+## The folder the scenario was read from (a save names it, so a load starts from the same one).
+var scenario_dir := ""
 var player_tag := ""
 ## tag -> Nation
 var nations: Dictionary = {}
@@ -168,6 +174,10 @@ var ai_budget_stamp: Dictionary = {}
 var ai_enabled := true
 ## Set by issue_quiet; the day's step recomputes the economy once if it is true.
 var economy_dirty := false
+## True in the running game (not in tests): the first of each month is saved into one of
+## AUTOSAVE_SLOTS rotating files.
+var autosave_enabled := false
+const AUTOSAVE_SLOTS := 3
 
 
 func _ready() -> void:
@@ -206,6 +216,7 @@ func load_scenario(dir: String) -> void:
 	occupation.clear()
 	fronts.clear()
 	next_front_id = 1
+	scenario_dir = dir
 	scenario = JSON.parse_string(FileAccess.get_file_as_string(dir + "scenario.json"))
 	assert(scenario is Dictionary, "scenario.json is invalid")
 
@@ -264,6 +275,48 @@ func _build_starting_mines() -> void:
 			var resource: String = Economy.cfg.buildings[type].requires.trim_prefix("deposit:")
 			if province_deposit[id].get(resource, 0.0) >= Economy.cfg.min_deposit:
 				province_buildings[id][type] = int(start[type])
+
+
+## Saves the game to a file (see SaveGame). Returns "" or what went wrong.
+func save_game(path: String) -> String:
+	var err := SaveGame.write(self, path)
+	if err.is_empty():
+		game_saved.emit(path)
+	return err
+
+
+## Loads a save: the scenario it began from, then the saved state on top. Returns "" or what
+## went wrong (a refused save leaves the game as it was).
+func load_game(path: String) -> String:
+	return SaveGame.read(self, path)
+
+
+## What a loaded game needs to run: tables worked out from the saved state, and no cache
+## filled by the game that was there before.
+func finish_load() -> void:
+	owner_version += 1
+	_rebuild_nation_provinces()
+	for front: Front in fronts.values():
+		front.dirty = true
+	Military._home_cache.clear()
+	Military._home_day = -1
+	AI._index_key = -1
+	AI._threat_cache.clear()
+	AI._worth_cache.clear()
+	AINavy._weight_day = -1
+	AINavy._cordons.clear()
+	Diplomacy._neighbor_version = -1
+	economy_dirty = false
+	Economy.recompute(self)
+	Clock.date_changed.emit()
+	Clock.pause_changed.emit(true)
+	Clock.speed_changed.emit(Clock.speed)
+	set_player(player_tag)
+	scenario_loaded.emit()
+	armies_changed.emit()
+	fronts_changed.emit()
+	fleets_changed.emit()
+	economy_updated.emit()
 
 
 ## Whether the player owes an answer (a join decision or a peace offer) before time may run.
@@ -391,6 +444,7 @@ func issue(cmd: Command) -> bool:
 	command_log.append(cmd.to_dict())
 	Economy.recompute(self)
 	economy_updated.emit()
+	command_issued.emit(str(cmd.get_script().get_global_name()))
 	return true
 
 
@@ -425,3 +479,12 @@ func _on_month_ticked() -> void:
 	Diplomacy.step_month(self)
 	Standings.record(self)
 	economy_updated.emit()
+	if autosave_enabled:
+		autosave()
+
+
+## Saves into the next of the rotating autosave slots (autosave_1 to autosave_3). Returns "" or
+## what went wrong.
+func autosave() -> String:
+	var slot := (Clock.year * 12 + Clock.month) % AUTOSAVE_SLOTS + 1
+	return save_game("%sautosave_%d%s" % [SaveGame.dir, slot, SaveGame.EXT])

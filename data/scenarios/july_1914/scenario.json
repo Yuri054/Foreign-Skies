@@ -3,6 +3,7 @@
 	"description": "Austria-Hungary has just declared war on Serbia. Europe's alliances are about to be tested.",
 	"start_date": [1914, 7, 28],
 	"default_player": "FRA",
+	"playable": true,
 	"_note": "Economic and military figures are rough estimates (GBP millions) meant to be refined. development, agri_yield and intensity are calibrated so default revenue, food self-sufficiency and 1913 coal, iron and timber consumption match estimates.",
 	"_starting_buildings_note": "Mines and sawmills already working in provinces with a deposit; level 2 gives exactly the deposit's listed output.",
 	"starting_buildings": {"coal_mine": 2, "iron_mine": 2, "sawmill": 2},

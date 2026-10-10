@@ -15,6 +15,9 @@ const DiplomacyPanel := preload("res://scripts/ui/diplomacy_panel.gd")
 const PeaceScreen := preload("res://scripts/ui/peace_screen.gd")
 const JoinPrompt := preload("res://scripts/ui/join_prompt.gd")
 const SettingsWindow := preload("res://scripts/ui/settings_window.gd")
+const SaveWindow := preload("res://scripts/ui/save_window.gd")
+const PauseMenu := preload("res://scripts/ui/pause_menu.gd")
+const Tutorial := preload("res://scripts/ui/tutorial.gd")
 const MapView := preload("res://scripts/map/map_view.gd")
 const NationStats := preload("res://scripts/ui/nation_stats.gd")
 const RankingsWindow := preload("res://scripts/ui/rankings_window.gd")
@@ -71,6 +74,8 @@ func _ready() -> void:
 	ui.add_child(NationStats.new())
 	ui.add_child(RankingsWindow.new())
 	ui.add_child(SettingsWindow.new())
+	ui.add_child(SaveWindow.new())
+	GameState.autosave_enabled = true
 	ui.add_child(EventFeed.new())
 	ui.add_child(BattleScreen.new())
 	ui.add_child(NavalBattleScreen.new())
@@ -86,11 +91,26 @@ func _ready() -> void:
 	modes.map_view = map_view
 	ui.add_child(modes)
 
+	var tutorial := Tutorial.new()
+	tutorial.map_view = map_view
+	tutorial.camera = camera
+	ui.add_child(tutorial)
+
+	# First in the tree, so it sees an Esc after every panel that uses one.
+	var pause := PauseMenu.new()
+	add_child(pause)
+	move_child(pause, 0)
+
+	# A loaded game goes on as the nation that was saved; a new one asks which to play.
+	if Scenarios.resume:
+		Scenarios.resume = false
+		return
 	var picker := NationPicker.new()
 	picker.nation_chosen.connect(func(tag: String) -> void:
 		GameState.set_player(tag)
 		_focus_on(tag)
 		picker.queue_free()
+		tutorial.after_nation_chosen()
 	)
 	ui.add_child(picker)
 

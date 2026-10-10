@@ -1,0 +1,86 @@
+{
+	"_note": "The guided intro, in order. title and text are what the card says. highlight names the real control to outline: {button: text of a top bar button}, {group: a node group} (a window, the map mode bar, the event feed), or none. done is what completes the step: {command: class name} (a command the player gave), {signal: camera | province_selected | mode_changed | game_saved}, {mode: [map modes]}, {window: group of a window that must be open} or {ack: true} (the Got it button). requires: fleet skips the step for a nation with no fleet. Every step can be skipped.",
+	"steps": [
+		{
+			"id": "camera",
+			"title": "Move around the map",
+			"text": "Hold W, A, S and D to pan, or drag with the middle mouse button. Turn the wheel to zoom in and out.",
+			"done": {"signal": "camera"}
+		},
+		{
+			"id": "province",
+			"title": "Select a province",
+			"text": "Click any province. The panel at the top left tells you who owns it, how many people live there and what it produces.",
+			"done": {"signal": "province_selected"}
+		},
+		{
+			"id": "map_mode",
+			"title": "Read a map mode",
+			"text": "The buttons at the bottom left recolour the map: who owns what, the economy, population, armies, terrain. Click one (keys 1 to 7 do the same).",
+			"highlight": {"group": "map_modes"},
+			"done": {"signal": "mode_changed"}
+		},
+		{
+			"id": "build",
+			"title": "Build something",
+			"text": "Open the Economy window (E), pick one of your provinces and start a building. It costs money and takes time, and shows in the queue at the bottom right.",
+			"highlight": {"button": "Economy"},
+			"done": {"command": "ConstructBuilding"}
+		},
+		{
+			"id": "raise",
+			"title": "Raise an army",
+			"text": "Open the Military window (M), pick one of your provinces and train a unit. Units cost money and recruits, and form an army where they were raised.",
+			"highlight": {"button": "Military"},
+			"done": {"command": "RaiseUnits"}
+		},
+		{
+			"id": "move",
+			"title": "Move an army",
+			"text": "Click an army to select it, then right-click a province to send it there. Drag a box to select several at once. Time is paused: press Space to start the clock, and armies will march.",
+			"done": {"command": "MoveArmy"}
+		},
+		{
+			"id": "front",
+			"title": "Set a front",
+			"text": "With armies selected, use the bar at the bottom of the screen to draw a front: a line of provinces your army holds against an enemy. Armies assigned to a front defend it.",
+			"highlight": {"group": "army_action_bar"},
+			"done": {"command": "DesignateFront"}
+		},
+		{
+			"id": "relations",
+			"title": "Improve relations",
+			"text": "Open the Diplomacy window (F), choose a nation and improve relations with it. Diplomatic effort costs diplomacy points, shown in the top bar.",
+			"highlight": {"button": "Diplomacy"},
+			"done": {"command": "ImproveRelations"}
+		},
+		{
+			"id": "feed",
+			"title": "Read the event feed",
+			"text": "News appears at the top of the map: battles, wars, treaties, ships sunk and blockades. Keep an eye on it while the clock runs.",
+			"highlight": {"group": "event_feed"},
+			"done": {"ack": true}
+		},
+		{
+			"id": "fleet",
+			"title": "Send a fleet",
+			"text": "Open the Navy panel (N), select a fleet, then right-click a patch of sea to send it there. Fleets stationed in the right waters can cut an enemy's trade.",
+			"highlight": {"group": "navy_panel"},
+			"requires": "fleet",
+			"done": {"command": "MoveFleet"}
+		},
+		{
+			"id": "blockade",
+			"title": "See the blockade",
+			"text": "Press 7 or use the Sea map mode at the bottom left to see who controls each sea zone, and which ports are blockaded.",
+			"highlight": {"group": "map_modes"},
+			"done": {"mode": ["SEA_CONTROL", "BLOCKADE"]}
+		},
+		{
+			"id": "save",
+			"title": "Save your game",
+			"text": "Press F5 to quick save, or F6 to open the save window. The game also saves itself on the first of every month. That is everything: good luck!",
+			"done": {"signal": "game_saved"}
+		}
+	]
+}

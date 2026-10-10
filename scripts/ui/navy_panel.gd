@@ -650,3 +650,4 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			toggle()
 		elif event.keycode == KEY_ESCAPE and not _selected.is_empty():
 			clear_selection()
+			get_viewport().set_input_as_handled()

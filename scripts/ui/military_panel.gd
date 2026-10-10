@@ -1291,5 +1291,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_ESCAPE:
 			if _drawing or _picking_nation:
 				_end_drawing()
+				get_viewport().set_input_as_handled()
 			elif not _selected.is_empty():
 				clear_selection()
+				get_viewport().set_input_as_handled()
