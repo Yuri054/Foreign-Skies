@@ -10,6 +10,12 @@
 		"fortress": "Fortress garrison",
 		"reserve": "Reserve"
 	},
+	"funding": {
+		"_note": "Army and navy funding (1 = the usual upkeep; the Economy window's sliders, capped by the economy law). It sets the money spent, and with it the readiness the forces drift toward by ready_step a day. Readiness is the share of the funding that has taken effect. Below 1 power falls, down to power_floor at the least funding; above 1 it rises by power_bonus for each point over, and reinforcement, morale and resupply follow readiness.",
+		"power_floor": 0.75,
+		"power_bonus": 0.2,
+		"ready_step": 0.02
+	},
 	"equipment": {
 		"_note": "Equipment units need to fight. A unit type's needs are for a full-strength unit (arms in thousands of rifles, artillery in batteries); a unit holds what it has and its coverage is held over need at its present strength. Each category's floor is the share of its power left with none of it. Raising a unit takes what it needs from the store at once and sets it aside for the unit until training ends. Casualties and attrition destroy equipment in step with men; a unit in combat uses combat_use of its full need of arms a day; a unit short of equipment reinforces at only reinforce_floor to 1 times the usual rate; a supplied unit not fighting draws up to resupply_rate of its full need a day from the national stockpile. Production lines (see Production) turn military factories (and base_factories more, the arsenals and imports every army has) into equipment: `output` of a category a day per factory, times efficiency and the economy law's military figure, for `cost` (money in GBP millions and materials in thousand tonnes per item). Efficiency climbs from efficiency_start to 1 over efficiency_days and starts over when a line changes product. materials short in the stockpile are bought at the import markup (not past a blockade) and paid for with the money; the money for the first free_factories factories' worth is part of army upkeep and not charged; auto_split shares the factories while a nation's lines are automatic. The stockpile at the start is start_stock_days of automatic output.",
 		"categories": {

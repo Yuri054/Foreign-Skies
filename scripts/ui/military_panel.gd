@@ -589,17 +589,28 @@ func _refresh() -> void:
 	if n == null or n.budget.is_empty():
 		return
 	var b := n.budget
+	var cap := Economy.mobilization_cap(GameState, n)
+	var least := Economy.mobilization_range(n).x
+	_slider.max_value = cap
 	_slider.set_value_no_signal(n.mobilization)
 	_slider_label.text = "%d%%" % roundi(n.mobilization * 100.0)
 	var floor_level: float = Diplomacy.cfg.crisis.war_floor
 	var fighting := not GameState.wars_of(n.tag).is_empty()
-	_mob_note.visible = fighting and n.mobilization < floor_level + 0.001
-	_mob_note.text = "At war: a nation is held at a war footing of at least %d%% mobilization." % roundi(floor_level * 100.0)
+	var notes: PackedStringArray = []
+	if fighting and n.mobilization < floor_level + 0.001:
+		notes.append("At war: a nation is held at a war footing of at least %d%% mobilization." % roundi(floor_level * 100.0))
+	if cap < 0.999:
+		notes.append("%s allows up to %d%%; a higher economy law (Economy window) allows more." % [Economy.law_of(n).name, roundi(cap * 100.0)])
+	if n.mobilization < least - 0.001:
+		notes.append("%s calls up at least %d%%; mobilization is rising to it." % [Economy.law_of(n).name, roundi(least * 100.0)])
+	_mob_note.visible = not notes.is_empty()
+	_mob_note.text = "
+".join(notes)
 	_set_row("reserve", "Recruit reserve", "%s / %s" % [_k(n.manpower), _k(maxf(0.0, b.manpower_max - n.men_in_units))])
 	_set_row("armed", "Under arms", _k(n.men_in_units))
 	_set_row("pool", "Manpower pool", _k(b.manpower_pool))
 	_set_row("army", "Army upkeep", "£%.2fM/mo" % (b.army / 12.0))
-	_set_row("output", "Output lost", "%d%%" % roundi(Economy.cfg.mobilization_output_penalty * n.mobilization * 100.0))
+	_set_row("output", "Output lost", "%d%%, factories %d%%" % [roundi(Economy.cfg.mobilization_output_penalty * n.mobilization * 100.0), roundi((1.0 - Economy.worker_share(n)) * 100.0)])
 	if visible:
 		_refresh_list()
 		_refresh_detail()

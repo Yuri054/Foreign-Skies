@@ -100,6 +100,44 @@ static func law_of(n: Nation) -> Dictionary:
 	return cfg.laws[n.economy_law] if cfg.laws.has(n.economy_law) else cfg.laws.civilian
 
 
+## How heavy the taxes are, 0 to 1: the rate's distance above the default toward the maximum,
+## squared, so a little above the default costs almost nothing and the top rate costs a lot.
+static func tax_strain(n: Nation) -> float:
+	var span: float = cfg.max_tax_rate - cfg.default_tax_rate
+	return pow(clampf((n.tax_rate - cfg.default_tax_rate) / span, 0.0, 1.0), 2.0)
+
+
+## The lowest and highest mobilization the law in force allows, as Vector2(min, max).
+static func mobilization_range(n: Nation) -> Vector2:
+	var r: Array = law_of(n).mobilization
+	return Vector2(float(r[0]), float(r[1]))
+
+
+## The highest mobilization a nation may have now: its law's, or the war floor if it is at war
+## (a nation at war is held at a war footing whatever its law).
+static func mobilization_cap(gs: Node, n: Nation) -> float:
+	var cap := mobilization_range(n).y
+	if not gs.wars_of(n.tag).is_empty():
+		cap = maxf(cap, float(Diplomacy.cfg.crisis.war_floor))
+	return cap
+
+
+## The most the army and the navy may be funded under the law in force.
+static func funding_cap(n: Nation) -> float:
+	return float(law_of(n).funding)
+
+
+## Brings both fundings under the law's ceiling (after the law came down).
+static func clamp_funding(n: Nation) -> void:
+	n.army_funding = clampf(n.army_funding, float(cfg.funding_min), funding_cap(n))
+	n.navy_funding = clampf(n.navy_funding, float(cfg.funding_min), funding_cap(n))
+
+
+## Share of the factories' work left after the workers called up (1 when nobody is).
+static func worker_share(n: Nation) -> float:
+	return 1.0 - float(cfg.mobilization_factory_penalty) * n.mobilization
+
+
 ## Share of the civilian factories' work that goes to the people's goods, not to building.
 static func consumer_share(n: Nation) -> float:
 	return law_of(n).consumer
@@ -150,11 +188,12 @@ static func enforce_laws(gs: Node) -> void:
 		if ids[i] != n.economy_law:
 			n.economy_law = ids[i]
 			n.law_changed_day = Clock.days_elapsed
+		clamp_funding(n)
 
 
 ## Construction points a nation can spend in a day, given the civilian factories it holds.
 static func construction_points(n: Nation, factories: float) -> float:
-	return cfg.construction.base_points + factories * cfg.construction.points_per_factory * (1.0 - consumer_share(n))
+	return cfg.construction.base_points + factories * cfg.construction.points_per_factory * (1.0 - consumer_share(n)) * worker_share(n)
 
 
 ## GBP millions a year of industrial output one civilian factory of this nation is worth.
@@ -427,14 +466,15 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 	var revenue := gdp * revenue_per_gdp * tax_mult + trade + export_income
 
 	var civil: float = raw.gdp * cfg.default_tax_rate * cfg.civil_share
-	var army: float = n.total_men() * cfg.soldier_upkeep / 1e6
+	var army: float = n.total_men() * cfg.soldier_upkeep / 1e6 * n.army_funding
+	var naval: float = n.naval_budget * n.navy_funding
 	# The whole economy buys the food; the treasury only carries its share (subsidies, duties).
 	var food_imports: float = food_imported * cfg.food_import_cost * cfg.food_state_share / 1e6
 	var programs := 0.0
 	for id in n.programs:
 		programs += cfg.programs[id].cost_gdp_share * raw.gdp
 	var equipment := Production.planned_spend(n)
-	var expenses := civil + army + n.naval_budget + food_imports + import_cost + programs + equipment
+	var expenses := civil + army + naval + food_imports + import_cost + programs + equipment
 
 	var pool: float = raw.pool
 	var peace := minf(n.peacetime_army, pool)
@@ -454,9 +494,10 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 		"revenue_per_gdp": revenue_per_gdp,
 		"civil": civil,
 		"army": army,
-		"naval": n.naval_budget,
+		"naval": naval,
 		"food_imports": food_imports,
 		"programs": programs,
+		"tax_strain": tax_strain(n),
 		"equipment": equipment,
 		"expenses": expenses,
 		"net": revenue - expenses,
@@ -576,7 +617,7 @@ static func step_month(gs: Node) -> void:
 			var info: Dictionary = b.resources[r]
 			n.stock[r] = maxf(0.0, n.stock.get(r, 0.0) + info.fill / 12.0 - info.draw)
 
-		var growth: float = (cfg.baseline_growth + modifiers({}, n.programs).growth) / 12.0
+		var growth: float = (cfg.baseline_growth + modifiers({}, n.programs).growth - cfg.tax_strain.growth_penalty * tax_strain(n)) / 12.0
 		n.development *= 1.0 + growth
 
 		# The cap covers everyone in service; what is not under arms is the reserve.

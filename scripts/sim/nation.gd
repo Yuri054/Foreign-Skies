@@ -55,6 +55,13 @@ var blockade_pinned := -1.0
 ## The economy law in force (see Economy.law_of) and the day it last changed.
 var economy_law := "civilian"
 var law_changed_day := -1000
+## How well the army and the navy are funded (1 = the usual upkeep; the economy law sets the
+## most, Economy.funding_cap) and how ready they are: readiness drifts toward the funding a
+## little each day (Military.step_readiness) and is what the forces fight with.
+var army_funding := 1.0
+var navy_funding := 1.0
+var army_ready := 1.0
+var navy_ready := 1.0
 ## Soldiers in service at mobilization 0.
 var peacetime_army := 0
 ## Yearly naval cost, GBP millions: the shore establishment plus the upkeep of the ships (set

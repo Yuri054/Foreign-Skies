@@ -1005,6 +1005,13 @@ static func _step_mobilization(gs: Node) -> bool:
 				n.mobilization = minf(target, n.mobilization + c.ai_step_up)
 			elif n.mobilization > target and not at_war:
 				n.mobilization = maxf(target, n.mobilization - c.ai_step_down)
+		# The economy law's range: down to its ceiling at once, up to its floor a step a day.
+		var cap := Economy.mobilization_cap(gs, n)
+		var least := Economy.mobilization_range(n).x
+		if n.mobilization > cap:
+			n.mobilization = cap
+		elif n.mobilization < least:
+			n.mobilization = minf(least, n.mobilization + c.war_step_up)
 		if not is_equal_approx(before, n.mobilization):
 			changed = true
 	return changed

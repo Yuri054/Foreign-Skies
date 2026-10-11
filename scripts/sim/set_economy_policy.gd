@@ -1,6 +1,8 @@
 class_name SetEconomyPolicy
 extends Command
-## Sets one of a nation's economic policies: "tax_rate" or "mobilization".
+## Sets one of a nation's economic policies: "tax_rate", "mobilization", "army_funding" or
+## "navy_funding". Mobilization and funding stop at the most the economy law allows (see
+## Economy.mobilization_cap and Economy.funding_cap).
 
 var tag: String
 var policy: String
@@ -21,7 +23,11 @@ func execute(gs: Node) -> bool:
 		"tax_rate":
 			n.tax_rate = clampf(value, Economy.cfg.min_tax_rate, Economy.cfg.max_tax_rate)
 		"mobilization":
-			n.mobilization = clampf(value, 0.0, 1.0)
+			n.mobilization = clampf(value, 0.0, Economy.mobilization_cap(gs, n))
+		"army_funding":
+			n.army_funding = clampf(value, Economy.cfg.funding_min, Economy.funding_cap(n))
+		"navy_funding":
+			n.navy_funding = clampf(value, Economy.cfg.funding_min, Economy.funding_cap(n))
 		_:
 			return false
 	return true

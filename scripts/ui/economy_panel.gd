@@ -10,11 +10,14 @@ var _tabs := TabContainer.new()
 var _alerts := VBoxContainer.new()
 var _tax_slider := HSlider.new()
 var _tax_label := Label.new()
+var _tax_note := Label.new()
 var _budget := HBoxContainer.new()
 var _output := Label.new()
 var _law := OptionButton.new()
 var _law_note := Label.new()
 var _law_updating := false
+## Funding sliders: policy ("army_funding", "navy_funding") -> {slider, label, note}.
+var _funding: Dictionary = {}
 var _program_boxes: Dictionary = {}
 var _resources := VBoxContainer.new()
 var _production := VBoxContainer.new()
@@ -89,7 +92,7 @@ func _build_overview() -> Control:
 	_tax_slider.step = 0.01
 	_tax_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tax_slider.focus_mode = Control.FOCUS_NONE
-	_tax_slider.tooltip_text = "Share of output taken as tax. Above %d%% it starts to choke the economy." % roundi(Economy.cfg.default_tax_rate * 100.0)
+	_tax_slider.tooltip_text = "Share of output taken as tax. Above %d%% less of it reaches the treasury, and heavy taxes slow growth and wear down the people's support." % roundi(Economy.cfg.default_tax_rate * 100.0)
 	_tax_slider.value_changed.connect(func(v: float) -> void:
 		GameState.issue(SetEconomyPolicy.new(GameState.player_tag, "tax_rate", v))
 	)
@@ -98,6 +101,10 @@ func _build_overview() -> Control:
 	for c in [tax_name, _tax_slider, _tax_label]:
 		tax_row.add_child(c)
 	box.add_child(tax_row)
+	_tax_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tax_note.custom_minimum_size = Vector2(400, 0)
+	_tax_note.modulate = Fmt.WARN
+	box.add_child(_tax_note)
 
 	var law_row := HBoxContainer.new()
 	var law_name := Label.new()
@@ -120,6 +127,9 @@ func _build_overview() -> Control:
 	_law_note.custom_minimum_size = Vector2(400, 0)
 	_law_note.modulate = Fmt.DIM
 	box.add_child(_law_note)
+
+	for policy in ["army_funding", "navy_funding"]:
+		box.add_child(_funding_row(policy))
 
 	_budget.add_theme_constant_override("separation", 14)
 	box.add_child(_budget)
@@ -146,6 +156,60 @@ func _build_overview() -> Control:
 
 
 # ---------------------------------------------------------------- small widgets
+
+## A slider for how well the army or the navy is funded: 1 is the usual upkeep, the economy law
+## sets how high it can go, and the forces' readiness follows it slowly.
+func _funding_row(policy: String) -> Control:
+	var box := VBoxContainer.new()
+	var row := HBoxContainer.new()
+	var name_label := Label.new()
+	name_label.text = "Army funding" if policy == "army_funding" else "Navy funding"
+	name_label.custom_minimum_size = Vector2(110, 0)
+	row.add_child(name_label)
+	var slider := HSlider.new()
+	slider.min_value = Economy.cfg.funding_min
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.value_changed.connect(func(v: float) -> void:
+		if not _law_updating:
+			GameState.issue(SetEconomyPolicy.new(GameState.player_tag, policy, v))
+	)
+	row.add_child(slider)
+	var label := Label.new()
+	label.custom_minimum_size = Vector2(50, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(label)
+	box.add_child(row)
+	var note := Label.new()
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size = Vector2(400, 0)
+	note.modulate = Fmt.DIM
+	box.add_child(note)
+	_funding[policy] = {"slider": slider, "label": label, "note": note, "box": box}
+	return box
+
+
+func _refresh_funding(n: Nation) -> void:
+	var cap := Economy.funding_cap(n)
+	for policy in _funding:
+		var army: bool = policy == "army_funding"
+		var f: float = n.army_funding if army else n.navy_funding
+		var ready: float = n.army_ready if army else n.navy_ready
+		var parts: Dictionary = _funding[policy]
+		parts.box.visible = army or n.naval_budget > 0.0
+		_law_updating = true
+		parts.slider.max_value = cap
+		parts.slider.set_value_no_signal(f)
+		_law_updating = false
+		parts.label.text = "%d%%" % roundi(f * 100.0)
+		var cost: float = n.total_men() * Economy.cfg.soldier_upkeep / 1e6 if army else n.naval_budget
+		parts.note.text = "Costs £%.1fM a month; %s fights at %d%% of its strength%s. %s allows up to %d%%." % [
+				Fmt.monthly(cost * f), "the army" if army else "the navy", roundi(Military.readiness_power(ready) * 100.0),
+				(" (readiness is moving toward %d%%)" % roundi(Military.readiness_power(f) * 100.0)) if absf(ready - f) > 0.01 else "",
+				Economy.law_of(n).name, roundi(cap * 100.0)]
+
 
 func _heading(text: String) -> Label:
 	var l := Label.new()
@@ -211,6 +275,11 @@ func _refresh_overview(n: Nation) -> void:
 	var b := n.budget
 	_tax_slider.set_value_no_signal(n.tax_rate)
 	_tax_label.text = "%d%%" % roundi(n.tax_rate * 100.0)
+	var strain: float = n.budget.get("tax_strain", 0.0)
+	_tax_note.visible = strain > 0.005
+	var cost: Dictionary = Economy.cfg.tax_strain
+	_tax_note.text = "Heavy taxes: growth %.1f points a year lower, war support settles %d lower in peace, and %.1f a month is lost at war." % [
+			cost.growth_penalty * strain * 100.0, roundi(cost.support_penalty * strain), cost.war_weariness * strain]
 
 	# Problems first, so they cannot be missed.
 	_clear(_alerts)
@@ -296,6 +365,7 @@ func _refresh_law(n: Nation) -> void:
 		if id == n.economy_law:
 			_law.select(i)
 	_law_updating = false
+	_refresh_funding(n)
 	var law := Economy.law_of(n)
 	_law_note.text = "%s Consumer goods take %d%% of civilian factory work, so %.0f construction points a day are left (%d factories). Military factories +%d%%, national output %+d%%." % [
 			_law_requires_text(n.economy_law), roundi(law.consumer * 100.0), n.budget.construction_points, int(n.budget.factories),
@@ -306,8 +376,9 @@ func _refresh_law(n: Nation) -> void:
 
 func _law_text(id: String) -> String:
 	var law: Dictionary = Economy.cfg.laws[id]
-	return "%s: consumer goods %d%%, military factories %+d%%, output %+d%%%s." % [law.name, roundi(law.consumer * 100.0),
+	return "%s: consumer goods %d%%, military factories %+d%%, output %+d%%, mobilization %d to %d%%%s." % [law.name, roundi(law.consumer * 100.0),
 			roundi((law.military - 1.0) * 100.0), roundi((law.gdp - 1.0) * 100.0),
+			roundi(law.mobilization[0] * 100.0), roundi(law.mobilization[1] * 100.0),
 			(", %.1f war support a month at war" % law.weariness) if law.weariness > 0.0 else ""]
 
 

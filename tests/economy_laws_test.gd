@@ -34,6 +34,7 @@ func _initialize() -> void:
 	_test_cooldown()
 	_test_weariness()
 	_test_dropped()
+	_test_mobilization()
 	_test_save_and_ui()
 	await _test_panel()
 	print("FAILURES: ", _failures)
@@ -129,6 +130,46 @@ func _test_dropped() -> void:
 	ger.mobilization = 0.0
 	Eco.enforce_laws(gs)
 	_check(ger.economy_law == "civilian", "and with no mobilization either, back to the civilian economy")
+
+
+func _test_mobilization() -> void:
+	_fresh()
+	var fra = gs.nations["FRA"]
+	var civil: Dictionary = Eco.cfg.laws.civilian
+	_check(Eco.mobilization_range(fra) == Vector2(0.0, 0.4), "the civilian economy allows up to 40% mobilization")
+	gs.issue(Policy.new("FRA", "mobilization", 1.0))
+	_check(is_equal_approx(fra.mobilization, 0.4), "the slider stops at the law's ceiling (%.2f)" % fra.mobilization)
+	fra.mobilization = 0.9
+	var D = load("res://scripts/sim/diplomacy.gd")
+	D.step_day(gs)
+	_check(is_equal_approx(fra.mobilization, 0.4), "and a nation above it is brought down at once")
+	# At war the war floor lifts the ceiling.
+	_war("FRA", "GER")
+	_check(is_equal_approx(Eco.mobilization_cap(gs, fra), 0.5), "at war a nation may always reach the war floor")
+	gs.issue(Policy.new("FRA", "mobilization", 1.0))
+	_check(is_equal_approx(fra.mobilization, 0.5), "but no higher under the civilian economy (%.2f)" % fra.mobilization)
+	# A higher law lifts the ceiling and sets a floor.
+	fra.law_changed_day = -1000
+	gs.issue(SetLaw.new("FRA", "early_mobilization"))
+	gs.issue(Policy.new("FRA", "mobilization", 1.0))
+	_check(is_equal_approx(fra.mobilization, 0.7), "early mobilization allows 70%% (%.2f)" % fra.mobilization)
+	fra.law_changed_day = -1000
+	fra.mobilization = 0.6
+	gs.issue(SetLaw.new("FRA", "war_economy"))
+	fra.mobilization = 0.1
+	for i in 6:
+		D.step_day(gs)
+	_check(fra.mobilization >= 0.3, "a law's floor raises mobilization a step a day (%.2f)" % fra.mobilization)
+	# Called-up workers cost the factories' output.
+	_fresh()
+	fra = gs.nations["FRA"]
+	var Prod = load("res://scripts/sim/production.gd")
+	var line = fra.production_lines[0]
+	var full: float = Prod.capacity(fra, line)
+	var points: float = Eco.construction_points(fra, 50.0)
+	fra.mobilization = 0.4
+	_check(is_equal_approx(Eco.worker_share(fra), 1.0 - Eco.cfg.mobilization_factory_penalty * 0.4), "workers called up leave the factories (%.2f)" % Eco.worker_share(fra))
+	_check(Prod.capacity(fra, line) < full and Eco.construction_points(fra, 50.0) < points, "so production and construction slow")
 
 
 func _test_save_and_ui() -> void:

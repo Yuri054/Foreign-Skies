@@ -52,6 +52,25 @@ static func init_equipment(gs: Node) -> void:
 		Production.auto_assign(n)
 
 
+## What readiness (the funding that has taken effect) does to fighting power: the floor at the
+## least funding, 1 at the usual, a bonus above.
+static func readiness_power(ready: float) -> float:
+	var c: Dictionary = cfg.funding
+	if ready >= 1.0:
+		return 1.0 + (ready - 1.0) * float(c.power_bonus)
+	var least: float = Economy.cfg.funding_min
+	return lerpf(float(c.power_floor), 1.0, clampf((ready - least) / (1.0 - least), 0.0, 1.0))
+
+
+## Readiness follows funding a step a day.
+static func step_readiness(gs: Node) -> void:
+	var step: float = cfg.funding.ready_step
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		n.army_ready = move_toward(n.army_ready, n.army_funding, step)
+		n.navy_ready = move_toward(n.navy_ready, n.navy_funding, step)
+
+
 ## Units that lack equipment draw it from the national stockpile.
 static func _issue(gs: Node) -> void:
 	var rate: float = cfg.equipment.resupply_rate
@@ -65,7 +84,7 @@ static func _issue(gs: Node) -> void:
 					u.equip["arms"] = maxf(0.0, float(u.equip.get("arms", 0.0)) - float(u.needs().arms) * float(cfg.equipment.combat_use))
 					u.refresh_factor()
 			else:
-				u.draw(n.equipment, rate)
+				u.draw(n.equipment, rate * n.army_ready)
 
 
 ## Held equipment over need for one category across an army's units (0..1); 1 if no unit uses it.
@@ -495,6 +514,7 @@ static func _dist(a: int, b: int) -> float:
 
 static func step_day(gs: Node) -> void:
 	step_fronts(gs)
+	step_readiness(gs)
 	Production.step_day(gs)
 	_train(gs)
 	var armies: Array = gs.armies.values()
@@ -918,9 +938,9 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 		elif not a.fighting:
 			var n: Nation = gs.nations[a.tag]
 			for u in a.units:
-				u.morale = minf(1.0, u.morale + cfg.combat.morale_regain)
+				u.morale = minf(1.0, u.morale + cfg.combat.morale_regain * n.army_ready)
 				if u.strength < 1.0 and n.manpower > 0:
-					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate * lerpf(float(cfg.equipment.reinforce_floor), 1.0, u.coverage_min()))
+					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate * n.army_ready * lerpf(float(cfg.equipment.reinforce_floor), 1.0, u.coverage_min()))
 					var taken := mini(n.manpower, ceili(want * u.full_size()))
 					n.manpower -= taken
 					u.strength = minf(1.0, u.strength + float(taken) / u.full_size())

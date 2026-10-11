@@ -16,11 +16,19 @@
 	"min_tax_rate": 0.05,
 	"max_tax_rate": 0.4,
 	"tax_drag": 1.2,
+	"tax_strain": {
+		"_note": "What heavy taxes cost beyond the revenue drag. The strain is how far the rate is above the default toward the maximum, 0 to 1, squared. growth_penalty is taken off the yearly growth of the economy at full strain, support_penalty off the level war support settles at in peace, and war_weariness off war support each month at war.",
+		"growth_penalty": 0.04,
+		"support_penalty": 20.0,
+		"war_weariness": 1.0
+	},
 	"civil_share": 0.5,
 	"baseline_growth": 0.015,
 	"manpower_share": 0.12,
 	"soldier_upkeep": 70.0,
 	"mobilization_output_penalty": 0.35,
+	"mobilization_factory_penalty": 0.3,
+	"funding_min": 0.5,
 	"mobilization_rate": 0.15,
 	"construction": {
 		"_note": "Construction capacity. Each day a nation has a pool of construction points: base_points (small works everywhere) plus points_per_factory for each civilian factory it holds, less the share the people's consumer goods take (the economy law's consumer share). The queue is served in order; a building takes at most its `rate` points a day, so with ample capacity it still takes build_days (its points are build_days times its rate), and with little it takes longer.",
@@ -28,12 +36,12 @@
 		"points_per_factory": 1.0
 	},
 	"laws": {
-		"_note": "Economy laws, from peace to total war, switched with the SetEconomyLaw command. consumer is the share of the civilian factories' work that goes to the people's goods and so is not available for construction; military multiplies the output of military factories (production lines); gdp multiplies the national output (the civilian economy is run down); weariness is lost from war support each month while at war. requires: war (the nation must be at war), mobilization (the least mobilization), war_or_mobilization (at war or that much mobilized). A higher law than the one in force can be taken only cooldown_days after the last change; a law whose requirements stop holding is dropped a step each month.",
+		"_note": "Economy laws, from peace to total war, switched with the SetEconomyLaw command. consumer is the share of the civilian factories' work that goes to the people's goods and so is not available for construction; military multiplies the output of military factories (production lines); gdp multiplies the national output (the civilian economy is run down); weariness is lost from war support each month while at war. requires: war (the nation must be at war), mobilization (the least mobilization), war_or_mobilization (at war or that much mobilized). funding is the most the army and the navy may be funded under the law (1 is the usual upkeep; the least is funding_min); mobilization is the lowest and highest the nation may be mobilized under the law (a nation at war may always go up to the war floor of data/diplomacy.json); below the lowest it is raised a step a day, above the highest it is brought down at once. A higher law than the one in force can be taken only cooldown_days after the last change; a law whose requirements stop holding is dropped a step each month.",
 		"cooldown_days": 30,
-		"civilian": {"name": "Civilian economy", "consumer": 0.35, "military": 1.0, "gdp": 1.0, "weariness": 0.0, "requires": {}},
-		"early_mobilization": {"name": "Early mobilization", "consumer": 0.30, "military": 1.10, "gdp": 0.98, "weariness": 0.0, "requires": {"war_or_mobilization": 0.2}},
-		"war_economy": {"name": "War economy", "consumer": 0.20, "military": 1.25, "gdp": 0.94, "weariness": 0.3, "requires": {"war": true}},
-		"total_mobilization": {"name": "Total mobilization", "consumer": 0.10, "military": 1.40, "gdp": 0.88, "weariness": 0.8, "requires": {"war": true, "mobilization": 0.5}}
+		"civilian": {"name": "Civilian economy", "mobilization": [0.0, 0.4], "funding": 1.0, "consumer": 0.35, "military": 1.0, "gdp": 1.0, "weariness": 0.0, "requires": {}},
+		"early_mobilization": {"name": "Early mobilization", "mobilization": [0.1, 0.7], "funding": 1.15, "consumer": 0.30, "military": 1.10, "gdp": 0.98, "weariness": 0.0, "requires": {"war_or_mobilization": 0.2}},
+		"war_economy": {"name": "War economy", "mobilization": [0.3, 0.9], "funding": 1.3, "consumer": 0.20, "military": 1.25, "gdp": 0.94, "weariness": 0.3, "requires": {"war": true}},
+		"total_mobilization": {"name": "Total mobilization", "mobilization": [0.5, 1.0], "funding": 1.5, "consumer": 0.10, "military": 1.40, "gdp": 0.88, "weariness": 0.8, "requires": {"war": true, "mobilization": 0.5}}
 	},
 	"factories": {
 		"_note": "Factories are discrete. A civilian factory adds `output` GBP millions a year of industrial output (times the nation's development) to the economy; a military factory makes equipment instead (phase 8). Each province has building slots: at least slot_min, one per slot_pop people, and room to grow by slot_growth over the factories it starts with. At the start each province holds as many factories as its industry is worth; military_factories of them are military: a nation's scenario figure, else its peacetime army over army_per_military_factory. A civilian factory turned military loses its output; the conversion costs convert_cost_share of a new factory and takes convert_days.",

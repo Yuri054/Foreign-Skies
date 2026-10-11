@@ -30,6 +30,7 @@ func execute(gs: Node) -> bool:
 		return false
 	n.economy_law = law
 	n.law_changed_day = Clock.days_elapsed
+	Economy.clamp_funding(n)
 	return true
 
 

@@ -425,6 +425,7 @@ func _test_crisis() -> void:
 	for i in 12:
 		D.step_day(gs)
 	_check(is_equal_approx(gs.nations["FRA"].mobilization, 0.5) and is_equal_approx(gs.nations["GER"].mobilization, 0.5), "a nation at war is raised to the war floor")
+	gs.nations["FRA"].economy_law = "war_economy"
 	gs.nations["FRA"].mobilization = 0.8
 	D.step_day(gs)
 	_check(gs.nations["FRA"].mobilization == 0.8, "but never lowered by it")

@@ -58,7 +58,7 @@ static func planned_spend(n: Nation) -> float:
 
 ## Items a day the line could make with all it needs at hand.
 static func capacity(n: Nation, line: Dictionary) -> float:
-	return line.factories * float(cfg().categories[line.category].output) * efficiency(line) * float(Economy.law_of(n).military)
+	return line.factories * float(cfg().categories[line.category].output) * efficiency(line) * float(Economy.law_of(n).military) * Economy.worker_share(n)
 
 
 ## What one item of a category costs: {"money": GBP millions, resource id: thousand tonnes ...}.
