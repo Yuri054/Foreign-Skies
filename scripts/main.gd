@@ -76,7 +76,9 @@ func _ready() -> void:
 	ui.add_child(MilitaryPanel.new())
 	ui.add_child(ArmyActionBar.new())
 	ui.add_child(DiplomacyPanel.new())
-	ui.add_child(NationStats.new())
+	var nation_stats := NationStats.new()
+	nation_stats.closed.connect(_end_peek)
+	ui.add_child(nation_stats)
 	ui.add_child(RankingsWindow.new())
 	ui.add_child(SettingsWindow.new())
 	ui.add_child(SaveWindow.new())
@@ -120,11 +122,18 @@ func _ready() -> void:
 	ui.add_child(picker)
 
 
+## The nation a right click has put on show, and the map mode to go back to when it is put
+## away ("" and -1 when nothing is on show).
+var _peek_tag := ""
+var _peek_mode := -1
+var _peek_submode := ""
+
+
 ## A right click on a province, as in the Paradox games: with armies selected it is an order.
-## Otherwise it picks the nation that owns the land: the country panel on the left changes to
-## it (your own nation too), and in the Diplomacy map mode the map's point of view moves to it
-## as well (your own nation returns it to yours). Holding Shift picks the nation for the panel
-## only, whatever the mode and whatever is selected.
+## Otherwise it picks the nation that owns the land: the country panel on the left opens on it
+## (your own nation too) and the map goes to the Diplomacy mode seen from that nation. Right-
+## clicking the same nation again, or closing the panel, puts the map back as it was. Holding
+## Shift picks the nation for the panel only, leaving the map mode alone.
 func _on_right_click(id: int) -> void:
 	var tag: String = GameState.province_owner[id]
 	var shift := Input.is_key_pressed(KEY_SHIFT)
@@ -135,10 +144,38 @@ func _on_right_click(id: int) -> void:
 	if panel != null and panel.has_selection() and not shift:
 		get_tree().call_group("military_panel", "order_move", id)
 		return
-	if map_view.mode == MapView.Mode.DIPLOMACY and not shift:
-		map_view.set_viewpoint(tag)
-		get_tree().call_group("diplomacy_panel", "set_province", id)
+	var stats := get_tree().get_first_node_in_group("nation_stats")
+	if shift:
+		_peek_tag = ""
+		_peek_mode = -1
+		get_tree().call_group("nation_stats", "show_nation", tag)
+		return
+	if _peek_tag == tag and stats != null and stats.visible:
+		_end_peek()
+		stats.close_window()
+		return
+	if _peek_tag == "":
+		# The map mode to come back to; none if it is already the Diplomacy mode.
+		_peek_mode = -1 if map_view.mode == MapView.Mode.DIPLOMACY else map_view.mode
+		_peek_submode = map_view.submode
+		if map_view.mode != MapView.Mode.DIPLOMACY:
+			map_view.set_mode(MapView.Mode.DIPLOMACY)
+	_peek_tag = tag
+	map_view.set_viewpoint(tag)
+	get_tree().call_group("diplomacy_panel", "set_province", id)
 	get_tree().call_group("nation_stats", "show_nation", tag)
+
+
+## Puts the map back after a nation was put on show: the point of view is the player's again
+## and the map mode returns, unless the player has picked another one since.
+func _end_peek() -> void:
+	if _peek_tag == "":
+		return
+	_peek_tag = ""
+	map_view.set_viewpoint("")
+	if _peek_mode >= 0 and map_view.mode == MapView.Mode.DIPLOMACY:
+		map_view.set_mode(_peek_mode, _peek_submode)
+	_peek_mode = -1
 
 
 ## Centers the camera on a nation's population-weighted middle.

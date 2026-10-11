@@ -399,7 +399,10 @@ func _test_perspective() -> void:
 	_check(view.viewpoint == "" and not palette._view_label.visible, "leaving the Diplomacy mode drops the borrowed point of view")
 	view.province_ordered.emit(ger)
 	await process_frame
-	_check(menu.visible and menu.shown_tag() == "GER", "in other modes a right click shows the nation in the country panel")
+	_check(not menu.visible, "right-clicking the nation on show again closes the country panel, whatever the mode")
+	view.province_ordered.emit(ger)
+	await process_frame
+	_check(menu.visible and menu.shown_tag() == "GER", "and the next right click shows the nation in the country panel again")
 	menu.close_window()
 	gs.set_war("FRA", "GER", false)
 

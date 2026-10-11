@@ -9,8 +9,10 @@ signal date_changed
 signal speed_changed(speed: int)
 signal pause_changed(paused: bool)
 
-## Real seconds per game day at speeds 1..5.
-const SECONDS_PER_DAY: Array[float] = [1.0, 0.5, 0.2, 0.08, 0.025]
+const CONFIG_PATH := "res://data/clock.json"
+
+## Real seconds per game day at speeds 1..5 (data/clock.json overrides these).
+var seconds_per_day: Array[float] = [2.0, 1.0, 0.5, 0.25, 0.025]
 const MONTH_NAMES: PackedStringArray = [
 	"January", "February", "March", "April", "May", "June",
 	"July", "August", "September", "October", "November", "December",
@@ -28,6 +30,25 @@ var days_elapsed := 0
 var _elapsed := 0.0
 
 
+func _ready() -> void:
+	load_config()
+
+
+## Reads the speeds and the starting speed from data/clock.json; keeps the defaults if the file
+## is missing or wrong.
+func load_config() -> void:
+	if not FileAccess.file_exists(CONFIG_PATH):
+		return
+	var cfg: Variant = JSON.parse_string(FileAccess.get_file_as_string(CONFIG_PATH))
+	if not (cfg is Dictionary):
+		return
+	var list: Variant = cfg.get("seconds_per_day", [])
+	if list is Array and list.size() == seconds_per_day.size():
+		for i in list.size():
+			seconds_per_day[i] = maxf(0.005, float(list[i]))
+	speed = int(cfg.get("default_speed", speed))
+
+
 func start(y: int, m: int, d: int) -> void:
 	year = y
 	month = m
@@ -41,7 +62,7 @@ func _process(delta: float) -> void:
 	if paused:
 		return
 	_elapsed += delta
-	var step: float = SECONDS_PER_DAY[speed - 1]
+	var step: float = seconds_per_day[speed - 1]
 	# Bounded so a long frame at top speed cannot run away.
 	var guard := 10
 	while _elapsed >= step and guard > 0:
@@ -84,7 +105,7 @@ func set_paused(value: bool) -> void:
 
 
 func set_speed(value: int) -> void:
-	speed = clampi(value, 1, SECONDS_PER_DAY.size())
+	speed = clampi(value, 1, seconds_per_day.size())
 	speed_changed.emit(speed)
 
 

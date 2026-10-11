@@ -41,6 +41,10 @@ func _zone(zone_name: String) -> int:
 
 func _reset() -> void:
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	# British islands off Normandy would keep a bridgehead there tied to home by sea.
+	for id in range(1, map.provinces.size()):
+		if map.provinces[id].name == "Channel Islands":
+			gs.transfer_province(id, "FRA")
 	gs.fleets.clear()
 	gs.armies.clear()
 	gs.ai_enabled = false

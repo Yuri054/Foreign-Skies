@@ -38,11 +38,10 @@ func _initialize() -> void:
 	_check(settings != null and settings.has_method("setup_window"), "the settings window exists and is a window")
 	settings.toggle()
 	await process_frame
-	_check(settings.visible and settings._picker.item_count == Settings.SCALES.size(), "it lists every scale (%d)" % settings._picker.item_count)
+	_check(settings.visible and is_equal_approx(settings._slider.min_value, 0.5) and is_equal_approx(settings._slider.max_value, 2.0), "it has a slider from 50%% to 200%% (%s to %s)" % [settings._slider.min_value, settings._slider.max_value])
 
 	var base := Vector2(root.get_visible_rect().size)
-	settings._picker.select(settings._picker.item_count - 1)
-	settings._picker.item_selected.emit(settings._picker.item_count - 1)
+	settings._slider.value = 2.0
 	await process_frame
 	await process_frame
 	_check(is_equal_approx(root.content_scale_factor, 2.0), "choosing 200% scales the window")
@@ -76,7 +75,13 @@ func _initialize() -> void:
 	bar._unhandled_key_input(plain)
 	_check(root.get_node("Clock").speed == speed + 1 or speed == 5, "while + alone still changes the game speed")
 	_check(is_equal_approx(Settings.step_scale(root, 1), 1.1) and is_equal_approx(Settings.step_scale(root, -1), 1.0), "step_scale moves one preset at a time")
-	_check(is_equal_approx(Settings.set_scale(root, 1.27), 1.25) and is_equal_approx(Settings.set_scale(root, 9.0), 2.0), "and set_scale snaps to a preset")
+	_check(is_equal_approx(Settings.set_scale(root, 1.27), 1.25) and is_equal_approx(Settings.set_scale(root, 9.0), 2.0), "and set_scale rounds to a step and holds the top")
+	_check(is_equal_approx(Settings.set_scale(root, 0.52), 0.5) and is_equal_approx(Settings.set_scale(root, 0.1), 0.5), "it goes down to 50% and no further")
+	Settings.set_scale(root, 0.5)
+	await process_frame
+	_check(is_equal_approx(Settings.step_scale(root, -1), 0.5) and is_equal_approx(Settings.step_scale(root, 1), 0.6), "Ctrl and + or - step through the small scales too")
+	var small := Vector2(root.get_visible_rect().size)
+	_check(bar.get_global_rect().end.x <= small.x + 1.0, "at 50%% the top bar still fits (%s)" % str(small))
 	Settings.set_scale(root, 1.0)
 
 	# The windows are tighter than before.

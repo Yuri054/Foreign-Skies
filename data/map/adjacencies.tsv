@@ -714,6 +714,7 @@ id_a	id_b	border_px	kind
 222	250	32	land
 223	225	31	land
 223	232	69	land
+223	880	0	strait
 224	227	124	land
 224	242	71	land
 225	232	161	land
@@ -847,6 +848,7 @@ id_a	id_b	border_px	kind
 279	336	181	land
 279	340	112	land
 279	341	97	land
+279	879	0	strait
 280	288	40	land
 280	312	126	land
 280	317	51	land
@@ -1377,6 +1379,7 @@ id_a	id_b	border_px	kind
 494	511	51	land
 498	503	7	land
 498	513	29	land
+499	881	0	strait
 500	549	398	land
 503	513	166	land
 505	508	124	land
@@ -2025,6 +2028,7 @@ id_a	id_b	border_px	kind
 747	836	279	land
 747	850	189	land
 747	858	242	land
+747	884	0	strait
 748	767	213	land
 748	788	259	land
 748	790	626	land

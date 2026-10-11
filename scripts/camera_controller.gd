@@ -1,5 +1,8 @@
 extends Camera2D
-## WASD / middle-mouse drag to pan, mouse wheel to zoom.
+## WASD / middle-mouse drag to pan, mouse wheel to zoom. The camera is kept on the map: its
+## centre never goes so near an edge that the view would run past it (Camera2D's limits only
+## hide the overshoot, and the position went on running away behind them, which is why the map
+## seemed stuck at an edge).
 
 @export var pan_speed: float = 800.0
 @export var zoom_step: float = 1.1
@@ -16,11 +19,23 @@ func _ready() -> void:
 ## Centres the view on a map position.
 func focus_on(pos: Vector2) -> void:
 	position = pos
+	keep_on_map()
+
+
+## Pulls the centre back inside the area it may have: the map less half of what the view shows.
+## A map smaller than the view (zoomed far out) is centred on that axis.
+func keep_on_map() -> void:
+	var half := get_viewport_rect().size / zoom / 2.0
+	var lo := Vector2(limit_left, limit_top) + half
+	var hi := Vector2(limit_right, limit_bottom) - half
+	position.x = (lo.x + hi.x) / 2.0 if lo.x > hi.x else clampf(position.x, lo.x, hi.x)
+	position.y = (lo.y + hi.y) / 2.0 if lo.y > hi.y else clampf(position.y, lo.y, hi.y)
 
 
 func _process(delta: float) -> void:
 	var dir := Input.get_vector("pan_left", "pan_right", "pan_up", "pan_down")
 	position += dir * pan_speed * delta / zoom.x
+	keep_on_map()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -38,8 +53,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_dragging = event.pressed
 	elif event is InputEventMouseMotion and _dragging:
 		position -= event.relative / zoom.x
+		keep_on_map()
 
 
 func _set_zoom(value: float) -> void:
 	var z := clampf(value, min_zoom, max_zoom)
 	zoom = Vector2(z, z)
+	keep_on_map()

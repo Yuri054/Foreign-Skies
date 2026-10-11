@@ -7,9 +7,12 @@ extends RefCounted
 
 ## Where the settings live. Tests point it somewhere else so they never touch the real file.
 static var path := "user://settings.cfg"
-const SCALES := [0.75, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0]
-const MIN_SCALE := 0.75
+## The steps Ctrl and + or - go through. The slider in Settings takes any value in between, in
+## steps of SCALE_STEP.
+const SCALES := [0.5, 0.6, 0.75, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0]
+const MIN_SCALE := 0.5
 const MAX_SCALE := 2.0
+const SCALE_STEP := 0.05
 
 static var scale := 1.0
 
@@ -23,13 +26,10 @@ static func apply_saved(window: Window) -> void:
 	window.content_scale_factor = scale
 
 
-## Changes the scale (snapped to the nearest preset) and saves it. Returns the scale used.
+## Changes the scale (rounded to SCALE_STEP, held between the smallest and largest) and saves
+## it. Returns the scale used.
 static func set_scale(window: Window, value: float) -> float:
-	var best: float = SCALES[0]
-	for s: float in SCALES:
-		if absf(s - value) < absf(best - value):
-			best = s
-	scale = best
+	scale = clampf(snappedf(value, SCALE_STEP), MIN_SCALE, MAX_SCALE)
 	window.content_scale_factor = scale
 	var cfg := ConfigFile.new()
 	cfg.load(path)

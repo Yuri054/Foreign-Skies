@@ -277,5 +277,47 @@ Status: phases 1 to 6 are built (phase 6, the AI, step by step below). Phase 7, 
 
    **Open decisions.** Settled: (a) Transport waits, (b) equipment is held by the units with a national store behind them, (c) construction is capped nationally only.
 
+9. **Quick fixes.** *(built; the time scales are to be tuned by playing)* Small and independent, done first.
+   - *Camera:* **done.** Camera2D's limits only hid the overshoot while the position kept running past the edge, which is why it took several swipes to come back. `CameraController.keep_on_map` now holds the centre so the view stays on the map (centred when the map is smaller than the view). `tests/camera_test.gd`.
+   - *UI scale:* **done.** A slider from 50% to 200% in 5% steps in Settings (applied when released, because the slider scales with the interface); Ctrl and + or - step through 50, 60, 75, 90, 100, 110, 125, 150, 175 and 200. `tests/ui_scale_test.gd`.
+   - *Right-click on a nation:* **done.** The first right-click opens the nation's panel and puts the map in the Diplomacy mode seen from it; a click on another nation moves both; a second click on the same nation, or closing the panel, restores the map mode and the player's point of view (a mode picked in between is left alone). Shift still opens the panel only. `tests/right_click_test.gd`.
+   - *Unowned land:* **done.** No province lacked an owner; the missing land was grey land with no province at all. `tools/add_islands.py` turns six of those islands into provinces, with ids 879 to 884 and nothing renumbered: Isle of Man, Channel Islands and Malta (Britain), Cyprus (given to Britain, which ran it, though it was Ottoman in law until the November annexation), Faroe Islands (Denmark) and Åland (Russia), with 1911 to 1914 populations, terrain, coasts and ports. Left out: Gibraltar (nine pixels, too small to click) and Gotland (Sweden is not in the game yet). `tests/islands_test.gd`.
+   - *Time scales:* **done, to be tuned by playing.** The speeds now live in `data/clock.json` (2.0, 1.0, 0.5, 0.25 and 0.025 real seconds a game day, default speed 3; `Clock.load_config`; `tests/clock_test.gd`). Before, speeds 1 to 5 are 1.0, 0.5, 0.2, 0.08 and 0.025 real seconds a game day, and the default is 3, so a month takes six seconds and a year just over a minute. Now a month at the default is fifteen seconds and speed 5 is unchanged. This changes how fast the clock feels, not how long a war lasts in game days (the first peace comes on day 157 and the general war is over by about day 250); war length is a balance question for phase 10 and the AI work in phase 14.
+
+10. **Economy and mobilization.** *(proposed)* Builds on phase 8.
+   - *Mobilization tied to the economy law:* each law sets a lowest and a highest mobilization; a harder law needs more, and mobilization cuts factory output more steeply than the flat 35% today. A workers model (factories staffed from the manpower pool) is deferred until this is seen working.
+   - *Funding sliders:* army and navy funding sliders in the Economy window, with a ceiling set by the current law (a peacetime economy cannot fund a war budget). Funding changes upkeep, and low funding costs readiness (equipment draw, reinforcement, morale).
+   - *Taxes:* at the top rate there is no cost beyond the revenue drag; add a cost (growth, war support or unrest) that grows with the rate.
+   - *Population:* provinces' populations are fixed at the start. Add growth and loss: births against food and war, casualties and occupation reduce it, mobilization draws on it. This feeds GDP through density, so every calibration test needs re-checking.
+   - *Infrastructure:* a province-level figure tied to the railway network that raises building slots (replacing part of the population-based slots); the Build map mode shows each province's slot cap on the map itself.
+   - *Civilian factories:* they add little to output; rebalance their output against GDP so building one matters, then re-tune the AI's building returns.
+   - *Make the hidden visible:* resources are not removed (they now feed equipment lines, building materials and shortages); show their effects in the Economy and nation windows. War support gets the same treatment: show what it is doing to recruitment and fighting power. A resource trade market stays a later phase.
+
+11. **Interface polish.** *(proposed)*
+   - *Main menu:* a livelier one (background, nation art or map, layout).
+   - *Choosing a nation:* by clicking it on the map, not from a list.
+   - *Province panel:* restyle the top-left information panel so it reads as a game panel and not a debug dump.
+   - *Build map mode:* with phase 10's slot caps drawn on the provinces and clearer colours and legend.
+   - *Map modes:* the military mode shows front lines, army strength and equipment coverage; the sea mode folds into it, or is kept only if it shows something the military mode cannot.
+
+12. **Military command.** *(proposed)* In the order given.
+   - *Army structure, as in Hearts of Iron IV:* divisions are grouped into armies, shown along the bottom of the screen; a general can be assigned over an army, and later an army group under a field marshal. Today an `Army` is a stack in one province with a name taken from a fixed list and no way to choose or change it. Generals become characters a nation holds (a pool from `data/military.json` to start), assigned with a command, whose skill multiplies the army's power.
+   - *Attack lines:* the player draws an attack line against a nation, tied to a front, and starts and stops the order from a button; the army group carries it out. The AI's offence logic is reused. Depends on the army structure above.
+   - *Navy:* a bottom-of-screen bar for fleets like the army bar.
+   - *Tabs:* condense the Military window's five tabs (Armies, Fronts, Recruit, Wars, Navy).
+   - *On the map:* a setting for which armies are drawn (own, own and allies, all), and a clearer view of what an army is made of (icons or a hover card).
+
+13. **Diplomacy.** *(proposed)*
+   - *War justifications:* a justification takes time and diplomacy points before a war can be declared on it; declaring without one costs prestige, relations and war support. The AI's unjustified-war limit already exists in `ai.json`.
+   - *Gifts:* too cheap and easy for a rich nation to buy relations; raise the price, scale it by the receiver's size, and add diminishing returns.
+   - *Diplomacy points and prestige:* rebalance income and costs; give prestige uses beyond point income (justification cost, peace terms, alliance pull).
+   - *Alliances:* a new alliance gets a name (a generated bloc name from its members, or the player's own) and is told apart in the interface from the historic ones such as the Entente.
+
+14. **World content.** *(proposed; needs phase 10's hooks)*
+   - *Norway and Sweden* join the map (Denmark exists): provinces, nation data, scenario and AI.
+   - *Cities:* a data file of the most important cities with an icon that shows when zoomed in.
+   - *National focus system:* generic, with hand-built trees for the important nations, giving small nations such as Albania ways to grow (development, claims, alliances) and the AI goals to work toward after the opening war. Effects use the economy and diplomacy hooks from phases 10 and 13.
+   - *The late-game AI:* after the opening war it does almost nothing. The fix is the focus system plus an AI that wants things (claims, growth); scripted events are a thin layer of flavour on top, not the main fix.
+
 ## Open question
 The "hand-drawn" bitmap needs someone to draw about 600 provinces. See the proposal in the conversation about bootstrapping it from real geographic data.
