@@ -25,6 +25,11 @@ var men_lost_month := 0.0
 ## Province ids this nation owns; maintained by GameState.
 var provinces: PackedInt32Array = []
 var population := 0
+## Yearly natural increase of the people (see Population), soldiers killed this month and in
+## all.
+var pop_growth := 0.01
+var deaths_month := 0.0
+var war_dead := 0.0
 
 # Economy (rules in Economy; constants in data/economy.json).
 ## Output multiplier: how productive this nation's economy is relative to the baseline.
@@ -115,6 +120,7 @@ func _init(p_tag: String, static_data: Dictionary, scenario_data: Dictionary) ->
 	tax_rate = scenario_data.get("tax_rate", Economy.cfg.default_tax_rate)
 	mobilization = scenario_data.get("mobilization", 0.0)
 	economy_law = scenario_data.get("economy_law", "civilian")
+	pop_growth = float(scenario_data.get("pop_growth", 0.01))
 	peacetime_army = int(scenario_data.get("peacetime_army", 0))
 	naval_budget = scenario_data.get("naval_budget", 0.0)
 	manpower = peacetime_army

@@ -59,7 +59,8 @@ static func province_output(population: int, area_km2: float, nation: Nation, bu
 	var gdp: float = population * cfg.gdp_per_capita * nation.development * mod / 1e6 * (1.0 + fx.gdp)
 	var industry: float = gdp * lerpf(cfg.industry_share_min, cfg.industry_share_max, urban) * (1.0 + fx.industry)
 	# Factories beyond the calibrated base add their output; civilian ones turned military take it away.
-	var factory_gain: float = float(buildings.get("factory", 0) - civ_base) * factory_output(nation)
+	var factory_delta := float(buildings.get("factory", 0) - civ_base)
+	var factory_gain: float = factory_delta * factory_output(nation)
 	gdp += factory_gain
 	industry += factory_gain
 	var out := {
@@ -68,6 +69,7 @@ static func province_output(population: int, area_km2: float, nation: Nation, bu
 		"food": area_km2 * cfg.food_per_km2 * nation.agri_yield * (1.0 + fx.food),
 		"trade": gdp * fx.trade,
 		"pool": population * cfg.manpower_share,
+		"factory_delta": factory_delta,
 	}
 	for r in resource_ids():
 		out[r] = deposit.get(r, 0.0) * cfg.extraction_base if deposit.get(r, 0.0) >= cfg.min_deposit else 0.0
@@ -196,14 +198,35 @@ static func construction_points(n: Nation, factories: float) -> float:
 	return cfg.construction.base_points + factories * cfg.construction.points_per_factory * (1.0 - consumer_share(n)) * worker_share(n)
 
 
+## GBP millions a year one civilian factory pays the treasury (beyond the calibrated start).
+static func factory_income(nation: Nation) -> float:
+	return cfg.factories.income * nation.development * float(law_of(nation).gdp) * worker_share(nation)
+
+
 ## GBP millions a year of industrial output one civilian factory of this nation is worth.
 static func factory_output(nation: Nation) -> float:
 	return cfg.factories.output * nation.development
 
 
-## Building slots of a province (see data/economy.json, "factories"): set when the game starts.
+## Infrastructure of a province (see data/economy.json, "infrastructure"): its railway level plus
+## a share of the best railway level of the neighbours its nation owns.
+static func infrastructure(gs: Node, id: int) -> float:
+	var own: int = gs.province_buildings[id].get("railway", 0)
+	var best := 0
+	var tag: String = gs.province_owner[id]
+	for n: int in Military.neighbors(id):
+		if gs.province_owner[n] == tag:
+			best = maxi(best, gs.province_buildings[n].get("railway", 0))
+	return own + float(cfg.infrastructure.network_share) * best
+
+
+## Building slots of a province: its own (set when the game starts and raised as its people
+## grow, see Population) and the ones its infrastructure adds (data/economy.json, "factories" and
+## "infrastructure").
 static func slots_of(gs: Node, id: int) -> int:
-	return gs.province_slots[id] if id < gs.province_slots.size() else 0
+	if id >= gs.province_slots.size():
+		return 0
+	return gs.province_slots[id] + int(infrastructure(gs, id) * float(cfg.infrastructure.slots_per_level))
 
 
 ## Slots taken by factories already built and by those under construction.
@@ -377,7 +400,7 @@ static func recompute(gs: Node) -> void:
 	for arr: PackedFloat32Array in [gs.province_gdp, gs.province_industry, gs.province_food, gs.province_pool]:
 		arr.resize(count)
 
-	var keys: Array = ["gdp", "industry", "food", "trade", "pool", "factories", "military_factories"]
+	var keys: Array = ["gdp", "industry", "food", "trade", "pool", "factories", "military_factories", "factory_delta"]
 	for r in resource_ids():
 		keys.append(r)
 		keys.append("use_" + r)
@@ -463,7 +486,8 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 
 	var tax_drag: float = 1.0 - cfg.tax_drag * maxf(0.0, n.tax_rate - cfg.default_tax_rate)
 	var revenue_per_gdp := n.tax_rate * tax_drag
-	var revenue := gdp * revenue_per_gdp * tax_mult + trade + export_income
+	var factory_money: float = raw.factory_delta * factory_income(n)
+	var revenue := gdp * revenue_per_gdp * tax_mult + trade + export_income + factory_money
 
 	var civil: float = raw.gdp * cfg.default_tax_rate * cfg.civil_share
 	var army: float = n.total_men() * cfg.soldier_upkeep / 1e6 * n.army_funding
@@ -484,6 +508,7 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 		"revenue": revenue,
 		"trade": trade,
 		"resource_exports": export_income,
+		"factory_income": factory_money,
 		"resource_imports": import_cost,
 		"resources": res,
 		"gdp_scale": gdp_scale,
@@ -603,6 +628,7 @@ static func step_day(gs: Node) -> void:
 ## Monthly update: pays the budget, moves the stockpiles, grows the economy and refills
 ## manpower toward its cap.
 static func step_month(gs: Node) -> void:
+	Population.step_month(gs)
 	enforce_laws(gs)
 	Military.refresh_men(gs)
 	recompute(gs)

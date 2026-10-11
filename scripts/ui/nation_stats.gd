@@ -192,6 +192,10 @@ func _refresh() -> void:
 		provinces_text += "  (%d occupied, %d held abroad)" % [lost, held_elsewhere]
 	_row(overview, "Provinces", provinces_text)
 	_row(overview, "Population", Fmt.people(n.population), _rank(ranks.population, tag))
+	var growth := Population.growth_rate(n)
+	_row(overview, "Growth", "%+.1f%% a year" % (growth * 100.0), "", Fmt.BAD if growth < 0.0 else Color.WHITE)
+	if n.war_dead >= 1000.0:
+		_row(overview, "Lost in war", Fmt.people(n.war_dead))
 
 	var economy := _section("Economy")
 	_row(economy, "Output a month", "£%.1fM" % Fmt.monthly(b.get("gdp", 0.0)), _rank(ranks.gdp, tag))

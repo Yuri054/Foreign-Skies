@@ -16,6 +16,13 @@
 	"min_tax_rate": 0.05,
 	"max_tax_rate": 0.4,
 	"tax_drag": 1.2,
+	"population": {
+		"_note": "People (Population.step_month, once a month). Each province grows by its nation's pop_growth (the scenario's yearly natural increase less emigration), less famine_decline times the share of food a nation lacks, and less occupation_decline a year while an enemy holds it. Soldiers killed (battle and attrition) leave the nation's provinces in proportion to their people, death_share of them. A province is never left under min_province.",
+		"famine_decline": 0.05,
+		"occupation_decline": 0.02,
+		"death_share": 1.0,
+		"min_province": 1000
+	},
 	"tax_strain": {
 		"_note": "What heavy taxes cost beyond the revenue drag. The strain is how far the rate is above the default toward the maximum, 0 to 1, squared. growth_penalty is taken off the yearly growth of the economy at full strain, support_penalty off the level war support settles at in peace, and war_weariness off war support each month at war.",
 		"growth_penalty": 0.04,
@@ -43,9 +50,15 @@
 		"war_economy": {"name": "War economy", "mobilization": [0.3, 0.9], "funding": 1.3, "consumer": 0.20, "military": 1.25, "gdp": 0.94, "weariness": 0.3, "requires": {"war": true}},
 		"total_mobilization": {"name": "Total mobilization", "mobilization": [0.5, 1.0], "funding": 1.5, "consumer": 0.10, "military": 1.40, "gdp": 0.88, "weariness": 0.8, "requires": {"war": true, "mobilization": 0.5}}
 	},
+	"infrastructure": {
+		"_note": "Infrastructure of a province: its railway level plus network_share of the best railway level among the neighbours the same nation owns, so a line of provinces with railways lifts all of them. Each point of it gives slots_per_level more building slots (rounded down) on top of the province's own slots.",
+		"slots_per_level": 1.0,
+		"network_share": 0.5
+	},
 	"factories": {
-		"_note": "Factories are discrete. A civilian factory adds `output` GBP millions a year of industrial output (times the nation's development) to the economy; a military factory makes equipment instead (phase 8). Each province has building slots: at least slot_min, one per slot_pop people, and room to grow by slot_growth over the factories it starts with. At the start each province holds as many factories as its industry is worth; military_factories of them are military: a nation's scenario figure, else its peacetime army over army_per_military_factory. A civilian factory turned military loses its output; the conversion costs convert_cost_share of a new factory and takes convert_days.",
+		"_note": "Factories are discrete. A civilian factory beyond the ones a province started with adds `output` GBP millions a year of industrial output (times the nation's development) to the economy and `income` GBP millions a year straight to the treasury (times development, the law's output figure and the workers left); one retooled to military takes both away, and the pool of construction points is what every civilian factory gives; a military factory makes equipment instead (phase 8). Each province has building slots: at least slot_min, one per slot_pop people, and room to grow by slot_growth over the factories it starts with. At the start each province holds as many factories as its industry is worth; military_factories of them are military: a nation's scenario figure, else its peacetime army over army_per_military_factory. A civilian factory turned military loses its output; the conversion costs convert_cost_share of a new factory and takes convert_days.",
 		"output": 8.0,
+		"income": 2.0,
 		"slot_min": 2,
 		"slot_pop": 250000,
 		"slot_growth": 0.4,

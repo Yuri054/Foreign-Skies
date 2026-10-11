@@ -9,6 +9,9 @@ const MapModes := preload("res://scripts/ui/map_modes.gd")
 const ArmyLayer := preload("res://scripts/map/army_layer.gd")
 const NavalBattleScreen := preload("res://scripts/ui/naval_battle_screen.gd")
 const AIOverlay := preload("res://scripts/map/ai_overlay.gd")
+const SlotLabels := preload("res://scripts/map/slot_labels.gd")
+## How solid the army and fleet banners are while the Construction map mode is on.
+const BUILD_MODE_UNIT_ALPHA := 0.25
 const EventFeed := preload("res://scripts/ui/event_feed.gd")
 const BattleScreen := preload("res://scripts/ui/battle_screen.gd")
 const DiplomacyPanel := preload("res://scripts/ui/diplomacy_panel.gd")
@@ -36,8 +39,19 @@ func _ready() -> void:
 	map_view.sea_zone_selected.connect(_on_sea_zone_selected)
 	var army_layer := ArmyLayer.new()
 	add_child(army_layer)
-	add_child(FleetLayer.new())
+	var fleet_layer := FleetLayer.new()
+	add_child(fleet_layer)
 	add_child(AIOverlay.new())
+	# In the Construction mode the slot numbers are what matters: the armies and fleets fade back.
+	map_view.mode_changed.connect(func(mode: int, _sub: String) -> void:
+		var faded := mode == MapView.Mode.CONSTRUCTION
+		army_layer.modulate.a = BUILD_MODE_UNIT_ALPHA if faded else 1.0
+		fleet_layer.modulate.a = BUILD_MODE_UNIT_ALPHA if faded else 1.0
+	)
+	var slot_labels := SlotLabels.new()
+	slot_labels.map_view = map_view
+	slot_labels.camera = camera
+	add_child(slot_labels)
 	map_view.province_hovered.connect(army_layer.set_hover)
 	map_view.province_selected.connect(army_layer.set_expanded)
 	map_view.battle_clicked.connect(func(province: int) -> void:
@@ -227,6 +241,7 @@ func _on_province_selected(id: int) -> void:
 	]
 
 	lines[0] += "  [%s]" % Military.terrain_of(id).name.to_lower()
+	lines.append("Building slots %d of %d used, infrastructure %.1f" % [Economy.slots_used(GameState, id), Economy.slots_of(GameState, id), Economy.infrastructure(GameState, id)])
 	if GameState.province_controller[id] != owner_tag:
 		lines.append("Occupied by %s" % GameState.nations[GameState.province_controller[id]].display_name)
 	var here := Military.armies_at(GameState, id)

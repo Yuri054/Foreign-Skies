@@ -285,8 +285,10 @@ func _detail_text(type: String) -> String:
 	var lines: PackedStringArray = []
 	if def.get("slot", false):
 		lines.append("Takes one building slot. £%.1fM each, %d days." % [def.cost, def.build_days])
+		lines.append("A province's slots come from its people and its infrastructure: each point of it, a railway level or half of a neighbour's, adds a slot. The numbers on the map are slots used out of slots.")
 		if type == "factory":
-			lines.append("Adds industrial output (about £%.0fM a year at your development) to the economy." % Economy.factory_output(GameState.get_player()))
+			var me := GameState.get_player()
+			lines.append("Gives construction points (one a day, less consumer goods) and pays about £%.1fM a year into the treasury, and adds about £%.0fM of industrial output to the economy." % [Economy.factory_income(me), Economy.factory_output(me)])
 		else:
 			lines.append("Makes equipment instead of income. Retooling a civilian factory costs its output.")
 	else:
@@ -294,6 +296,8 @@ func _detail_text(type: String) -> String:
 		var effects := _effects_text(def.effects)
 		if effects != "":
 			lines.append("Per level: " + effects)
+		if type == "railway":
+			lines.append("Raises infrastructure: a building slot more for each level here and for half a level in the neighbouring provinces you own. The numbers on the map are levels out of the most.")
 	if not def.get("materials", {}).is_empty():
 		lines.append("Needs: " + _amounts_text(def.materials))
 	if def.get("requires", "") == "coastal":

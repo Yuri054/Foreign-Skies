@@ -311,7 +311,7 @@ func _refresh_overview(n: Nation) -> void:
 	_budget.add_child(g)
 	_budget.add_child(VSeparator.new())
 	_budget.add_child(spend)
-	var taxes: float = Fmt.monthly(b.revenue - b.trade - b.resource_exports)
+	var taxes: float = Fmt.monthly(b.revenue - b.trade - b.resource_exports - b.factory_income)
 	var trade: float = Fmt.monthly(b.trade + b.resource_exports)
 	_head_row(g, "Income")
 	_cell(g, "Taxes", 0, Color.WHITE, "Output of £%.1fM a month taxed at %d%%." % [Fmt.monthly(b.gdp), roundi(n.tax_rate * 100.0)])
@@ -319,6 +319,9 @@ func _refresh_overview(n: Nation) -> void:
 	if trade > 0.04:
 		_cell(g, "Trade", 0, Color.WHITE, "Ports £%.1fM, resource exports £%.1fM." % [Fmt.monthly(b.trade), Fmt.monthly(b.resource_exports)])
 		_cell(g, Fmt.money(trade, true), 1)
+	if absf(b.factory_income) > 0.04:
+		_cell(g, "Factories", 0, Color.WHITE, "Civilian factories built since the start pay %s each a year into the treasury (retooled ones cost it). The factories you began with are already in the taxes." % Fmt.money(Economy.factory_income(n)))
+		_cell(g, Fmt.money(Fmt.monthly(b.factory_income), true), 1)
 	_total_row(g, "Total income", Fmt.monthly(b.revenue), Color.WHITE)
 
 	_head_row(spend, "Spending")

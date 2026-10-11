@@ -62,6 +62,8 @@ var province_owner: PackedStringArray = []
 var owner_version := 0
 var province_controller: PackedStringArray = []
 var province_population := PackedInt32Array()
+## The part of a person each province's growth has not yet added (see Population).
+var province_pop_frac := PackedFloat32Array()
 ## Province output before nation-wide modifiers; filled by Economy.recompute.
 var province_gdp := PackedFloat32Array()       # GBP millions per year
 var province_industry := PackedFloat32Array()  # GBP millions per year
@@ -228,6 +230,8 @@ func load_scenario(dir: String) -> void:
 	province_owner.resize(count)
 	province_controller.resize(count)
 	province_population.resize(count)
+	province_pop_frac.resize(count)
+	province_pop_frac.fill(0.0)
 	province_buildings.clear()
 	province_deposit.clear()
 	for i in count:

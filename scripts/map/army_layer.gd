@@ -269,17 +269,17 @@ func _draw_banner(rect: Rect2, px: float, color: Color, icon: String, men: float
 	if count > 1:
 		label += " ×%d" % count
 	var text_x := frame.end.x + 2.0 * px
-	draw_string(_font, Vector2(text_x, rect.end.y - 6.0 * px), label, HORIZONTAL_ALIGNMENT_CENTER,
-			rect.end.x - text_x - 1.0 * px, int(roundf(11.0 * px)), text_color)
+	MapText.draw(self, _font, Vector2(text_x, rect.end.y - 6.0 * px), label, HORIZONTAL_ALIGNMENT_CENTER,
+			rect.end.x - text_x - 1.0 * px, 11, text_color, px)
 	var border := SELECT_COLOR if picked else (BATTLE_COLOR if fighting else Color(0, 0, 0, 0.85))
 	draw_rect(rect, border, false, (2.5 if picked or fighting else 1.5) * px)
 	var mark := _size_mark(men)
 	if not mark.is_empty():
-		draw_string(_font, Vector2(rect.position.x, rect.position.y - 2.0 * px), mark, HORIZONTAL_ALIGNMENT_CENTER,
-				rect.size.x, int(roundf(10.0 * px)), Color.BLACK)
+		MapText.draw(self, _font, Vector2(rect.position.x, rect.position.y - 2.0 * px), mark, HORIZONTAL_ALIGNMENT_CENTER,
+				rect.size.x, 10, Color.BLACK, px)
 	if fighting:
-		draw_string(_font, Vector2(rect.end.x + 2.0 * px, rect.position.y + 12.0 * px), "⚔", HORIZONTAL_ALIGNMENT_LEFT,
-				-1, int(roundf(14.0 * px)), BATTLE_COLOR)
+		MapText.draw(self, _font, Vector2(rect.end.x + 2.0 * px, rect.position.y + 12.0 * px), "⚔", HORIZONTAL_ALIGNMENT_LEFT,
+				-1.0, 14, BATTLE_COLOR, px)
 
 
 func _size_mark(men: float) -> String:
@@ -502,15 +502,15 @@ func _front_label(f: Front, at: Vector2, color: Color, px: float, chosen: bool) 
 		if a != null:
 			men += a.men()
 	var text := "%s · %d · %s" % [f.display_name, f.army_ids.size(), Fmt.people(men)]
-	var fs := int(roundf((12.0 if chosen else 11.0) * px))
-	var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var fs := 12 if chosen else 11
+	var w := MapText.size_of(_font, text, fs, px).x
 	var pad := 4.0 * px
-	var size := Vector2(w + pad * 2.0 + 5.0 * px, fs + pad * 1.6)
+	var size := Vector2(w + pad * 2.0 + 5.0 * px, fs * px + pad * 1.6)
 	var rect := Rect2(at - Vector2(size.x * 0.5, size.y + 14.0 * px), size)
 	draw_rect(rect.grow(1.2 * px), Color(0, 0, 0, 0.6))
 	draw_rect(rect, Color(0.06, 0.08, 0.12, 0.94))
 	draw_rect(Rect2(rect.position, Vector2(4.0 * px, rect.size.y)), color)
-	draw_string(_font, rect.position + Vector2(pad + 4.0 * px, fs + pad * 0.5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	MapText.draw(self, _font, rect.position + Vector2(pad + 4.0 * px, fs * px + pad * 0.5), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, Color.WHITE, px)
 
 
 func _draw_draft(px: float) -> void:
@@ -531,13 +531,13 @@ func _draw_draft(px: float) -> void:
 ## What an army is made of: a tiny symbol per unit type with how many of them, centred under
 ## a banner. `counts` maps unit type to number (see Army.composition).
 func _draw_composition(counts: Dictionary, centre_x: float, top: float, px: float) -> void:
-	var fs := int(roundf(9.0 * px))
+	var fs := 9
 	var icon := Vector2(13.0, 10.0) * px
 	var gap := 4.0 * px
 	var widths := {}
 	var total := 0.0
 	for type in counts:
-		var w: float = icon.x + 2.0 * px + _font.get_string_size("%d" % counts[type], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var w: float = icon.x + 2.0 * px + MapText.size_of(_font, "%d" % counts[type], fs, px).x
 		widths[type] = w
 		total += w + gap
 	total -= gap
@@ -548,16 +548,15 @@ func _draw_composition(counts: Dictionary, centre_x: float, top: float, px: floa
 		var frame := Rect2(Vector2(x, top), icon)
 		draw_rect(frame, Color(1, 1, 1, 0.92))
 		_draw_symbol(frame, px * 0.6, type)
-		draw_string(_font, Vector2(frame.end.x + 2.0 * px, top + icon.y - 1.0 * px), "%d" % counts[type],
-				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+		MapText.draw(self, _font, Vector2(frame.end.x + 2.0 * px, top + icon.y - 1.0 * px), "%d" % counts[type],
+				HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, Color.WHITE, px)
 		x += widths[type] + gap
 
 
 ## Small label on a dark pill, centred on a map position.
 func _pill(text: String, at: Vector2, px: float, color: Color, font_px: int) -> void:
-	var fs := int(roundf(font_px * px))
-	var size := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var size := MapText.size_of(_font, text, font_px, px)
 	var pad := 3.0 * px
 	var rect := Rect2(at - Vector2(size.x * 0.5 + pad, size.y * 0.5 + pad * 0.5), size + Vector2(pad * 2.0, pad))
 	draw_rect(rect, Color(0.05, 0.07, 0.1, 0.82))
-	draw_string(_font, Vector2(rect.position.x + pad, rect.end.y - pad - size.y * 0.2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(color, 1.0))
+	MapText.draw(self, _font, Vector2(rect.position.x + pad, rect.end.y - pad - size.y * 0.2), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_px, Color(color, 1.0), px)

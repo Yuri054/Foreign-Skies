@@ -173,8 +173,8 @@ func _draw_group(g: Dictionary, px: float) -> void:
 	if g.fleets.size() > 1:
 		label += " ×%d" % g.fleets.size()
 	var text_x := frame.end.x + 2.0 * px
-	draw_string(_font, Vector2(text_x, rect.end.y - 5.0 * px), label, HORIZONTAL_ALIGNMENT_CENTER,
-			rect.end.x - text_x - 1.0 * px, int(roundf(11.0 * px)), text_color)
+	MapText.draw(self, _font, Vector2(text_x, rect.end.y - 5.0 * px), label, HORIZONTAL_ALIGNMENT_CENTER,
+			rect.end.x - text_x - 1.0 * px, 11, text_color, px)
 	var border := SELECT_COLOR if picked else (BATTLE_COLOR if fighting else Color(0, 0, 0, 0.85))
 	draw_rect(rect, border, false, (2.5 if picked or fighting else 1.5) * px)
 	if mission != "" and not mixed and mission != "station":
@@ -182,8 +182,8 @@ func _draw_group(g: Dictionary, px: float) -> void:
 	if men > 0.0:
 		_pill("%dk aboard" % roundi(men / 1000.0), Vector2(rect.get_center().x, rect.end.y + 8.0 * px), px, Color(0.9, 0.85, 0.5), 9)
 	if fighting:
-		draw_string(_font, Vector2(rect.end.x + 2.0 * px, rect.position.y + 12.0 * px), "⚔", HORIZONTAL_ALIGNMENT_LEFT,
-				-1, int(roundf(14.0 * px)), BATTLE_COLOR)
+		MapText.draw(self, _font, Vector2(rect.end.x + 2.0 * px, rect.position.y + 12.0 * px), "⚔", HORIZONTAL_ALIGNMENT_LEFT,
+				-1.0, 14, BATTLE_COLOR, px)
 
 
 ## A small ship in side view.
@@ -246,9 +246,8 @@ func _draw_battle_icons(px: float) -> void:
 
 
 func _pill(text: String, at: Vector2, px: float, color: Color, font_px: int) -> void:
-	var fs := int(roundf(font_px * px))
-	var size := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var size := MapText.size_of(_font, text, font_px, px)
 	var pad := 3.0 * px
 	var rect := Rect2(at - Vector2(size.x * 0.5 + pad, size.y * 0.5 + pad * 0.5), size + Vector2(pad * 2.0, pad))
 	draw_rect(rect, Color(0.05, 0.07, 0.1, 0.82))
-	draw_string(_font, Vector2(rect.position.x + pad, rect.end.y - pad - size.y * 0.2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(color, 1.0))
+	MapText.draw(self, _font, Vector2(rect.position.x + pad, rect.end.y - pad - size.y * 0.2), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_px, Color(color, 1.0), px)

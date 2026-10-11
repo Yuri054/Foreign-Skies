@@ -626,6 +626,7 @@ static func _fight(gs: Node) -> void:
 			var lost := _apply_casualties(a, incoming[a] * cfg.combat.casualties_per_point / mult)
 			battle.lost[a.tag] = battle.lost.get(a.tag, 0.0) + lost
 			gs.nations[a.tag].men_lost_month += lost
+			gs.nations[a.tag].deaths_month += lost
 			today[a.tag] = today.get(a.tag, 0.0) + lost
 			if incoming[a] > 0.0:
 				# Charge the loss to the wars with the armies that inflicted it.
@@ -730,6 +731,7 @@ static func _add_loss(gs: Node, tag: String, enemies: Array, men: float, field: 
 	if men <= 0.0:
 		return
 	gs.nations[tag].men_lost_month += men
+	gs.nations[tag].deaths_month += men
 	var wars: Array[War] = []
 	if enemies.is_empty():
 		wars = gs.wars_of(tag)
