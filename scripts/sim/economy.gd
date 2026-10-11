@@ -458,7 +458,10 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 		var cap: float = demand * cfg.stockpile_months / 12.0
 		var stock: float = n.stock.get(r, 0.0)
 		var info := {"production": production, "demand": demand, "balance": balance, "stock": stock, "cap": cap,
-				"exported": 0.0, "imported": 0.0, "fill": 0.0, "draw": 0.0, "shortage": 0.0}
+				"exported": 0.0, "imported": 0.0, "fill": 0.0, "draw": 0.0, "shortage": 0.0,
+				"from_industry": raw.industry * def.industry_demand * n.intensity.get(r, 1.0),
+				"from_homes": n.population * def.pop_demand * n.intensity.get(r, 1.0),
+				"from_buildings": raw["use_" + r], "cost_industry": 0.0, "cost_gdp": 0.0}
 		if balance >= 0.0:
 			if stock < cap:
 				info.fill = minf((cap - stock) * 12.0, balance * cfg.stockpile_share)
@@ -473,6 +476,8 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 		import_cost += info.imported * def.price / 1000.0 * cfg.trade_state_share
 		industry_penalty += info.shortage * def.shortage.industry
 		gdp_penalty += info.shortage * def.shortage.gdp
+		info.cost_industry = info.shortage * def.shortage.industry
+		info.cost_gdp = info.shortage * def.shortage.gdp
 		res[r] = info
 	var resource_industry_mult := maxf(0.2, 1.0 - industry_penalty)
 	var resource_gdp_mult := maxf(0.5, 1.0 - gdp_penalty)

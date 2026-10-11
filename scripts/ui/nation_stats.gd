@@ -231,7 +231,8 @@ func _refresh() -> void:
 	var politics := _section("Politics")
 	var floor_support: float = Diplomacy.cfg.war_support.floor
 	var support_color := Fmt.BAD if n.war_support <= floor_support else (Fmt.WARN if n.war_support < 40.0 else Color.WHITE)
-	_row(politics, "War support", "%d" % roundi(n.war_support), "", support_color)
+	_row(politics, "War support", "%d" % roundi(n.war_support), "", support_color,
+			WarSupport.effects_text(GameState, tag) + "\nThis month so far:\n" + WarSupport.drivers_text(GameState, tag))
 	_row(politics, "Prestige", "%d" % roundi(n.prestige), _rank(ranks.prestige, tag))
 	_row(politics, "Diplomacy points", "%d  (+%.1f a month)" % [roundi(n.diplomacy_points), Diplomacy.point_income(GameState, tag)])
 	if not mine:
@@ -364,15 +365,21 @@ func _section(text: String) -> GridContainer:
 	return g
 
 
-func _row(g: GridContainer, label: String, value: String, rank := "", color := Color.WHITE) -> void:
+func _row(g: GridContainer, label: String, value: String, rank := "", color := Color.WHITE, tip := "") -> void:
 	var l := Label.new()
 	l.text = label
 	l.modulate = Fmt.DIM
+	if tip != "":
+		l.tooltip_text = tip
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
 	l.custom_minimum_size = Vector2(110, 0)
 	g.add_child(l)
 	var v := Label.new()
 	v.text = value
 	v.modulate = color
+	if tip != "":
+		v.tooltip_text = tip
+		v.mouse_filter = Control.MOUSE_FILTER_PASS
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.custom_minimum_size = Vector2(140, 0)

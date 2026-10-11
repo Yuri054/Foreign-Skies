@@ -145,7 +145,7 @@ func _ready() -> void:
 	figures.add_theme_constant_override("h_separation", 8)
 	figures.add_theme_constant_override("v_separation", 1)
 	figures.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for key in ["reserve", "armed", "pool", "army", "output"]:
+	for key in ["reserve", "armed", "pool", "army", "output", "support"]:
 		var l := Label.new()
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		l.modulate = Fmt.DIM
@@ -610,6 +610,11 @@ func _refresh() -> void:
 	_set_row("armed", "Under arms", _k(n.men_in_units))
 	_set_row("pool", "Manpower pool", _k(b.manpower_pool))
 	_set_row("army", "Army upkeep", "£%.2fM/mo" % (b.army / 12.0))
+	_set_row("support", "War support", "%d" % roundi(n.war_support))
+	var tip := WarSupport.effects_text(GameState, n.tag) + "\nThis month so far:\n" + WarSupport.drivers_text(GameState, n.tag)
+	for part in _rows["support"]:
+		part.tooltip_text = tip
+		part.mouse_filter = Control.MOUSE_FILTER_PASS
 	_set_row("output", "Output lost", "%d%%, factories %d%%" % [roundi(Economy.cfg.mobilization_output_penalty * n.mobilization * 100.0), roundi((1.0 - Economy.worker_share(n)) * 100.0)])
 	if visible:
 		_refresh_list()

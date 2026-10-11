@@ -56,6 +56,17 @@ static func planned_spend(n: Nation) -> float:
 	return total * paid_share(n)
 
 
+## Thousand tonnes a year of each resource the nation's lines use at full tilt: {resource: kt}.
+static func planned_materials(n: Nation) -> Dictionary:
+	var out := {}
+	for line in n.production_lines:
+		var cost := item_cost(line.category)
+		for key in cost:
+			if key != "money":
+				out[key] = float(out.get(key, 0.0)) + capacity(n, line) * float(cost[key]) * 365.0
+	return out
+
+
 ## Items a day the line could make with all it needs at hand.
 static func capacity(n: Nation, line: Dictionary) -> float:
 	return line.factories * float(cfg().categories[line.category].output) * efficiency(line) * float(Economy.law_of(n).military) * Economy.worker_share(n)

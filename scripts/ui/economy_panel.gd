@@ -299,6 +299,8 @@ func _refresh_overview(n: Nation) -> void:
 	for r in Economy.resource_ids():
 		if b.resources[r].shortage > 0.0:
 			problems.append("%s shortage: %d%% of demand unmet, hurting industry." % [Economy.cfg.resources[r].name, roundi(b.resources[r].shortage * 100.0)])
+	if not GameState.wars_of(n.tag).is_empty() and n.war_support <= 30.0:
+		problems.append("War support is %d: below %d the people force a peace. %s" % [roundi(n.war_support), int(WarSupport.cfg().white_peace_below), WarSupport.effects_text(GameState, n.tag)])
 	if problems.is_empty():
 		_alerts.add_child(_status("No problems.", Fmt.GOOD))
 	for p in problems:
@@ -456,6 +458,26 @@ func _refresh_resources(n: Nation) -> void:
 		_cell(g, balance_text, 1, color, tip)
 		_cell(g, Fmt.kt(info.stock), 1, Color.WHITE, "Stockpile, of a possible %s. It buffers a blockade and supplies construction." % Fmt.kt(info.cap))
 
+	_resources.add_child(HSeparator.new())
+	_resources.add_child(_heading("Where it goes, a month"))
+	var uses := _grid(5)
+	_resources.add_child(uses)
+	for h in ["", "Industry", "Homes", "Buildings", "Equipment"]:
+		_cell(uses, h, -1, Fmt.DIM)
+	var kit := Production.planned_materials(n)
+	for r in Economy.resource_ids():
+		var info: Dictionary = b.resources[r]
+		_cell(uses, Economy.cfg.resources[r].name, 0)
+		_cell(uses, Fmt.kt(Fmt.monthly(info.from_industry)), 1)
+		_cell(uses, Fmt.kt(Fmt.monthly(info.from_homes)), 1)
+		_cell(uses, Fmt.kt(Fmt.monthly(info.from_buildings)), 1, Color.WHITE, "Factories and railways burn coal and iron to run.")
+		_cell(uses, Fmt.kt(Fmt.monthly(float(kit.get(r, 0.0)))), 1, Color.WHITE,
+				"What your equipment lines use at full tilt. It comes out of the stockpile first and is bought abroad, at a markup, when that runs dry.")
+	for r in Economy.resource_ids():
+		var info2: Dictionary = b.resources[r]
+		if info2.shortage > 0.0:
+			_resources.add_child(_status("Short of %s: industry %d%% down, output %d%% down." % [
+					Economy.cfg.resources[r].name.to_lower(), roundi(info2.cost_industry * 100.0), roundi(info2.cost_gdp * 100.0)], Fmt.BAD))
 	_resources.add_child(_note("Green balances are exported, orange ones imported (the state takes %d%% of the trade value). A blockade stops both, the stockpile runs down, and shortages cut industry and output." % roundi(Economy.cfg.trade_state_share * 100.0)))
 
 
