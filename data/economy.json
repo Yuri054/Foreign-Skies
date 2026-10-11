@@ -22,36 +22,55 @@
 	"soldier_upkeep": 70.0,
 	"mobilization_output_penalty": 0.35,
 	"mobilization_rate": 0.15,
+	"construction": {
+		"_note": "Construction capacity. Each day a nation has a pool of construction points: base_points (small works everywhere) plus points_per_factory for each civilian factory it holds, less the share the people's consumer goods take (the economy law's consumer share). The queue is served in order; a building takes at most its `rate` points a day, so with ample capacity it still takes build_days (its points are build_days times its rate), and with little it takes longer.",
+		"base_points": 4.0,
+		"points_per_factory": 1.0
+	},
+	"laws": {
+		"_note": "Economy laws, from peace to total war, switched with the SetEconomyLaw command. consumer is the share of the civilian factories' work that goes to the people's goods and so is not available for construction; military multiplies the output of military factories (production lines); gdp multiplies the national output (the civilian economy is run down); weariness is lost from war support each month while at war. requires: war (the nation must be at war), mobilization (the least mobilization), war_or_mobilization (at war or that much mobilized). A higher law than the one in force can be taken only cooldown_days after the last change; a law whose requirements stop holding is dropped a step each month.",
+		"cooldown_days": 30,
+		"civilian": {"name": "Civilian economy", "consumer": 0.35, "military": 1.0, "gdp": 1.0, "weariness": 0.0, "requires": {}},
+		"early_mobilization": {"name": "Early mobilization", "consumer": 0.30, "military": 1.10, "gdp": 0.98, "weariness": 0.0, "requires": {"war_or_mobilization": 0.2}},
+		"war_economy": {"name": "War economy", "consumer": 0.20, "military": 1.25, "gdp": 0.94, "weariness": 0.3, "requires": {"war": true}},
+		"total_mobilization": {"name": "Total mobilization", "consumer": 0.10, "military": 1.40, "gdp": 0.88, "weariness": 0.8, "requires": {"war": true, "mobilization": 0.5}}
+	},
+	"factories": {
+		"_note": "Factories are discrete. A civilian factory adds `output` GBP millions a year of industrial output (times the nation's development) to the economy; a military factory makes equipment instead (phase 8). Each province has building slots: at least slot_min, one per slot_pop people, and room to grow by slot_growth over the factories it starts with. At the start each province holds as many factories as its industry is worth; military_factories of them are military: a nation's scenario figure, else its peacetime army over army_per_military_factory. A civilian factory turned military loses its output; the conversion costs convert_cost_share of a new factory and takes convert_days.",
+		"output": 8.0,
+		"slot_min": 2,
+		"slot_pop": 250000,
+		"slot_growth": 0.4,
+		"army_per_military_factory": 60000,
+		"convert_cost_share": 0.4,
+		"convert_days": 45
+	},
 	"buildings": {
-		"_note": "Province buildings. cost is GBP millions for level 1 and scales with the level being built. effects are fractional bonuses per level: 'trade' is tariff income as a share of the province's output (lost to blockade); 'yield_<resource>' raises extraction of a deposit above the base. materials are thousand tonnes needed for level 1 (scaled by level), taken from the national stockpile and bought at a markup if short. consumes is thousand tonnes per level per year. requires: 'coastal' needs a sea coast, 'deposit:<resource>' needs a deposit, 'capital' only the capital province. 'diplomacy' (in a building or program) is diplomacy points a month, not a share (a building's only counts in the capital the nation holds).",
-		"farmland": {
-			"name": "Farmland improvements",
-			"max_level": 3,
-			"cost": 3.0,
-			"build_days": 90,
-			"effects": {
-				"food": 0.2
-			},
-			"materials": {
-				"wood": 400
-			}
-		},
+		"_note": "Province buildings: civilian and military factories (slot buildings: they take one of the province's slots, cost the same each time and are limited by free slots), railways and ports (up to max_level levels; the cost is for level 1 and scales with the level being built). effects are fractional bonuses per level: 'trade' is tariff income as a share of the province's output (lost to blockade). materials are thousand tonnes needed (level 1 for levelled buildings), taken from the national stockpile and bought at a markup if short. consumes is thousand tonnes per level per year. requires: 'coastal' needs a sea coast, 'deposit:<resource>' a deposit, 'capital' only the capital province. Raw resources are no longer built up: a province yields its whole deposit (extraction_base).",
 		"factory": {
-			"name": "Factory district",
-			"max_level": 3,
+			"name": "Civilian factory",
+			"slot": true,
+			"max_level": 99,
 			"cost": 6.0,
 			"build_days": 150,
-			"effects": {
-				"gdp": 0.08,
-				"industry": 0.25
-			},
+			"rate": 10,
+			"effects": {},
 			"materials": {
 				"iron": 1500,
 				"coal": 800
-			},
-			"consumes": {
-				"coal": 600,
-				"iron": 400
+			}
+		},
+		"military_factory": {
+			"name": "Military factory",
+			"slot": true,
+			"max_level": 99,
+			"cost": 8.0,
+			"build_days": 180,
+			"rate": 10,
+			"effects": {},
+			"materials": {
+				"iron": 2000,
+				"coal": 800
 			}
 		},
 		"railway": {
@@ -59,6 +78,7 @@
 			"max_level": 3,
 			"cost": 8.0,
 			"build_days": 180,
+			"rate": 6,
 			"effects": {
 				"gdp": 0.06,
 				"food": 0.05
@@ -76,6 +96,7 @@
 			"max_level": 3,
 			"cost": 7.0,
 			"build_days": 150,
+			"rate": 6,
 			"requires": "coastal",
 			"effects": {
 				"gdp": 0.05,
@@ -84,75 +105,6 @@
 			"materials": {
 				"wood": 1200,
 				"iron": 600
-			}
-		},
-		"market": {
-			"name": "Trading house",
-			"max_level": 3,
-			"cost": 5.0,
-			"build_days": 100,
-			"effects": {
-				"gdp": 0.03,
-				"trade": 0.04
-			},
-			"materials": {
-				"wood": 800
-			}
-		},
-		"coal_mine": {
-			"name": "Coal mine",
-			"max_level": 3,
-			"cost": 4.0,
-			"build_days": 120,
-			"requires": "deposit:coal",
-			"materials": {
-				"wood": 600,
-				"iron": 500
-			},
-			"effects": {
-				"yield_coal": 0.35
-			}
-		},
-		"iron_mine": {
-			"name": "Iron mine",
-			"max_level": 3,
-			"cost": 4.0,
-			"build_days": 120,
-			"requires": "deposit:iron",
-			"materials": {
-				"wood": 600,
-				"iron": 500
-			},
-			"effects": {
-				"yield_iron": 0.35
-			}
-		},
-		"sawmill": {
-			"name": "Sawmill",
-			"max_level": 3,
-			"cost": 2.5,
-			"build_days": 90,
-			"requires": "deposit:wood",
-			"materials": {
-				"iron": 500,
-				"wood": 300
-			},
-			"effects": {
-				"yield_wood": 0.35
-			}
-		},
-		"foreign_ministry": {
-			"name": "Foreign ministry",
-			"max_level": 3,
-			"cost": 10.0,
-			"build_days": 200,
-			"requires": "capital",
-			"materials": {
-				"wood": 500,
-				"iron": 200
-			},
-			"effects": {
-				"diplomacy": 0.5
 			}
 		}
 	},
@@ -224,7 +176,7 @@
 			}
 		}
 	},
-	"extraction_base": 0.3,
+	"extraction_base": 1.0,
 	"min_deposit": 50,
 	"trade_state_share": 0.5,
 	"stockpile_months": 3,

@@ -65,6 +65,10 @@ var province_population := PackedInt32Array()
 ## Province output before nation-wide modifiers; filled by Economy.recompute.
 var province_gdp := PackedFloat32Array()       # GBP millions per year
 var province_industry := PackedFloat32Array()  # GBP millions per year
+## Building slots of each province, and the civilian factories it began with (the output the
+## economy was calibrated on; see Economy.deploy_factories).
+var province_slots := PackedInt32Array()
+var province_civ_base := PackedInt32Array()
 var province_food := PackedFloat32Array()      # people the land can feed
 var province_pool := PackedFloat32Array()      # recruitable men
 ## Indexed by province id: resource id -> potential output in thousand tonnes per year.
@@ -232,7 +236,6 @@ func load_scenario(dir: String) -> void:
 	for row in MapData.read_table(dir + "resources.tsv"):
 		for r in Economy.resource_ids():
 			province_deposit[int(row.id)][r] = float(row[r])
-	_build_starting_mines()
 	for id in range(1, count):
 		province_owner[id] = MapData.provinces[id].owner
 		owner_version += 1
@@ -244,9 +247,13 @@ func load_scenario(dir: String) -> void:
 	for tag in MapData.nations:
 		nations[tag] = Nation.new(tag, MapData.nations[tag], scenario.nations.get(tag, {}))
 	_rebuild_nation_provinces()
+	Economy.deploy_factories(self)
 	Military.deploy_starting(self)
+	Military.init_equipment(self)
 	Navy.deploy_starting(self, dir)
 	Economy.recompute(self)
+	for tag in nations:
+		Production.auto_assign(nations[tag])
 	# Start with half a full reserve of everything the nation uses.
 	for tag in nations:
 		for r in Economy.resource_ids():
@@ -265,16 +272,6 @@ func load_scenario(dir: String) -> void:
 		Diplomacy.start_war(self, pair[0], pair[1], scenario.get("start_crisis", false))
 	set_player(scenario.get("default_player", ""))
 	scenario_loaded.emit()
-
-
-## Mines and sawmills that already work at the start, wherever a deposit exists.
-func _build_starting_mines() -> void:
-	var start: Dictionary = scenario.get("starting_buildings", {})
-	for id in range(1, province_deposit.size()):
-		for type in start:
-			var resource: String = Economy.cfg.buildings[type].requires.trim_prefix("deposit:")
-			if province_deposit[id].get(resource, 0.0) >= Economy.cfg.min_deposit:
-				province_buildings[id][type] = int(start[type])
 
 
 ## Saves the game to a file (see SaveGame). Returns "" or what went wrong.

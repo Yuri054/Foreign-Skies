@@ -213,6 +213,12 @@ func _refresh() -> void:
 	_row(military, "Manpower pool", Fmt.people(b.get("manpower_pool", 0.0)))
 	_row(military, "Mobilization", "%d%%" % roundi(n.mobilization * 100.0))
 	_row(military, "Army upkeep", "£%.1fM a month" % Fmt.monthly(b.get("army", 0.0)))
+	var kit: PackedStringArray = []
+	for cat in Military.equipment_ids():
+		kit.append("%s %s" % [Military.cfg.equipment.categories[cat].name.to_lower(), Fmt.thousands(roundi(n.equipment.get(cat, 0.0)))])
+	_row(military, "Equipment in store", ", ".join(kit))
+	_row(military, "Military factories", "%d" % int(b.get("military_factories", 0)))
+	_row(military, "Economy law", Economy.law_of(n).name)
 	if n.naval_budget > 0.0:
 		_row(military, "Navy upkeep", "£%.1fM a month" % Fmt.monthly(n.naval_budget))
 	if n.blockade > 0.005:

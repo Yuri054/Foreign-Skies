@@ -316,8 +316,7 @@ static func _set_points(gs: Node, tag: String, value: float) -> void:
 	gs.diplomacy_points_changed.emit(tag, v)
 
 
-## What a nation earns each month, and where it comes from: {base, prestige, output, program,
-## ministry, total}. The ministry only counts while the nation holds its capital.
+## What a nation earns each month, and where it comes from: {base, prestige, output, program, total}.
 static func point_income_parts(gs: Node, tag: String) -> Dictionary:
 	var inc: Dictionary = cfg.points.income
 	var n: Nation = gs.nations[tag]
@@ -330,12 +329,8 @@ static func point_income_parts(gs: Node, tag: String) -> Dictionary:
 	var program := 0.0
 	for id: String in n.programs:
 		program += Economy.cfg.programs[id].effects.get("diplomacy", 0.0)
-	var ministry := 0.0
-	if n.capital > 0 and gs.province_controller[n.capital] == tag:
-		for type: String in gs.province_buildings[n.capital]:
-			ministry += Economy.cfg.buildings[type].effects.get("diplomacy", 0.0) * gs.province_buildings[n.capital][type]
-	return {"base": base, "prestige": prestige, "output": output, "program": program, "ministry": ministry,
-			"total": maxf(base + prestige + output + program + ministry, float(inc.min))}
+	return {"base": base, "prestige": prestige, "output": output, "program": program,
+			"total": maxf(base + prestige + output + program, float(inc.min))}
 
 
 static func point_income(gs: Node, tag: String) -> float:

@@ -36,6 +36,58 @@ static func unit_type_ids() -> Array:
 	return cfg.unit_types.keys()
 
 
+static func equipment_ids() -> Array:
+	return cfg.equipment.categories.keys()
+
+
+## Stockpile at the start: start_stock_days of what the nation's military factories make.
+static func init_equipment(gs: Node) -> void:
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		var factories: int = int(cfg.equipment.base_factories) if n.peacetime_army > 0 else 0
+		for id in n.provinces:
+			factories += gs.province_buildings[id].get("military_factory", 0)
+		for cat in equipment_ids():
+			n.equipment[cat] = factories * float(cfg.equipment.categories[cat].output) * float(cfg.equipment.auto_split.get(cat, 0.0)) * float(cfg.equipment.start_stock_days)
+		Production.auto_assign(n)
+
+
+## Units that lack equipment draw it from the national stockpile.
+static func _issue(gs: Node) -> void:
+	var rate: float = cfg.equipment.resupply_rate
+	for a: Army in gs.armies.values():
+		if a.embarked() or not a.supplied:
+			continue
+		var n: Nation = gs.nations[a.tag]
+		for u in a.units:
+			if a.fighting:
+				if u.needs().has("arms"):
+					u.equip["arms"] = maxf(0.0, float(u.equip.get("arms", 0.0)) - float(u.needs().arms) * float(cfg.equipment.combat_use))
+					u.refresh_factor()
+			else:
+				u.draw(n.equipment, rate)
+
+
+## Held equipment over need for one category across an army's units (0..1); 1 if no unit uses it.
+static func army_coverage_of(a: Army, cat: String) -> float:
+	var held := 0.0
+	var need := 0.0
+	for u in a.units:
+		need += u.need(cat)
+		held += minf(float(u.equip.get(cat, 0.0)), u.need(cat))
+	return held / need if need > 0.0 else 1.0
+
+
+## Mean coverage of an army's units (0..1), weighted by men.
+static func army_coverage(a: Army) -> float:
+	var total := 0.0
+	var weight := 0.0
+	for u in a.units:
+		total += u.coverage_min() * u.men()
+		weight += u.men()
+	return total / weight if weight > 0.0 else 1.0
+
+
 static func terrain_of(id: int) -> Dictionary:
 	return cfg.terrain[terrain[id]]
 
@@ -404,8 +456,11 @@ static func step_fronts(gs: Node) -> void:
 			var slot: int = f.slots.get(id, 0)
 			if slot == 0 or a.province == slot or not a.path.is_empty() or a.fighting:
 				continue
+			if Clock.days_elapsed < f.retry.get(id, -1):
+				continue
 			var route := find_path(gs, a.tag, a.speed(), a.province, slot)
 			if route.is_empty():
+				f.retry[id] = Clock.days_elapsed + 10
 				continue
 			a.move_days_left = move_days(gs, a.tag, a.speed(), a.province, route[0])
 			a.path = route
@@ -415,6 +470,7 @@ static func step_fronts(gs: Node) -> void:
 ## Gives every army a province of the line to hold, keeping the men spread evenly.
 static func _deal_slots(gs: Node, f: Front) -> void:
 	f.slots.clear()
+	f.retry.clear()
 	var held := {}
 	for p in f.provinces:
 		held[p] = 0.0
@@ -439,6 +495,7 @@ static func _dist(a: int, b: int) -> float:
 
 static func step_day(gs: Node) -> void:
 	step_fronts(gs)
+	Production.step_day(gs)
 	_train(gs)
 	var armies: Array = gs.armies.values()
 	for a: Army in armies:
@@ -446,6 +503,7 @@ static func step_day(gs: Node) -> void:
 	_move(gs, armies)
 	_fight(gs)
 	var captured := _upkeep_and_occupy(gs)
+	_issue(gs)
 	_collapse_nations(gs)
 	refresh_men(gs)
 	if captured:
@@ -470,7 +528,10 @@ static func _train(gs: Node) -> void:
 					host = a
 			if host == null:
 				host = new_army(gs, tag, "New levies at %s" % MapData.provinces[job.province].name, job.province)
-			host.units.append(Unit.new(job.type))
+			var fresh := Unit.new(job.type)
+			fresh.equip = job.get("equip", {}).duplicate()
+			fresh.draw(n.equipment)
+			host.units.append(fresh)
 			gs.unit_trained.emit(tag, job.province, job.type)
 
 
@@ -585,6 +646,7 @@ static func _apply_casualties(a: Army, casualties: float) -> float:
 	for i in range(a.units.size() - 1, -1, -1):
 		var u := a.units[i]
 		u.strength *= 1.0 - frac
+		u.lose_equipment(1.0 - frac)
 		u.morale = maxf(0.0, u.morale - morale_loss)
 		if u.strength < cfg.combat.min_strength:
 			a.units.remove_at(i)
@@ -846,7 +908,9 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 			var before := a.men()
 			for i in range(a.units.size() - 1, -1, -1):
 				var u := a.units[i]
+				var kept := maxf(0.0, u.strength - cfg.supply.attrition) / u.strength
 				u.strength -= cfg.supply.attrition
+				u.lose_equipment(kept)
 				u.morale = maxf(0.0, u.morale - cfg.supply.attrition_morale)
 				if u.strength < cfg.combat.min_strength:
 					a.units.remove_at(i)
@@ -856,7 +920,7 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 			for u in a.units:
 				u.morale = minf(1.0, u.morale + cfg.combat.morale_regain)
 				if u.strength < 1.0 and n.manpower > 0:
-					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate)
+					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate * lerpf(float(cfg.equipment.reinforce_floor), 1.0, u.coverage_min()))
 					var taken := mini(n.manpower, ceili(want * u.full_size()))
 					n.manpower -= taken
 					u.strength = minf(1.0, u.strength + float(taken) / u.full_size())

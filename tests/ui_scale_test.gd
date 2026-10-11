@@ -84,7 +84,7 @@ func _initialize() -> void:
 	eco.toggle()
 	await process_frame
 	await process_frame
-	_check(eco.size.y < 470.0 and eco.size.x >= 480.0, "the economy window opens snug around its content (%s)" % str(eco.size))
+	_check(eco.size.y < 560.0 and eco.size.x >= 480.0, "the economy window opens snug around its content (%s)" % str(eco.size))
 	var dip: Node = get_first_node_in_group("diplomacy_panel")
 	dip.toggle()
 	await process_frame
@@ -95,7 +95,7 @@ func _initialize() -> void:
 	var names: PackedStringArray = []
 	for i in mil._tabs.get_tab_count():
 		names.append(mil._tabs.get_tab_title(i))
-	_check(names == PackedStringArray(["Armies", "Fronts", "Recruit", "Wars"]), "the military window is split into tabs (%s)" % ", ".join(names))
+	_check(names == PackedStringArray(["Armies", "Fronts", "Recruit", "Wars", "Navy"]), "the military window is split into tabs (%s)" % ", ".join(names))
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Settings.path))
 	print("FAILURES: ", _failures)

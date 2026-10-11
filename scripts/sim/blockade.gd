@@ -98,7 +98,7 @@ static func blockaders(gs: Node, tag: String, zone: int) -> Array:
 
 
 ## How much each sea zone matters to a nation's trade: {zone: weight}. Every coastal province
-## it holds counts by its output, more for ports and trading houses; a province opening on two
+## it holds counts by its output, more for ports; a province opening on two
 ## zones gives most of its weight to the first.
 static func port_weights(gs: Node, tag: String) -> Dictionary:
 	var cfg: Dictionary = Navy.cfg.blockade
@@ -110,7 +110,7 @@ static func port_weights(gs: Node, tag: String) -> Dictionary:
 		if zones.is_empty():
 			continue
 		var b: Dictionary = gs.province_buildings[id]
-		var w: float = gs.province_gdp[id] * (cfg.base_weight + cfg.per_port_level * b.get("port", 0) + cfg.per_market_level * b.get("market", 0))
+		var w: float = gs.province_gdp[id] * (cfg.base_weight + cfg.per_port_level * b.get("port", 0))
 		if zones.size() == 1:
 			out[zones[0]] = out.get(zones[0], 0.0) + w
 		else:

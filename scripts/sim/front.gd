@@ -18,6 +18,8 @@ var army_ids: Array[int] = []
 var slots: Dictionary = {}
 ## Set when the line or the assigned armies changed and the slots must be dealt again.
 var dirty := true
+## Army id -> the day before which no route to its slot is looked for again (it found none).
+var retry: Dictionary = {}
 
 
 func to_dict() -> Dictionary:

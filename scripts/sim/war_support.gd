@@ -87,7 +87,7 @@ static func step_month(gs: Node) -> void:
 		else:
 			var lost := n.men_lost_month / maxf(float(n.total_men()) + n.men_lost_month, 1.0)
 			var debt: float = maxf(-n.treasury, 0.0) / maxf(n.budget.get("revenue", 1.0), 1.0)
-			change(gs, tag, -c.weariness - c.casualty_weight * lost - c.blockade_weight * n.blockade
+			change(gs, tag, -c.weariness - Economy.law_of(n).weariness - c.casualty_weight * lost - c.blockade_weight * n.blockade
 					- c.occupied_weight * occupied_share(gs, tag) - minf(c.debt_cap, c.debt_weight * debt))
 		n.men_lost_month = 0.0
 	Economy.recompute(gs)

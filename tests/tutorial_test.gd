@@ -17,6 +17,7 @@ var camera: Camera2D
 var MapView
 var _C_ConstructBuilding
 var _C_RaiseUnits
+var _C_SetLine
 var _C_MoveArmy
 var _C_DesignateFront
 var _C_ImproveRelations
@@ -44,6 +45,7 @@ func _initialize() -> void:
 	MapView = load("res://scripts/map/map_view.gd")
 	_C_ConstructBuilding = load("res://scripts/sim/construct_building.gd")
 	_C_RaiseUnits = load("res://scripts/sim/raise_units.gd")
+	_C_SetLine = load("res://scripts/sim/set_production_line.gd")
 	_C_MoveArmy = load("res://scripts/sim/move_army.gd")
 	_C_DesignateFront = load("res://scripts/sim/designate_front.gd")
 	_C_ImproveRelations = load("res://scripts/sim/improve_relations.gd")
@@ -136,6 +138,9 @@ func _do(step: Dictionary) -> bool:
 				if _C_RaiseUnits.problem(gs, tag, id, type, 1).is_empty():
 					return gs.issue(_C_RaiseUnits.new(tag, id, type, 1))
 			return false
+		"SetProductionLine":
+			var line = nation.production_lines[0]
+			return gs.issue(_C_SetLine.new(tag, line.id, line.category, line.factories - 1))
 		"MoveArmy":
 			for a in gs.armies.values():
 				if a.tag == tag:

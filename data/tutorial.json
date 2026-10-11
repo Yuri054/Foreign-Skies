@@ -23,8 +23,8 @@
 		{
 			"id": "build",
 			"title": "Build something",
-			"text": "Open the Economy window (E), pick one of your provinces and start a building. It costs money and takes time, and shows in the queue at the bottom right.",
-			"highlight": {"button": "Economy"},
+			"text": "Open the Construction panel (B), pick a building, and click a green province on the map to build it there. It costs money and takes time, and shows in the queue at the bottom right.",
+			"highlight": {"button": "Build"},
 			"done": {"command": "ConstructBuilding"}
 		},
 		{
@@ -33,6 +33,13 @@
 			"text": "Open the Military window (M), pick one of your provinces and train a unit. Units cost money and recruits, and form an army where they were raised.",
 			"highlight": {"button": "Military"},
 			"done": {"command": "RaiseUnits"}
+		},
+		{
+			"id": "equip",
+			"title": "Equip your army",
+			"text": "Units need arms and guns, and fight worse without them. Open the Economy window (E), its Production tab, and move a factory between lines with the plus and minus buttons. Your economy law, on the Overview tab, trades civilian output for military output once you are at war.",
+			"highlight": {"button": "Economy"},
+			"done": {"command": "SetProductionLine"}
 		},
 		{
 			"id": "move",

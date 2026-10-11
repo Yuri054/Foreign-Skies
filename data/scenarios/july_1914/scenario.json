@@ -5,8 +5,6 @@
 	"default_player": "FRA",
 	"playable": true,
 	"_note": "Economic and military figures are rough estimates (GBP millions) meant to be refined. development, agri_yield and intensity are calibrated so default revenue, food self-sufficiency and 1913 coal, iron and timber consumption match estimates.",
-	"_starting_buildings_note": "Mines and sawmills already working in provinces with a deposit; level 2 gives exactly the deposit's listed output.",
-	"starting_buildings": {"coal_mine": 2, "iron_mine": 2, "sawmill": 2},
 	"nations": {
 		"GBR": {"war_support": 55, "capital": 314, "development": 0.67, "intensity": {"coal": 1.72, "iron": 1.09, "wood": 0.51}, "agri_yield": 0.816, "peacetime_army": 250000, "naval_budget": 51, "treasury": 35, "government": "constitutional_monarchy"},
 		"FRA": {"war_support": 65, "capital": 233, "development": 1.216, "intensity": {"coal": 0.71, "iron": 1.0, "wood": 1.29}, "agri_yield": 1.069, "peacetime_army": 790000, "naval_budget": 19, "treasury": 33, "government": "republic"},

@@ -34,11 +34,9 @@ static func program_ids() -> Array:
 
 
 ## Summed fractional bonuses from a province's buildings and the owner's programs:
-## gdp, industry, food, trade, growth, and yield_<resource>.
+## gdp, industry, food, trade, growth and diplomacy.
 static func modifiers(buildings: Dictionary, programs: Dictionary) -> Dictionary:
 	var m := {"gdp": 0.0, "industry": 0.0, "food": 0.0, "trade": 0.0, "growth": 0.0, "diplomacy": 0.0}
-	for r in resource_ids():
-		m["yield_" + r] = 0.0
 	for type in buildings:
 		for k in cfg.buildings[type].effects:
 			m[k] += cfg.buildings[type].effects[k] * buildings[type]
@@ -51,21 +49,28 @@ static func modifiers(buildings: Dictionary, programs: Dictionary) -> Dictionary
 ## Output of one province before nation-wide modifiers (mobilization, famine, blockade).
 ## gdp, industry and trade are GBP millions/yr; food is people it can feed; pool is recruitable
 ## men; coal, iron and wood are extracted kt/yr; use_<resource> is what its buildings consume.
-static func province_output(population: int, area_km2: float, nation: Nation, buildings := {}, deposit := {}) -> Dictionary:
+## `civ_base` is how many civilian factories the province held when the game began: the output
+## the economy was calibrated with, so only factories beyond (or short of) it change the figures.
+static func province_output(population: int, area_km2: float, nation: Nation, buildings := {}, deposit := {}, civ_base := 0) -> Dictionary:
 	var density := population / maxf(area_km2, 1.0)
 	var mod := clampf(pow(density / cfg.reference_density, cfg.density_exponent), cfg.density_min, cfg.density_max)
 	var urban := inverse_lerp(cfg.density_min, cfg.density_max, mod)
 	var fx := modifiers(buildings, nation.programs)
 	var gdp: float = population * cfg.gdp_per_capita * nation.development * mod / 1e6 * (1.0 + fx.gdp)
+	var industry: float = gdp * lerpf(cfg.industry_share_min, cfg.industry_share_max, urban) * (1.0 + fx.industry)
+	# Factories beyond the calibrated base add their output; civilian ones turned military take it away.
+	var factory_gain: float = float(buildings.get("factory", 0) - civ_base) * factory_output(nation)
+	gdp += factory_gain
+	industry += factory_gain
 	var out := {
 		"gdp": gdp,
-		"industry": gdp * lerpf(cfg.industry_share_min, cfg.industry_share_max, urban) * (1.0 + fx.industry),
+		"industry": industry,
 		"food": area_km2 * cfg.food_per_km2 * nation.agri_yield * (1.0 + fx.food),
 		"trade": gdp * fx.trade,
 		"pool": population * cfg.manpower_share,
 	}
 	for r in resource_ids():
-		out[r] = deposit.get(r, 0.0) * (cfg.extraction_base + fx["yield_" + r]) if deposit.get(r, 0.0) >= cfg.min_deposit else 0.0
+		out[r] = deposit.get(r, 0.0) * cfg.extraction_base if deposit.get(r, 0.0) >= cfg.min_deposit else 0.0
 		out["use_" + r] = 0.0
 	for type in buildings:
 		for r in cfg.buildings[type].get("consumes", {}):
@@ -73,11 +78,183 @@ static func province_output(population: int, area_km2: float, nation: Nation, bu
 	return out
 
 
+## A building (or retooling) in the queue: `rate` points a day at most, `build_days` times that
+## in all. days_left is the estimate shown to the player: it is worked out each day from what the
+## project is getting.
+static func new_job(province: int, type: String, days: int, convert := false) -> Dictionary:
+	var rate: float = cfg.buildings[type].get("rate", 10.0)
+	var job := {"province": province, "type": type, "points_total": days * rate, "points_left": days * rate,
+			"rate": rate, "given": 0.0, "days_total": days, "days_left": days}
+	if convert:
+		job["convert"] = true
+	return job
+
+
+## Ids of the economy laws, from peace to total war.
+static func law_ids() -> Array:
+	return cfg.laws.keys().filter(func(k: String) -> bool: return not k.begins_with("_") and k != "cooldown_days")
+
+
+## The economy law a nation has (see data/economy.json, "laws").
+static func law_of(n: Nation) -> Dictionary:
+	return cfg.laws[n.economy_law] if cfg.laws.has(n.economy_law) else cfg.laws.civilian
+
+
+## Share of the civilian factories' work that goes to the people's goods, not to building.
+static func consumer_share(n: Nation) -> float:
+	return law_of(n).consumer
+
+
+## What stops a nation from having a law now, ignoring the wait between changes: "" if nothing.
+static func law_requirement(gs: Node, tag: String, law: String) -> String:
+	var n: Nation = gs.nations.get(tag)
+	if n == null or not cfg.laws.has(law) or law == "cooldown_days" or law.begins_with("_"):
+		return "Unknown law."
+	var req: Dictionary = cfg.laws[law].requires
+	var at_war: bool = not gs.wars_of(tag).is_empty()
+	if req.get("war", false) and not at_war:
+		return "Needs a war."
+	if req.has("war_or_mobilization") and not at_war and n.mobilization < float(req.war_or_mobilization):
+		return "Needs a war or %d%% mobilization." % roundi(float(req.war_or_mobilization) * 100.0)
+	if req.has("mobilization") and n.mobilization < float(req.mobilization):
+		return "Needs %d%% mobilization." % roundi(float(req.mobilization) * 100.0)
+	return ""
+
+
+## Why a nation cannot take a law now, or "" if it can: its requirements, and the wait before
+## going to a higher law than the one in force.
+static func law_problem(gs: Node, tag: String, law: String) -> String:
+	var reason := law_requirement(gs, tag, law)
+	if not reason.is_empty():
+		return reason
+	var n: Nation = gs.nations[tag]
+	var ids := law_ids()
+	if law == n.economy_law:
+		return "Already in force."
+	if ids.find(law) > ids.find(n.economy_law):
+		var wait: int = int(cfg.laws.cooldown_days) - (Clock.days_elapsed - n.law_changed_day)
+		if wait > 0:
+			return "Wait %d more days." % wait
+	return ""
+
+
+## Monthly: a law whose requirements no longer hold (a war economy after the war) is dropped
+## a step.
+static func enforce_laws(gs: Node) -> void:
+	var ids := law_ids()
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		var i := ids.find(n.economy_law)
+		while i > 0 and not law_requirement(gs, tag, ids[i]).is_empty():
+			i -= 1
+		if ids[i] != n.economy_law:
+			n.economy_law = ids[i]
+			n.law_changed_day = Clock.days_elapsed
+
+
+## Construction points a nation can spend in a day, given the civilian factories it holds.
+static func construction_points(n: Nation, factories: float) -> float:
+	return cfg.construction.base_points + factories * cfg.construction.points_per_factory * (1.0 - consumer_share(n))
+
+
+## GBP millions a year of industrial output one civilian factory of this nation is worth.
+static func factory_output(nation: Nation) -> float:
+	return cfg.factories.output * nation.development
+
+
+## Building slots of a province (see data/economy.json, "factories"): set when the game starts.
+static func slots_of(gs: Node, id: int) -> int:
+	return gs.province_slots[id] if id < gs.province_slots.size() else 0
+
+
+## Slots taken by factories already built and by those under construction.
+static func slots_used(gs: Node, id: int) -> int:
+	var used := 0
+	for type in building_ids():
+		if cfg.buildings[type].get("slot", false):
+			used += gs.province_buildings[id].get(type, 0)
+	for job in gs.nations[gs.province_owner[id]].construction:
+		if job.province == id and cfg.buildings[job.type].get("slot", false):
+			used += 1
+	return used
+
+
+## Gives every province its slots and its starting factories, from the industry it was
+## calibrated with. Military factories go to a nation's most industrial provinces first.
+static func deploy_factories(gs: Node) -> void:
+	var count: int = gs.province_owner.size()
+	gs.province_slots.resize(count)
+	gs.province_civ_base.resize(count)
+	var f: Dictionary = cfg.factories
+	var by_nation := {}
+	var exact := {}
+	for id in range(1, count):
+		var tag: String = gs.province_owner[id]
+		var n: Nation = gs.nations[tag]
+		var o := province_output(gs.province_population[id], MapData.provinces[id].area * MapData.KM2_PER_PX, n,
+				gs.province_buildings[id], gs.province_deposit[id])
+		gs.province_buildings[id].erase("factory")
+		gs.province_buildings[id].erase("military_factory")
+		exact[id] = o.industry / factory_output(n)
+		if not by_nation.has(tag):
+			by_nation[tag] = []
+		by_nation[tag].append(id)
+	# A nation's industry is shared out in whole factories, the biggest remainders getting the last ones.
+	for tag in by_nation:
+		var ids: Array = by_nation[tag]
+		var total := 0.0
+		for id: int in ids:
+			total += exact[id]
+		var left := roundi(total)
+		for id: int in ids:
+			var whole := int(exact[id])
+			if whole > 0:
+				gs.province_buildings[id]["factory"] = whole
+			left -= whole
+		var order := ids.duplicate()
+		order.sort_custom(func(a: int, b: int) -> bool:
+			var ra: float = exact[a] - int(exact[a])
+			var rb: float = exact[b] - int(exact[b])
+			return ra > rb or (ra == rb and a < b))
+		for id: int in order:
+			if left <= 0:
+				break
+			gs.province_buildings[id]["factory"] = gs.province_buildings[id].get("factory", 0) + 1
+			left -= 1
+	for id in range(1, count):
+		var have: int = gs.province_buildings[id].get("factory", 0)
+		gs.province_slots[id] = maxi(maxi(int(f.slot_min), ceili(float(gs.province_population[id]) / float(f.slot_pop))),
+				have + ceili(have * float(f.slot_growth)))
+	for tag in by_nation:
+		var n: Nation = gs.nations[tag]
+		var ids: Array = by_nation[tag]
+		ids.sort_custom(func(a: int, b: int) -> bool:
+			var fa: int = gs.province_buildings[a].get("factory", 0)
+			var fb: int = gs.province_buildings[b].get("factory", 0)
+			return fa > fb or (fa == fb and a < b))
+		var wanted: int = int(gs.scenario.nations.get(tag, {}).get("military_factories", roundi(float(n.peacetime_army) / float(f.army_per_military_factory))))
+		for id: int in ids:
+			if wanted <= 0:
+				break
+			var civ: int = gs.province_buildings[id].get("factory", 0)
+			# Never more than half of a province's factories, so no province is all arsenal.
+			var take := mini(wanted, ceili(civ / 2.0))
+			if take <= 0:
+				continue
+			gs.province_buildings[id]["factory"] = civ - take
+			if civ - take == 0:
+				gs.province_buildings[id].erase("factory")
+			gs.province_buildings[id]["military_factory"] = take
+			wanted -= take
+	for id in range(1, count):
+		gs.province_civ_base[id] = gs.province_buildings[id].get("factory", 0)
+
+
 ## Everything needed to start the next level of a building: gold, materials (thousand tonnes,
 ## drawn from stock first, the rest bought at a markup), the total gold bill and any blocker.
 static func build_plan(gs: Node, id: int, type: String) -> Dictionary:
 	var def: Dictionary = cfg.buildings[type]
-	var levels: int = gs.province_buildings[id].get(type, 0) + 1
+	var levels: int = 1 if def.get("slot", false) else gs.province_buildings[id].get(type, 0) + 1
 	var n: Nation = gs.nations[gs.province_owner[id]]
 	var plan := {"gold": def.cost * levels, "materials": {}, "from_stock": {}, "buy": {}, "purchase": 0.0, "total": 0.0, "blocked": ""}
 	for r in def.get("materials", {}):
@@ -114,11 +291,15 @@ static func build_problem(gs: Node, tag: String, id: int, type: String, check_mo
 		if gs.province_deposit[id].get(r, 0.0) < cfg.min_deposit:
 			return "No %s deposit here" % cfg.resources[r].name.to_lower()
 	var level: int = gs.province_buildings[id].get(type, 0)
-	for job in n.construction:
-		if job.province == id and job.type == type:
-			return "Already under construction"
-	if level >= cfg.buildings[type].max_level:
-		return "Fully built"
+	if cfg.buildings[type].get("slot", false):
+		if slots_used(gs, id) >= slots_of(gs, id):
+			return "No free slot"
+	else:
+		for job in n.construction:
+			if job.province == id and job.type == type:
+				return "Already under construction"
+		if level >= cfg.buildings[type].max_level:
+			return "Fully built"
 	var plan := build_plan(gs, id, type)
 	if not plan.blocked.is_empty():
 		return plan.blocked
@@ -127,15 +308,9 @@ static func build_problem(gs: Node, tag: String, id: int, type: String, check_mo
 	return ""
 
 
-## How much a province gains from a building, for ranking where to build first: the size of
-## the deposit for mines and sawmills, food for farmland, otherwise economic output.
+## How much a province gains from a building, for ranking where to build first: its economic
+## output.
 static func build_priority(gs: Node, id: int, type: String) -> float:
-	var effects: Dictionary = cfg.buildings[type].effects
-	for r in resource_ids():
-		if effects.has("yield_" + r):
-			return gs.province_deposit[id].get(r, 0.0)
-	if effects.has("food") and not effects.has("gdp"):
-		return gs.province_food[id]
 	return gs.province_gdp[id]
 
 
@@ -152,6 +327,8 @@ static func mass_candidates(gs: Node, tag: String, type: String) -> Array[int]:
 
 ## Gold cost of the next level of a building, not counting materials.
 static func build_cost(gs: Node, id: int, type: String) -> float:
+	if cfg.buildings[type].get("slot", false):
+		return cfg.buildings[type].cost
 	return cfg.buildings[type].cost * (gs.province_buildings[id].get(type, 0) + 1)
 
 
@@ -161,7 +338,7 @@ static func recompute(gs: Node) -> void:
 	for arr: PackedFloat32Array in [gs.province_gdp, gs.province_industry, gs.province_food, gs.province_pool]:
 		arr.resize(count)
 
-	var keys: Array = ["gdp", "industry", "food", "trade", "pool"]
+	var keys: Array = ["gdp", "industry", "food", "trade", "pool", "factories", "military_factories"]
 	for r in resource_ids():
 		keys.append(r)
 		keys.append("use_" + r)
@@ -173,7 +350,7 @@ static func recompute(gs: Node) -> void:
 	for id in range(1, count):
 		var tag: String = gs.province_owner[id]
 		var o := province_output(gs.province_population[id], MapData.provinces[id].area * MapData.KM2_PER_PX,
-				gs.nations[tag], gs.province_buildings[id], gs.province_deposit[id])
+				gs.nations[tag], gs.province_buildings[id], gs.province_deposit[id], gs.province_civ_base[id])
 		gs.province_gdp[id] = o.gdp
 		gs.province_industry[id] = o.industry
 		gs.province_food[id] = o.food
@@ -181,7 +358,10 @@ static func recompute(gs: Node) -> void:
 		var holder: String = gs.province_controller[id]
 		if holder == tag:
 			for k in keys:
-				sums[tag][k] += o[k]
+				if o.has(k):
+					sums[tag][k] += o[k]
+			sums[tag].factories += gs.province_buildings[id].get("factory", 0)
+			sums[tag].military_factories += gs.province_buildings[id].get("military_factory", 0)
 		else:
 			# Occupied: the owner loses the output (its people still need feeding) and the
 			# occupier collects a share of the tax.
@@ -236,7 +416,7 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 	var resource_gdp_mult := maxf(0.5, 1.0 - gdp_penalty)
 
 	var output_mult: float = mob_mult * (1.0 - cfg.famine_output_penalty * food_shortage)
-	var gdp_scale: float = output_mult * resource_gdp_mult * (1.0 - cfg.blockade_trade_loss * n.blockade)
+	var gdp_scale: float = output_mult * resource_gdp_mult * (1.0 - cfg.blockade_trade_loss * n.blockade) * float(law_of(n).gdp)
 	var industry_scale: float = output_mult * resource_industry_mult
 	var gdp: float = raw.gdp * gdp_scale
 	var trade_scale := output_mult * (1.0 - n.blockade)
@@ -253,7 +433,8 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 	var programs := 0.0
 	for id in n.programs:
 		programs += cfg.programs[id].cost_gdp_share * raw.gdp
-	var expenses := civil + army + n.naval_budget + food_imports + import_cost + programs
+	var equipment := Production.planned_spend(n)
+	var expenses := civil + army + n.naval_budget + food_imports + import_cost + programs + equipment
 
 	var pool: float = raw.pool
 	var peace := minf(n.peacetime_army, pool)
@@ -276,12 +457,18 @@ static func nation_budget(n: Nation, raw: Dictionary, tax_mult := 1.0) -> Dictio
 		"naval": n.naval_budget,
 		"food_imports": food_imports,
 		"programs": programs,
+		"equipment": equipment,
 		"expenses": expenses,
 		"net": revenue - expenses,
 		"food_production": food_production,
 		"food_need": food_need,
 		"food_imported": food_imported,
 		"food_shortage": food_shortage,
+		"factories": raw.factories,
+		"military_factories": raw.military_factories,
+		"construction_points": construction_points(n, raw.factories),
+		"law": n.economy_law,
+		"consumer_share": consumer_share(n),
 		"manpower_pool": pool,
 		"manpower_max": peace + (pool - peace) * n.mobilization,
 	}
@@ -313,11 +500,12 @@ static func building_stats(gs: Node, tag: String) -> Dictionary:
 		var pop: int = gs.province_population[id]
 		var area: float = MapData.provinces[id].area * MapData.KM2_PER_PX
 		var deposit: Dictionary = gs.province_deposit[id]
-		var with := province_output(pop, area, n, owned, deposit)
+		var base: int = gs.province_civ_base[id]
+		var with := province_output(pop, area, n, owned, deposit, base)
 		for type in owned:
 			var without_set := owned.duplicate()
 			without_set.erase(type)
-			var without := province_output(pop, area, n, without_set, deposit)
+			var without := province_output(pop, area, n, without_set, deposit, base)
 			var st: Dictionary = stats[type]
 			st.levels += owned[type]
 			st.provinces += 1
@@ -343,15 +531,29 @@ static func step_day(gs: Node) -> void:
 	var finished := false
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
+		if n.construction.is_empty():
+			n.construction_used = 0.0
+			continue
+		# The queue is served in order: each project takes what it can use of the day's points.
+		var pool: float = n.budget.get("construction_points", cfg.construction.base_points)
+		var left := pool
+		for job in n.construction:
+			var give := minf(minf(job.rate, left), job.points_left)
+			left -= give
+			job.points_left -= give
+			job.given = give
+		n.construction_used = pool - left
 		for i in range(n.construction.size() - 1, -1, -1):
 			var job := n.construction[i]
-			job.days_left -= 1
-			if job.days_left <= 0:
+			if job.points_left <= 0.0001:
 				n.construction.remove_at(i)
 				var owned: Dictionary = gs.province_buildings[job.province]
 				owned[job.type] = owned.get(job.type, 0) + 1
 				gs.building_completed.emit(tag, job.province, job.type)
 				finished = true
+			else:
+				var rate_now: float = job.given if job.given > 0.0 else 0.0
+				job.days_left = ceili(job.points_left / rate_now) if rate_now > 0.0 else 9999
 	if finished:
 		recompute(gs)
 		gs.economy_updated.emit()
@@ -360,12 +562,15 @@ static func step_day(gs: Node) -> void:
 ## Monthly update: pays the budget, moves the stockpiles, grows the economy and refills
 ## manpower toward its cap.
 static func step_month(gs: Node) -> void:
+	enforce_laws(gs)
 	Military.refresh_men(gs)
 	recompute(gs)
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
 		var b := n.budget
-		n.treasury += b.net / 12.0
+		# The lines pay for equipment out of the treasury each day (Production), so the month
+		# does not take it again.
+		n.treasury += (b.net + b.equipment) / 12.0
 
 		for r in b.resources:
 			var info: Dictionary = b.resources[r]

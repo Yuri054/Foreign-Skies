@@ -133,7 +133,6 @@
 		"min_power": 1.0,
 		"base_weight": 1.0,
 		"per_port_level": 0.75,
-		"per_market_level": 0.25,
 		"second_zone_share": 0.35,
 		"max": 0.9,
 		"land_leak": 0.5,

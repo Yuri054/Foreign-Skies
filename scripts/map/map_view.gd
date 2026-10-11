@@ -26,7 +26,7 @@ signal mode_changed(mode: Mode, submode: String)
 ## In the Diplomacy mode, whose point of view the map shows changed (see set_viewpoint).
 signal viewpoint_changed(tag: String)
 
-enum Mode { POLITICAL, RESOURCES, INCOME, POPULATION, BUILDINGS, PROVINCES, TERRAIN, MILITARY, DIPLOMACY, SEA_CONTROL, BLOCKADE }
+enum Mode { POLITICAL, RESOURCES, INCOME, POPULATION, BUILDINGS, PROVINCES, TERRAIN, MILITARY, DIPLOMACY, SEA_CONTROL, BLOCKADE, CONSTRUCTION }
 const MODE_NAMES := {
 	Mode.POLITICAL: "Political",
 	Mode.RESOURCES: "Resources",
@@ -39,9 +39,10 @@ const MODE_NAMES := {
 	Mode.DIPLOMACY: "Diplomacy",
 	Mode.SEA_CONTROL: "Sea control",
 	Mode.BLOCKADE: "Blockade",
+	Mode.CONSTRUCTION: "Construction",
 }
 ## Modes whose colors depend on data that changes as the game runs.
-const DYNAMIC_MODES := [Mode.INCOME, Mode.BUILDINGS, Mode.MILITARY, Mode.DIPLOMACY, Mode.SEA_CONTROL, Mode.BLOCKADE]
+const DYNAMIC_MODES := [Mode.INCOME, Mode.BUILDINGS, Mode.MILITARY, Mode.DIPLOMACY, Mode.SEA_CONTROL, Mode.BLOCKADE, Mode.CONSTRUCTION]
 ## The modes that tint the sea zones.
 const NAVAL_MODES := [Mode.SEA_CONTROL, Mode.BLOCKADE]
 const BLOCKADE_COLOR := Color(0.78, 0.12, 0.1)
@@ -65,6 +66,12 @@ const MODE_COLORS := {
 	Mode.BUILDINGS: Color(0.25, 0.45, 0.82),
 }
 const NO_DATA_COLOR := Color(0.8, 0.8, 0.76)
+## Construction mode (the building picked is the submode): what the player's provinces show.
+const CONSTRUCT_OTHER := Color(0.16, 0.18, 0.22)
+const CONSTRUCT_BLOCKED := Color(0.5, 0.5, 0.53)
+const CONSTRUCT_BUILD := Color(0.25, 0.74, 0.36)
+const CONSTRUCT_BOTH := Color(0.2, 0.7, 0.7)
+const CONSTRUCT_HAVE := Color(0.25, 0.45, 0.82)
 const ALL_BUILDINGS := "all"
 const LOOKUP_WIDTH := 256
 
@@ -170,6 +177,9 @@ func submodes(for_mode: Mode = mode) -> Array:
 				list.append([r, Economy.cfg.resources[r].name])
 		Mode.BUILDINGS:
 			list.append([ALL_BUILDINGS, "All except mines"])
+			for type in Economy.building_ids():
+				list.append([type, Economy.cfg.buildings[type].name])
+		Mode.CONSTRUCTION:
 			for type in Economy.building_ids():
 				list.append([type, Economy.cfg.buildings[type].name])
 	return list
@@ -379,7 +389,7 @@ func _value(id: int) -> float:
 			var levels := 0
 			for type in GameState.province_buildings[id]:
 				if submode == ALL_BUILDINGS:
-					if not str(Economy.cfg.buildings[type].get("requires", "")).begins_with("deposit:"):
+					if not str(Economy.cfg.buildings[type].get("requires", "")).begins_with("deposit:") and not Economy.cfg.buildings[type].get("slot", false):
 						levels += GameState.province_buildings[id][type]
 				elif type == submode:
 					levels += GameState.province_buildings[id][type]
@@ -397,6 +407,8 @@ func _paint_color(id: int, value: float) -> Color:
 		return NO_DATA_COLOR.lerp(BLOCKADE_COLOR, clampf(GameState.nations[GameState.province_owner[id]].blockade, 0.0, 1.0))
 	if mode == Mode.SEA_CONTROL:
 		return NO_DATA_COLOR.lerp(GameState.owner_color(id), 0.55)
+	if mode == Mode.CONSTRUCTION:
+		return construction_color(id, submode)
 	if mode == Mode.MILITARY or mode == Mode.POLITICAL:
 		# Who holds the ground. Political stripes occupied provinces with the owner's colour
 		# (in the shader); Military paints them solid in the occupier's colour.
@@ -406,6 +418,20 @@ func _paint_color(id: int, value: float) -> Color:
 	if value <= 0.0:
 		return NO_DATA_COLOR
 	return NO_DATA_COLOR.lerp(_mode_color(), 0.25 + 0.75 * _scale(value))
+
+
+## What a province shows in Construction mode for one kind of building: dark if it is not the
+## player's; green where one can be built; blue where it already stands and no more can; teal
+## where it stands and another can still be built; grey where it cannot be built.
+func construction_color(id: int, type: String) -> Color:
+	var tag := GameState.player_tag
+	if GameState.province_owner[id] != tag or not Economy.cfg.buildings.has(type):
+		return CONSTRUCT_OTHER
+	var built: int = GameState.province_buildings[id].get(type, 0)
+	var can := Economy.build_problem(GameState, tag, id, type, false).is_empty()
+	if built > 0:
+		return CONSTRUCT_BOTH if can else CONSTRUCT_HAVE.darkened(0.35 * (1.0 - minf(built / 4.0, 1.0)))
+	return CONSTRUCT_BUILD if can else CONSTRUCT_BLOCKED
 
 
 ## 0..1 position of a value on the mode's color scale: deposits span orders of magnitude, so
@@ -433,6 +459,9 @@ func legend() -> Dictionary:
 	if mode == Mode.DIPLOMACY:
 		return {"title": "Opinion of %s" % GameState.nations[diplomacy_viewpoint()].display_name if GameState.nations.has(diplomacy_viewpoint()) else "Opinion",
 				"low": "hostile", "high": "friendly", "from": HOSTILE_COLOR, "to": FRIENDLY_COLOR}
+	if mode == Mode.CONSTRUCTION:
+		return {"title": "Build: %s" % Economy.cfg.buildings[submode].name.to_lower() if Economy.cfg.buildings.has(submode) else "Construction",
+				"low": "cannot", "high": "can build", "from": CONSTRUCT_BLOCKED, "to": CONSTRUCT_BUILD}
 	if mode != Mode.RESOURCES and not MODE_COLORS.has(mode):
 		return {}
 	var title := ""

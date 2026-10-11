@@ -18,6 +18,7 @@ const SettingsWindow := preload("res://scripts/ui/settings_window.gd")
 const SaveWindow := preload("res://scripts/ui/save_window.gd")
 const PauseMenu := preload("res://scripts/ui/pause_menu.gd")
 const Tutorial := preload("res://scripts/ui/tutorial.gd")
+const ConstructionPanel := preload("res://scripts/ui/construction_panel.gd")
 const MapView := preload("res://scripts/map/map_view.gd")
 const NationStats := preload("res://scripts/ui/nation_stats.gd")
 const RankingsWindow := preload("res://scripts/ui/rankings_window.gd")
@@ -68,6 +69,10 @@ func _ready() -> void:
 	_focus_on(GameState.player_tag)
 
 	ui.add_child(EconomyPanel.new())
+	var construction := ConstructionPanel.new()
+	construction.map_view = map_view
+	ui.add_child(construction)
+	construction.connect_map()
 	ui.add_child(MilitaryPanel.new())
 	ui.add_child(ArmyActionBar.new())
 	ui.add_child(DiplomacyPanel.new())
@@ -208,7 +213,7 @@ func _on_province_selected(id: int) -> void:
 		lines.append("Fleets: " + "; ".join(parts))
 
 	var made := Economy.province_output(population, p.area * MapData.KM2_PER_PX, GameState.nations[owner_tag],
-			GameState.province_buildings[id], GameState.province_deposit[id])
+			GameState.province_buildings[id], GameState.province_deposit[id], GameState.province_civ_base[id])
 	var deposits: PackedStringArray = []
 	for r in Economy.resource_ids():
 		if GameState.province_deposit[id].get(r, 0.0) >= Economy.cfg.min_deposit:

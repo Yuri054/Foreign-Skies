@@ -44,7 +44,8 @@ func _refresh() -> void:
 	# Buildings and ships together, soonest to finish first.
 	var jobs: Array[Dictionary] = []
 	for job in n.construction:
-		jobs.append({"label": Economy.cfg.buildings[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total})
+		jobs.append({"label": Economy.cfg.buildings[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total,
+				"fraction": 1.0 - job.points_left / maxf(job.points_total, 1.0)})
 	for job in n.shipbuilding:
 		jobs.append({"label": Navy.cfg.types[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total})
 	var title := Label.new()
@@ -77,7 +78,7 @@ func _make_row(job: Dictionary) -> Control:
 	var bar := ProgressBar.new()
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(0, 6)
-	bar.max_value = job.days_total
-	bar.value = job.days_total - job.days_left
+	bar.max_value = 1.0
+	bar.value = job.fraction if job.has("fraction") else 1.0 - float(job.days_left) / maxf(job.days_total, 1.0)
 	box.add_child(bar)
 	return box

@@ -472,7 +472,7 @@ func _test_points_ui() -> void:
 
 	# Income sources in the top bar and the Economy window.
 	var tip: String = bar._chips["points"].tooltip_text
-	_check(tip.contains("program") and tip.contains("foreign ministry") and tip.contains("improving relations (10)"), "the top bar's tooltip lists the income sources and prices")
+	_check(tip.contains("program") and not tip.contains("ministry") and tip.contains("improving relations (10)"), "the top bar's tooltip lists the income sources and prices")
 	eco.toggle()
 	await process_frame
 	await process_frame

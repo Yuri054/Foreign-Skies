@@ -11,6 +11,7 @@ const CHIP_COLOR := Color(0.15, 0.18, 0.24, 1.0)
 ## Window buttons: group of the window, label, key.
 const WINDOWS := [
 	["economy_panel", "Economy", "E"],
+	["construction_panel", "Build", "B"],
 	["military_panel", "Military", "M"],
 	["diplomacy_panel", "Diplomacy", "F"],
 ]
@@ -165,8 +166,8 @@ func _ready() -> void:
 func _points_tip(n: Nation) -> String:
 	var parts := Diplomacy.point_income_parts(GameState, n.tag)
 	var costs: Dictionary = Diplomacy.cfg.points.costs
-	return "Diplomacy points: %d of %d.\nEarns %+.1f a month (base %.1f, prestige %+.1f, output %+.1f, program %+.1f, foreign ministry %+.1f).\nMore from the Diplomatic service program and a Foreign ministry in the capital.\nSpent on declaring war, proposing and cancelling treaties, improving relations (%d) and gifts: an alliance %d, a guarantee %d, a pact %d, passage %d, a gift %d." % [
-			roundi(n.diplomacy_points), int(Diplomacy.cfg.points.max), parts.total, parts.base, parts.prestige, parts.output, parts.program, parts.ministry,
+	return "Diplomacy points: %d of %d.\nEarns %+.1f a month (base %.1f, prestige %+.1f, output %+.1f, program %+.1f).\nMore from the Diplomatic service program.\nSpent on declaring war, proposing and cancelling treaties, improving relations (%d) and gifts: an alliance %d, a guarantee %d, a pact %d, passage %d, a gift %d." % [
+			roundi(n.diplomacy_points), int(Diplomacy.cfg.points.max), parts.total, parts.base, parts.prestige, parts.output, parts.program,
 			int(costs.improve_relations), int(costs.propose.alliance), int(costs.propose.guarantee), int(costs.propose.nap), int(costs.propose.passage), int(costs.gift)]
 
 

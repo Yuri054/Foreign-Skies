@@ -22,12 +22,7 @@ func execute(gs: Node) -> bool:
 	n.treasury -= plan.total
 	for r in plan.from_stock:
 		n.stock[r] -= plan.from_stock[r]
-	n.construction.append({
-		"province": province,
-		"type": type,
-		"days_total": Economy.cfg.buildings[type].build_days,
-		"days_left": Economy.cfg.buildings[type].build_days,
-	})
+	n.construction.append(Economy.new_job(province, type, Economy.cfg.buildings[type].build_days))
 	return true
 
 

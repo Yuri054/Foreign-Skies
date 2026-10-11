@@ -41,6 +41,14 @@ func _initialize() -> void:
 	_check(layer.selected == panel._selected, "the map layer shows the selection")
 	_check(panel._list.item_count == 10, "the list shows all ten French armies (%d)" % panel._list.item_count)
 	_check(panel._detail.text.contains("Marching") == false and panel._detail.text.contains("men"), "the detail text describes the army")
+	_check(panel._detail.text.contains("Equipment: arms 100%, artillery 100%"), "and its equipment (%s)" % panel._detail.text.get_slice("
+", 4))
+	var shown: Object = gs.armies[panel._selected[0]]
+	for u in shown.units:
+		u.equip["arms"] = 0.0
+		u.refresh_factor()
+	panel._refresh_list()
+	_check(panel._list.get_item_text(0).contains("equipped"), "an army short of equipment says so in the list (%s)" % panel._list.get_item_text(0))
 
 	# Orders.
 	var dest := 0

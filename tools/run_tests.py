@@ -16,7 +16,7 @@ for path in sorted(glob.glob(os.path.join(root, "tests", "*_test.gd"))):
     start = time.time()
     try:
         out = subprocess.run([godot, "--headless", "--path", root, "-s", "res://tests/%s_test.gd" % name],
-                             capture_output=True, text=True, timeout=900)
+                             capture_output=True, text=True, timeout=400)
         text = out.stdout + out.stderr
         ok = out.returncode == 0 and not any(l.startswith("FAIL") and "FAILURES: 0" not in l for l in text.splitlines()) and "SCRIPT ERROR" not in text
         detail = [l for l in text.splitlines() if (l.startswith("FAIL") and "FAILURES: 0" not in l) or "SCRIPT ERROR" in l][:5]

@@ -2,7 +2,7 @@ class_name AIBudget
 extends RefCounted
 ## A light budget for AI nations, once a month, so they do not drift into ruin: the tax rate
 ## against deficit and debt, the programs that pay for themselves (or that diplomacy needs),
-## one building at a time where it earns the most (the capital, the richest provinces, the
+## the equipment lines and economy law (AIProduction), one building at a time where it earns the most (the capital, the richest provinces, the
 ## railways behind the front), and diplomacy points bought when a crisis finds the stock low.
 ## Everything goes through the commands the player uses. Weights are in ai.json ("budget").
 
@@ -19,6 +19,7 @@ static func step(gs: Node, tag: String) -> void:
 	_taxes(gs, tag)
 	_programs(gs, tag)
 	_buildings(gs, tag)
+	AIProduction.step(gs, tag)
 	AINavy.build(gs, tag)
 	_points(gs, tag)
 
@@ -96,6 +97,10 @@ static func build_return(gs: Node, tag: String, id: int, type: String, plan: Dic
 	var effects: Dictionary = def.effects
 	var output: float = gs.province_gdp[id] + gs.province_industry[id]
 	var gain: float = float(effects.get("gdp", 0.0)) * gs.province_gdp[id] + float(effects.get("industry", 0.0)) * gs.province_industry[id]
+	if type == "factory":
+		gain += Economy.factory_output(gs.nations[tag])
+	elif type == "military_factory":
+		gain += AIProduction.factory_value(gs, tag)
 	gain += float(effects.get("trade", 0.0)) * output * 0.5
 	gain += float(effects.get("food", 0.0)) * output * float(c.food_value)
 	if effects.has("diplomacy"):

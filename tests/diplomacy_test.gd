@@ -540,24 +540,7 @@ func _test_income_sources() -> void:
 	gs.issue(ProgramC.new("FRA", "diplomatic_service", false))
 	_check(is_equal_approx(D.point_income(gs, "FRA"), base), "switched off, it adds nothing")
 
-	var capital: int = gs.nations["FRA"].capital
-	var elsewhere := 0
-	for id: int in gs.nations["FRA"].provinces:
-		if id != capital:
-			elsewhere = id
-			break
-	_check(Eco.build_problem(gs, "FRA", elsewhere, "foreign_ministry", false) == "Only in the capital", "the Foreign ministry can only be built in the capital")
-	_check(Eco.build_problem(gs, "FRA", capital, "foreign_ministry", false) == "", "which it can be")
-	gs.province_buildings[capital]["foreign_ministry"] = 2
-	parts = D.point_income_parts(gs, "FRA")
-	_check(is_equal_approx(parts.ministry, 1.0), "each level adds 0.5 (two levels: %.1f)" % parts.ministry)
-	gs.province_buildings[capital]["foreign_ministry"] = 3
-	_check(Eco.build_problem(gs, "FRA", capital, "foreign_ministry", false) == "Fully built", "it stops at three levels")
-	gs.set_controller(capital, "GER")
-	_check(D.point_income_parts(gs, "FRA").ministry == 0.0, "an occupied capital earns nothing")
-	gs.set_controller(capital, "FRA")
-	_check(is_equal_approx(D.point_income_parts(gs, "FRA").ministry, 1.5), "and it comes back with the capital")
-	gs.province_buildings[capital].erase("foreign_ministry")
+	_check(not Eco.cfg.buildings.has("foreign_ministry") and not D.point_income_parts(gs, "FRA").has("ministry"), "there is no Foreign ministry any more: points come from the program, prestige and output")
 
 	# Prestige: fades, and comes from treaties.
 	gs.nations["FRA"].prestige = 100.0

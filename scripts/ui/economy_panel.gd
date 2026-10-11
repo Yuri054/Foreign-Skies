@@ -1,9 +1,9 @@
 extends FloatingWindow
-## Economy of the player's nation in three tabs, all figures per month:
+## Economy of the player's nation in three tabs, all figures per month (building is in the
+## Construction panel, B):
 ##   Overview:  problems, tax rate, income and spending, national programs.
 ##   Resources: food, coal, iron and timber: made, used, balance, stockpile.
-##   Buildings: every building type with what you have, what it earns, and a Build button for
-##              the province selected on the map; mass building is folded away at the bottom.
+##   Production: equipment in store and the production lines of the military factories.
 ## Toggle with E. Hover over a label for the detail behind it.
 
 var _tabs := TabContainer.new()
@@ -12,18 +12,13 @@ var _tax_slider := HSlider.new()
 var _tax_label := Label.new()
 var _budget := HBoxContainer.new()
 var _output := Label.new()
+var _law := OptionButton.new()
+var _law_note := Label.new()
+var _law_updating := false
 var _program_boxes: Dictionary = {}
 var _resources := VBoxContainer.new()
-var _buildings := VBoxContainer.new()
+var _production := VBoxContainer.new()
 var _province := 0
-
-var _mass_toggle := Button.new()
-var _mass_box := VBoxContainer.new()
-var _mass_type := OptionButton.new()
-var _mass_count := SpinBox.new()
-var _mass_spend := SpinBox.new()
-var _mass_preview := Label.new()
-var _mass_button := Button.new()
 
 
 func _ready() -> void:
@@ -33,7 +28,7 @@ func _ready() -> void:
 	add_child(_tabs)
 	_tabs.add_child(_scroll(_build_overview(), "Overview"))
 	_tabs.add_child(_scroll(_resources, "Resources"))
-	_tabs.add_child(_scroll(_build_buildings(), "Buildings"))
+	_tabs.add_child(_scroll(_production, "Production"))
 	_tabs.tab_changed.connect(func(_i: int) -> void:
 		_refresh()
 		_fit_tab.call_deferred()
@@ -104,6 +99,28 @@ func _build_overview() -> Control:
 		tax_row.add_child(c)
 	box.add_child(tax_row)
 
+	var law_row := HBoxContainer.new()
+	var law_name := Label.new()
+	law_name.text = "Economy law"
+	law_name.custom_minimum_size = Vector2(80, 0)
+	law_row.add_child(law_name)
+	_law.focus_mode = Control.FOCUS_NONE
+	_law.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for id in Economy.law_ids():
+		_law.add_item(Economy.cfg.laws[id].name)
+		_law.set_item_metadata(_law.item_count - 1, id)
+	_law.item_selected.connect(func(i: int) -> void:
+		if not _law_updating:
+			GameState.issue(SetEconomyLaw.new(GameState.player_tag, _law.get_item_metadata(i)))
+			_refresh()
+	)
+	law_row.add_child(_law)
+	box.add_child(law_row)
+	_law_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_law_note.custom_minimum_size = Vector2(400, 0)
+	_law_note.modulate = Fmt.DIM
+	box.add_child(_law_note)
+
 	_budget.add_theme_constant_override("separation", 14)
 	box.add_child(_budget)
 	_output.modulate = Fmt.DIM
@@ -126,64 +143,6 @@ func _build_overview() -> Control:
 		programs.add_child(check)
 		_program_boxes[id] = check
 	return box
-
-
-func _build_buildings() -> Control:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	_buildings.add_theme_constant_override("separation", 6)
-	box.add_child(_buildings)
-	box.add_child(HSeparator.new())
-
-	_mass_toggle.toggle_mode = true
-	_mass_toggle.focus_mode = Control.FOCUS_NONE
-	_mass_toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_mass_toggle.toggled.connect(func(on: bool) -> void:
-		_mass_box.visible = on
-		_refresh()
-	)
-	box.add_child(_mass_toggle)
-	_mass_box.visible = false
-	box.add_child(_mass_box)
-	_build_mass_controls()
-	return box
-
-
-func _build_mass_controls() -> void:
-	_mass_box.add_theme_constant_override("separation", 4)
-	_mass_box.add_child(_note("Builds one level in many provinces at once, best provinces first."))
-
-	for id in Economy.building_ids():
-		_mass_type.add_item(Economy.cfg.buildings[id].name)
-	_mass_type.focus_mode = Control.FOCUS_NONE
-	_mass_type.item_selected.connect(func(_i: int) -> void: _refresh_mass())
-	_mass_box.add_child(_mass_type)
-
-	_mass_box.add_child(_mass_row("Up to provinces", _mass_count, 1.0, 999.0, 10.0))
-	_mass_box.add_child(_mass_row("Spend at most £M (0 = any)", _mass_spend, 0.0, 9999.0, 0.0))
-
-	_mass_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_mass_preview.custom_minimum_size = Vector2(380, 0)
-	_mass_box.add_child(_mass_preview)
-
-	_mass_button.focus_mode = Control.FOCUS_NONE
-	_mass_button.pressed.connect(func() -> void: GameState.issue(_mass_command()))
-	_mass_box.add_child(_mass_button)
-
-
-func _mass_row(label: String, spin: SpinBox, lo: float, hi: float, value: float) -> Control:
-	var row := HBoxContainer.new()
-	var name_label := Label.new()
-	name_label.text = label
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spin.min_value = lo
-	spin.max_value = hi
-	spin.step = 1.0
-	spin.value = value
-	spin.value_changed.connect(func(_v: float) -> void: _refresh_mass())
-	row.add_child(name_label)
-	row.add_child(spin)
-	return row
 
 
 # ---------------------------------------------------------------- small widgets
@@ -242,11 +201,10 @@ func _refresh() -> void:
 	if n == null or n.budget.is_empty() or not visible:
 		return
 	_refresh_overview(n)
-	match _tabs.current_tab:
-		1:
-			_refresh_resources(n)
-		2:
-			_refresh_buildings(n)
+	if _tabs.current_tab == 1:
+		_refresh_resources(n)
+	elif _tabs.current_tab == 2:
+		_refresh_production(n)
 
 
 func _refresh_overview(n: Nation) -> void:
@@ -290,7 +248,7 @@ func _refresh_overview(n: Nation) -> void:
 	_cell(g, "Taxes", 0, Color.WHITE, "Output of £%.1fM a month taxed at %d%%." % [Fmt.monthly(b.gdp), roundi(n.tax_rate * 100.0)])
 	_cell(g, Fmt.money(taxes, true), 1)
 	if trade > 0.04:
-		_cell(g, "Trade", 0, Color.WHITE, "Ports and trading houses £%.1fM, resource exports £%.1fM." % [Fmt.monthly(b.trade), Fmt.monthly(b.resource_exports)])
+		_cell(g, "Trade", 0, Color.WHITE, "Ports £%.1fM, resource exports £%.1fM." % [Fmt.monthly(b.trade), Fmt.monthly(b.resource_exports)])
 		_cell(g, Fmt.money(trade, true), 1)
 	_total_row(g, "Total income", Fmt.monthly(b.revenue), Color.WHITE)
 
@@ -306,10 +264,14 @@ func _refresh_overview(n: Nation) -> void:
 	if b.programs > 0.0:
 		_cell(spend, "Programs", 0)
 		_cell(spend, Fmt.money(-Fmt.monthly(b.programs), true), 1)
+	if b.equipment > 0.04:
+		_cell(spend, "Equipment", 0, Color.WHITE, "What the production lines cost at full tilt: money for every item made (see the Production tab). Paid a day at a time.")
+		_cell(spend, Fmt.money(-Fmt.monthly(b.equipment), true), 1)
 	_total_row(spend, "Total spending", -Fmt.monthly(b.expenses), Color.WHITE)
 	_total_row(g, "Net per month", Fmt.monthly(b.net), Fmt.GOOD if b.net >= 0.0 else Fmt.BAD)
 
 	_output.text = "Output £%.0fM a month, industry £%.0fM." % [Fmt.monthly(b.gdp), Fmt.monthly(b.industry)]
+	_refresh_law(n)
 
 	for id in _program_boxes:
 		var def: Dictionary = Economy.cfg.programs[id]
@@ -317,6 +279,50 @@ func _refresh_overview(n: Nation) -> void:
 		check.set_pressed_no_signal(n.programs.has(id))
 		check.text = "%s  (%s a month)" % [def.name, Fmt.money(-def.cost_gdp_share * Fmt.monthly(b.gdp), true)]
 		check.tooltip_text = "Effect: " + _effects_text(def.effects)
+
+
+## Shows the law in force, which others can be taken (the rest are greyed, with why), and what
+## the law does.
+func _refresh_law(n: Nation) -> void:
+	_law_updating = true
+	for i in _law.item_count:
+		var id: String = _law.get_item_metadata(i)
+		var problem := Economy.law_problem(GameState, n.tag, id)
+		var lower: bool = Economy.law_ids().find(id) < Economy.law_ids().find(n.economy_law)
+		if lower:
+			problem = Economy.law_requirement(GameState, n.tag, id)
+		_law.set_item_disabled(i, id != n.economy_law and not problem.is_empty())
+		_law.set_item_tooltip(i, "%s%s" % [_law_text(id), ("\n" + problem) if id != n.economy_law and not problem.is_empty() else ""])
+		if id == n.economy_law:
+			_law.select(i)
+	_law_updating = false
+	var law := Economy.law_of(n)
+	_law_note.text = "%s Consumer goods take %d%% of civilian factory work, so %.0f construction points a day are left (%d factories). Military factories +%d%%, national output %+d%%." % [
+			_law_requires_text(n.economy_law), roundi(law.consumer * 100.0), n.budget.construction_points, int(n.budget.factories),
+			roundi((law.military - 1.0) * 100.0), roundi((law.gdp - 1.0) * 100.0)]
+	if law.weariness > 0.0:
+		_law_note.text += " Costs %.1f war support a month at war." % law.weariness
+
+
+func _law_text(id: String) -> String:
+	var law: Dictionary = Economy.cfg.laws[id]
+	return "%s: consumer goods %d%%, military factories %+d%%, output %+d%%%s." % [law.name, roundi(law.consumer * 100.0),
+			roundi((law.military - 1.0) * 100.0), roundi((law.gdp - 1.0) * 100.0),
+			(", %.1f war support a month at war" % law.weariness) if law.weariness > 0.0 else ""]
+
+
+func _law_requires_text(id: String) -> String:
+	var req: Dictionary = Economy.cfg.laws[id].requires
+	if req.is_empty():
+		return "Peacetime economy."
+	var parts: PackedStringArray = []
+	if req.get("war", false):
+		parts.append("at war")
+	if req.has("war_or_mobilization"):
+		parts.append("at war or %d%% mobilized" % roundi(float(req.war_or_mobilization) * 100.0))
+	if req.has("mobilization"):
+		parts.append("%d%% mobilized" % roundi(float(req.mobilization) * 100.0))
+	return "Needs: " + ", ".join(parts) + "."
 
 
 func _status(text: String, color: Color) -> Label:
@@ -379,129 +385,125 @@ func _refresh_resources(n: Nation) -> void:
 	_resources.add_child(_note("Green balances are exported, orange ones imported (the state takes %d%% of the trade value). A blockade stops both, the stockpile runs down, and shortages cut industry and output." % roundi(Economy.cfg.trade_state_share * 100.0)))
 
 
-func _refresh_buildings(n: Nation) -> void:
-	_clear(_buildings)
-	var stats := Economy.building_stats(GameState, n.tag)
-	var here := _province > 0 and GameState.province_owner[_province] == n.tag
-	if here:
-		_buildings.add_child(_heading("Building in " + MapData.provinces[_province].name))
-	else:
-		_buildings.add_child(_note("Select one of your provinces on the map to build there."))
+# ---------------------------------------------------------------- production
 
-	var g := _grid(5)
-	_buildings.add_child(g)
-	for h in ["Building", "Here", "All", "£/mo", ""]:
+func _refresh_production(n: Nation) -> void:
+	_clear(_production)
+	var cats: Array = Military.equipment_ids()
+	var store: PackedStringArray = []
+	for cat in cats:
+		store.append("%s %s" % [Military.cfg.equipment.categories[cat].name, Fmt.thousands(roundi(n.equipment.get(cat, 0.0)))])
+	var head := Label.new()
+	head.text = "In store: " + ",  ".join(store)
+	head.tooltip_text = "Arms in thousands of rifles, artillery in batteries. Units draw what they lack from the store."
+	head.mouse_filter = Control.MOUSE_FILTER_PASS
+	_production.add_child(head)
+	var factories := Label.new()
+	factories.text = "Military factories: %d, %d free" % [Production.total_factories(n), Production.free_factories(n)]
+	factories.tooltip_text = "Your military factories and the arsenals every army has. Retool factories in the Construction panel (B)."
+	factories.mouse_filter = Control.MOUSE_FILTER_PASS
+	_production.add_child(factories)
+	var auto := CheckButton.new()
+	auto.text = "Automatic"
+	auto.focus_mode = Control.FOCUS_NONE
+	auto.button_pressed = n.lines_auto
+	auto.tooltip_text = "Shares the factories between the categories and keeps them in use as their number changes. Changing a line by hand turns this off."
+	auto.toggled.connect(func(on: bool) -> void:
+		GameState.issue(SetProductionAuto.new(GameState.player_tag, on))
+		_refresh()
+	)
+	_production.add_child(auto)
+	_production.add_child(HSeparator.new())
+
+	var g := _grid(6)
+	_production.add_child(g)
+	for h in ["Line", "Factories", "Efficiency", "A month", "Cost", ""]:
 		_cell(g, h, -1, Fmt.DIM)
-	var total_levels := 0
-	var total_income := 0.0
-	for type in Economy.building_ids():
-		var def: Dictionary = Economy.cfg.buildings[type]
-		var st: Dictionary = stats[type]
-		total_levels += st.levels
-		total_income += st.income
-		_cell(g, def.name, 0, Color.WHITE, _building_tip(def))
-		var level: int = GameState.province_buildings[_province].get(type, 0) if here else 0
-		_cell(g, ("%d/%d" % [level, def.max_level]) if here else "", 1)
-		_cell(g, str(st.levels) if st.levels > 0 else "-", 1, Color.WHITE if st.levels > 0 else Fmt.DIM, _stats_tip(st))
-		_cell(g, Fmt.money(Fmt.monthly(st.income), true) if st.levels > 0 else "-", 1, Color.WHITE if st.levels > 0 else Fmt.DIM, _stats_tip(st))
-		g.add_child(_build_button(n, type, def, here, level))
-
-	var share := 100.0 * total_income / maxf(n.budget.revenue, 0.001)
-	_buildings.add_child(_note("%d building levels earn £%.1fM a month (%d%% of your income). Hover over a name for what it does." % [total_levels, Fmt.monthly(total_income), roundi(share)]))
-
-	_mass_toggle.text = ("v " if _mass_toggle.button_pressed else "> ") + "Mass build"
-	if _mass_toggle.button_pressed:
-		_refresh_mass()
+	for line in n.production_lines:
+		_production_row(g, n, line, cats)
+	if n.production_lines.is_empty():
+		_production.add_child(_note("No lines: the factories make nothing."))
+	var add := Button.new()
+	add.text = "New line"
+	add.focus_mode = Control.FOCUS_NONE
+	add.disabled = Production.free_factories(n) < 1
+	add.tooltip_text = "No free factory." if add.disabled else "Opens an arms line with one free factory."
+	add.pressed.connect(func() -> void:
+		GameState.issue(SetProductionLine.new(GameState.player_tag, 0, cats[0], 1))
+		_refresh()
+	)
+	_production.add_child(add)
+	_production.add_child(_note("A factory makes one kind of equipment. A line starts slowly and reaches full efficiency after %d days; changing what it makes starts it over. Each item costs money and iron or coal; materials the store lacks are bought abroad at a markup, and a line short of money or cut off by a blockade makes less." % int(Military.cfg.equipment.efficiency_days)))
 
 
-func _build_button(n: Nation, type: String, def: Dictionary, here: bool, level: int) -> Button:
-	var button := Button.new()
-	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(84, 0)
-	if not here:
-		button.text = "Build"
-		button.disabled = true
-		button.tooltip_text = "Select one of your provinces first."
-		return button
-	var problem := Economy.build_problem(GameState, n.tag, _province, type)
-	var plan := Economy.build_plan(GameState, _province, type)
-	if level >= def.max_level:
-		button.text = "Max"
-	elif problem.begins_with("No ") or problem.begins_with("Needs a"):
-		button.text = "n/a"
-	elif problem == "Already under construction":
-		button.text = "Building"
-	else:
-		button.text = "£%.1fM" % plan.total
-	button.disabled = not problem.is_empty()
-	button.tooltip_text = problem if not problem.is_empty() else _plan_text(plan, def)
-	var province := _province
-	button.pressed.connect(func() -> void: GameState.issue(ConstructBuilding.new(n.tag, province, type)))
-	return button
-
-
-## What a building type does, for the tooltip on its name.
-func _building_tip(def: Dictionary) -> String:
-	var lines: PackedStringArray = ["Per level: " + _effects_text(def.effects)]
-	if not def.get("materials", {}).is_empty():
-		lines.append("Needs: " + _amounts_text(def.materials) + " (level 1)")
-	if not def.get("consumes", {}).is_empty():
-		lines.append("Uses per level: " + _amounts_text(def.consumes) + " a year")
-	var requires: String = def.get("requires", "")
-	if requires == "coastal":
-		lines.append("Coastal provinces only.")
-	elif requires == "capital":
-		lines.append("The capital only; its points are lost while the capital is occupied.")
-	elif requires.begins_with("deposit:"):
-		lines.append("Needs a %s deposit." % Economy.cfg.resources[requires.trim_prefix("deposit:")].name.to_lower())
-	lines.append("Takes %d days." % def.build_days)
-	return "\n".join(lines)
-
-
-## What your buildings of a type produce, for the tooltips on their totals.
-func _stats_tip(st: Dictionary) -> String:
-	if st.levels == 0:
-		return "None built."
-	var parts: PackedStringArray = ["%d levels in %d provinces" % [st.levels, st.provinces]]
-	if st.gdp > 0.0005:
-		parts.append("output +£%.1fM/mo" % Fmt.monthly(st.gdp))
-	if st.industry > 0.0005:
-		parts.append("industry +£%.1fM/mo" % Fmt.monthly(st.industry))
-	if st.trade > 0.0005:
-		parts.append("trade +£%.1fM/mo" % Fmt.monthly(st.trade))
-	if st.food > 0.5:
-		parts.append("feeds +%s people" % Fmt.people(st.food))
-	for r in Economy.resource_ids():
-		if st[r] > 0.5:
-			parts.append("%s +%s/mo" % [Economy.cfg.resources[r].name.to_lower(), Fmt.kt(Fmt.monthly(st[r]))])
-	for r in st.uses:
-		parts.append("uses %s %s/mo" % [Fmt.kt(Fmt.monthly(st.uses[r])), Economy.cfg.resources[r].name.to_lower()])
-	return "\n".join(parts)
-
-
-func _amounts_text(amounts: Dictionary) -> String:
+func _production_row(g: GridContainer, n: Nation, line: Dictionary, cats: Array) -> void:
+	var pick := OptionButton.new()
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for i in cats.size():
+		pick.add_item(Military.cfg.equipment.categories[cats[i]].name)
+		if cats[i] == line.category:
+			pick.select(i)
+	pick.item_selected.connect(func(i: int) -> void:
+		GameState.issue(SetProductionLine.new(GameState.player_tag, line.id, cats[i], line.factories))
+		_refresh()
+	)
+	g.add_child(pick)
+	var count := HBoxContainer.new()
+	count.alignment = BoxContainer.ALIGNMENT_END
+	var less := Button.new()
+	less.text = "-"
+	less.focus_mode = Control.FOCUS_NONE
+	less.pressed.connect(func() -> void:
+		GameState.issue(SetProductionLine.new(GameState.player_tag, line.id, line.category, line.factories - 1))
+		_refresh()
+	)
+	count.add_child(less)
+	var shown := Label.new()
+	shown.text = str(line.factories)
+	shown.custom_minimum_size = Vector2(26, 0)
+	shown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count.add_child(shown)
+	var more := Button.new()
+	more.text = "+"
+	more.focus_mode = Control.FOCUS_NONE
+	more.disabled = Production.free_factories(n) < 1
+	more.pressed.connect(func() -> void:
+		GameState.issue(SetProductionLine.new(GameState.player_tag, line.id, line.category, line.factories + 1))
+		_refresh()
+	)
+	count.add_child(more)
+	g.add_child(count)
+	var eff := Production.efficiency(line)
+	_cell(g, "%d%%" % roundi(eff * 100.0), 1, Fmt.GOOD if eff >= 0.999 else Fmt.WARN,
+			"Efficiency of the line: it climbs while the line runs and starts over if it changes what it makes.")
+	var made_month: float = line.made * 30.0
+	var short: bool = line.limit != ""
+	_cell(g, "%.0f" % made_month, 1, Fmt.BAD if short else Color.WHITE,
+			("Held back by a lack of %s." % line.limit) if short else "Items made a month at today's rate (%.0f at best)." % (Production.capacity(n, line) * 30.0))
+	var cost := Production.item_cost(line.category)
 	var parts: PackedStringArray = []
-	for r in amounts:
-		parts.append("%s %s" % [Fmt.kt(amounts[r]), Economy.cfg.resources[r].name.to_lower()])
-	return ", ".join(parts)
+	for key in cost:
+		if key == "money":
+			parts.append(Fmt.money(made_month * float(cost[key])))
+		else:
+			parts.append("%s %s" % [Economy.cfg.resources[key].name.to_lower(), Fmt.kt(made_month * float(cost[key]))])
+	_cell(g, parts[0], 1, Color.WHITE, ", ".join(parts))
+	var close := Button.new()
+	close.text = "x"
+	close.focus_mode = Control.FOCUS_NONE
+	close.tooltip_text = "Close the line and free its factories."
+	close.pressed.connect(func() -> void:
+		GameState.issue(SetProductionLine.new(GameState.player_tag, line.id, line.category, 0))
+		_refresh()
+	)
+	g.add_child(close)
 
 
-func _plan_text(plan: Dictionary, def: Dictionary) -> String:
-	var lines: PackedStringArray = ["%d days. Gold £%.1fM." % [def.build_days, plan.gold]]
-	for r in plan.materials:
-		var res_name: String = Economy.cfg.resources[r].name.to_lower()
-		var line := "%s %s: %s from stock" % [Fmt.kt(plan.materials[r]), res_name, Fmt.kt(plan.from_stock[r])]
-		if plan.buy[r] > 0.0:
-			line += ", %s bought" % Fmt.kt(plan.buy[r])
-		lines.append(line)
-	if plan.purchase > 0.0:
-		lines.append("Imports cost £%.2fM extra." % plan.purchase)
-	return "\n".join(lines)
-
+# ---------------------------------------------------------------- mass build
 
 func _effects_text(effects: Dictionary) -> String:
-	var names := {"gdp": "output", "industry": "industry", "food": "food", "trade": "trade income", "growth": "growth/yr",
-			"yield_coal": "coal output", "yield_iron": "iron output", "yield_wood": "timber output"}
+	var names := {"gdp": "output", "industry": "industry", "food": "food", "trade": "trade income", "growth": "growth/yr"}
 	var parts: PackedStringArray = []
 	for k in effects:
 		if k == "diplomacy":
@@ -509,35 +511,6 @@ func _effects_text(effects: Dictionary) -> String:
 		else:
 			parts.append("+%d%% %s" % [roundi(effects[k] * 100.0), names[k]])
 	return ", ".join(parts)
-
-
-# ---------------------------------------------------------------- mass build
-
-func _mass_command() -> MassConstructBuilding:
-	var type: String = Economy.building_ids()[_mass_type.selected]
-	return MassConstructBuilding.new(GameState.player_tag, type, int(_mass_count.value), _mass_spend.value)
-
-
-## Updates the eligible counts, the preview and the button for the current settings.
-func _refresh_mass() -> void:
-	var n := GameState.get_player()
-	if n == null:
-		return
-	var ids := Economy.building_ids()
-	for i in ids.size():
-		_mass_type.set_item_text(i, "%s  (%d eligible)" % [Economy.cfg.buildings[ids[i]].name, Economy.mass_candidates(GameState, n.tag, ids[i]).size()])
-	var preview := _mass_command().preview(GameState)
-	var limits := {"all": "every eligible province", "count": "your province limit",
-			"spend": "your spending limit", "money": "your treasury"}
-	if preview.count == 0:
-		_mass_preview.text = "No eligible province for this building." if preview.stopped_by == "all" \
-				else "Nothing can be built: the first one costs more than %s allows." % limits[preview.stopped_by]
-		_mass_button.text = "Build"
-		_mass_button.disabled = true
-	else:
-		_mass_preview.text = "%d buildings for £%.1fM, materials included. Limited by %s." % [preview.count, preview.spent, limits[preview.stopped_by]]
-		_mass_button.text = "Build %d for £%.1fM" % [preview.count, preview.spent]
-		_mass_button.disabled = false
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
