@@ -16,7 +16,7 @@
 		{
 			"id": "map_mode",
 			"title": "Read a map mode",
-			"text": "The buttons at the bottom left recolour the map: who owns what, the economy, population, armies, terrain. Click one (keys 1 to 7 do the same).",
+			"text": "The buttons at the bottom left recolour the map: who owns what, the economy, population, armies, terrain. Click one (keys 1 to 6 do the same).",
 			"highlight": {"group": "map_modes"},
 			"done": {"signal": "mode_changed"}
 		},

@@ -8,6 +8,17 @@ const FONT_SIZE := 14
 const ACCENT := Color(0.75, 0.82, 0.95)
 
 
+## A dark, nearly solid panel for text that sits over the map.
+static func map_panel() -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.09, 0.11, 0.16, 0.93)
+	box.set_corner_radius_all(4)
+	box.set_border_width_all(1)
+	box.border_color = Color(0.3, 0.34, 0.42)
+	box.set_content_margin_all(10)
+	return box
+
+
 static func build() -> Theme:
 	var t := Theme.new()
 	t.default_font_size = FONT_SIZE

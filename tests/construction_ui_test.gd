@@ -56,7 +56,8 @@ func _test_open_and_colours() -> void:
 	bar._window_buttons["construction_panel"].pressed.emit()
 	await process_frame
 	_check(panel.visible, "the top bar button opens it")
-	_check(panel.position.x < 100.0, "on the left of the screen")
+	var legend_zone := Rect2(0, root.get_visible_rect().size.y - 140.0, 620, 140)
+	_check(not panel.get_global_rect().intersects(legend_zone), "and it stays clear of the map legend and palette at the bottom left")
 	_check(map_view.mode == MapView.Mode.CONSTRUCTION and map_view.submode == "factory", "the map shows where a civilian factory can be built")
 	_check(panel.picked() == "factory" and panel._rows["factory"].button_pressed, "the first building is picked and lit")
 	var eco_panel: Node = get_first_node_in_group("economy_panel")

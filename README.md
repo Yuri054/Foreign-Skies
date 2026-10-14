@@ -23,7 +23,7 @@ Saves and settings are written to Godot's user folder (`user://saves/`, `user://
 | Right click | Order selected armies or fleets; otherwise show the country panel |
 | Box drag | Select every army and fleet inside the box |
 | Space, `-` `+` | Pause, change speed (five speeds) |
-| 1 to 7 | Map modes (political, diplomacy, economy, population, military, terrain, sea control and blockade) |
+| 1 to 6 | Map modes (political, diplomacy, economy, population, military with its sea control and blockade variants, terrain) |
 | E, B, M, F, N | Economy (with its Production tab), Construction, Military, Diplomacy and Navy windows |
 | F5, Shift+F5, F6 | Quick save, quick load, save and load window |
 | F10, Ctrl and `+` `-` | Settings, UI scale |

@@ -94,7 +94,6 @@ func _ready() -> void:
 	_mass_box.add_child(_mass_button)
 
 	setup_window("Construction", true, Vector2(370, 0), 0)
-	position = Vector2(8, 186)
 	fit_window(box.get_combined_minimum_size().y + 4.0)
 
 	visibility_changed.connect(_on_visibility_changed)

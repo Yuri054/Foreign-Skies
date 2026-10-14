@@ -73,6 +73,16 @@ const CONSTRUCT_BUILD := Color(0.25, 0.74, 0.36)
 const CONSTRUCT_BOTH := Color(0.2, 0.7, 0.7)
 const CONSTRUCT_HAVE := Color(0.25, 0.45, 0.82)
 const ALL_BUILDINGS := "all"
+## Military mode (the variant is the submode): who holds the ground, where the front is, how many
+## men stand in each province, and how well they are equipped.
+const MIL_CONTROL := "control"
+const MIL_FRONT := "front"
+const MIL_STRENGTH := "strength"
+const MIL_EQUIPMENT := "equipment"
+const FRONT_HOT := Color(0.86, 0.2, 0.16)
+const STRENGTH_COLOR := Color(0.85, 0.35, 0.2)
+const EQUIP_LOW := Color(0.85, 0.2, 0.16)
+const EQUIP_HIGH := Color(0.3, 0.75, 0.35)
 const LOOKUP_WIDTH := 256
 
 var mode: Mode = Mode.POLITICAL
@@ -110,6 +120,10 @@ var viewpoint := ""
 var _pushed_mode := -1
 var _pushed_submode := ""
 var _material: ShaderMaterial
+## Military mode's figures, worked out once per repaint: men in each province, and the men-
+## weighted equipment coverage of the armies there.
+var _men_at := {}
+var _coverage_at := {}
 ## Largest value of the current mode, for the legend and the color scale.
 var _max_value := 0.0
 
@@ -152,6 +166,7 @@ func _ready() -> void:
 		if mode == Mode.MILITARY or mode == Mode.POLITICAL:
 			repaint()
 	)
+	GameState.armies_changed.connect(_queue_military_repaint)
 	GameState.economy_updated.connect(func() -> void:
 		if mode in DYNAMIC_MODES and mode != Mode.DIPLOMACY:
 			repaint()
@@ -182,6 +197,8 @@ func submodes(for_mode: Mode = mode) -> Array:
 		Mode.CONSTRUCTION:
 			for type in Economy.building_ids():
 				list.append([type, Economy.cfg.buildings[type].name])
+		Mode.MILITARY:
+			list = [[MIL_CONTROL, "Control"], [MIL_FRONT, "Front line"], [MIL_STRENGTH, "Strength"], [MIL_EQUIPMENT, "Equipment"]]
 	return list
 
 
@@ -263,6 +280,19 @@ func _queue_repaint() -> void:
 	_deferred_repaint.call_deferred()
 
 
+func _queue_military_repaint() -> void:
+	if mode != Mode.MILITARY or submode in [MIL_CONTROL, MIL_FRONT] or _repaint_queued:
+		return
+	_repaint_queued = true
+	_deferred_military_repaint.call_deferred()
+
+
+func _deferred_military_repaint() -> void:
+	_repaint_queued = false
+	if mode == Mode.MILITARY:
+		repaint()
+
+
 func _queue_naval_repaint() -> void:
 	if not mode in NAVAL_MODES or _repaint_queued:
 		return
@@ -319,6 +349,8 @@ func repaint() -> void:
 		for id in range(1, count):
 			values[id] = _value(id)
 			_max_value = maxf(_max_value, values[id])
+	if mode == Mode.MILITARY:
+		_count_forces()
 	for id in range(1, count):
 		@warning_ignore("integer_division")
 		var px := Vector2i(id % LOOKUP_WIDTH, id / LOOKUP_WIDTH)
@@ -409,15 +441,61 @@ func _paint_color(id: int, value: float) -> Color:
 		return NO_DATA_COLOR.lerp(GameState.owner_color(id), 0.55)
 	if mode == Mode.CONSTRUCTION:
 		return construction_color(id, submode)
-	if mode == Mode.MILITARY or mode == Mode.POLITICAL:
+	if mode == Mode.MILITARY:
+		return military_color(id)
+	if mode == Mode.POLITICAL:
 		# Who holds the ground. Political stripes occupied provinces with the owner's colour
-		# (in the shader); Military paints them solid in the occupier's colour.
+		# (in the shader).
 		return GameState.nations[GameState.province_controller[id]].color
 	if mode != Mode.RESOURCES and not MODE_COLORS.has(mode):
 		return GameState.owner_color(id)
 	if value <= 0.0:
 		return NO_DATA_COLOR
 	return NO_DATA_COLOR.lerp(_mode_color(), 0.25 + 0.75 * _scale(value))
+
+
+## Men and equipment coverage of the armies standing in each province (embarked ones are at sea).
+func _count_forces() -> void:
+	_men_at.clear()
+	_coverage_at.clear()
+	var covered := {}
+	for a: Army in GameState.armies.values():
+		if a.embarked():
+			continue
+		var men := a.men()
+		_men_at[a.province] = _men_at.get(a.province, 0.0) + men
+		covered[a.province] = covered.get(a.province, 0.0) + Military.army_coverage(a) * men
+	for id: int in covered:
+		_coverage_at[id] = covered[id] / maxf(_men_at[id], 1.0)
+	_max_value = 0.0
+	for id: int in _men_at:
+		_max_value = maxf(_max_value, _men_at[id])
+
+
+## Whether a province lies on a front: held by a nation at war with the holder of a neighbour.
+func on_front(id: int) -> bool:
+	var holder: String = GameState.province_controller[id]
+	for n in Military.neighbors(id):
+		var other: String = GameState.province_controller[n]
+		if other != holder and GameState.at_war(holder, other):
+			return true
+	return false
+
+
+## What a province shows in Military mode, by variant.
+func military_color(id: int) -> Color:
+	var held: Color = GameState.nations[GameState.province_controller[id]].color
+	match submode:
+		MIL_FRONT:
+			return held.lerp(FRONT_HOT, 0.65) if on_front(id) else held.darkened(0.45)
+		MIL_STRENGTH:
+			var men: float = _men_at.get(id, 0.0)
+			return NO_DATA_COLOR.darkened(0.45) if men <= 0.0 else NO_DATA_COLOR.lerp(STRENGTH_COLOR, 0.25 + 0.75 * _scale(men))
+		MIL_EQUIPMENT:
+			if not _coverage_at.has(id):
+				return NO_DATA_COLOR.darkened(0.45)
+			return EQUIP_LOW.lerp(EQUIP_HIGH, clampf(_coverage_at[id], 0.0, 1.0))
+	return held
 
 
 ## What a province shows in Construction mode for one kind of building: dark if it is not the
@@ -461,7 +539,23 @@ func legend() -> Dictionary:
 				"low": "hostile", "high": "friendly", "from": HOSTILE_COLOR, "to": FRIENDLY_COLOR}
 	if mode == Mode.CONSTRUCTION:
 		return {"title": "Build: %s" % Economy.cfg.buildings[submode].name.to_lower() if Economy.cfg.buildings.has(submode) else "Construction",
-				"low": "cannot", "high": "can build", "from": CONSTRUCT_BLOCKED, "to": CONSTRUCT_BUILD}
+				"swatches": [
+					[CONSTRUCT_BUILD, "can build"],
+					[CONSTRUCT_BOTH, "built, room for more"],
+					[CONSTRUCT_HAVE, "built, full"],
+					[CONSTRUCT_BLOCKED, "cannot build"],
+					[CONSTRUCT_OTHER, "not yours"],
+				]}
+	if mode == Mode.MILITARY:
+		match submode:
+			MIL_FRONT:
+				return {"title": "Front line", "swatches": [[FRONT_HOT, "held next to an enemy"], [NO_DATA_COLOR.darkened(0.45), "rear"]]}
+			MIL_STRENGTH:
+				return {"title": "Men stationed", "low": "none", "high": Fmt.people(_max_value) if _max_value > 0.0 else "none",
+						"from": NO_DATA_COLOR.lerp(STRENGTH_COLOR, 0.25), "to": STRENGTH_COLOR}
+			MIL_EQUIPMENT:
+				return {"title": "Equipment held", "low": "0%", "high": "100%", "from": EQUIP_LOW, "to": EQUIP_HIGH}
+		return {}
 	if mode != Mode.RESOURCES and not MODE_COLORS.has(mode):
 		return {}
 	var title := ""

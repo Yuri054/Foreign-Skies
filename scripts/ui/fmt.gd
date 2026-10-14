@@ -44,3 +44,18 @@ static func thousands(n: int) -> String:
 	for i in range(s.length() - 3, 0, -3):
 		s = s.insert(i, ",")
 	return ("-" if n < 0 else "") + s
+
+
+## 1 -> "1st", 2 -> "2nd", 11 -> "11th", 23 -> "23rd".
+static func ordinal(n: int) -> String:
+	var tail := n % 100
+	if tail >= 11 and tail <= 13:
+		return "%dth" % n
+	match n % 10:
+		1:
+			return "%dst" % n
+		2:
+			return "%dnd" % n
+		3:
+			return "%drd" % n
+	return "%dth" % n

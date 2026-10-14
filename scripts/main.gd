@@ -25,11 +25,12 @@ const ConstructionPanel := preload("res://scripts/ui/construction_panel.gd")
 const MapView := preload("res://scripts/map/map_view.gd")
 const NationStats := preload("res://scripts/ui/nation_stats.gd")
 const RankingsWindow := preload("res://scripts/ui/rankings_window.gd")
+const ProvincePanel := preload("res://scripts/ui/province_panel.gd")
 
 @onready var map_view: Sprite2D = $MapView
 @onready var camera: Camera2D = $Camera
 @onready var ui: CanvasLayer = $UI
-@onready var info_label: Label = $UI/InfoLabel
+var province_panel: PanelContainer
 
 
 func _ready() -> void:
@@ -82,6 +83,8 @@ func _ready() -> void:
 	camera.zoom = Vector2(0.4, 0.4)
 	_focus_on(GameState.player_tag)
 
+	province_panel = ProvincePanel.new()
+	ui.add_child(province_panel)
 	ui.add_child(EconomyPanel.new())
 	var construction := ConstructionPanel.new()
 	construction.map_view = map_view
@@ -127,6 +130,7 @@ func _ready() -> void:
 		Scenarios.resume = false
 		return
 	var picker := NationPicker.new()
+	picker.map_view = map_view
 	picker.nation_chosen.connect(func(tag: String) -> void:
 		GameState.set_player(tag)
 		_focus_on(tag)
@@ -212,13 +216,7 @@ func _on_sea_zone_selected(zone: int) -> void:
 	if zone <= 0:
 		return
 	get_tree().call_group("navy_panel", "clear_selection_quiet")
-	var z: Dictionary = MapData.sea_zones[zone]
-	var next: PackedStringArray = []
-	for n in MapData.sea_adjacency[zone]:
-		next.append(MapData.sea_zones[n].name)
-	info_label.text = "%s  (sea zone)
-Borders: %s
-%d ports open on it" % [z.name, ", ".join(next), MapData.ports_in_zone(zone).size()]
+	province_panel.show_zone(zone)
 
 
 func _on_province_selected(id: int) -> void:
@@ -227,56 +225,4 @@ func _on_province_selected(id: int) -> void:
 	get_tree().call_group("economy_panel", "set_province", id)
 	get_tree().call_group("military_panel", "set_province", id)
 	get_tree().call_group("diplomacy_panel", "set_province", id)
-	var p := MapData.get_province(id)
-	if p.is_empty():
-		info_label.text = "Click a province"
-		return
-	var owner_tag: String = GameState.province_owner[id]
-	var population: int = GameState.province_population[id]
-	var lines: PackedStringArray = [
-		"%s%s" % [p.name, "  (coast)" if p.coastal else ""],
-		"%s, %s people, ~%s km²" % [GameState.nations[owner_tag].display_name, Fmt.thousands(population), Fmt.thousands(int(p.area * MapData.KM2_PER_PX))],
-		"Output £%.1fM a month, feeds %s, recruits %s" % [
-			Fmt.monthly(GameState.province_gdp[id]), Fmt.people(GameState.province_food[id]), Fmt.people(GameState.province_pool[id])],
-	]
-
-	lines[0] += "  [%s]" % Military.terrain_of(id).name.to_lower()
-	lines.append("Building slots %d of %d used, infrastructure %.1f" % [Economy.slots_used(GameState, id), Economy.slots_of(GameState, id), Economy.infrastructure(GameState, id)])
-	if GameState.province_controller[id] != owner_tag:
-		lines.append("Occupied by %s" % GameState.nations[GameState.province_controller[id]].display_name)
-	var here := Military.armies_at(GameState, id)
-	if not here.is_empty():
-		var parts: PackedStringArray = []
-		for a in here:
-			parts.append("%s %s (%s)" % [a.tag, a.display_name, Fmt.people(a.men())])
-		lines.append("Armies: " + "; ".join(parts))
-
-	var yard := Navy.port_level(GameState, id)
-	var docked := Navy.fleets_in_port(GameState, id)
-	if yard > 0 and not MapData.zones_of_port(id).is_empty():
-		var zones: PackedStringArray = []
-		for z in MapData.zones_of_port(id):
-			zones.append(MapData.sea_zones[z].name)
-		lines.append("Port level %d on the %s" % [yard, " and ".join(zones)])
-	if not docked.is_empty():
-		var parts: PackedStringArray = []
-		for fl in docked:
-			parts.append("%s %s (%d squadrons)" % [fl.tag, fl.display_name, fl.ships.size()])
-		lines.append("Fleets: " + "; ".join(parts))
-
-	var made := Economy.province_output(population, p.area * MapData.KM2_PER_PX, GameState.nations[owner_tag],
-			GameState.province_buildings[id], GameState.province_deposit[id], GameState.province_civ_base[id])
-	var deposits: PackedStringArray = []
-	for r in Economy.resource_ids():
-		if GameState.province_deposit[id].get(r, 0.0) >= Economy.cfg.min_deposit:
-			deposits.append("%s %s/mo" % [Economy.cfg.resources[r].name.to_lower(), Fmt.kt(Fmt.monthly(made[r]))])
-	if not deposits.is_empty():
-		lines.append("Mines: " + ", ".join(deposits))
-
-	var built: PackedStringArray = []
-	for type in Economy.building_ids():
-		if GameState.province_buildings[id].has(type):
-			built.append("%s %d" % [Economy.cfg.buildings[type].name, GameState.province_buildings[id][type]])
-	if not built.is_empty():
-		lines.append("Built: " + ", ".join(built))
-	info_label.text = "\n".join(lines)
+	province_panel.show_province(id)

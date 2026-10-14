@@ -1,6 +1,6 @@
 extends VBoxContainer
 ## The map mode palette, in the style of the Paradox games: a row of buttons for the kinds of
-## map (Political, Diplomacy, Economy, Population, Military, Terrain, Sea) in the bottom left corner.
+## map (Political, Diplomacy, Economy, Population, Military, Terrain) in the bottom left corner.
 ## Above it, a strip for the kind you are looking at lists its variants as chips (Economy:
 ## tax income, coal, iron ore, timber, buildings), and a colour legend shows what the shading
 ## means. Keys 1 to 6 pick a kind; pressing the key again steps through its variants. Each kind
@@ -25,6 +25,8 @@ var _legend_title := Label.new()
 var _legend_low := Label.new()
 var _legend_high := Label.new()
 var _legend_bar := TextureRect.new()
+var _legend_bar_box := CenterContainer.new()
+var _legend_swatches := HBoxContainer.new()
 var _gradient := Gradient.new()
 
 var _strip_panel := PanelContainer.new()
@@ -87,17 +89,19 @@ func _build_groups() -> void:
 		{"label": "Economy", "tip": "Tax income, coal, iron and timber deposits, and buildings.", "items": economy},
 		{"label": "Population", "tip": "People living in each province.",
 				"items": [{"label": "Population", "mode": MapView.Mode.POPULATION, "sub": "", "tip": ""}]},
-		{"label": "Military", "tip": "Who holds each province: occupied provinces are painted solid in the occupier's colour.",
-				"items": [{"label": "Military", "mode": MapView.Mode.MILITARY, "sub": "", "tip": ""}]},
+		{"label": "Military", "tip": "Who holds the ground, where the fronts are, how many men stand where and how well they are equipped, and who holds the sea.",
+				"items": [
+					{"label": "Control", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_CONTROL, "tip": "Who holds each province: occupied provinces are painted solid in the occupier's colour."},
+					{"label": "Front line", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_FRONT, "tip": "Provinces held next to an enemy at war are lit red; the rear is dimmed."},
+					{"label": "Strength", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_STRENGTH, "tip": "Men stationed in each province, of every nation."},
+					{"label": "Equipment", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_EQUIPMENT, "tip": "How much of the equipment they need the armies in each province hold: red none, green all."},
+					{"label": "Sea control", "mode": MapView.Mode.SEA_CONTROL, "sub": "", "tip": "Sea zones tinted by the nation whose warships hold them; dark red where enemy fleets contest them."},
+					{"label": "Blockade", "mode": MapView.Mode.BLOCKADE, "sub": "", "tip": "Nations shaded by how much of their trade is cut off; their ports hatched; sea zones tinted by who holds them."},
+				]},
 		{"label": "Terrain", "tip": "Plains, forest, hills, mountains, marsh and urban ground: they set movement, defence and sieges.",
 				"items": [
 					{"label": "Terrain", "mode": MapView.Mode.TERRAIN, "sub": "", "tip": ""},
 					{"label": "Provinces", "mode": MapView.Mode.PROVINCES, "sub": "", "tip": "The raw province colours, for checking the map."},
-				]},
-		{"label": "Sea", "tip": "Who holds the sea zones, and which nations are blockaded.",
-				"items": [
-					{"label": "Sea control", "mode": MapView.Mode.SEA_CONTROL, "sub": "", "tip": "Sea zones tinted by the nation whose warships hold them; dark red where enemy fleets contest them."},
-					{"label": "Blockade", "mode": MapView.Mode.BLOCKADE, "sub": "", "tip": "Nations shaded by how much of their trade is cut off; their ports hatched; sea zones tinted by who holds them."},
 				]},
 	]
 
@@ -122,10 +126,11 @@ func _build_legend() -> void:
 	_legend_bar.texture = tex
 	_legend_bar.custom_minimum_size = Vector2(120, 12)
 	_legend_bar.stretch_mode = TextureRect.STRETCH_SCALE
-	var bar_box := CenterContainer.new()
-	bar_box.add_child(_legend_bar)
-	row.add_child(bar_box)
+	_legend_bar_box.add_child(_legend_bar)
+	row.add_child(_legend_bar_box)
 	row.add_child(_legend_high)
+	_legend_swatches.add_theme_constant_override("separation", 12)
+	row.add_child(_legend_swatches)
 	_boxed(row, _legend_panel)
 
 
@@ -198,7 +203,7 @@ func _locate() -> Vector2i:
 			var it: Dictionary = _groups[g].items[i]
 			if it.mode != map_view.mode:
 				continue
-			if it.mode == MapView.Mode.RESOURCES and it.sub != map_view.submode:
+			if it.mode in [MapView.Mode.RESOURCES, MapView.Mode.MILITARY] and it.sub != map_view.submode:
 				continue
 			return Vector2i(g, i)
 	return Vector2i(-1, -1)
@@ -208,6 +213,11 @@ func _locate() -> Vector2i:
 func _sync() -> void:
 	var at := _locate()
 	if at.x < 0:
+		_strip_title.text = "%s ›" % map_view.MODE_NAMES.get(map_view.mode, "")
+		for c in _strip.get_children():
+			_strip.remove_child(c)
+			c.queue_free()
+		_sync_legend()  # a map with no button (Construction) still has its legend
 		return
 	_active = at.x
 	_last[at.x] = at.y
@@ -260,9 +270,31 @@ func _sync_legend() -> void:
 	_legend_panel.visible = not legend.is_empty()
 	if not legend.is_empty():
 		_legend_title.text = legend.title
-		_legend_low.text = legend.low
-		_legend_high.text = legend.high
-		_gradient.colors = PackedColorArray([legend.from, legend.to])
+		var swatches: Array = legend.get("swatches", [])
+		_legend_low.visible = swatches.is_empty()
+		_legend_high.visible = swatches.is_empty()
+		_legend_bar_box.visible = swatches.is_empty()
+		_legend_swatches.visible = not swatches.is_empty()
+		for c in _legend_swatches.get_children():
+			_legend_swatches.remove_child(c)
+			c.queue_free()
+		for sw: Array in swatches:
+			var chip := HBoxContainer.new()
+			chip.add_theme_constant_override("separation", 4)
+			var box := ColorRect.new()
+			box.color = sw[0]
+			box.custom_minimum_size = Vector2(14, 14)
+			var holder := CenterContainer.new()
+			holder.add_child(box)
+			chip.add_child(holder)
+			var label := Label.new()
+			label.text = sw[1]
+			chip.add_child(label)
+			_legend_swatches.add_child(chip)
+		if swatches.is_empty():
+			_legend_low.text = legend.low
+			_legend_high.text = legend.high
+			_gradient.colors = PackedColorArray([legend.from, legend.to])
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
