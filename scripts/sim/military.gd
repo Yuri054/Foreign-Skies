@@ -317,6 +317,12 @@ static func defense_multiplier(a: Army) -> float:
 static func deploy_starting(gs: Node) -> void:
 	gs.armies.clear()
 	gs.next_army_id = 1
+	gs.generals.clear()
+	gs.next_general_id = 1
+	gs.army_groups.clear()
+	gs.next_group_id = 1
+	gs.attack_lines.clear()
+	gs.next_attack_line_id = 1
 	var plans: Dictionary = gs.scenario.get("deployment", {})
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
@@ -328,10 +334,12 @@ static func deploy_starting(gs: Node) -> void:
 		var armies: Array[Army] = []
 		for i in stacks.size():
 			var a := new_army(gs, tag, stacks[i].name, stacks[i].province)
-			if i < generals.size():
-				a.general_name = generals[i][0]
-				a.general_skill = generals[i][1]
 			armies.append(a)
+		# Every general in the nation's list joins its pool; the first ones lead the armies.
+		for i in generals.size():
+			var g := new_general(gs, tag, generals[i][0], generals[i][1])
+			if i < armies.size():
+				set_general(gs, g, armies[i])
 		# Deal the units out so each stack holds men in proportion to its weight.
 		var dealt := PackedFloat32Array()
 		dealt.resize(stacks.size())
@@ -396,6 +404,146 @@ static func new_army(gs: Node, tag: String, army_name: String, province: int) ->
 	a.province = province
 	gs.armies[a.id] = a
 	return a
+
+
+static func new_general(gs: Node, tag: String, general_name: String, skill: float) -> General:
+	var g := General.new()
+	g.id = gs.next_general_id
+	gs.next_general_id += 1
+	g.tag = tag
+	g.display_name = general_name
+	g.skill = skill
+	gs.generals[g.id] = g
+	return g
+
+
+## Puts `g` in command of `a`. Whoever led `a` goes back to the pool, and `g` leaves the army he
+## led before. With `g` null the army is left without a general; with `a` null `g` is only taken
+## off his army.
+static func set_general(gs: Node, g: General, a: Army) -> void:
+	if g != null and g.army_id != 0:
+		_clear_command(gs.armies.get(g.army_id), g)
+	if a != null:
+		var old: General = gs.generals.get(a.general_id)
+		if old != null:
+			old.army_id = 0
+		a.general_id = 0
+		a.general_name = ""
+		a.general_skill = 1.0
+	if g == null or a == null:
+		return
+	g.army_id = a.id
+	a.general_id = g.id
+	a.general_name = g.display_name
+	a.general_skill = g.skill
+
+
+static func _clear_command(a: Army, g: General) -> void:
+	g.army_id = 0
+	if a != null and a.general_id == g.id:
+		a.general_id = 0
+		a.general_name = ""
+		a.general_skill = 1.0
+
+
+## Frees generals whose army is gone (destroyed, cut off, disbanded or merged away).
+static func release_orphan_generals(gs: Node) -> void:
+	for g: General in gs.generals.values():
+		if g.army_id != 0 and (not gs.armies.has(g.army_id) or gs.armies[g.army_id].general_id != g.id):
+			g.army_id = 0
+	# The AI keeps its best free general in command of its biggest army without one.
+	for tag in gs.nations:
+		if tag == gs.player_tag:
+			continue
+		var pool := pool_of(gs, tag)
+		if pool.is_empty():
+			continue
+		var unled: Array[Army] = []
+		for a: Army in gs.armies.values():
+			if a.tag == tag and a.general_id == 0 and not a.units.is_empty():
+				unled.append(a)
+		unled.sort_custom(func(x: Army, y: Army) -> bool: return x.men() > y.men() or (x.men() == y.men() and x.id < y.id))
+		for i in mini(pool.size(), unled.size()):
+			set_general(gs, pool[i], unled[i])
+
+
+## The nation's generals who lead no army and no group, best first.
+static func pool_of(gs: Node, tag: String) -> Array[General]:
+	var out: Array[General] = []
+	for g: General in gs.generals.values():
+		if g.tag == tag and g.army_id == 0 and g.group_id == 0:
+			out.append(g)
+	out.sort_custom(func(x: General, y: General) -> bool: return x.skill > y.skill or (x.skill == y.skill and x.id < y.id))
+	return out
+
+
+static func new_group(gs: Node, tag: String, group_name: String) -> ArmyGroup:
+	var g := ArmyGroup.new()
+	g.id = gs.next_group_id
+	gs.next_group_id += 1
+	g.tag = tag
+	g.display_name = group_name if not group_name.is_empty() else "Army Group %d" % g.id
+	gs.army_groups[g.id] = g
+	return g
+
+
+## Moves armies into `group` (null takes them out of their groups).
+static func put_in_group(gs: Node, group: ArmyGroup, army_ids: Array[int]) -> void:
+	for id in army_ids:
+		var a: Army = gs.armies.get(id)
+		if a == null:
+			continue
+		var old: ArmyGroup = gs.army_groups.get(a.group_id)
+		if old != null:
+			old.army_ids.erase(a.id)
+		a.group_id = 0
+		if group != null:
+			a.group_id = group.id
+			group.army_ids.append(a.id)
+
+
+## Sets the group's marshal (null relieves him); the old marshal goes back to the pool.
+static func set_marshal(gs: Node, group: ArmyGroup, g: General) -> void:
+	var old: General = gs.generals.get(group.marshal_id)
+	if old != null:
+		old.group_id = 0
+	group.marshal_id = 0
+	if g != null:
+		g.group_id = group.id
+		group.marshal_id = g.id
+
+
+static func remove_group(gs: Node, group: ArmyGroup) -> void:
+	for id in group.army_ids:
+		if gs.armies.has(id):
+			gs.armies[id].group_id = 0
+	group.army_ids.clear()
+	set_marshal(gs, group, null)
+	gs.army_groups.erase(group.id)
+
+
+## Drops armies that no longer exist from their groups and dissolves groups left empty.
+static func prune_groups(gs: Node) -> void:
+	for group: ArmyGroup in gs.army_groups.values().duplicate():
+		for i in range(group.army_ids.size() - 1, -1, -1):
+			var a: Army = gs.armies.get(group.army_ids[i])
+			if a == null or a.group_id != group.id:
+				group.army_ids.remove_at(i)
+		if group.army_ids.is_empty():
+			remove_group(gs, group)
+
+
+## What an army's power is multiplied by for the marshal over its group.
+static func marshal_mult(a: Army) -> float:
+	if a.group_id == 0:
+		return 1.0
+	var group: ArmyGroup = GameState.army_groups.get(a.group_id)
+	if group == null:
+		return 1.0
+	var m: General = GameState.generals.get(group.marshal_id)
+	if m == null:
+		return 1.0
+	return 1.0 + (m.skill - 1.0) * float(cfg.army_group.marshal_share)
 
 
 ## Recomputes the men each nation has under arms (used for upkeep and the manpower cap).
@@ -515,6 +663,9 @@ static func _dist(a: int, b: int) -> float:
 static func step_day(gs: Node) -> void:
 	step_fronts(gs)
 	step_readiness(gs)
+	prune_groups(gs)
+	AttackLines.step_day(gs)
+	release_orphan_generals(gs)
 	Production.step_day(gs)
 	_train(gs)
 	var armies: Array = gs.armies.values()

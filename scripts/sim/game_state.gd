@@ -80,6 +80,15 @@ var province_buildings: Array[Dictionary] = []
 ## army id -> Army.
 var armies: Dictionary = {}
 var next_army_id := 1
+## The commanders each nation holds, by id (see General), and the next id.
+var generals: Dictionary = {}
+var next_general_id := 1
+## Army groups by id (see ArmyGroup) and the next id.
+var army_groups: Dictionary = {}
+var next_group_id := 1
+## Attack lines by id (see AttackLine) and the next id.
+var attack_lines: Dictionary = {}
+var next_attack_line_id := 1
 ## id -> Fleet.
 var fleets: Dictionary = {}
 var next_fleet_id := 1

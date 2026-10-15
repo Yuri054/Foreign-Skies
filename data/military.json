@@ -80,6 +80,9 @@
 	"occupation": {
 		"income_share": 0.25
 	},
+	"army_group": {
+		"marshal_share": 0.5
+	},
 	"generals": {
 		"GBR": [["John French", 1.0], ["Douglas Haig", 1.05], ["Horace Smith-Dorrien", 1.05]],
 		"FRA": [["Joseph Joffre", 1.05], ["Ferdinand Foch", 1.1], ["Charles Lanrezac", 0.95], ["Joseph Gallieni", 1.05]],

@@ -25,9 +25,11 @@ func execute(gs: Node) -> bool:
 		others.append(a)
 	for a in others:
 		target.units.append_array(a.units)
-		if a.general_skill > target.general_skill:
-			target.general_name = a.general_name
-			target.general_skill = a.general_skill
+		# The better general commands the merged army; the other goes back to the pool.
+		if a.general_id != 0 and (target.general_id == 0 or a.general_skill > target.general_skill):
+			Military.set_general(gs, gs.generals[a.general_id], target)
+		elif a.general_id != 0:
+			gs.generals[a.general_id].army_id = 0
 		target.still_days = mini(target.still_days, a.still_days)
 		gs.armies.erase(a.id)
 	target.path.clear()

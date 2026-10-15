@@ -19,6 +19,9 @@ var _detach := MenuButton.new()
 var _halt := Button.new()
 var _board := Button.new()
 var _land := Button.new()
+var _general := MenuButton.new()
+var _group := MenuButton.new()
+var _attack := MenuButton.new()
 var _symbol := MenuButton.new()
 var _show := Button.new()
 var _deselect := Button.new()
@@ -27,6 +30,13 @@ var _front_ids: Array[int] = []
 var _front_enemies: Array[String] = []
 var _detach_types: Array[String] = []
 var _symbol_ids: Array[String] = []
+## Generals the menu offers, in menu order (the last entry may be "relieve", id 0).
+var _general_ids: Array[int] = []
+## Groups and marshals the Group menu offers, by menu id (see _fill_group).
+var _group_ids: Array[int] = []
+## Enemies the Attack menu offers, by menu id.
+var _attack_enemies: Array[String] = []
+var _marshal_ids: Array[int] = []
 
 
 func _ready() -> void:
@@ -89,6 +99,18 @@ func _ready() -> void:
 	_land.text = "Disembark"
 	_land.tooltip_text = "Put the armies ashore in the port their fleet lies in. At sea, right click a coast."
 	_land.pressed.connect(func() -> void: _via_panel("_on_land"))
+	_general.text = "General"
+	_general.tooltip_text = "Choose who commands this army. A general's skill multiplies the army's power."
+	_general.get_popup().about_to_popup.connect(_fill_generals)
+	_general.get_popup().id_pressed.connect(_on_general)
+	_group.text = "Group"
+	_group.tooltip_text = "Army groups: put the selected armies in a group under a field marshal, whose skill adds to theirs."
+	_group.get_popup().about_to_popup.connect(_fill_group)
+	_group.get_popup().id_pressed.connect(_on_group)
+	_attack.text = "Attack"
+	_attack.tooltip_text = "Attack line: send the army group against an enemy along a front. Start and stop it here."
+	_attack.get_popup().about_to_popup.connect(_fill_attack)
+	_attack.get_popup().id_pressed.connect(_on_attack)
 	_symbol.text = "Symbol"
 	_symbol.tooltip_text = "The marker the map shows for these armies."
 	_symbol.get_popup().about_to_popup.connect(_fill_symbols)
@@ -99,7 +121,7 @@ func _ready() -> void:
 	_deselect.text = "Deselect"
 	_deselect.tooltip_text = "Clear the selection (Esc, or click empty ground)."
 	_deselect.pressed.connect(func() -> void: get_tree().call_group("military_panel", "clear_selection"))
-	for c: Control in [_front, _release, _merge, _split, _detach, _halt, _board, _land, _symbol, _show, _deselect]:
+	for c: Control in [_front, _release, _merge, _split, _detach, _halt, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
 		c.focus_mode = Control.FOCUS_NONE
 		row.add_child(c)
 
@@ -136,7 +158,10 @@ func _refresh() -> void:
 		men += a.men()
 		morale += a.morale() * a.men()
 		places[a.province] = true
-	if armies.size() == 1:
+	var line := _line()
+	if line != null:
+		_title.text = "%s · %s" % [line.display_name, _line_status(line)]
+	elif armies.size() == 1:
 		var a := armies[0]
 		_title.text = "%s · %s men · morale %d%% · %s" % [a.display_name, Fmt.people(men), roundi(a.morale() * 100.0), MapData.provinces[a.province].name]
 	else:
@@ -149,6 +174,9 @@ func _refresh() -> void:
 	_merge.disabled = not together
 	_split.disabled = not (armies.size() == 1 and armies[0].units.size() >= 2 and not armies[0].embarked())
 	_detach.disabled = not (armies.size() == 1 and armies[0].units.size() >= 2 and not armies[0].embarked())
+	_general.disabled = not (armies.size() == 1 and not armies[0].embarked())
+	_group.disabled = false
+	_attack.visible = _common_group() != null
 	_halt.disabled = not armies.any(func(a: Army) -> bool: return not a.path.is_empty() and not a.embarked())
 	var boardable := armies.any(func(a: Army) -> bool: return not a.embarked() and Navy.fleets_in_port(GameState, a.province).any(func(f: Fleet) -> bool: return f.tag == a.tag and f.capacity() > 0))
 	_board.visible = boardable
@@ -319,6 +347,184 @@ func _on_symbol(index: int) -> void:
 	for a in _armies():
 		ids.append(a.id)
 	GameState.issue(SetArmyIcon.new(GameState.player_tag, ids, _symbol_ids[index]))
+
+
+func _fill_generals() -> void:
+	var popup := _general.get_popup()
+	popup.clear()
+	_general_ids.clear()
+	var armies := _armies()
+	if armies.size() != 1:
+		return
+	var army := armies[0]
+	var tag := GameState.player_tag
+	var led: Array[General] = []
+	for g: General in GameState.generals.values():
+		if g.tag == tag and g.id != army.general_id:
+			led.append(g)
+	# The pool first, best first, then generals who lead other armies.
+	led.sort_custom(func(x: General, y: General) -> bool:
+		if (x.army_id == 0) != (y.army_id == 0):
+			return x.army_id == 0
+		return x.skill > y.skill or (x.skill == y.skill and x.id < y.id))
+	for g in led:
+		var where := "" if g.army_id == 0 else " (leads %s)" % GameState.armies[g.army_id].display_name
+		_general_ids.append(g.id)
+		popup.add_item("%s · skill %.2f%s" % [g.display_name, g.skill, where], g.id)
+	if army.general_id != 0:
+		popup.add_separator()
+		popup.add_item("Relieve %s" % army.general_name, RELIEVE)
+	if popup.item_count == 0:
+		popup.add_item("No general available", NONE)
+		popup.set_item_disabled(0, true)
+
+
+const RELIEVE := -1
+const NONE := -2
+
+
+func _on_general(id: int) -> void:
+	var armies := _armies()
+	if armies.size() != 1:
+		return
+	if id == RELIEVE:
+		GameState.issue(AssignGeneral.new(GameState.player_tag, armies[0].general_id, 0))
+	elif _general_ids.has(id):
+		GameState.issue(AssignGeneral.new(GameState.player_tag, id, armies[0].id))
+
+
+const GROUP_NEW := -1
+const GROUP_LEAVE := -2
+const GROUP_RELIEVE := -3
+const GROUP_DISBAND := -4
+const MARSHAL_BASE := 1000
+
+
+## The one group every selected army belongs to, or null.
+func _common_group() -> ArmyGroup:
+	var armies := _armies()
+	if armies.is_empty() or armies[0].group_id == 0:
+		return null
+	for a in armies:
+		if a.group_id != armies[0].group_id:
+			return null
+	return GameState.army_groups.get(armies[0].group_id)
+
+
+func _fill_group() -> void:
+	var popup := _group.get_popup()
+	popup.clear()
+	_group_ids.clear()
+	_marshal_ids.clear()
+	var armies := _armies()
+	if armies.is_empty():
+		return
+	var tag := GameState.player_tag
+	popup.add_item("New group", GROUP_NEW)
+	for grp: ArmyGroup in GameState.army_groups.values():
+		if grp.tag == tag:
+			_group_ids.append(grp.id)
+			popup.add_item("Join %s (%d)" % [grp.display_name, grp.army_ids.size()], _group_ids.size() - 1)
+	if armies.any(func(a: Army) -> bool: return a.group_id != 0):
+		popup.add_item("Leave group", GROUP_LEAVE)
+	var current := _common_group()
+	if current == null:
+		return
+	popup.add_separator()
+	for g in Military.pool_of(GameState, tag):
+		_marshal_ids.append(g.id)
+		popup.add_item("Marshal: %s · skill %.2f" % [g.display_name, g.skill], MARSHAL_BASE + _marshal_ids.size() - 1)
+	if current.marshal_id != 0:
+		popup.add_item("Relieve marshal %s" % GameState.generals[current.marshal_id].display_name, GROUP_RELIEVE)
+	popup.add_item("Disband %s" % current.display_name, GROUP_DISBAND)
+
+
+func _on_group(id: int) -> void:
+	var ids: Array[int] = []
+	for a in _armies():
+		ids.append(a.id)
+	if ids.is_empty():
+		return
+	var tag := GameState.player_tag
+	var current := _common_group()
+	if id == GROUP_NEW:
+		GameState.issue(CreateArmyGroup.new(tag, "", ids))
+	elif id == GROUP_LEAVE:
+		GameState.issue(AssignToGroup.new(tag, 0, ids))
+	elif id == GROUP_RELIEVE and current != null:
+		GameState.issue(SetMarshal.new(tag, current.id, 0))
+	elif id == GROUP_DISBAND and current != null:
+		GameState.issue(DisbandArmyGroup.new(tag, current.id))
+	elif id >= MARSHAL_BASE and current != null and id - MARSHAL_BASE < _marshal_ids.size():
+		GameState.issue(SetMarshal.new(tag, current.id, _marshal_ids[id - MARSHAL_BASE]))
+	elif id >= 0 and id < _group_ids.size():
+		GameState.issue(AssignToGroup.new(tag, _group_ids[id], ids))
+
+
+const ATTACK_TOGGLE := -1
+const ATTACK_DELETE := -2
+
+
+## The attack line of the selected armies' group, or null.
+func _line() -> AttackLine:
+	var group := _common_group()
+	return null if group == null else AttackLines.of_group(GameState, group.id)
+
+
+func _line_status(line: AttackLine) -> String:
+	if not line.active:
+		return "attack line off"
+	var c := line.campaign
+	if c.is_empty():
+		return "looking for a target" if Clock.days_elapsed >= line.wait else "no target at these odds"
+	var name: String = MapData.provinces[c.target].name
+	return ("gathering to attack %s" if c.phase == "gather" else "advancing on %s") % name
+
+
+func _fill_attack() -> void:
+	var popup := _attack.get_popup()
+	popup.clear()
+	_attack_enemies.clear()
+	var group := _common_group()
+	if group == null:
+		return
+	var line := AttackLines.of_group(GameState, group.id)
+	if line != null:
+		var toggle := "Stop the attack" if line.active else "Start the attack"
+		popup.add_item("%s (%s)" % [toggle, line.display_name], ATTACK_TOGGLE)
+		popup.set_item_disabled(0, not line.active and AttackLines.block(GameState, line) != "")
+		popup.add_item("Delete the attack line", ATTACK_DELETE)
+		return
+	for enemy in AI.enemies(GameState, GameState.player_tag):
+		_attack_enemies.append(enemy)
+		popup.add_item("Draw a line against %s" % GameState.nations[enemy].display_name, _attack_enemies.size() - 1)
+	if popup.item_count == 0:
+		popup.add_item("Not at war", ATTACK_DELETE)
+		popup.set_item_disabled(0, true)
+
+
+func _on_attack(id: int) -> void:
+	var group := _common_group()
+	if group == null:
+		return
+	var tag := GameState.player_tag
+	var line := AttackLines.of_group(GameState, group.id)
+	if line != null:
+		if id == ATTACK_TOGGLE:
+			GameState.issue(SetAttackLine.new(tag, line.id, not line.active))
+		elif id == ATTACK_DELETE:
+			GameState.issue(DeleteAttackLine.new(tag, line.id))
+	elif id >= 0 and id < _attack_enemies.size():
+		var enemy := _attack_enemies[id]
+		# Tie the line to the front that faces this enemy, if the player drew one.
+		var front_id := 0
+		for f: Front in GameState.fronts.values():
+			if f.tag == tag and f.against == enemy:
+				front_id = f.id
+				break
+		var made := CreateAttackLine.new(tag, group.id, enemy, front_id)
+		if GameState.issue(made):
+			GameState.issue(SetAttackLine.new(tag, made.line_id, true))
 
 
 func _on_show() -> void:
