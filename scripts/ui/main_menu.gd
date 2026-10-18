@@ -58,13 +58,7 @@ func _ready() -> void:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var frame := StyleBoxFlat.new()
-	frame.bg_color = Color(0.08, 0.1, 0.15, 0.82)
-	frame.set_corner_radius_all(6)
-	frame.set_border_width_all(1)
-	frame.border_color = Color(0.3, 0.36, 0.5)
-	frame.set_content_margin_all(22)
-	panel.add_theme_stylebox_override("panel", frame)
+	panel.add_theme_stylebox_override("panel", UiTheme.ornate(24.0))
 	margin.add_child(panel)
 	_box.custom_minimum_size = Vector2(420, 0)
 	_box.add_theme_constant_override("separation", 10)

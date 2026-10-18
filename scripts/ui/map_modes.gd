@@ -56,7 +56,7 @@ func _ready() -> void:
 
 	# The same dark, brass-edged frames and small text as the command panel above it.
 	_panel_style = UiTheme.frame()
-	theme = UiTheme.compact()
+	theme = UiTheme.parchment(UiTheme.compact())
 
 	_build_legend()
 	_build_strip()

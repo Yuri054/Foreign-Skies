@@ -13,6 +13,7 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 	var args := OS.get_cmdline_user_args()
+	load("res://scripts/ui/ui_settings.gd").apply_saved(root)
 	var Mil = load("res://scripts/sim/military.gd")
 	gs.set_player("FRA")
 	var mine: Array = []
@@ -36,6 +37,9 @@ func _initialize() -> void:
 			if f.tag == "GBR" and f.display_name == "Grand Fleet":
 				var fid: Array[int] = [f.id]
 				navy.select_fleets(fid)
+	if args.size() > 1 and args[1] == "window":
+		call_group("settings_window", "toggle")
+		call_group("military_panel", "show_tab", "Land")
 	for i in 6:
 		await process_frame
 	var image := root.get_texture().get_image()

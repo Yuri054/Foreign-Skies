@@ -322,5 +322,7 @@ Status: phases 1 to 12 are built (phase 6, the AI, step by step below). Phases 1
    - *National focus system:* generic, with hand-built trees for the important nations, giving small nations such as Albania ways to grow (development, claims, alliances) and the AI goals to work toward after the opening war. Effects use the economy and diplomacy hooks from phases 10 and 13.
    - *The late-game AI:* after the opening war it does almost nothing. The fix is the focus system plus an AI that wants things (claims, growth); scripted events are a thin layer of flavour on top, not the main fix.
 
+**Look of the interface.** `UiTheme` (scripts/ui/ui_theme.gd) gives every control the same look: slate panels, gold rules and corner studs (a nine-patch frame drawn in code, `UiTheme.ornate`, used by windows, the main menu and the side panels), cream serif text (a `SystemFont` that tries Georgia, Palatino, Cambria and Times New Roman), brown buttons with a gold rim, gold tabs and slider grooves, a gold top bar and parchment-coloured buttons on the map mode palette (`UiTheme.parchment`). `UiTheme.frame` and `UiTheme.compact` serve the blocks along the bottom. No image files are used. `tools/screenshot_panel.gd` and `tools/screenshot_menu.gd` save pictures of the real window.
+
 ## Open question
 The "hand-drawn" bitmap needs someone to draw about 600 provinces. See the proposal in the conversation about bootstrapping it from real geographic data.

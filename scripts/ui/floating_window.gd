@@ -62,24 +62,18 @@ func setup_window(p_title: String, p_closable := true, window_size := Vector2(42
 		remove_child(c)
 
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	var background := StyleBoxFlat.new()
-	background.bg_color = Color(0.1, 0.12, 0.16, 1.0)
-	background.border_color = border
-	background.set_border_width_all(1)
-	background.set_corner_radius_all(4)
-	background.content_margin_left = EDGE
-	background.content_margin_right = EDGE
-	background.content_margin_top = EDGE
-	background.content_margin_bottom = EDGE
-	add_theme_stylebox_override("panel", background)
+	# The ornate frame; the padding keeps the contents off its gold rules.
+	add_theme_stylebox_override("panel", UiTheme.ornate(EDGE + 5.0))
 
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 4)
 	add_child(root)
 
 	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color(0.16, 0.19, 0.25, 1.0)
-	bar_style.set_corner_radius_all(3)
+	bar_style.bg_color = Color(0.06, 0.075, 0.1, 1.0)
+	bar_style.border_color = UiTheme.GOLD_DIM
+	bar_style.border_width_bottom = 1
+	bar_style.set_corner_radius_all(2)
 	bar_style.content_margin_left = 8
 	bar_style.content_margin_right = 3
 	bar_style.content_margin_top = 2
