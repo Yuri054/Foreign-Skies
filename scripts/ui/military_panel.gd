@@ -595,7 +595,7 @@ func _read_selection() -> void:
 ## Tells the map and the list which armies are selected.
 func _sync_selection(keep_fleets := false) -> void:
 	get_tree().call_group("army_layer", "set_selection", _selected.duplicate())
-	get_tree().call_group("army_action_bar", "set_selection", _selected.duplicate())
+	get_tree().call_group("command_panel", "set_selection", _selected.duplicate())
 	if not _selected.is_empty() and not keep_fleets:
 		get_tree().call_group("navy_panel", "clear_selection_quiet")
 	for i in _listed.size():

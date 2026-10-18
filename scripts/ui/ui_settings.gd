@@ -19,6 +19,8 @@ static var scale := 1.0
 ## Which armies the map draws: "all", "allies" (yours and your allies') or "own".
 const ARMY_VIEWS := {"all": "All armies", "allies": "Mine and allies'", "own": "Mine only"}
 static var army_view := "all"
+## Whether the command panel at the bottom shows its cards (C hides them).
+static var command_open := true
 
 
 ## Reads the saved settings and puts the theme and scale on the window.
@@ -28,6 +30,7 @@ static func apply_saved(window: Window) -> void:
 		scale = clampf(float(cfg.get_value("ui", "scale", 1.0)), MIN_SCALE, MAX_SCALE)
 		var view := str(cfg.get_value("map", "army_view", "all"))
 		army_view = view if ARMY_VIEWS.has(view) else "all"
+		command_open = bool(cfg.get_value("ui", "command_open", true))
 	window.theme = UiTheme.build()
 	window.content_scale_factor = scale
 
@@ -54,6 +57,15 @@ static func set_army_view(view: String) -> bool:
 	cfg.set_value("map", "army_view", view)
 	cfg.save(path)
 	return true
+
+
+## Shows or hides the command panel and saves the choice.
+static func set_command_open(open: bool) -> void:
+	command_open = open
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	cfg.set_value("ui", "command_open", open)
+	cfg.save(path)
 
 
 ## Whether the map draws the armies of `tag` for the player `player`.

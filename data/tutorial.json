@@ -51,7 +51,7 @@
 			"id": "front",
 			"title": "Set a front",
 			"text": "With armies selected, use the bar at the bottom of the screen to draw a front: a line of provinces your army holds against an enemy. Armies assigned to a front defend it.",
-			"highlight": {"group": "army_action_bar"},
+			"highlight": {"group": "command_panel"},
 			"done": {"command": "DesignateFront"}
 		},
 		{

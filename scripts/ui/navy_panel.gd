@@ -238,7 +238,7 @@ func clear_selection_quiet() -> void:
 		return
 	_selected.clear()
 	get_tree().call_group("fleet_layer", "set_selection", _selected.duplicate())
-	get_tree().call_group("fleet_action_bar", "set_selection", _selected.duplicate())
+	get_tree().call_group("command_panel", "set_fleet_selection", _selected.duplicate())
 	if is_visible_in_tree():
 		_refresh()
 
@@ -341,7 +341,7 @@ func _read_selection() -> void:
 
 func _sync_selection() -> void:
 	get_tree().call_group("fleet_layer", "set_selection", _selected.duplicate())
-	get_tree().call_group("fleet_action_bar", "set_selection", _selected.duplicate())
+	get_tree().call_group("command_panel", "set_fleet_selection", _selected.duplicate())
 	_updating = true
 	for i in _listed.size():
 		if _selected.has(_listed[i]):
