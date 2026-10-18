@@ -9,6 +9,7 @@ var _scale_label := Label.new()
 ## grows and shrinks with the scale and would run away from the pointer.
 var _scale_held := false
 var _note := Label.new()
+var _army_view := OptionButton.new()
 var _updating := false
 ## Whether the window offers a way back to the main menu (the menu's own copy does not).
 var offer_quit_to_menu := true
@@ -62,6 +63,21 @@ func _ready() -> void:
 		_sync()
 	)
 	box.add_child(reset)
+
+	var armies := Label.new()
+	armies.text = "Armies on the map"
+	box.add_child(armies)
+	for view: String in UiSettings.ARMY_VIEWS:
+		_army_view.add_item(UiSettings.ARMY_VIEWS[view])
+		_army_view.set_item_metadata(_army_view.item_count - 1, view)
+	_army_view.focus_mode = Control.FOCUS_NONE
+	_army_view.tooltip_text = "Which armies the map shows banners for. Hidden armies still fight and are listed in the Military window."
+	_army_view.item_selected.connect(func(i: int) -> void:
+		if not _updating:
+			UiSettings.set_army_view(_army_view.get_item_metadata(i))
+			get_tree().call_group("army_layer", "queue_redraw")
+	)
+	box.add_child(_army_view)
 
 	var sound := Label.new()
 	sound.text = "Sound"
@@ -124,6 +140,9 @@ func _sync() -> void:
 	_updating = true
 	_slider.value = UiSettings.scale
 	_scale_label.text = "%d%%" % roundi(UiSettings.scale * 100.0)
+	for i in _army_view.item_count:
+		if _army_view.get_item_metadata(i) == UiSettings.army_view:
+			_army_view.select(i)
 	_updating = false
 
 

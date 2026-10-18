@@ -5,6 +5,7 @@ extends Node2D
 ## the drag-selection box. Markers keep a constant size on screen whatever the zoom.
 
 const BANNER := Vector2(62, 22)
+const CARD_ROWS := 4
 const GAP := 3.0
 const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
@@ -93,8 +94,37 @@ func pick_at(world_pos: Vector2) -> int:
 
 
 func set_hover(province: int) -> void:
+	var changed := province != _hover
 	_hover = province
 	_update_preview()
+	if changed:
+		queue_redraw()
+
+
+## The armies the hover card describes: those drawn in the hovered province, the player's
+## first, when it is not the one fanned out already (the fanned banners show the same).
+func card_armies() -> Array[Army]:
+	var list: Array[Army] = []
+	if _hover <= 0 or _hover == _expanded and _expanded_armies().size() >= 2:
+		return list
+	for a: Army in Military.armies_at(GameState, _hover):
+		if shows(a):
+			list.append(a)
+	list.sort_custom(func(x: Army, y: Army) -> bool:
+		var mine_x: bool = x.tag == GameState.player_tag
+		var mine_y: bool = y.tag == GameState.player_tag
+		return mine_x and not mine_y or (mine_x == mine_y and x.id < y.id))
+	return list
+
+
+## One line of the hover card for an army: name, general, men, morale and supply.
+func card_line(a: Army) -> String:
+	var line := "%s · %s men · morale %d%%" % [a.display_name, Fmt.people(a.men()), roundi(a.morale() * 100.0)]
+	if not a.general_name.is_empty():
+		line += " · " + a.general_name
+	if not a.supplied:
+		line += " · no supply"
+	return line
 
 
 ## The rectangle being dragged (empty when no drag is going on).
@@ -151,6 +181,7 @@ func _draw() -> void:
 	_draw_preview(px)
 	_draw_banners(px)
 	_draw_expanded(px)
+	_draw_card(px)
 	_draw_battle_icons(px)
 	for l in _labels:
 		_front_label(l[0], l[1], l[2], px, l[3])
@@ -162,9 +193,16 @@ func _draw() -> void:
 
 # ------------------------------------------------------------------ banners
 
+## Whether the map draws this army, by the "Armies on the map" setting.
+func shows(a: Army) -> bool:
+	return UiSettings.shows_army(GameState, GameState.player_tag, a.tag)
+
+
 func _draw_banners(px: float) -> void:
 	var by_province := {}
 	for a: Army in GameState.armies.values():
+		if not shows(a):
+			continue
 		if not by_province.has(a.province):
 			by_province[a.province] = []
 		by_province[a.province].append(a)
@@ -213,7 +251,9 @@ func _draw_banners(px: float) -> void:
 func _expanded_armies() -> Array[Army]:
 	var list: Array[Army] = []
 	if _expanded > 0:
-		list = Military.armies_at(GameState, _expanded)
+		for a: Army in Military.armies_at(GameState, _expanded):
+			if shows(a):
+				list.append(a)
 		list.sort_custom(func(x: Army, y: Army) -> bool:
 			var mine_x: bool = x.tag == GameState.player_tag
 			var mine_y: bool = y.tag == GameState.player_tag
@@ -526,6 +566,26 @@ func _draw_draft(px: float) -> void:
 		draw_circle(line[i], 8.0 * px, Color(0.03, 0.04, 0.07, 0.85))
 		draw_circle(line[i], 6.0 * px, DRAFT_COLOR)
 		_pill("%d" % (i + 1), line[i] + Vector2(0, -16.0 * px), px, DRAFT_COLOR, 10)
+
+
+## The hover card: under the banners of the hovered province, a line and the unit symbols for
+## each army standing there (at most CARD_ROWS, then a count of the rest).
+func _draw_card(px: float) -> void:
+	var list := card_armies()
+	if list.is_empty():
+		return
+	var centre: Vector2 = MapData.provinces[_hover].center
+	var nations := {}
+	for a in list:
+		nations[a.tag] = true
+	var y := centre.y + (BANNER.y * nations.size() * 0.5 + 12.0) * px
+	for i in mini(list.size(), CARD_ROWS):
+		var a := list[i]
+		_pill(card_line(a), Vector2(centre.x, y), px, Color(GameState.nations[a.tag].color.lightened(0.45), 1.0), 9)
+		_draw_composition(a.composition(), centre.x, y + 8.0 * px, px)
+		y += 28.0 * px
+	if list.size() > CARD_ROWS:
+		_pill("+ %d more armies" % (list.size() - CARD_ROWS), Vector2(centre.x, y), px, Color.WHITE, 9)
 
 
 ## What an army is made of: a tiny symbol per unit type with how many of them, centred under

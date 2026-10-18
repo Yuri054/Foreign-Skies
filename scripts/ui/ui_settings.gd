@@ -16,12 +16,18 @@ const SCALE_STEP := 0.05
 
 static var scale := 1.0
 
+## Which armies the map draws: "all", "allies" (yours and your allies') or "own".
+const ARMY_VIEWS := {"all": "All armies", "allies": "Mine and allies'", "own": "Mine only"}
+static var army_view := "all"
+
 
 ## Reads the saved settings and puts the theme and scale on the window.
 static func apply_saved(window: Window) -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(path) == OK:
 		scale = clampf(float(cfg.get_value("ui", "scale", 1.0)), MIN_SCALE, MAX_SCALE)
+		var view := str(cfg.get_value("map", "army_view", "all"))
+		army_view = view if ARMY_VIEWS.has(view) else "all"
 	window.theme = UiTheme.build()
 	window.content_scale_factor = scale
 
@@ -36,6 +42,25 @@ static func set_scale(window: Window, value: float) -> float:
 	cfg.set_value("ui", "scale", scale)
 	cfg.save(path)
 	return scale
+
+
+## Chooses which armies the map draws and saves it. Returns false for an unknown view.
+static func set_army_view(view: String) -> bool:
+	if not ARMY_VIEWS.has(view):
+		return false
+	army_view = view
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	cfg.set_value("map", "army_view", view)
+	cfg.save(path)
+	return true
+
+
+## Whether the map draws the armies of `tag` for the player `player`.
+static func shows_army(gs: Node, player: String, tag: String) -> bool:
+	if army_view == "all" or tag == player:
+		return true
+	return army_view == "allies" and Diplomacy.are_allied(gs, player, tag)
 
 
 ## The next preset up or down from the current scale.
