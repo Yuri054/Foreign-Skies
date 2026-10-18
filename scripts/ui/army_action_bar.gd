@@ -150,6 +150,7 @@ func _refresh() -> void:
 	var armies := _armies()
 	visible = not armies.is_empty()
 	if not visible:
+		get_tree().call_group("fleet_action_bar", "place_deferred")
 		return
 	var men := 0.0
 	var morale := 0.0
@@ -182,6 +183,8 @@ func _refresh() -> void:
 	_board.visible = boardable
 	_land.visible = armies.any(func(a: Army) -> bool: return a.embarked() and GameState.fleets.has(a.fleet_id) and GameState.fleets[a.fleet_id].is_in_port())
 	_place.call_deferred()
+	# The fleet bar sits above this one while both show.
+	get_tree().call_group("fleet_action_bar", "place_deferred")
 
 
 ## Bottom centre of the screen, clear of the map mode palette on the left.
