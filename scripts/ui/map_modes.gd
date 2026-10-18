@@ -54,14 +54,9 @@ func _ready() -> void:
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_theme_constant_override("separation", 4)
 
-	_panel_style.bg_color = Color(0.08, 0.1, 0.14, 0.93)
-	_panel_style.border_color = Color(0.25, 0.29, 0.36)
-	_panel_style.set_border_width_all(1)
-	_panel_style.set_corner_radius_all(4)
-	_panel_style.content_margin_left = 8
-	_panel_style.content_margin_right = 8
-	_panel_style.content_margin_top = 4
-	_panel_style.content_margin_bottom = 4
+	# The same dark, brass-edged frames and small text as the command panel above it.
+	_panel_style = UiTheme.frame()
+	theme = UiTheme.compact()
 
 	_build_legend()
 	_build_strip()
@@ -166,7 +161,7 @@ func _build_palette() -> void:
 		b.toggle_mode = true
 		b.button_group = group
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(80, 28)
+		b.custom_minimum_size = Vector2(72, 22)
 		b.tooltip_text = "%s (%d)\n%s" % [_groups[i].label, i + 1, _groups[i].tip]
 		b.pressed.connect(func() -> void: pick_group(i))
 		row.add_child(b)

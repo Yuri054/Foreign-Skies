@@ -100,19 +100,7 @@ func _ready() -> void:
 	# Paradox games.
 	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	# Smaller text than the rest of the interface keeps the panel short.
-	var small := UiTheme.build()
-	small.default_font_size = 12
-	for state in ["normal", "hover", "pressed", "disabled"]:
-		var box := small.get_stylebox(state, "Button").duplicate() as StyleBoxFlat
-		box.content_margin_left = 5
-		box.content_margin_right = 5
-		box.content_margin_top = 0
-		box.content_margin_bottom = 0
-		small.set_stylebox(state, "Button", box)
-		small.set_stylebox(state, "MenuButton", box)
-	small.set_constant("separation", "HBoxContainer", 3)
-	small.set_constant("separation", "VBoxContainer", 2)
-	theme = small
+	theme = UiTheme.compact()
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
@@ -542,16 +530,7 @@ func _place() -> void:
 
 ## The dark, brass-edged frame the blocks of the panel sit in.
 static func frame_style() -> StyleBoxFlat:
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0.09, 0.1, 0.11, 0.94)
-	box.border_color = Color(0.5, 0.45, 0.31)
-	box.set_border_width_all(1)
-	box.set_corner_radius_all(2)
-	box.content_margin_left = 4
-	box.content_margin_right = 4
-	box.content_margin_top = 2
-	box.content_margin_bottom = 3
-	return box
+	return UiTheme.frame()
 
 
 ## The width a flow of buttons needs to stay on one line.

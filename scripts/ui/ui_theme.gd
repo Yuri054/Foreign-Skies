@@ -19,6 +19,39 @@ static func map_panel() -> StyleBoxFlat:
 	return box
 
 
+## The dark, brass-edged frame of the blocks along the bottom of the screen (the command panel
+## and the map mode palette), as in the Paradox games.
+static func frame() -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.09, 0.1, 0.11, 0.94)
+	box.border_color = Color(0.5, 0.45, 0.31)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(2)
+	box.content_margin_left = 4
+	box.content_margin_right = 4
+	box.content_margin_top = 2
+	box.content_margin_bottom = 3
+	return box
+
+
+## The usual theme with smaller text, tight buttons and short gaps, for the strip at the bottom of
+## the screen.
+static func compact() -> Theme:
+	var t := build()
+	t.default_font_size = 12
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var box := t.get_stylebox(state, "Button").duplicate() as StyleBoxFlat
+		box.content_margin_left = 5
+		box.content_margin_right = 5
+		box.content_margin_top = 0
+		box.content_margin_bottom = 0
+		t.set_stylebox(state, "Button", box)
+		t.set_stylebox(state, "MenuButton", box)
+	t.set_constant("separation", "HBoxContainer", 3)
+	t.set_constant("separation", "VBoxContainer", 2)
+	return t
+
+
 static func build() -> Theme:
 	var t := Theme.new()
 	t.default_font_size = FONT_SIZE
