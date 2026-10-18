@@ -192,7 +192,11 @@ func _initialize() -> void:
 	await process_frame
 	panel.visible = true
 	panel._refresh()
-	_check(panel._tabs.get_tab_count() == 5 and panel._tabs.get_tab_title(3) == "Wars" and panel._tabs.get_tab_title(4) == "Navy", "the Military panel has Armies, Fronts, Recruit, Wars and Navy tabs")
+	_check(panel._tabs.get_tab_count() == 3 and panel._tabs.get_tab_title(0) == "Land" and panel._tabs.get_tab_title(1) == "Wars" and panel._tabs.get_tab_title(2) == "Navy", "the Military panel has Land, Wars and Navy tabs")
+	_check(panel._box.visible and not panel._fronts_box.visible and not panel._recruit_box.visible, "the Land tab opens with Armies unfolded, Fronts and Recruit folded")
+	panel.show_tab("Recruit")
+	_check(panel._tabs.current_tab == 0 and panel._recruit_box.visible, "show_tab(\"Recruit\") unfolds that section of the Land tab")
+	panel.set_section("Recruit", false)
 	_check(panel._wars_list.item_count == 0 and panel._war_summary.text.contains("No wars"), "it starts empty")
 	gs.set_war("FRA", "GER", true)
 	gs.set_war("GBR", "ITA", true)

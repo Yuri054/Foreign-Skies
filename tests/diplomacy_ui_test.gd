@@ -187,7 +187,7 @@ func _test_peace_screen() -> void:
 	var screen: Node = get_first_node_in_group("peace_screen")
 	var mil: Node = get_first_node_in_group("military_panel")
 	mil.toggle()
-	mil._tabs.current_tab = 3
+	mil._tabs.current_tab = 1
 	mil._refresh_wars()
 	await process_frame
 	_check(mil._peace_button.visible, "the Wars tab offers peace talks for the player's war")

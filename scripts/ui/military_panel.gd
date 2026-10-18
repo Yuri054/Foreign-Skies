@@ -31,10 +31,12 @@ var _war_button := Button.new()
 var _scroll := ScrollContainer.new()
 var _box := VBoxContainer.new()
 var _tabs := TabContainer.new()
-var _fronts_scroll := ScrollContainer.new()
 var _fronts_box := VBoxContainer.new()
-var _recruit_scroll := ScrollContainer.new()
 var _recruit_box := VBoxContainer.new()
+## The Land tab stacks three folding sections: armies, fronts and recruiting. Each has a header
+## button and the section's content box, keyed by name.
+var _sections: Dictionary = {}
+var _section_heads: Dictionary = {}
 var _wars_scroll := ScrollContainer.new()
 var _wars_box := VBoxContainer.new()
 var _wars_list := ItemList.new()
@@ -87,33 +89,32 @@ func _ready() -> void:
 
 	# The content scrolls when it is taller than the space above the map mode bar.
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.name = "Armies"
+	_scroll.name = "Land"
 	_wars_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_wars_scroll.name = "Wars"
-	_fronts_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_fronts_scroll.name = "Fronts"
-	_recruit_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_recruit_scroll.name = "Recruit"
 	_tabs.add_child(_scroll)
-	_tabs.add_child(_fronts_scroll)
-	_tabs.add_child(_recruit_scroll)
 	_tabs.add_child(_wars_scroll)
 	_tabs.add_child(_navy)
 	_tabs.focus_mode = Control.FOCUS_NONE
 	_tabs.tab_changed.connect(func(_i: int) -> void: _fit_height.call_deferred())
-	for sc: ScrollContainer in [_scroll, _fronts_scroll, _recruit_scroll, _wars_scroll]:
+	for sc: ScrollContainer in [_scroll, _wars_scroll]:
 		sc.custom_minimum_size = Vector2(320, 100)
 	for b: VBoxContainer in [_fronts_box, _recruit_box]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_constant_override("separation", 4)
-	_fronts_scroll.add_child(_fronts_box)
-	_recruit_scroll.add_child(_recruit_box)
 	add_child(_tabs)
 	setup_window("Military", true, Vector2(500, 0), 1)
 	_box.add_theme_constant_override("separation", 4)
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_box)
+	var land := VBoxContainer.new()
+	land.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	land.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	land.add_theme_constant_override("separation", 4)
+	_scroll.add_child(land)
+	_add_section(land, "Armies", _box, true)
+	_add_section(land, "Fronts", _fronts_box, false)
+	_add_section(land, "Recruit", _recruit_box, false)
 	get_viewport().size_changed.connect(_fit_height)
 	var box := _box
 	var fronts_box := _fronts_box
@@ -371,11 +372,37 @@ func toggle() -> void:
 		_refresh()
 
 
-## Opens the window on a tab by its name (or closes it, with `open` false).
+## A folding section of the Land tab: a header button that shows or hides `content`.
+func _add_section(parent: Control, title: String, content: Control, open: bool) -> void:
+	var head := Button.new()
+	head.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	head.focus_mode = Control.FOCUS_NONE
+	head.flat = true
+	head.pressed.connect(func() -> void: set_section(title, not content.visible))
+	parent.add_child(head)
+	parent.add_child(content)
+	_sections[title] = content
+	_section_heads[title] = head
+	set_section(title, open)
+
+
+## Opens or folds one section of the Land tab.
+func set_section(title: String, open: bool) -> void:
+	var content: Control = _sections[title]
+	content.visible = open
+	_section_heads[title].text = "%s %s" % ["▾" if open else "▸", title]
+	_fit_height.call_deferred()
+
+
+## Opens the window on a tab by its name (or closes it, with `open` false). "Armies", "Fronts"
+## and "Recruit" are sections of the Land tab: the tab opens with that section unfolded.
 func show_tab(tab_name: String, open := true) -> void:
 	if not open:
 		close_window()
 		return
+	if _sections.has(tab_name):
+		set_section(tab_name, true)
+		tab_name = "Land"
 	for i in _tabs.get_tab_count():
 		if _tabs.get_child(i).name == tab_name:
 			_tabs.current_tab = i
@@ -630,8 +657,14 @@ func _refresh() -> void:
 func _fit_height() -> void:
 	if not is_inside_tree():
 		return
-	var boxes: Array[Control] = [_box, _fronts_box, _recruit_box, _wars_box]
-	var wanted := _navy.content_height() if _tabs.current_tab == 4 else boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y
+	var wanted: float
+	match _tabs.get_current_tab_control():
+		_navy:
+			wanted = _navy.content_height()
+		_wars_scroll:
+			wanted = _wars_box.get_combined_minimum_size().y
+		_:
+			wanted = _scroll.get_child(0).get_combined_minimum_size().y
 	fit_window(minf(wanted, 460.0) + 34.0)
 
 

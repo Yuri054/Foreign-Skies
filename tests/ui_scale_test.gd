@@ -100,7 +100,7 @@ func _initialize() -> void:
 	var names: PackedStringArray = []
 	for i in mil._tabs.get_tab_count():
 		names.append(mil._tabs.get_tab_title(i))
-	_check(names == PackedStringArray(["Armies", "Fronts", "Recruit", "Wars", "Navy"]), "the military window is split into tabs (%s)" % ", ".join(names))
+	_check(names == PackedStringArray(["Land", "Wars", "Navy"]), "the military window is split into tabs (%s)" % ", ".join(names))
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Settings.path))
 	print("FAILURES: ", _failures)
