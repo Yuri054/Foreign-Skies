@@ -254,19 +254,19 @@ func _pool(gs: Node, tag: String) -> Array:
 
 
 func _test_toggle(bar: Node, Settings) -> void:
-	_check(bar.is_open() and bar._body.visible, "the panel starts open")
+	_check(bar.is_open() and bar._scroll.visible, "the panel starts open")
 	var open_height: float = bar.size.y
 	bar.toggle()
 	await process_frame
 	await process_frame
-	_check(not bar.is_open() and not bar._body.visible and bar.visible, "the toggle hides the cards but leaves the header")
+	_check(not bar.is_open() and not bar._scroll.visible and bar.visible, "the toggle hides the cards but leaves the toggle")
 	_check(bar.size.y < open_height and not Settings.command_open, "it gets shorter and the choice is kept (%d to %d)" % [open_height, bar.size.y])
 	var key := InputEventKey.new()
 	key.keycode = KEY_C
 	key.pressed = true
 	bar._unhandled_key_input(key)
 	await process_frame
-	_check(bar.is_open() and bar._body.visible and Settings.command_open, "the C key opens it again")
+	_check(bar.is_open() and bar._scroll.visible and Settings.command_open, "the C key opens it again")
 	var palette: Control = get_first_node_in_group("map_modes")
 	_check(bar.get_global_rect().end.y <= palette.get_global_rect().position.y + 1.0 and bar.get_global_rect().end.x <= root.get_visible_rect().size.x, "it sits above the map modes and inside the screen")
 

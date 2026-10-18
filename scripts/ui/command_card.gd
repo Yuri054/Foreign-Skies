@@ -8,7 +8,7 @@ extends Control
 signal pressed(shift: bool)
 signal context_requested(at: Vector2)
 
-const SIZE := Vector2(72, 72)
+const SIZE := Vector2(72, 76)
 const TILE_H := 30.0
 const GOLD := Color(0.95, 0.78, 0.25)
 const SELECT := Color(1.0, 0.95, 0.4)
@@ -90,13 +90,12 @@ func _draw() -> void:
 	for m in marks:
 		_text(font, m, Vector2(x, tile.position.y + 10.0), -1.0, 10, WARN if m == "!" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT)
 		x += 10.0
-	var y := tile.end.y + 10.0
-	_text(font, title, Vector2(3, y), size.x - 6.0, 9, Color(0.92, 0.94, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
-	y += 9.0
-	_text(font, line1, Vector2(3, y), size.x - 6.0, 9, Color(0.7, 0.74, 0.82), HORIZONTAL_ALIGNMENT_LEFT)
-	if not line2.is_empty():
-		y += 8.0
-		_text(font, line2, Vector2(3, y), size.x - 6.0, 8, Color(0.6, 0.64, 0.72), HORIZONTAL_ALIGNMENT_LEFT)
+	var y := tile.end.y + 9.0
+	_text(font, title, Vector2(3, y), size.x - 6.0, 9, Color(0.86, 0.88, 0.94), HORIZONTAL_ALIGNMENT_LEFT)
+	# The figure under the card, white on a dark strip (the units of an army, the ships of a fleet).
+	var strip := Rect2(2, tile.end.y + 12.0, size.x - 4.0, 15.0)
+	draw_rect(strip, Color(0.03, 0.035, 0.04, 0.95))
+	_text(font, line1, Vector2(strip.position.x, strip.end.y - 3.0), strip.size.x, 12, Color.WHITE)
 	var bar_y := size.y - 7.0
 	if strength >= 0.0:
 		draw_rect(Rect2(3, bar_y, size.x - 6.0, 2), Color(0, 0, 0, 0.6))
@@ -104,7 +103,7 @@ func _draw() -> void:
 	if morale >= 0.0:
 		draw_rect(Rect2(3, bar_y + 3.0, size.x - 6.0, 2), Color(0, 0, 0, 0.6))
 		draw_rect(Rect2(3, bar_y + 3.0, (size.x - 6.0) * clampf(morale, 0.0, 1.0), 2), Color(0.4, 0.65, 0.95))
-	var border := Color(0.3, 0.34, 0.42)
+	var border := Color(0.45, 0.41, 0.3)
 	var width := 1.0
 	if marshal:
 		border = GOLD

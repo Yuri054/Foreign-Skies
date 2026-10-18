@@ -12,7 +12,7 @@ const RIGHT_MARGIN := 12.0
 const BOTTOM := 34.0
 ## Room the build queue takes at the right while it shows.
 const QUEUE_ROOM := 318.0
-const MIN_WIDE := 360.0
+const MIN_CARDS := 220.0
 ## The share of the screen width the panel may take; the cards scroll beyond it.
 const MAX_SHARE := 0.7
 ## Room under the cards for the scroll bar.
@@ -31,7 +31,9 @@ var _toggle := Button.new()
 var _tab_army := Button.new()
 var _tab_navy := Button.new()
 var _title := Label.new()
-var _body := VBoxContainer.new()
+var _top := PanelContainer.new()
+var _div_frame := PanelContainer.new()
+var _tabs_col := PanelContainer.new()
 var _army_orders := HFlowContainer.new()
 var _fleet_orders := HFlowContainer.new()
 var _scroll := ScrollContainer.new()
@@ -94,16 +96,9 @@ func _ready() -> void:
 	offset_top = -BOTTOM
 	offset_bottom = -BOTTOM
 	_open = UiSettings.command_open
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.1, 0.14, 0.95)
-	style.border_color = Color(0.4, 0.46, 0.58)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 6
-	style.content_margin_right = 6
-	style.content_margin_top = 3
-	style.content_margin_bottom = 4
-	add_theme_stylebox_override("panel", style)
+	# No box around the whole panel: the map shows between the framed blocks, as in the
+	# Paradox games.
+	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	# Smaller text than the rest of the interface keeps the panel short.
 	var small := UiTheme.build()
 	small.default_font_size = 12
@@ -122,12 +117,18 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
 	add_child(box)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 4)
-	box.add_child(head)
+	# The orders for the selection sit in a frame of their own above the cards.
+	_top.add_theme_stylebox_override("panel", frame_style())
+	_top.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_div_frame.add_theme_stylebox_override("panel", frame_style())
+	_div_frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	box.add_child(_top)
+	box.add_child(_div_frame)
+	var strip := HBoxContainer.new()
+	strip.add_theme_constant_override("separation", 4)
+	box.add_child(strip)
 	_toggle.tooltip_text = "Show or hide the command panel (C)."
 	_toggle.pressed.connect(toggle)
-	head.add_child(_toggle)
 	_tab_army.text = "Armies"
 	_tab_army.toggle_mode = true
 	_tab_army.tooltip_text = "Your armies under their field marshals."
@@ -136,27 +137,32 @@ func _ready() -> void:
 	_tab_navy.toggle_mode = true
 	_tab_navy.tooltip_text = "Your fleets. They also show when you select one."
 	_tab_navy.pressed.connect(func() -> void: _set_mode("navy"))
-	head.add_child(_tab_army)
-	head.add_child(_tab_navy)
-	# The orders for the selection share the top row; what is selected is in the tooltip.
-	_army_orders.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_fleet_orders.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_army_orders.add_theme_constant_override("h_separation", 2)
 	_fleet_orders.add_theme_constant_override("h_separation", 2)
-	head.add_child(_army_orders)
-	head.add_child(_fleet_orders)
-
-	_body.add_theme_constant_override("separation", 2)
-	box.add_child(_body)
+	_army_orders.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_fleet_orders.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var orders := HBoxContainer.new()
+	orders.add_child(_army_orders)
+	orders.add_child(_fleet_orders)
+	_top.add_child(orders)
 	_div_row.add_theme_constant_override("h_separation", 2)
 	_div_row.add_theme_constant_override("v_separation", 2)
-	_body.add_child(_div_row)
+	_div_frame.add_child(_div_row)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.custom_minimum_size = Vector2(MIN_WIDE - 12.0, CommandCard.SIZE.y + 22.0)
-	_cards.add_theme_constant_override("separation", 6)
+	_scroll.custom_minimum_size = Vector2(MIN_CARDS, CommandCard.SIZE.y + 24.0)
+	_cards.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_cards)
-	_body.add_child(_scroll)
+	strip.add_child(_scroll)
+	# The tabs stand in a column at the right end of the strip, as in the Paradox games.
+	_tabs_col.add_theme_stylebox_override("panel", frame_style())
+	_tabs_col.size_flags_vertical = Control.SIZE_SHRINK_END
+	var tabs := VBoxContainer.new()
+	tabs.add_child(_toggle)
+	tabs.add_child(_tab_army)
+	tabs.add_child(_tab_navy)
+	_tabs_col.add_child(tabs)
+	strip.add_child(_tabs_col)
 	add_child(_menu)
 	_menu.id_pressed.connect(func(id: int) -> void:
 		if id >= 0 and id < _menu_calls.size():
@@ -311,16 +317,17 @@ func _refresh() -> void:
 	visible = GameState.get_player() != null
 	if not visible:
 		return
-	_toggle.text = "▾ Command (C)" if _open else "▴ Command (C)"
+	_toggle.text = "Hide (C)" if _open else "Command (C)"
 	_tab_army.set_pressed_no_signal(_mode == "army")
 	_tab_navy.set_pressed_no_signal(_mode == "navy")
 	_tab_army.visible = _open
 	_tab_navy.visible = _open
-	_body.visible = _open
+	_scroll.visible = _open
 	var armies := _armies()
 	var fleets := _fleets()
 	_army_orders.visible = _open and _mode == "army" and not armies.is_empty()
 	_fleet_orders.visible = _open and _mode == "navy" and not fleets.is_empty()
+	_top.visible = _army_orders.visible or _fleet_orders.visible
 	_title.text = _army_title(armies) if _mode == "army" else _fleet_title(fleets)
 	tooltip_text = _title.text
 	_refresh_divisions(armies)
@@ -338,6 +345,7 @@ func _refresh() -> void:
 func _refresh_divisions(armies: Array[Army]) -> void:
 	var show := _open and _mode == "army" and armies.size() == 1 and not armies[0].embarked()
 	_div_row.visible = show
+	_div_frame.visible = show
 	if not show:
 		_div_sel.clear()
 		_div_army = 0
@@ -511,18 +519,39 @@ func _place() -> void:
 	var n := GameState.get_player()
 	if n != null and not (n.construction.is_empty() and n.shipbuilding.is_empty()):
 		right -= QUEUE_ROOM
-	var avail := minf(maxf(right - left, 320.0), view.x * MAX_SHARE)
-	# Wide enough for the top row with the orders on it, so they do not wrap onto a second line.
-	var top_row := _toggle.get_combined_minimum_size().x + _tab_army.get_combined_minimum_size().x + _tab_navy.get_combined_minimum_size().x + 24.0
-	top_row += _natural_width(_army_orders) if _army_orders.visible else (_natural_width(_fleet_orders) if _fleet_orders.visible else 0.0)
-	var want := clampf(maxf(maxf(_cards.get_combined_minimum_size().x + 16.0, MIN_WIDE), top_row), 320.0, avail)
+	var tabs_w := _tabs_col.get_combined_minimum_size().x
+	var avail := minf(maxf(right - left, 320.0), view.x * MAX_SHARE) - tabs_w - 4.0
+	# Wide enough for the orders to stay on one line.
+	var orders_w := _natural_width(_army_orders) if _army_orders.visible else (_natural_width(_fleet_orders) if _fleet_orders.visible else 0.0)
+	orders_w += 14.0
+	var inner := clampf(maxf(maxf(_cards.get_combined_minimum_size().x + 4.0, MIN_CARDS), orders_w - tabs_w), 120.0, avail)
+	var want := inner + tabs_w + 4.0
 	if not _open:
-		want = _toggle.get_combined_minimum_size().x + 16.0
-	_scroll.custom_minimum_size = Vector2(want - 12.0, _cards.get_combined_minimum_size().y + SCROLLBAR)
+		want = tabs_w
+	_scroll.custom_minimum_size = Vector2(inner, _cards.get_combined_minimum_size().y + SCROLLBAR)
+	# The frames over the cards are as wide as their buttons need, up to the width of the panel,
+	# so a flow of buttons wraps only when it must.
+	var room := inner + tabs_w + 4.0
+	_top.custom_minimum_size.x = minf(orders_w, room)
+	_div_frame.custom_minimum_size.x = minf(_natural_width(_div_row) + 14.0, room)
 	offset_left = left
 	offset_right = left + want
 	offset_top = -bottom
 	offset_bottom = -bottom
+
+
+## The dark, brass-edged frame the blocks of the panel sit in.
+static func frame_style() -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.09, 0.1, 0.11, 0.94)
+	box.border_color = Color(0.5, 0.45, 0.31)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(2)
+	box.content_margin_left = 4
+	box.content_margin_right = 4
+	box.content_margin_top = 2
+	box.content_margin_bottom = 3
+	return box
 
 
 ## The width a flow of buttons needs to stay on one line.
@@ -555,7 +584,7 @@ func _rebuild_cards() -> void:
 ## cards.
 func _make_block(block: Dictionary) -> Control:
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 3)
+	col.add_theme_constant_override("separation", 2)
 	if block.has("header"):
 		var head := HBoxContainer.new()
 		head.add_theme_constant_override("separation", 2)
@@ -581,7 +610,10 @@ func _make_block(block: Dictionary) -> Control:
 	for spec: Dictionary in block.cards:
 		row.add_child(_make_card(spec))
 	col.add_child(row)
-	return col
+	var framed := PanelContainer.new()
+	framed.add_theme_stylebox_override("panel", frame_style())
+	framed.add_child(col)
+	return framed
 
 
 func _make_card(spec: Dictionary) -> CommandCard:
@@ -615,7 +647,7 @@ func _army_card(a: Army, tint: Color) -> Dictionary:
 		tip += "\nNo general: right click to give it one."
 	return {"kind": "army", "id": a.id, "title": a.display_name, "badge": CommandCard.initials(a.general_name),
 			"skill": ("%.2f" % a.general_skill) if has_general else "", "empty": not has_general,
-			"line1": "%d units · %s" % [a.units.size(), Fmt.people(a.men())], "line2": MapData.provinces[a.province].name,
+			"line1": "%d · %s" % [a.units.size(), Fmt.people(a.men())],
 			"strength": a.men() / maxf(full, 1.0), "morale": a.morale(), "tint": tint, "selected": _ids.has(a.id),
 			"fighting": a.fighting, "marks": marks, "tip": tip}
 
@@ -635,7 +667,7 @@ func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
 		tip += "\nNo field marshal: right click to appoint one."
 	return {"kind": "marshal", "id": group.id, "title": "Marshal", "badge": CommandCard.initials(m.display_name) if m != null else "",
 			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true,
-			"line1": m.display_name if m != null else "none", "line2": "%d armies" % group.army_ids.size(),
+			"line1": "%d armies" % group.army_ids.size(),
 			"tint": tint, "selected": all_selected, "tip": tip}
 
 
@@ -709,7 +741,7 @@ func _fleet_blocks() -> Array:
 			marks.append("›")
 		var mission: String = Navy.cfg.missions.get(f.mission, f.mission)
 		cards.append({"kind": "fleet", "id": f.id, "title": f.display_name, "badge": str(f.ships.size()), "skill": mission,
-				"line1": "%d ships · %d%%" % [f.ships.size(), roundi(strength / count * 100.0)], "line2": _where(f),
+				"line1": "%d · %d%%" % [f.ships.size(), roundi(strength / count * 100.0)],
 				"strength": strength / count, "morale": f.morale(), "tint": tint, "selected": _fleet_ids.has(f.id),
 				"fighting": f.fighting, "marks": marks,
 				"tip": "%s\n%d ships, morale %d%%\n%s: %s" % [f.display_name, f.ships.size(), roundi(f.morale() * 100.0), mission, _where(f)]})
