@@ -19,8 +19,15 @@ static func load_config() -> void:
 
 
 ## Ids of the raw resources (coal, iron, wood), in file order.
+static var _resource_ids: Array = []
+static var _resource_cfg_size := -1
+
+
 static func resource_ids() -> Array:
-	return cfg.resources.keys().filter(func(k: String) -> bool: return not k.begins_with("_"))
+	if _resource_cfg_size != cfg.resources.size():
+		_resource_ids = cfg.resources.keys().filter(func(k: String) -> bool: return not k.begins_with("_"))
+		_resource_cfg_size = cfg.resources.size()
+	return _resource_ids
 
 
 ## Ids of the resources that have deposits on the map (coal, iron, timber).
@@ -458,9 +465,23 @@ static func recompute(gs: Node) -> void:
 ## Works out every nation's resource flows and budget from the province sums of the last
 ## recompute. Recompute does it, and so does each day, when the things that change daily
 ## (blockades, wars, the people under arms) have moved.
-static func _budgets(gs: Node) -> void:
+## Flows are the dearest part of a day, and they move slowly: the daily refresh solves them again
+## every `flows.solve_every` days (and recompute, which follows any real change, always does).
+static var _flows: Dictionary = {}
+static var _flows_day := -1000
+static var _flows_owner := 0
+
+
+static func _budgets(gs: Node, force := true) -> void:
 	Navy.refresh_upkeep(gs)
-	var flows := Flows.solve(gs, gs.economy_sums)
+	var stale: bool = force or _flows.is_empty() or _flows_owner != gs.get_instance_id() or _flows_owner == 0 \
+			or Clock.days_elapsed - _flows_day >= int(Flows.cfg().solve_every) or Clock.days_elapsed < _flows_day \
+			or _flows.size() != gs.nations.size()
+	if stale:
+		_flows = Flows.solve(gs, gs.economy_sums)
+		_flows_day = Clock.days_elapsed
+		_flows_owner = gs.get_instance_id()
+	var flows := _flows
 	for tag in gs.nations:
 		gs.nations[tag].budget = nation_budget(gs.nations[tag], gs.economy_sums[tag], WarSupport.economy_mult(gs, tag), flows[tag])
 
@@ -468,7 +489,7 @@ static func _budgets(gs: Node) -> void:
 ## The daily refresh of flows and budgets, without going through the provinces again.
 static func refresh(gs: Node) -> void:
 	if not gs.economy_sums.is_empty():
-		_budgets(gs)
+		_budgets(gs, false)
 
 
 ## Budget of one nation given its summed province output and its resource flows (see Flows).

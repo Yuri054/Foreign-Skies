@@ -74,9 +74,10 @@ static func planned_materials(n: Nation) -> Dictionary:
 	var out := {}
 	for line in n.production_lines:
 		var cost := item_cost(line.category)
+		var yearly := capacity(n, line) * 365.0
 		for key in cost:
-			if key != "money":
-				out[key] = float(out.get(key, 0.0)) + capacity(n, line) * float(cost[key]) * 365.0
+			if key != "money" and key != "ic":
+				out[key] = float(out.get(key, 0.0)) + yearly * float(cost[key])
 	return out
 
 
