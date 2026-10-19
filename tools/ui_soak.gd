@@ -79,7 +79,19 @@ func _act() -> void:
 			ev.pressed = false
 			Input.parse_input_event(ev)
 		7, 8:
-			var pos := Vector2(rng.randf_range(0, 1600), rng.randf_range(50, 900))
+			var pos := root.get_final_transform() * Vector2(rng.randf_range(0, 1280), rng.randf_range(40, 720))
+			var motion := InputEventMouseMotion.new()
+			motion.position = pos
+			motion.global_position = pos
+			Input.parse_input_event(motion)
+			await process_frame
+			await process_frame
+			var over: Control = root.gui_get_hovered_control()
+			var before: int = main.map_view.selected_id
+			var armies_before: Array = []
+			var mil0 := get_first_node_in_group("military_panel")
+			if mil0 != null:
+				armies_before = mil0._selected.duplicate()
 			var mb := InputEventMouseButton.new()
 			mb.position = pos
 			mb.global_position = pos
@@ -90,6 +102,11 @@ func _act() -> void:
 			mb = mb.duplicate()
 			mb.pressed = false
 			Input.parse_input_event(mb)
+			await process_frame
+			# A click on a control must not reach the map: no province picked under it.
+			if over != null and over.mouse_filter == Control.MOUSE_FILTER_STOP and mb.button_index == MOUSE_BUTTON_LEFT \
+					and main.map_view.selected_id != before and main.map_view.selected_id != 0:
+				print("CLICK-THROUGH at %s over %s (%s): province %d -> %d" % [str(pos), over.name, over.get_script().resource_path if over.get_script() else over.get_class(), before, main.map_view.selected_id])
 		9:
 			var wheel := InputEventMouseButton.new()
 			wheel.position = Vector2(rng.randf_range(0, 1600), rng.randf_range(50, 900))
