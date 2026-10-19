@@ -86,7 +86,9 @@ func _title(text: String, tag := "") -> void:
 	label.text = text
 	label.add_theme_font_size_override("font_size", 15)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.clip_text = true
+	# A long name wraps onto a second line (at a hyphen or anywhere) instead of being cut off.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size = Vector2(110, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 	_toggle.text = "Less" if UiSettings.province_details else "More"

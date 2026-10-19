@@ -12,6 +12,8 @@ const NAME_COLOR := Color(0.95, 0.91, 0.8)
 const CAPITAL_COLOR := Color(0.95, 0.78, 0.38)
 const INK := Color(0.04, 0.04, 0.05, 0.9)
 
+const ArmyLayer := preload("res://scripts/map/army_layer.gd")
+
 var map_view: Sprite2D
 var camera: Camera2D
 var _last := Transform2D()
@@ -61,19 +63,46 @@ func _draw() -> void:
 		if not view.has_point(at):
 			continue
 		var width := MapText.size_of(font, c.name, FONT_SIZE, px).x
-		# The name sits to the right of the marker; the box it takes, in map units.
-		var box := Rect2(at + Vector2(MARKER + 3.0, -FONT_SIZE * 0.5) * px, Vector2(width, FONT_SIZE * px)).grow(2.0 * px)
-		var near := false
-		for t in taken:
-			if t.intersects(box):
-				near = true
-				break
-		if near and c.rank > 1:
-			continue
-		taken.append(box)
-		_marker(at, c.rank == 1, px)
-		var color := CAPITAL_COLOR if c.rank == 1 else NAME_COLOR
-		MapText.draw(self, font, at + Vector2(MARKER + 3.0, FONT_SIZE * 0.33) * px, c.name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, FONT_SIZE, color, px, INK)
+		var blocked := _banner_box(c.province, px)
+		# The name goes to the right of the marker, or where it does not run into an army banner or
+		# another name: to the left, below, above. Its box and the text's start, in map units.
+		var f := float(FONT_SIZE)
+		var m := MARKER + 3.0
+		var spots := [
+			[Vector2(m, -f * 0.5) * px, Vector2(m, f * 0.33) * px],
+			[Vector2(-m * px - width, -f * 0.5 * px), Vector2(-m * px - width, f * 0.33 * px)],
+			[Vector2(-width / 2.0, (MARKER + 1.0) * px), Vector2(-width / 2.0, (MARKER + 1.0 + f * 0.85) * px)],
+			[Vector2(-width / 2.0, (-MARKER - 1.0 - f) * px), Vector2(-width / 2.0, (-MARKER - 1.0 - f * 0.15) * px)],
+		]
+		var placed := false
+		for i in spots.size():
+			var box := Rect2(at + spots[i][0], Vector2(width, f * px)).grow(2.0 * px)
+			if blocked.size != Vector2.ZERO and box.intersects(blocked):
+				continue
+			var near := false
+			for t in taken:
+				if t.intersects(box):
+					near = true
+					break
+			if near:
+				continue
+			taken.append(box)
+			_marker(at, c.rank == 1, px)
+			MapText.draw(self, font, at + spots[i][1], c.name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, FONT_SIZE, CAPITAL_COLOR if c.rank == 1 else NAME_COLOR, px, INK)
+			placed = true
+			break
+		if not placed and c.rank == 1:
+			# A capital is always marked, even when its name has nowhere to go.
+			_marker(at, true, px)
+
+
+## The box the army banners of a province take on the screen (empty if none stand there).
+func _banner_box(province: int, px: float) -> Rect2:
+	if Military.armies_at(GameState, province).is_empty():
+		return Rect2()
+	var size := ArmyLayer.BANNER * px
+	var centre: Vector2 = MapData.provinces[province].center
+	return Rect2(centre - size / 2.0 - Vector2(18.0, 6.0) * px, size + Vector2(36.0, 12.0) * px)
 
 
 ## A diamond for a city, a star-like double diamond for a capital.

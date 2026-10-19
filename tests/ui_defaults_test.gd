@@ -40,7 +40,7 @@ func _initialize() -> void:
 	await process_frame
 	_check(card.visible and not card._detail.visible, "a selected province shows a card without its details")
 	var small: float = card.size.y
-	_check(small < 130.0 and card.size.x <= 240.0, "which is small (%d by %d)" % [card.size.x, small])
+	_check(small < 160.0 and card.size.x <= 240.0, "which is small (%d by %d)" % [card.size.x, small])
 	card._toggle.pressed.emit()
 	await process_frame
 	await process_frame
@@ -49,6 +49,24 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 	_check(not card._detail.visible and is_equal_approx(card.size.y, small), "and closes it again")
+	# A long name shows in full, wrapped.
+	var long_id := 0
+	for pid in range(1, gs.province_owner.size()):
+		if map.provinces[pid].name.length() >= 20:
+			long_id = pid
+			break
+	main.map_view.select(long_id)
+	await process_frame
+	await process_frame
+	var shown := ""
+	for l in card._box.get_child(0).get_children():
+		if l is Label:
+			shown = l.text
+	var wrapped := false
+	for l in card._box.get_child(0).get_children():
+		if l is Label and l.autowrap_mode != TextServer.AUTOWRAP_OFF and not l.clip_text:
+			wrapped = true
+	_check(shown == map.provinces[long_id].name and wrapped, "a long province name wraps instead of being cut (%s)" % shown)
 	DirAccess.remove_absolute(Settings.path)
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
