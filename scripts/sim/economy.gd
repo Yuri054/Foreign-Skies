@@ -146,14 +146,18 @@ static func clamp_funding(n: Nation) -> void:
 	n.navy_funding = clampf(n.navy_funding, float(cfg.funding_min), funding_cap(n))
 
 
-## Share of the factories' work left after the workers called up (1 when nobody is).
+## Share of the factories' work left after the people called up and, in a famine, the hunger.
 static func worker_share(n: Nation) -> float:
-	return 1.0 - float(cfg.mobilization_factory_penalty) * n.mobilization
+	var armed := float(n.men_in_units) / maxf(float(n.population), 1.0)
+	var share := maxf(float(cfg.labor.floor), 1.0 - float(cfg.labor.penalty) * armed)
+	if n.starving:
+		share *= 1.0 - float(cfg.starvation.output)
+	return share
 
 
 ## Share of the civilian factories' work that goes to the people's goods, not to building.
 static func consumer_share(n: Nation) -> float:
-	return law_of(n).consumer
+	return minf(0.95, float(law_of(n).consumer) + n.weariness)
 
 
 ## What stops a nation from having a law now, ignoring the wait between changes: "" if nothing.
@@ -606,6 +610,7 @@ static func building_stats(gs: Node, tag: String) -> Dictionary:
 ## Daily update: refreshes the flows, moves the stockpiles of the resources that keep one,
 ## advances construction and completes finished buildings.
 static func step_day(gs: Node) -> void:
+	_pressures(gs)
 	refresh(gs)
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
@@ -642,6 +647,31 @@ static func step_day(gs: Node) -> void:
 	if finished:
 		recompute(gs)
 		gs.economy_updated.emit()
+
+
+## The daily macro pressures: war weariness (1% of the civilian factories for every 100,000 men
+## lost, easing in peace) and starvation (a nation that needs imports and gets under 30% of them
+## through the blockade loses output and war support).
+static func _pressures(gs: Node) -> void:
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		var w: Dictionary = cfg.weariness
+		var target := minf(float(w.max), (n.war_dead + n.deaths_month) / 100000.0 * float(w.per_100k))
+		if gs.wars_of(tag).is_empty():
+			n.weariness = maxf(0.0, n.weariness - float(w.ease_per_day))
+		else:
+			n.weariness = maxf(n.weariness, target)
+		var b: Dictionary = n.budget
+		var needs_imports: bool = b.get("food_need", 0.0) > b.get("food_production", 0.0)
+		if not needs_imports:
+			for r in resource_ids():
+				if b.resources[r].need > 0.0:
+					needs_imports = true
+					break
+		var s: Dictionary = cfg.starvation
+		n.starving = needs_imports and (1.0 - n.blockade) < float(s.below)
+		if n.starving:
+			WarSupport.change(gs, tag, -float(s.support_per_day))
 
 
 ## Monthly update: pays the budget, grows the economy and refills manpower toward its cap.

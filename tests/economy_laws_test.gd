@@ -167,8 +167,8 @@ func _test_mobilization() -> void:
 	var line = fra.production_lines[0]
 	var full: float = Prod.capacity(fra, line)
 	var points: float = Eco.construction_points(fra, 50.0)
-	fra.mobilization = 0.4
-	_check(is_equal_approx(Eco.worker_share(fra), 1.0 - Eco.cfg.mobilization_factory_penalty * 0.4), "workers called up leave the factories (%.2f)" % Eco.worker_share(fra))
+	fra.men_in_units = int(fra.population * 0.2)
+	_check(is_equal_approx(Eco.worker_share(fra), 1.0 - Eco.cfg.labor.penalty * 0.2), "workers called up leave the factories (%.2f)" % Eco.worker_share(fra))
 	_check(Prod.capacity(fra, line) < full and Eco.construction_points(fra, 50.0) < points, "so production and construction slow")
 
 

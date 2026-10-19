@@ -35,6 +35,23 @@
 	"soldier_upkeep": 70.0,
 	"mobilization_output_penalty": 0.35,
 	"mobilization_factory_penalty": 0.3,
+	"labor": {
+		"_note": "Factory output is multiplied by 1 - penalty times the share of the people under arms (never under floor). Peacetime armies cost a percent or two; a mass levy cripples the factories.",
+		"penalty": 1.2,
+		"floor": 0.2
+	},
+	"weariness": {
+		"_note": "War weariness takes civilian factories for the people's goods: per_100k of all civilian factories for every 100,000 men lost so far (up to max). In peace it eases by ease_per_day.",
+		"per_100k": 0.01,
+		"max": 0.4,
+		"ease_per_day": 0.0005
+	},
+	"starvation": {
+		"_note": "A nation that needs imports and gets less than `below` of them through the blockade starves: factory output falls by `output` and war support by `support_per_day` each day.",
+		"below": 0.3,
+		"output": 0.3,
+		"support_per_day": 0.1
+	},
 	"funding_min": 0.5,
 	"mobilization_rate": 0.15,
 	"construction": {

@@ -30,6 +30,10 @@ var population := 0
 var pop_growth := 0.01
 var deaths_month := 0.0
 var war_dead := 0.0
+## Share of the civilian factories the people's goods take because of the war (see Economy.step_day).
+var weariness := 0.0
+## True while blockaded imports are too few to feed the nation (see Economy.step_day).
+var starving := false
 
 # Economy (rules in Economy; constants in data/economy.json).
 ## Output multiplier: how productive this nation's economy is relative to the baseline.
