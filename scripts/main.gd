@@ -10,6 +10,7 @@ const ArmyLayer := preload("res://scripts/map/army_layer.gd")
 const NavalBattleScreen := preload("res://scripts/ui/naval_battle_screen.gd")
 const AIOverlay := preload("res://scripts/map/ai_overlay.gd")
 const SlotLabels := preload("res://scripts/map/slot_labels.gd")
+const CityLayer := preload("res://scripts/map/city_layer.gd")
 ## How solid the army and fleet banners are while the Construction map mode is on.
 const BUILD_MODE_UNIT_ALPHA := 0.25
 const EventFeed := preload("res://scripts/ui/event_feed.gd")
@@ -49,6 +50,10 @@ func _ready() -> void:
 		army_layer.modulate.a = BUILD_MODE_UNIT_ALPHA if faded else 1.0
 		fleet_layer.modulate.a = BUILD_MODE_UNIT_ALPHA if faded else 1.0
 	)
+	var city_layer := CityLayer.new()
+	city_layer.map_view = map_view
+	city_layer.camera = camera
+	add_child(city_layer)
 	var slot_labels := SlotLabels.new()
 	slot_labels.map_view = map_view
 	slot_labels.camera = camera

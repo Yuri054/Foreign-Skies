@@ -5,6 +5,7 @@ extends PanelContainer
 ## the card stays out of the way until you ask. Nothing is shown until something is selected.
 
 const WIDTH := 236.0
+const CityLayer := preload("res://scripts/map/city_layer.gd")
 
 var _box := VBoxContainer.new()
 ## The rows under the Details button; shown only while it is on.
@@ -188,6 +189,12 @@ func show_province(id: int) -> void:
 	var used := Economy.slots_used(GameState, id)
 	var slots := Economy.slots_of(GameState, id)
 	# What matters at a glance stays on the card.
+	var towns: Array = GameState.cities_by_province.get(id, [])
+	var city_rows: Array = []
+	for c: Dictionary in towns:
+		city_rows.append(["Capital" if c.rank == 1 else "City", "%s  ·  %s%s" % [c.name, CityLayer.people(c.pop), "" if not c.est else " (est.)"]])
+	if not city_rows.is_empty():
+		_table(city_rows, _box)
 	_table([
 		["People", Fmt.thousands(population)],
 		["Output", "£%.1fM a month" % Fmt.monthly(GameState.province_gdp[id])],

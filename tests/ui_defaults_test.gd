@@ -40,7 +40,7 @@ func _initialize() -> void:
 	await process_frame
 	_check(card.visible and not card._detail.visible, "a selected province shows a card without its details")
 	var small: float = card.size.y
-	_check(small < 110.0 and card.size.x <= 240.0, "which is small (%d by %d)" % [card.size.x, small])
+	_check(small < 130.0 and card.size.x <= 240.0, "which is small (%d by %d)" % [card.size.x, small])
 	card._toggle.pressed.emit()
 	await process_frame
 	await process_frame

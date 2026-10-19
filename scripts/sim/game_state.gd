@@ -78,6 +78,11 @@ var province_food := PackedFloat32Array()      # people the land can feed
 var province_pool := PackedFloat32Array()      # recruitable men
 ## Indexed by province id: resource id -> potential output in thousand tonnes per year.
 var province_deposit: Array[Dictionary] = []
+## The major cities (data/scenarios/<scenario>/cities.tsv), biggest first: {id, name, province, pos
+## (a point on the map), pop, rank (1 a capital, 2 a great city, 3 a large one), est}.
+var cities: Array[Dictionary] = []
+## Province id to the cities in it.
+var cities_by_province: Dictionary = {}
 ## Indexed by province id: building type -> level.
 var province_buildings: Array[Dictionary] = []
 ## army id -> Army.
@@ -214,6 +219,21 @@ func _ready() -> void:
 	Clock.month_ticked.connect(_on_month_ticked)
 
 
+## Reads the scenario's list of major cities (none if it has no cities.tsv).
+func _load_cities(dir: String) -> void:
+	cities.clear()
+	cities_by_province.clear()
+	if not FileAccess.file_exists(dir + "cities.tsv"):
+		return
+	for row in MapData.read_table(dir + "cities.tsv"):
+		var city := {"id": int(row.id), "name": row.name, "province": int(row.province),
+				"pos": Vector2(float(row.x), float(row.y)), "pop": int(row.pop), "rank": int(row.rank), "est": int(row.est) == 1}
+		cities.append(city)
+		if not cities_by_province.has(city.province):
+			cities_by_province[city.province] = []
+		cities_by_province[city.province].append(city)
+
+
 func load_scenario(dir: String) -> void:
 	Economy.load_config()
 	Military.load_config()
@@ -252,6 +272,7 @@ func load_scenario(dir: String) -> void:
 	for row in MapData.read_table(dir + "resources.tsv"):
 		for r in Economy.deposit_ids():
 			province_deposit[int(row.id)][r] = float(row[r])
+	_load_cities(dir)
 	for id in range(1, count):
 		province_owner[id] = MapData.provinces[id].owner
 		owner_version += 1
