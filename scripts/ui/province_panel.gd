@@ -1,25 +1,53 @@
 extends PanelContainer
-## The panel at the top left that says what the selected province (or sea zone) is: a header
-## with the owner's flag, the figures in a two-column table, then what stands and who is there,
-## in short sections. Nothing is shown until something is selected.
+## The small card at the top left that says what the selected province (or sea zone) is: the
+## owner's flag and the name, a line for who and what, and the three figures that matter at a
+## glance. The rest (economy, deposits, what stands, who is there) is behind a Details button, so
+## the card stays out of the way until you ask. Nothing is shown until something is selected.
 
-const WIDTH := 330.0
+const WIDTH := 236.0
 
 var _box := VBoxContainer.new()
+## The rows under the Details button; shown only while it is on.
+var _detail := VBoxContainer.new()
+var _toggle := Button.new()
+var _last_province := 0
+var _last_zone := 0
 
 
 func _ready() -> void:
 	add_to_group("province_panel")
-	position = Vector2(16, 56)
+	position = Vector2(12, 52)
 	custom_minimum_size = Vector2(WIDTH, 0)
 	size = Vector2(WIDTH, 0)
-	add_theme_stylebox_override("panel", UiTheme.map_panel())
-	_box.add_theme_constant_override("separation", 4)
+	theme = UiTheme.compact()
+	var style := UiTheme.frame()
+	style.bg_color = Color(UiTheme.SLATE_DEEP, 0.9)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 5
+	style.content_margin_bottom = 6
+	add_theme_stylebox_override("panel", style)
+	_box.add_theme_constant_override("separation", 2)
 	add_child(_box)
+	_detail.add_theme_constant_override("separation", 2)
+	_toggle.focus_mode = Control.FOCUS_NONE
+	_toggle.flat = false
+	_toggle.pressed.connect(func() -> void:
+		UiSettings.set_province_details(not UiSettings.province_details)
+		_rebuild())
 	show_province(0)
 
 
-## The text of every label in the panel, one line each, for tests and tooltips.
+## Builds the card again for what it last showed (after the Details button).
+func _rebuild() -> void:
+	if _last_zone > 0:
+		show_zone(_last_zone)
+	else:
+		show_province(_last_province)
+
+
+## The text of every label in the panel, one line each, for tests and tooltips. The rows under
+## Details count even while they are folded away.
 func plain_text() -> String:
 	var lines: PackedStringArray = []
 	_collect(_box, lines)
@@ -34,51 +62,63 @@ func _collect(node: Node, lines: PackedStringArray) -> void:
 
 
 func _clear() -> void:
+	# The detail box is kept and emptied, so it can be put back under the card.
+	if _detail.get_parent() == _box:
+		_box.remove_child(_detail)
 	for c in _box.get_children():
 		_box.remove_child(c)
 		c.queue_free()
+	for c in _detail.get_children():
+		_detail.remove_child(c)
+		c.queue_free()
 
 
+## The first line: the flag, the name and the Details button.
 func _title(text: String, tag := "") -> void:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 6)
 	if tag != "":
 		var flag := FlagIcon.new(tag)
-		flag.custom_minimum_size = Vector2(36, 24)
+		flag.custom_minimum_size = Vector2(26, 17)
 		row.add_child(flag)
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_font_size_override("font_size", 15)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.clip_text = true
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
+	_toggle.text = "Less" if UiSettings.province_details else "More"
+	_toggle.tooltip_text = "Show or fold away the rest of what is known about this place."
+	if _toggle.get_parent() != null:
+		_toggle.get_parent().remove_child(_toggle)
+	row.add_child(_toggle)
 	_box.add_child(row)
 
 
-func _note(text: String, color := Fmt.DIM) -> void:
+func _note(text: String, color := Fmt.DIM, into: Control = null) -> void:
 	var label := Label.new()
 	label.text = text
 	label.modulate = color
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_box.add_child(label)
+	(into if into != null else _box).add_child(label)
 
 
 func _section(text: String) -> void:
-	_box.add_child(HSeparator.new())
+	_detail.add_child(HSeparator.new())
 	var label := Label.new()
 	label.text = text.to_upper()
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", 10)
 	label.modulate = Fmt.DIM
-	_box.add_child(label)
+	_detail.add_child(label)
 
 
-## A table of [name, value] pairs.
-func _table(rows: Array) -> void:
+## A table of [name, value] pairs, in the card or (by default) under Details.
+func _table(rows: Array, into: Control = null) -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 14)
-	grid.add_theme_constant_override("v_separation", 1)
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 0)
 	for r: Array in rows:
 		var name := Label.new()
 		name.text = r[0]
@@ -91,7 +131,15 @@ func _table(rows: Array) -> void:
 		if r.size() > 2:
 			value.modulate = r[2]
 		grid.add_child(value)
-	_box.add_child(grid)
+	(into if into != null else _detail).add_child(grid)
+
+
+## Puts the folded rows under the card: in the tree only while Details is on (their labels stay
+## in the card either way, for plain_text).
+func _finish() -> void:
+	_box.add_child(_detail)
+	_detail.visible = UiSettings.province_details
+	_fit()
 
 
 ## The panel keeps the height it had, so after a rebuild it is shrunk or grown to fit once the
@@ -101,6 +149,7 @@ func _fit() -> void:
 
 
 func show_zone(zone: int) -> void:
+	_last_zone = zone
 	_clear()
 	if zone <= 0:
 		visible = false
@@ -111,16 +160,15 @@ func show_zone(zone: int) -> void:
 	for n in MapData.sea_adjacency[zone]:
 		next.append(MapData.sea_zones[n].name)
 	_title(z.name)
-	_note("Sea zone")
+	_table([["Sea zone", "%d ports open on it" % MapData.ports_in_zone(zone).size()]], _box)
 	_section("Waters")
-	_table([
-		["Borders", ", ".join(next)],
-		["Ports", "%d open on it" % MapData.ports_in_zone(zone).size()],
-	])
-	_fit()
+	_table([["Borders", ", ".join(next)]])
+	_finish()
 
 
 func show_province(id: int) -> void:
+	_last_province = id
+	_last_zone = 0
 	_clear()
 	var p := MapData.get_province(id)
 	if p.is_empty():
@@ -137,16 +185,20 @@ func show_province(id: int) -> void:
 	if GameState.province_controller[id] != owner_tag:
 		_note("Occupied by %s" % GameState.nations[GameState.province_controller[id]].display_name, Fmt.BAD)
 
-	_section("Economy")
 	var used := Economy.slots_used(GameState, id)
 	var slots := Economy.slots_of(GameState, id)
+	# What matters at a glance stays on the card.
 	_table([
-		["Population", Fmt.thousands(population)],
-		["Area", "~%s km²" % Fmt.thousands(int(p.area * MapData.KM2_PER_PX))],
+		["People", Fmt.thousands(population)],
 		["Output", "£%.1fM a month" % Fmt.monthly(GameState.province_gdp[id])],
+		["Slots", "%d of %d used" % [used, slots], Fmt.WARN if used >= slots else Color.WHITE],
+	], _box)
+	# The rest is under Details.
+	_section("Economy")
+	_table([
+		["Area", "~%s km²" % Fmt.thousands(int(p.area * MapData.KM2_PER_PX))],
 		["Feeds", Fmt.people(GameState.province_food[id])],
 		["Recruits", Fmt.people(GameState.province_pool[id])],
-		["Building slots", "%d of %d used" % [used, slots], Fmt.WARN if used >= slots else Color.WHITE],
 		["Infrastructure", "%.1f" % Economy.infrastructure(GameState, id)],
 	])
 
@@ -193,4 +245,4 @@ func show_province(id: int) -> void:
 		for fl in docked:
 			rows.append(["%s fleet" % fl.tag, "%s (%d squadrons)" % [fl.display_name, fl.ships.size()]])
 		_table(rows)
-	_fit()
+	_finish()

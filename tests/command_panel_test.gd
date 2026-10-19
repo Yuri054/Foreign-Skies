@@ -23,6 +23,7 @@ func _initialize() -> void:
 	load("res://scripts/ui/ui_settings.gd").path = "user://test_settings.cfg"
 	var gs: Node = root.get_node("GameState")
 	var map: Node = root.get_node("MapData")
+	load("res://scripts/ui/ui_settings.gd").command_open = true  # it starts closed; these tests use it open
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -35,6 +36,12 @@ func _initialize() -> void:
 	var bar: Node = get_first_node_in_group("command_panel")
 	_check(bar != null, "the command panel exists")
 	var Settings = load("res://scripts/ui/ui_settings.gd")
+	gs.set_player("FRA")
+	await process_frame
+	_check(not bar.visible, "it does not show while a nation is being picked")
+	for picker in get_nodes_in_group("nation_picker"):
+		picker.queue_free()
+	await process_frame
 	gs.set_player("FRA")
 	await process_frame
 	_check(bar.visible and not bar._army_orders.visible, "it shows with no selection, without the orders strip")

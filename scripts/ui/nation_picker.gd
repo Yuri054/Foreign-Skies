@@ -15,6 +15,8 @@ var _play := Button.new()
 
 func _ready() -> void:
 	add_to_group("nation_picker")
+	# The command panel has nothing to show until a nation is picked.
+	get_tree().call_group("command_panel", "_refresh")
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 

@@ -301,8 +301,16 @@ func _fleets() -> Array[Fleet]:
 	return out
 
 
+## While a nation is still being picked there is no army of yours to command, so nothing shows.
+func _picking() -> bool:
+	for picker in get_tree().get_nodes_in_group("nation_picker"):
+		if not picker.is_queued_for_deletion():
+			return true
+	return false
+
+
 func _refresh() -> void:
-	visible = GameState.get_player() != null
+	visible = GameState.get_player() != null and not _picking()
 	if not visible:
 		return
 	_toggle.text = "Hide (C)" if _open else "Command (C)"

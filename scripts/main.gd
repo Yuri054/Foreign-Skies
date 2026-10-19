@@ -132,9 +132,9 @@ func _ready() -> void:
 	var picker := NationPicker.new()
 	picker.map_view = map_view
 	picker.nation_chosen.connect(func(tag: String) -> void:
+		picker.queue_free()
 		GameState.set_player(tag)
 		_focus_on(tag)
-		picker.queue_free()
 		tutorial.after_nation_chosen()
 	)
 	ui.add_child(picker)
