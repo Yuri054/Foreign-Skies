@@ -73,7 +73,7 @@ func _test_output() -> void:
 	var arms_before: float = ger.equipment.arms
 	var money_before: float = ger.treasury
 	var line = _line(ger, "arms")
-	var expected: float = line.factories * Mil.cfg.equipment.categories.arms.output * Eco.law_of(ger).military
+	var expected: float = line.factories * Mil.cfg.equipment.categories.arms.output * Eco.law_of(ger).military * Eco.worker_share(ger)
 	Clock.advance_day()
 	_check(is_equal_approx(_line(ger, "arms").made, expected), "a line makes factories x output (%.2f)" % expected)
 	_check(ger.equipment.arms > arms_before, "and adds it to the store")
@@ -107,7 +107,7 @@ func _test_budget() -> void:
 	var b = ger.budget
 	_check(b.equipment > 0.0 and b.expenses > b.equipment, "the budget counts the lines' spending as an expense (%.1f a year)" % b.equipment)
 	var arms = _line(ger, "arms")
-	var expected: float = (arms.factories * Mil.cfg.equipment.categories.arms.output * Mil.cfg.equipment.categories.arms.cost.money + _line(ger, "artillery").factories * Mil.cfg.equipment.categories.artillery.output * Mil.cfg.equipment.categories.artillery.cost.money) * 365.0 * Eco.law_of(ger).military * Prod.paid_share(ger)
+	var expected: float = (arms.factories * Mil.cfg.equipment.categories.arms.output * Mil.cfg.equipment.categories.arms.cost.money + _line(ger, "artillery").factories * Mil.cfg.equipment.categories.artillery.output * Mil.cfg.equipment.categories.artillery.cost.money) * 365.0 * Eco.law_of(ger).military * Eco.worker_share(ger) * Prod.paid_share(ger)
 	_check(is_equal_approx(b.equipment, expected), "which is what the lines cost at full tilt (%.1f)" % expected)
 
 
