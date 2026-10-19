@@ -53,6 +53,7 @@ func _initialize() -> void:
 		if day == 400 or day == 900:
 			_check_save_load()
 	print("SOAK seed %d player %s: %d days, %d violations (%d kinds), %.0f ms a day" % [seed_value, player, years * 365, violations, seen.size(), float(Time.get_ticks_msec() - started) / (years * 365)])
+	print("AI declarations: %s, wars begun %d" % [str(gs.ai_declarations), gs.wars.size()])
 	quit(0)
 
 
