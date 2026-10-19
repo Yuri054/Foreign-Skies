@@ -1,4 +1,4 @@
-# Europa: The Last Battle
+# Foreign Skies
 
 A real-time grand strategy game on a flat 2D map of Europe, July 1914. Pick any nation, manage its
 economy, armies, navy and diplomacy, and see whether the alliances hold. Single player; the AI plays

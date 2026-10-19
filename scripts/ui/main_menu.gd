@@ -99,7 +99,7 @@ func show_page(page: String) -> void:
 
 
 func _build_main() -> void:
-	_title.text = "Europa: The Last Battle"
+	_title.text = "Foreign Skies"
 	var latest := latest_save()
 	_continue = _button("Continue" if latest.is_empty() else "Continue: %s, %s" % [
 			latest.header.get("nation", ""), latest.header.get("date", "")], continue_game)

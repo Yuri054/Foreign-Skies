@@ -1,4 +1,4 @@
-# Europa: The Last Battle: Design Plan
+# Foreign Skies: Design Plan
 
 ## Vision
 Age of History 3's accessibility (flat 2D map, quick to learn, any nation playable) with Paradox-style depth in diplomacy, economy and war. The map is the interface: map modes carry most of the information.
