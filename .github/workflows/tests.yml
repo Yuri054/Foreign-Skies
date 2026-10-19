@@ -1,0 +1,31 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot
+        run: |
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+      - name: Install a virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1 libxcursor1 libxi6 libxinerama1 libxrandr2
+      - name: Import the project
+        run: godot --headless --path . --import || true
+      - name: Run the tests
+        # SPEED_TESTS=0 skips the timing limits: a shared runner is slower and noisier than a desk.
+        env:
+          SPEED_TESTS: "0"
+          GODOT: godot
+        run: python3 tools/run_tests.py --windowed

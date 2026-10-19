@@ -55,6 +55,6 @@ func _initialize() -> void:
 				cover += Mil.army_coverage(a) * a.men()
 				men += a.men()
 		_check(men <= 0.0 or cover / men > 0.8, "%s's army is equipped (%.2f)" % [t, cover / men if men > 0.0 else 1.0])
-	_check(ms_per_day < 90.0, "a day costs under 90 ms over two years (%.0f ms)" % ms_per_day)
+	_check(OS.get_environment("SPEED_TESTS") == "0" or ms_per_day < 90.0, "a day costs under 90 ms over two years (%.0f ms)" % ms_per_day)
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

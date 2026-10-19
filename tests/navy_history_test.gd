@@ -159,4 +159,4 @@ func _test_cost() -> void:
 	var navy_ms := float(int(A.timings.get("navy", 0)) + int(A.timings.get("landing", 0))) / 1000.0 / days
 	A.profile = false
 	print("      (the naval AI costs %.1f ms a day)" % navy_ms)
-	_check(navy_ms < 10.0, "the naval AI costs under 10 ms a day with the fleets out")
+	_check(OS.get_environment("SPEED_TESTS") == "0" or navy_ms < 10.0, "the naval AI costs under 10 ms a day with the fleets out")

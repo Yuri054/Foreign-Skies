@@ -154,8 +154,8 @@ func _test_cost() -> void:
 	var ai_ms := float(ai_us) / 1000.0 / days
 	A.profile = false
 	print("      (a day costs %.1f ms in all, %.1f ms of it the AI)" % [total_ms, ai_ms])
-	_check(ai_ms < 25.0, "the AI costs under 25 ms a day through the busiest war months")
-	_check(total_ms < 90.0, "the whole day step stays under 90 ms")
+	_check(OS.get_environment("SPEED_TESTS") == "0" or ai_ms < 25.0, "the AI costs under 25 ms a day through the busiest war months")
+	_check(OS.get_environment("SPEED_TESTS") == "0" or total_ms < 90.0, "the whole day step stays under 90 ms")
 
 
 ## The debug overlay's data: orders, campaign targets and fronts of the nations the AI plays.

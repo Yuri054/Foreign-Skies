@@ -1,4 +1,5 @@
 extends SceneTree
+## WINDOWED
 ## Checks that menus take mouse input instead of passing it to the map.
 ## Needs a real window (headless mode does not dispatch GUI mouse events):
 ##   godot --path . -s res://tests/ui_input_test.gd --windowed --resolution 1280x720
@@ -53,10 +54,7 @@ func _initialize() -> void:
 	for c in ui.get_children():
 		if c.get_script() != null and c.get_script().resource_path.ends_with("nation_picker.gd"):
 			c.queue_free()
-	var bar
-	for c in ui.get_children():
-		if c.get("map_view") != null:
-			bar = c
+	var bar = get_first_node_in_group("map_modes")
 	var eco = get_first_node_in_group("economy_panel")
 	eco.toggle()
 	await process_frame

@@ -1,4 +1,5 @@
 extends SceneTree
+## WINDOWED
 ## Checks the floating windows with real mouse events: every menu is a window, and each can
 ## be dragged by its title bar, resized by its edges, minimized, restored, closed with the X
 ## and brought to the front.
