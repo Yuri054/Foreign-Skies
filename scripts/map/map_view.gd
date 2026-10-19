@@ -613,6 +613,12 @@ func _box_rect() -> Rect2:
 
 
 ## The left button came up: a drag selects armies in the box, a click selects the province.
+## Whether the pointer is over a control that takes the mouse (a window, a panel, a menu).
+func _over_interface() -> bool:
+	var over := get_viewport().gui_get_hovered_control()
+	return over != null and over.mouse_filter != Control.MOUSE_FILTER_IGNORE
+
+
 func _finish_press(_screen_pos: Vector2) -> void:
 	var was_box := _boxing
 	_pressing = false
@@ -620,6 +626,8 @@ func _finish_press(_screen_pos: Vector2) -> void:
 	if was_box:
 		get_tree().call_group("army_layer", "set_box", Rect2())
 		box_selected.emit(_box_rect(), Input.is_key_pressed(KEY_SHIFT))
+	elif _over_interface():
+		return  # the click ended over a window or panel: it is theirs, not the map's
 	else:
 		var layer := get_tree().get_first_node_in_group("army_layer")
 		var fleet_layer := get_tree().get_first_node_in_group("fleet_layer")
