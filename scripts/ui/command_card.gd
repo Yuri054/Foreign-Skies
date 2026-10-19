@@ -58,12 +58,14 @@ static func initials(person: String) -> String:
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
+		# Accept first: the handlers rebuild the panel and take this card out of the tree, after
+		# which it could no longer mark the click as used and it would fall through to the map.
 		if event.button_index == MOUSE_BUTTON_LEFT:
+			accept_event()
 			pressed.emit(event.shift_pressed)
-			accept_event()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			context_requested.emit(get_global_mouse_position())
 			accept_event()
+			context_requested.emit(get_global_mouse_position())
 
 
 func _draw() -> void:
