@@ -49,7 +49,7 @@ func _test_budget() -> void:
 	var ger = gs.nations["GER"]
 	for r in ["coal", "iron", "wood"]:
 		var info: Dictionary = ger.budget.resources[r]
-		var parts: float = info.from_industry + info.from_homes + info.from_buildings
+		var parts: float = info.from_industry + info.from_homes + info.from_buildings + info.from_lines + info.from_works + info.from_army
 		_check(absf(parts - info.demand) < 0.01, "%s: industry, homes and buildings make up the demand (%.0f of %.0f)" % [r, parts, info.demand])
 	var kit: Dictionary = Prod.planned_materials(ger)
 	_check(kit.get("iron", 0.0) > 0.0 and kit.get("coal", 0.0) > 0.0, "the equipment lines draw iron and coal (%s)" % str(kit))

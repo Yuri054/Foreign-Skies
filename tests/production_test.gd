@@ -89,19 +89,16 @@ func _test_shortage() -> void:
 	_check(line.made < line.factories * Mil.cfg.equipment.categories.arms.output and line.limit == "money", "with no money a line makes less (%.3f, limited by %s)" % [line.made, line.limit])
 	_fresh()
 	var srb = gs.nations["SRB"]
-	srb.stock.iron = 0.0
-	var money: float = srb.treasury
 	Clock.advance_day()
 	line = _line(srb, "arms")
-	_check(line.limit == "" and line.made > 0.0, "with no iron in store it is bought, and the line runs on")
-	_check(srb.equipment_spent > 0.0, "at a price (%.4f paid)" % srb.equipment_spent)
+	var iron_mult: float = srb.budget.resources.iron.mult
+	_check(iron_mult < 1.0 and line.limit == "iron" and line.made < line.factories * Mil.cfg.equipment.categories.arms.output, "Serbia buys no iron (landlocked, no sellers): its line is slowed by it (x%.2f, %s)" % [iron_mult, line.limit])
 	_fresh()
-	srb = gs.nations["SRB"]
-	srb.stock.iron = 0.0
-	srb.blockade_pinned = 1.0
+	var fra = gs.nations["FRA"]
+	fra.treasury = 100.0
 	Clock.advance_day()
-	line = _line(srb, "arms")
-	_check(line.limit == "iron" and line.made == 0.0, "but under a full blockade a line with no iron stops (%s)" % line.limit)
+	line = _line(fra, "arms")
+	_check(line.made > 0.0 and fra.equipment_spent > 0.0, "a nation that can trade for its iron runs its line and pays for the items (%.4f paid)" % fra.equipment_spent)
 
 
 func _test_budget() -> void:

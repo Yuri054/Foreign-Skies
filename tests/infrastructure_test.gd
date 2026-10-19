@@ -105,7 +105,7 @@ func _test_labels() -> void:
 	var e: Dictionary = entries[0]
 	_check(e.text == "%d/%d" % [Eco.slots_used(gs, e.id), Eco.slots_of(gs, e.id)], "with slots used out of slots (%s)" % e.text)
 	var rail: Array = Labels.entries(gs, "railway")
-	_check(rail[0].text == "0/3" and not rail[0].full, "a railway shows its level out of the most (%s)" % rail[0].text)
+	_check(rail[0].text == "0/5" and not rail[0].full, "a railway shows its level out of the most (%s)" % rail[0].text)
 	_check(Labels.entries(gs, "").is_empty(), "nothing is written for no building")
 
 

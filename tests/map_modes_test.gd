@@ -57,7 +57,7 @@ func _initialize() -> void:
 	var labels: PackedStringArray = []
 	for c in palette._strip.get_children():
 		labels.append(c.text)
-	_check(labels == PackedStringArray(["Tax income", "Coal", "Iron ore", "Timber", "Buildings"]), "with its variants as chips (%s)" % ", ".join(labels))
+	_check(labels == PackedStringArray(["Tax income", "Coal", "Iron / Steel", "Nitrates", "Draft animals", "Chemicals", "Timber", "Buildings"]), "with its variants as chips (%s)" % ", ".join(labels))
 	_check(palette._strip_title.text == "Economy ›", "and the kind named beside them")
 	palette._chips[1].pressed.emit()
 	await process_frame
@@ -73,7 +73,7 @@ func _initialize() -> void:
 	_check(view.mode == Mode.RESOURCES and view.submode == "coal", "going back to Economy remembers the coal you left it on")
 
 	# Buildings and their kinds.
-	palette._chips[4].pressed.emit()
+	palette._chips[7].pressed.emit()
 	await process_frame
 	_check(view.mode == Mode.BUILDINGS and palette._sub_picker.visible and palette._sub_picker.item_count >= 5, "Buildings brings up a list of building kinds (%d)" % palette._sub_picker.item_count)
 	palette._sub_picker.select(2)

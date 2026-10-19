@@ -478,7 +478,7 @@ func _refresh_resources(n: Nation) -> void:
 		if info2.shortage > 0.0:
 			_resources.add_child(_status("Short of %s: industry %d%% down, output %d%% down." % [
 					Economy.cfg.resources[r].name.to_lower(), roundi(info2.cost_industry * 100.0), roundi(info2.cost_gdp * 100.0)], Fmt.BAD))
-	_resources.add_child(_note("Green balances are exported, orange ones imported (the state takes %d%% of the trade value). A blockade stops both, the stockpile runs down, and shortages cut industry and output." % roundi(Economy.cfg.trade_state_share * 100.0)))
+	_resources.add_child(_note("Green balances are exported, orange ones imported. Imports lock civilian factories. A blockade stops both, the stockpile runs down, and shortages cut industry and output."))
 
 
 # ---------------------------------------------------------------- production

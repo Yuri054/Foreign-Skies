@@ -138,7 +138,7 @@ func _test_buildings() -> void:
 	n.budget["net"] = 20.0
 	n.treasury = 11.0
 	B.step(gs, "FRA")
-	_check(n.construction.is_empty(), "none that would leave the treasury under the floor")
+	_check(n.construction.size() == 1, "buildings cost IC, not money, so a low treasury does not stop it")
 	# Railways behind a front score higher than elsewhere.
 	_fresh()
 	gs.set_war("GER", "BEL", true)

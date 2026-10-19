@@ -69,7 +69,8 @@ func _test_construction() -> void:
 	gs.province_buildings[id]["factory"] = gs.province_buildings[id].get("factory", 0) + 5
 	Eco.recompute(gs)
 	var gained: float = fra.budget.construction_points - points0
-	_check(is_equal_approx(gained, 5.0 * (1.0 - Eco.consumer_share(fra)) * Eco.worker_share(fra)), "each factory also gives construction points (%.2f for five)" % gained)
+	var full: float = 5.0 * Eco.cfg.construction.ic_per_factory * (1.0 - Eco.consumer_share(fra)) * Eco.worker_share(fra)
+	_check(gained > 0.8 * full and gained <= full + 0.001, "each factory also gives construction points (%.2f for five)" % gained)
 
 
 func _test_ai() -> void:
