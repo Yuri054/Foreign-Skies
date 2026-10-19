@@ -36,6 +36,9 @@ static func apply_saved(window: Window) -> void:
 		command_open = bool(cfg.get_value("ui", "command_open", false))
 		province_details = bool(cfg.get_value("ui", "province_details", false))
 	window.theme = UiTheme.build()
+	# Whatever is drawn without a theme (the map's names and banners, the charts) uses the same face.
+	ThemeDB.fallback_font = UiTheme.font()
+	ThemeDB.fallback_font_size = UiTheme.FONT_SIZE
 	window.content_scale_factor = scale
 	UiCursor.install()
 

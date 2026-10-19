@@ -37,6 +37,7 @@ var province_panel: PanelContainer
 
 func _ready() -> void:
 	UiSettings.apply_saved(get_window())
+	_theme_interface()
 	map_view.province_selected.connect(_on_province_selected)
 	map_view.province_ordered.connect(_on_right_click)
 	map_view.sea_zone_selected.connect(_on_sea_zone_selected)
@@ -148,6 +149,21 @@ func _ready() -> void:
 		tutorial.after_nation_chosen()
 	)
 	ui.add_child(picker)
+
+
+## A control under a CanvasLayer does not pick up the theme of the window, so the layer's windows,
+## bars and panels are given it one by one (those that bring a theme of their own keep it): the
+## same serif face, colours and frames everywhere.
+func _theme_interface() -> void:
+	var shared: Theme = get_window().theme
+	for child in ui.get_children():
+		_give_theme(child, shared)
+	ui.child_entered_tree.connect(func(child: Node) -> void: _give_theme(child, shared))
+
+
+static func _give_theme(node: Node, shared: Theme) -> void:
+	if node is Control and node.theme == null:
+		node.theme = shared
 
 
 ## The nation a right click has put on show, and the map mode to go back to when it is put
