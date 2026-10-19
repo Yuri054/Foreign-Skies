@@ -33,7 +33,7 @@ static func step_day(gs: Node) -> void:
 			n.blockade = maxf(target, n.blockade - cfg.fall_per_day)
 		if absf(n.blockade - n.blockade_applied) >= cfg.recompute_step or (n.blockade == 0.0 and n.blockade_applied > 0.0):
 			n.blockade_applied = n.blockade
-			gs.economy_dirty = true
+			gs.budget_dirty = true
 		if before != n.blockade:
 			gs.blockade_changed.emit(tag, n.blockade)
 

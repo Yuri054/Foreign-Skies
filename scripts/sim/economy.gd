@@ -490,6 +490,12 @@ static func _budgets(gs: Node, force := true) -> void:
 			Production._fit(n)
 
 
+## Works out the flows and budgets again now, from the last province sums.
+static func refresh_now(gs: Node) -> void:
+	if not gs.economy_sums.is_empty():
+		_budgets(gs, true)
+
+
 ## The daily refresh of flows and budgets, without going through the provinces again.
 static func refresh(gs: Node) -> void:
 	if not gs.economy_sums.is_empty():

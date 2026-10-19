@@ -197,6 +197,11 @@ var ai_budget_stamp: Dictionary = {}
 var ai_enabled := true
 ## Set by issue_quiet; the day's step recomputes the economy once if it is true.
 var economy_dirty := false
+## A change that moves the budgets but no province (a blockade): the budgets and flows are worked
+## out again, the provinces are not.
+var budget_dirty := false
+## Counts every change of who holds a province, so what depends on it is read again only then.
+var control_version := 0
 ## True in the running game (not in tests): the first of each month is saved into one of
 ## AUTOSAVE_SLOTS rotating files.
 var autosave_enabled := false
@@ -213,7 +218,12 @@ func _ready() -> void:
 		AI.step_day(self)
 		if economy_dirty:
 			economy_dirty = false
+			budget_dirty = false
 			Economy.recompute(self)
+			economy_updated.emit()
+		elif budget_dirty:
+			budget_dirty = false
+			Economy.refresh_now(self)
 			economy_updated.emit()
 	)
 	Clock.month_ticked.connect(_on_month_ticked)
@@ -305,6 +315,7 @@ func load_scenario(dir: String) -> void:
 	Diplomacy.load_scenario(self)
 	AI.load_scenario(self)
 	economy_dirty = false
+	budget_dirty = false
 	standings_history.clear()
 	Standings.record(self)
 	for pair: Array in scenario.get("starting_wars", []):
@@ -332,8 +343,10 @@ func load_game(path: String) -> String:
 func finish_load() -> void:
 	owner_version += 1
 	_rebuild_nation_provinces()
+	control_version += 1
 	for front: Front in fronts.values():
 		front.dirty = true
+		front.line_stamp = -1
 	Military._home_cache.clear()
 	Military._home_day = -1
 	Military.invalidate_aura()
@@ -344,6 +357,7 @@ func finish_load() -> void:
 	AINavy._cordons.clear()
 	Diplomacy._neighbor_version = -1
 	economy_dirty = false
+	budget_dirty = false
 	Economy.recompute(self)
 	Clock.date_changed.emit()
 	Clock.pause_changed.emit(true)
@@ -381,6 +395,7 @@ func transfer_province(id: int, tag: String) -> void:
 		return
 	province_owner[id] = tag
 	province_controller[id] = tag
+	control_version += 1
 	owner_version += 1
 	occupation.erase(id)
 	# Construction by the old owner is lost with the province.
@@ -471,6 +486,7 @@ func set_controller(id: int, tag: String) -> void:
 	if old == tag:
 		return
 	province_controller[id] = tag
+	control_version += 1
 	Military.invalidate_aura()
 	province_controller_changed.emit(id, old, tag)
 

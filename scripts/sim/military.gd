@@ -703,8 +703,10 @@ static func leave_front(gs: Node, a: Army) -> void:
 ## Spreads each front's armies along its line and sends idle ones to their province.
 static func step_fronts(gs: Node) -> void:
 	for f: Front in gs.fronts.values():
-		if not f.against.is_empty():
-			# A border front follows the war: re-read the line from who holds what.
+		if not f.against.is_empty() and f.line_stamp != gs.control_version:
+			# A border front follows the war: re-read the line from who holds what (when anything
+			# has changed hands since it was last read).
+			f.line_stamp = gs.control_version
 			var line := border_provinces(gs, f.tag, f.against)
 			if line != f.provinces:
 				f.provinces = line

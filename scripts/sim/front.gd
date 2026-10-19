@@ -17,6 +17,8 @@ var army_ids: Array[int] = []
 ## army id -> province it should hold.
 var slots: Dictionary = {}
 ## Set when the line or the assigned armies changed and the slots must be dealt again.
+## The GameState.control_version the line was last read at (-1: not yet).
+var line_stamp := -1
 var dirty := true
 ## Army id -> the day before which no route to its slot is looked for again (it found none).
 var retry: Dictionary = {}
