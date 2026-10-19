@@ -378,7 +378,11 @@ func _test_perspective() -> void:
 	await process_frame
 	_check(dip._perspective_row.visible and dip._perspective.text.contains("German"), "the Diplomacy window says it is seen from Germany")
 	_check("GER" not in dip._tags and "FRA" in dip._tags, "it lists everyone but Germany, France included")
-	_check(dip._list.get_item_text(0).contains("Austria-Hungary") and dip._list.get_item_text(0).contains("ally"), "Germany's closest friend first (%s)" % dip._list.get_item_text(0))
+	var auh: int = dip._tags.find("AUH")
+	var first_war: bool = gs.at_war("GER", dip._tags[0])
+	_check(auh <= 2 and dip._list.get_item_text(auh).contains("ally") and dip._list.get_item_text(auh).contains("Austria-Hungary"), "Germany's ally is near the top, marked as one (%s)" % dip._list.get_item_text(auh).replace("\n", " / "))
+	_check(first_war or auh == 0, "wars come first, then allies (%s)" % dip._list.get_item_text(0).replace("\n", " / "))
+	_check(dip._list.get_item_icon(auh) != null and dip._header_flag.tag == dip._selected, "each nation has its flag in the list and the detail has a header")
 	_check(not dip._declare.is_visible_in_tree() and not dip._propose_buttons["alliance"].is_visible_in_tree() and not dip._gift.is_visible_in_tree(), "there are no actions: they are not France's to take")
 	_check(dip._treaties.is_visible_in_tree(), "but the treaties are shown")
 	dip._back.pressed.emit()

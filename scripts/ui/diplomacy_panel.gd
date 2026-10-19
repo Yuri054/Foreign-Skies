@@ -39,6 +39,9 @@ var _back := Button.new()
 var _perspective_row := VBoxContainer.new()
 var _list := ItemList.new()
 var _detail := Label.new()
+var _header := HBoxContainer.new()
+var _header_flag := FlagIcon.new()
+var _header_name := Label.new()
 var _treaties := ItemList.new()
 var _cancel := Button.new()
 var _cb_picker := OptionButton.new()
@@ -107,12 +110,31 @@ func _ready() -> void:
 	_list.custom_minimum_size = Vector2(0, 120)
 	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_list.focus_mode = Control.FOCUS_NONE
+	# A flag, the name, and how the nation stands with you only when it ties you (war, an alliance,
+	# a guarantee, a pact). The colour is the opinion: green friendly, orange unfriendly, red at war.
+	_list.icon_mode = ItemList.ICON_MODE_LEFT
+	_list.fixed_icon_size = Vector2i(30, 20)
+	_list.add_theme_constant_override("v_separation", 5)
 	_list.item_selected.connect(func(i: int) -> void:
 		_selected = _tags[i]
 		_refresh_detail()
 	)
+	var key := Label.new()
+	key.text = "Green friendly  ·  orange unfriendly  ·  red at war"
+	key.modulate = Fmt.DIM
+	key.add_theme_font_size_override("font_size", 11)
+	left.add_child(key)
 	left.add_child(_list)
 
+	_header.add_theme_constant_override("separation", 10)
+	_header_flag.custom_minimum_size = Vector2(54, 36)
+	_header.add_child(_header_flag)
+	_header_name.add_theme_font_size_override("font_size", 20)
+	_header_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_header_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_header_name.clip_text = true
+	_header.add_child(_header_name)
+	_box.add_child(_header)
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.custom_minimum_size = Vector2(250, 0)
 	_box.add_child(_detail)
@@ -307,7 +329,12 @@ func _refresh() -> void:
 	for tag: String in GameState.nations:
 		if tag != me and not GameState.nations[tag].provinces.is_empty():
 			tags.append(tag)
+	# At war first, then the allies, then everyone else, the friendliest of each first.
 	tags.sort_custom(func(a: String, b: String) -> bool:
+		var ra := _standing_rank(me, a)
+		var rb := _standing_rank(me, b)
+		if ra != rb:
+			return ra < rb
 		return Diplomacy.relation(GameState, me, a) > Diplomacy.relation(GameState, me, b)
 	)
 	_tags = tags
@@ -317,11 +344,37 @@ func _refresh() -> void:
 	for i in tags.size():
 		var tag := tags[i]
 		var n: Nation = GameState.nations[tag]
-		_list.add_item("%s   %+d   %s" % [n.display_name, roundi(Diplomacy.relation(GameState, me, tag)), _status_tags(me, tag)])
-		_list.set_item_custom_fg_color(i, _relation_color(Diplomacy.relation(GameState, me, tag), GameState.at_war(me, tag)))
+		var rel := Diplomacy.relation(GameState, me, tag)
+		var tied := _status_tags(me, tag)
+		_list.add_item("%s%s" % [n.display_name, "   ·   " + tied if tied != "" else ""], FlagIcon.texture_of(tag))
+		_list.set_item_tooltip(i, "%s: %s (%+d)%s" % [n.display_name, mood(rel), roundi(rel), ". " + tied.capitalize() if tied != "" else ""])
+		_list.set_item_custom_fg_color(i, _relation_color(rel, GameState.at_war(me, tag)))
 		if tag == _selected:
 			_list.select(i)
 	_refresh_detail()
+
+
+## 0 for a nation at war with the viewpoint nation, 1 for an ally or entente partner, 2 for the rest.
+func _standing_rank(me: String, tag: String) -> int:
+	if GameState.at_war(me, tag):
+		return 0
+	for t in Diplomacy.treaties_between(GameState, me, tag):
+		if t.kind == "alliance":
+			return 1
+	return 2
+
+
+## An opinion in a word.
+static func mood(r: float) -> String:
+	if r >= 50.0:
+		return "very friendly"
+	if r >= 25.0:
+		return "friendly"
+	if r > -25.0:
+		return "neutral"
+	if r > -50.0:
+		return "unfriendly"
+	return "hostile"
 
 
 ## Short tags for how a nation stands with the viewpoint nation: war, ally, entente,
@@ -330,7 +383,7 @@ func _status_tags(me: String, tag: String) -> String:
 	var tags: PackedStringArray = []
 	var acting := me == GameState.player_tag
 	if GameState.at_war(me, tag):
-		tags.append("WAR")
+		tags.append("at war")
 	for t in Diplomacy.treaties_between(GameState, me, tag):
 		match t.kind:
 			"alliance":
@@ -362,6 +415,7 @@ func _refresh_detail() -> void:
 	var acting := _acting()
 	var has := GameState.nations.has(_selected)
 	_treaties.visible = has
+	_header.visible = has
 	for c in [_cancel, _cb_picker, _cb_info, _declare, _peace, _gift_amount, _gift, _improve] + _action_labels:
 		c.visible = has and acting
 	for b: Button in _propose_buttons.values():
@@ -374,9 +428,12 @@ func _refresh_detail() -> void:
 	var lines: PackedStringArray = []
 	var r := Diplomacy.relation(GameState, me, _selected)
 	var base: float = GameState.relation_base.get(Diplomacy.pair_key(me, _selected), 0.0)
-	lines.append("%s: opinion of %s %+d (settles at %+d)" % [n.display_name, _who(me), roundi(r), roundi(base)])
+	_header_flag.tag = _selected
+	_header_name.text = n.display_name
+	lines.append("%s's opinion of %s: %s (%+d), settling at %+d." % [n.display_name, _who(me), mood(r), roundi(r), roundi(base)])
 	var bloc := Diplomacy.bloc_of(GameState, _selected)
-	lines.append("Bloc: %s. War support %d, mobilization %d%%, prestige %d." % [bloc if bloc != "" else "none", roundi(n.war_support), roundi(n.mobilization * 100.0), roundi(n.prestige)])
+	lines.append("Bloc: %s" % (bloc if bloc != "" else "none"))
+	lines.append("War support %d  ·  Mobilization %d%%  ·  Prestige %d" % [roundi(n.war_support), roundi(n.mobilization * 100.0), roundi(n.prestige)])
 	var grievance := Diplomacy.grievance(GameState, _selected, me)
 	if grievance >= 1.0:
 		lines.append("They resent %s (%d)." % [_who(me), roundi(grievance)])
