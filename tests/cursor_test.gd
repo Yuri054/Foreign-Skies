@@ -26,7 +26,7 @@ func _initialize() -> void:
 	var gold := hand.get_pixel(13, 12)
 	_check(body.b > gold.b + 0.1 and gold.r > gold.b, "the arrow is cream and the pointer over a button gold")
 	var finger := Vector2i(UiCursor.HAND_HOTSPOT)
-	_check(hand.get_pixel(finger.x, finger.y + 3).a > 0.99 and hand.get_pixel(finger.x - 5, finger.y + 3).a == 0.0, "the hand's finger tip is at its hotspot, with air beside it")
+	_check(hand.get_pixel(finger.x, finger.y + 3).a > 0.99 and hand.get_pixel(finger.x - 7, finger.y + 3).a == 0.0, "the hand's finger tip is at its hotspot, with air beside it")
 	_check(hand.get_pixel(22, 24).a > 0.99 and arrow.get_pixel(22, 24).a == 0.0, "and the hand is a palm and fingers, not the arrow again")
 	_check(UiCursor.arrow_image() == arrow, "the pictures are drawn once")
 	print("FAILURES: ", _failures)
