@@ -33,6 +33,7 @@ static func apply_saved(window: Window) -> void:
 		command_open = bool(cfg.get_value("ui", "command_open", true))
 	window.theme = UiTheme.build()
 	window.content_scale_factor = scale
+	UiCursor.install()
 
 
 ## Changes the scale (rounded to SCALE_STEP, held between the smallest and largest) and saves
