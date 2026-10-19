@@ -50,6 +50,7 @@ static func load_scenario(gs: Node) -> void:
 	gs.pending_offers.clear()
 	gs.relation_projects.clear()
 	gs.justifications.clear()
+	gs.gift_memory.clear()
 	gs.next_offer_id = 1
 	gs.peace_cooldown.clear()
 	gs.indemnities.clear()
@@ -155,6 +156,7 @@ static func step_month(gs: Node) -> void:
 	_step_projects(gs)
 	_step_prestige(gs)
 	_step_grievance(gs)
+	_step_gifts(gs)
 	WarSupport.step_month(gs)
 	Peace.step_month(gs)
 	var step: float = cfg.relations.drift_per_month
@@ -505,9 +507,18 @@ static func gift(gs: Node, from: String, to: String, amount: float) -> bool:
 		return false
 	gs.nations[from].treasury -= amount
 	gs.nations[to].treasury += amount
-	var a: Dictionary = cfg.actions
-	change_relation(gs, from, to, minf(a.gift_max_relation, a.gift_relation_per_million * amount))
+	change_relation(gs, from, to, gift_effect(gs, from, to, amount))
+	var key := from + ">" + to
+	gs.gift_memory[key] = gs.gift_memory.get(key, 0.0) + amount
 	return true
+
+
+## How much a gift of `amount` would raise the receiver's opinion now.
+static func gift_effect(gs: Node, from: String, to: String, amount: float) -> float:
+	var a: Dictionary = cfg.actions
+	var ref := maxf(float(a.gift_ref_floor), float(a.gift_ref_share) * maxf(0.0, float(gs.nations[to].budget.get("revenue", 0.0))))
+	var recent: float = gs.gift_memory.get(from + ">" + to, 0.0)
+	return float(a.gift_max_relation) * (1.0 - exp(-amount / ref)) * exp(-recent / ref)
 
 
 # --- Declaring war -------------------------------------------------------------------------
@@ -737,6 +748,15 @@ static func _step_justifications(gs: Node) -> void:
 			gs.justifications.remove_at(i)
 			gs.casus_belli.append({"holder": j.holder, "target": j.target, "kind": "fabricated_claim", "expires_day": today + int(cfg.war.cb_years * 365)})
 			gs.casus_belli_ready.emit(j.holder, j.target)
+
+
+static func _step_gifts(gs: Node) -> void:
+	for key: String in gs.gift_memory.keys():
+		var left: float = gs.gift_memory[key] * float(cfg.actions.gift_memory_decay)
+		if left < 0.05:
+			gs.gift_memory.erase(key)
+		else:
+			gs.gift_memory[key] = left
 
 
 # --- Cancelling treaties -------------------------------------------------------------------

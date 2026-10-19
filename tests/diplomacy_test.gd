@@ -449,7 +449,7 @@ func _test_points() -> void:
 	var C: Dictionary = D.cfg.points
 	_check(gs.nations["FRA"].diplomacy_points == 50.0 and C.max == 200, "a nation starts with 50 points and can hold 200")
 	_check(D.cost_of("declare_war", "none") == 30.0 and D.cost_of("declare_war", "reconquest") == 10.0 and D.cost_of("declare_war", "ally_called") == 0.0, "an unjustified war costs 30, a claim 10, a called ally nothing")
-	_check(D.cost_of("propose", "alliance") == 40.0 and D.cost_of("cancel", "nap") == 10.0 and D.cost_of("gift") == 5.0, "treaties, cancelling and gifts have prices")
+	_check(D.cost_of("propose", "alliance") == 40.0 and D.cost_of("cancel", "nap") == 10.0 and D.cost_of("gift") == 10.0, "treaties, cancelling and gifts have prices")
 
 	# Income.
 	var fra: Dictionary = D.point_income_parts(gs, "FRA")
@@ -526,7 +526,7 @@ func _test_points() -> void:
 	_fresh()
 	var money: float = gs.nations["FRA"].treasury
 	var gift = GiftC.new("FRA", "ITA", 5.0)
-	_check(gs.issue(gift) and gs.nations["FRA"].diplomacy_points == 45.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 5.0), "a gift costs 5 points as well as the money")
+	_check(gs.issue(gift) and gs.nations["FRA"].diplomacy_points == 40.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 5.0), "a gift costs 10 points as well as the money")
 	gs.nations["FRA"].diplomacy_points = 4.0
 	gift = GiftC.new("FRA", "ITA", 5.0)
 	_check(not gs.issue(gift) and gift.reason == "points" and is_equal_approx(gs.nations["FRA"].treasury, money - 5.0), "and is refused when the points are short, the money untouched")

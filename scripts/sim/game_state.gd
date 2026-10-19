@@ -168,6 +168,8 @@ var join_calls: Dictionary = {}
 var standings_history: Array[Dictionary] = []
 ## Efforts to improve relations under way: {from, to, months_left}.
 var relation_projects: Array[Dictionary] = []
+## Money each nation has recently gifted another, "from>to": {amount}; fades monthly (see Diplomacy.gift_effect).
+var gift_memory: Dictionary = {}
 ## War justifications under way: {holder, target, done_day}.
 var justifications: Array[Dictionary] = []
 ## Every command issued so far, in order.

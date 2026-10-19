@@ -237,15 +237,17 @@
 		"surrender_at": 0
 	},
 	"actions": {
-		"_note": "Player diplomacy (Diplomacy.propose_treaty, Diplomacy.gift). A proposal is accepted when the other nation's opinion of the proposer is at least treaty_accept for the kind; an alliance also needs the two not to be in opposed blocs. A gift of N million raises the receiver's opinion by gift_relation_per_million times N, to at most gift_max_relation more per gift.",
+		"_note": "Player diplomacy (Diplomacy.propose_treaty, Diplomacy.gift). A proposal is accepted when the other nation's opinion of the proposer is at least treaty_accept for the kind; an alliance also needs the two not to be in opposed blocs. A gift of N million raises the receiver's opinion by gift_max_relation * (1 - e^(-N / ref)) * e^(-recent / ref), where ref is gift_ref_share of the receiver's yearly revenue (at least gift_ref_floor): the same money means more to a small nation, a big gift has diminishing returns, and gifts from the same sender in recent months (`recent`, fading by gift_memory_decay a month) count against a new one.",
 		"treaty_accept": {
 			"alliance": 40,
 			"guarantee": -25,
 			"nap": 10,
 			"passage": 30
 		},
-		"gift_relation_per_million": 0.5,
-		"gift_max_relation": 20
+		"gift_max_relation": 20,
+		"gift_ref_share": 0.05,
+		"gift_ref_floor": 2.0,
+		"gift_memory_decay": 0.9
 	},
 	"points": {
 		"_note": "Diplomacy points (Nation.diplomacy_points): a nation's stock of diplomatic effort, spent by the commands DeclareWar, ProposeTreaty, CancelTreaty and Gift (costs below; an AI nation's own internal moves, such as joining a war it is bound to, are free) and earned each month: income.base, plus prestige_weight per point of prestige, plus top_output_bonus for the top_output_count nations by output, never below income.min. The stock cannot pass max. A refused treaty proposal gives refusal_refund of its cost back. purchase: pay base_cost GBP millions for a batch of points, the price rising by price_growth with each purchase and easing back by price_decay each month. improve: improve_relations starts a project that adds monthly to the opinion of the pair (and base_monthly to what it settles at) for months, at most max_active at once. prestige: a battle won earns battle_win, peace terms earn the taker peace_per_score a point of their cost (at most peace_cap, the loser loses peace_loser_share of that), a new alliance or guarantee earns the treaty value, and all of it fades by decay_per_month. Other income sources: the diplomatic service program and the foreign ministry building (see economy.json). A scenario nation can set its own start with diplomacy_points.",
@@ -306,7 +308,7 @@
 				"passage": 5,
 				"neutral_pact": 0
 			},
-			"gift": 5,
+			"gift": 10,
 			"justify": 25
 		}
 	}

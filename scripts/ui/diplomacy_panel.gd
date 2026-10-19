@@ -579,6 +579,7 @@ func _refresh_actions() -> void:
 	var gift_cost := Diplomacy.cost_of("gift")
 	_gift_amount.max_value = maxf(1.0, floorf(treasury))
 	_gift.text = "Send gift (%d points)" % int(gift_cost)
+	_gift.tooltip_text = "Money for goodwill. £%dM would raise their opinion of you by about %.0f: more for a small nation, less for a big gift or after recent gifts." % [int(_gift_amount.value), Diplomacy.gift_effect(GameState, me, tag, _gift_amount.value)]
 	_gift.disabled = treasury < 1.0 or not Diplomacy.can_afford(GameState, me, gift_cost)
 
 

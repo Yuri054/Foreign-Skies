@@ -139,7 +139,7 @@ func _test_panel() -> void:
 	panel._selected = "ITA"
 	panel._refresh_detail()
 	_check(panel._propose_buttons["alliance"].text == "Alliance (40)" and panel._propose_buttons["nap"].text == "Non-aggression (15)", "the treaty buttons show their cost in points")
-	_check(panel._gift.text == "Send gift (5 points)", "so does the gift (%s)" % panel._gift.text)
+	_check(panel._gift.text == "Send gift (10 points)", "so does the gift (%s)" % panel._gift.text)
 	panel._selected = "GER"
 	panel._refresh_detail()
 	_check(panel._declare.text.begins_with("Declare war ("), "and declaring war (%s)" % panel._declare.text)
