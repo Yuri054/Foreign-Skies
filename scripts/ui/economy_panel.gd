@@ -338,13 +338,12 @@ func _refresh_overview(n: Nation) -> void:
 	if b.programs > 0.0:
 		_cell(spend, "Programs", 0)
 		_cell(spend, Fmt.money(-Fmt.monthly(b.programs), true), 1)
-	if b.equipment > 0.04:
-		_cell(spend, "Equipment", 0, Color.WHITE, "What the production lines cost at full tilt: money for every item made (see the Production tab). Paid a day at a time.")
-		_cell(spend, Fmt.money(-Fmt.monthly(b.equipment), true), 1)
 	_total_row(spend, "Total spending", -Fmt.monthly(b.expenses), Color.WHITE)
 	_total_row(g, "Net per month", Fmt.monthly(b.net), Fmt.GOOD if b.net >= 0.0 else Fmt.BAD)
 
-	_output.text = "Output £%.0fM a month, industry £%.0fM." % [Fmt.monthly(b.gdp), Fmt.monthly(b.industry)]
+	_output.text = "Output £%.0fM a month, industry £%.0fM. Factories: %d%% of civilian work goes to the people's goods (%d%% of it from war weariness), imports lock %.1f factories, %d%% of the work is left after the men under arms%s. Construction %s IC a day." % [
+			Fmt.monthly(b.gdp), Fmt.monthly(b.industry), roundi(b.consumer_share * 100.0), roundi(n.weariness * 100.0), b.trade_lock,
+			roundi(Economy.worker_share(n) * 100.0), ", and the nation is starving (-30% output)" if n.starving else "", Fmt.thousands(roundi(b.construction_points))]
 	_refresh_law(n)
 
 	for id in _program_boxes:
@@ -372,7 +371,7 @@ func _refresh_law(n: Nation) -> void:
 	_law_updating = false
 	_refresh_funding(n)
 	var law := Economy.law_of(n)
-	_law_note.text = "%s Consumer goods take %d%% of civilian factory work, so %.0f construction points a day are left (%d factories). Military factories +%d%%, national output %+d%%." % [
+	_law_note.text = "%s Consumer goods take %d%% of civilian factory work, so %.0f IC of construction a day is left (%d factories). Military factories +%d%%, national output %+d%%." % [
 			_law_requires_text(n.economy_law), roundi(law.consumer * 100.0), n.budget.construction_points, int(n.budget.factories),
 			roundi((law.military - 1.0) * 100.0), roundi((law.gdp - 1.0) * 100.0)]
 	if law.weariness > 0.0:

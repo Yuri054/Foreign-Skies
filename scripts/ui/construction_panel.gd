@@ -242,7 +242,7 @@ func _refresh_queue() -> void:
 	if n == null or not visible:
 		return
 	var points: float = n.budget.get("construction_points", 0.0)
-	_pool.text = "Construction: %.0f points a day from %d civilian factories, %.0f in use." % [points, int(n.budget.get("factories", 0)), n.construction_used]
+	_pool.text = "Construction: %s IC a day from %d civilian factories (the people's goods and imports take a share), %s in use." % [Fmt.thousands(roundi(points)), int(n.budget.get("factories", 0)), Fmt.thousands(roundi(n.construction_used))]
 	for c in _queue.get_children():
 		_queue.remove_child(c)
 		c.queue_free()
@@ -287,7 +287,7 @@ func _detail_text(type: String) -> String:
 		lines.append("A province's slots come from its people and its infrastructure: each point of it, a railway level or half of a neighbour's, adds a slot. The numbers on the map are slots used out of slots.")
 		if type == "factory":
 			var me := GameState.get_player()
-			lines.append("Gives construction points (one a day, less consumer goods) and pays about £%.1fM a year into the treasury, and adds about £%.0fM of industrial output to the economy." % [Economy.factory_income(me), Economy.factory_output(me)])
+			lines.append("Gives %.0f IC of construction a day (less what the people's goods and imports take), pays about £%.1fM a year into the treasury, and adds about £%.0fM of industrial output to the economy." % [Economy.cfg.construction.ic_per_factory, Economy.factory_income(me), Economy.factory_output(me)])
 		else:
 			lines.append("Makes equipment instead of income. Retooling a civilian factory costs its output.")
 	else:
