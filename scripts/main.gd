@@ -3,12 +3,17 @@ extends Node2D
 const NationPicker := preload("res://scripts/ui/nation_picker.gd")
 const EconomyPanel := preload("res://scripts/ui/economy_panel.gd")
 const MilitaryPanel := preload("res://scripts/ui/military_panel.gd")
-const ArmyActionBar := preload("res://scripts/ui/army_action_bar.gd")
+const CommandPanel := preload("res://scripts/ui/command_panel.gd")
 const BuildQueue := preload("res://scripts/ui/build_queue.gd")
 const MapModes := preload("res://scripts/ui/map_modes.gd")
 const ArmyLayer := preload("res://scripts/map/army_layer.gd")
 const NavalBattleScreen := preload("res://scripts/ui/naval_battle_screen.gd")
 const AIOverlay := preload("res://scripts/map/ai_overlay.gd")
+const SlotLabels := preload("res://scripts/map/slot_labels.gd")
+const CityLayer := preload("res://scripts/map/city_layer.gd")
+const Map3DMode := preload("res://scripts/map/map_3d.gd")
+## How solid the army and fleet banners are while the Construction map mode is on.
+const BUILD_MODE_UNIT_ALPHA := 0.25
 const EventFeed := preload("res://scripts/ui/event_feed.gd")
 const BattleScreen := preload("res://scripts/ui/battle_screen.gd")
 const DiplomacyPanel := preload("res://scripts/ui/diplomacy_panel.gd")
@@ -22,11 +27,12 @@ const ConstructionPanel := preload("res://scripts/ui/construction_panel.gd")
 const MapView := preload("res://scripts/map/map_view.gd")
 const NationStats := preload("res://scripts/ui/nation_stats.gd")
 const RankingsWindow := preload("res://scripts/ui/rankings_window.gd")
+const ProvincePanel := preload("res://scripts/ui/province_panel.gd")
 
 @onready var map_view: Sprite2D = $MapView
 @onready var camera: Camera2D = $Camera
 @onready var ui: CanvasLayer = $UI
-@onready var info_label: Label = $UI/InfoLabel
+var province_panel: PanelContainer
 
 
 func _ready() -> void:
@@ -36,8 +42,27 @@ func _ready() -> void:
 	map_view.sea_zone_selected.connect(_on_sea_zone_selected)
 	var army_layer := ArmyLayer.new()
 	add_child(army_layer)
-	add_child(FleetLayer.new())
+	var fleet_layer := FleetLayer.new()
+	add_child(fleet_layer)
 	add_child(AIOverlay.new())
+	# In the Construction mode the slot numbers are what matters: the armies and fleets fade back.
+	map_view.mode_changed.connect(func(mode: int, _sub: String) -> void:
+		var faded := mode == MapView.Mode.CONSTRUCTION
+		army_layer.modulate.a = BUILD_MODE_UNIT_ALPHA if faded else 1.0
+		fleet_layer.modulate.a = BUILD_MODE_UNIT_ALPHA if faded else 1.0
+	)
+	var city_layer := CityLayer.new()
+	city_layer.map_view = map_view
+	city_layer.camera = camera
+	add_child(city_layer)
+	var slot_labels := SlotLabels.new()
+	slot_labels.map_view = map_view
+	slot_labels.camera = camera
+	add_child(slot_labels)
+	# The 3D view of the map, off until V (or the Settings window) switches it on.
+	var map_3d := Map3DMode.new()
+	map_3d.main = self
+	add_child(map_3d)
 	map_view.province_hovered.connect(army_layer.set_hover)
 	map_view.province_selected.connect(army_layer.set_expanded)
 	map_view.battle_clicked.connect(func(province: int) -> void:
@@ -68,15 +93,19 @@ func _ready() -> void:
 	camera.zoom = Vector2(0.4, 0.4)
 	_focus_on(GameState.player_tag)
 
+	province_panel = ProvincePanel.new()
+	ui.add_child(province_panel)
 	ui.add_child(EconomyPanel.new())
 	var construction := ConstructionPanel.new()
 	construction.map_view = map_view
 	ui.add_child(construction)
 	construction.connect_map()
 	ui.add_child(MilitaryPanel.new())
-	ui.add_child(ArmyActionBar.new())
+	ui.add_child(CommandPanel.new())
 	ui.add_child(DiplomacyPanel.new())
-	ui.add_child(NationStats.new())
+	var nation_stats := NationStats.new()
+	nation_stats.closed.connect(_end_peek)
+	ui.add_child(nation_stats)
 	ui.add_child(RankingsWindow.new())
 	ui.add_child(SettingsWindow.new())
 	ui.add_child(SaveWindow.new())
@@ -111,20 +140,28 @@ func _ready() -> void:
 		Scenarios.resume = false
 		return
 	var picker := NationPicker.new()
+	picker.map_view = map_view
 	picker.nation_chosen.connect(func(tag: String) -> void:
+		picker.queue_free()
 		GameState.set_player(tag)
 		_focus_on(tag)
-		picker.queue_free()
 		tutorial.after_nation_chosen()
 	)
 	ui.add_child(picker)
 
 
+## The nation a right click has put on show, and the map mode to go back to when it is put
+## away ("" and -1 when nothing is on show).
+var _peek_tag := ""
+var _peek_mode := -1
+var _peek_submode := ""
+
+
 ## A right click on a province, as in the Paradox games: with armies selected it is an order.
-## Otherwise it picks the nation that owns the land: the country panel on the left changes to
-## it (your own nation too), and in the Diplomacy map mode the map's point of view moves to it
-## as well (your own nation returns it to yours). Holding Shift picks the nation for the panel
-## only, whatever the mode and whatever is selected.
+## Otherwise it picks the nation that owns the land: the country panel on the left opens on it
+## (your own nation too) and the map goes to the Diplomacy mode seen from that nation. Right-
+## clicking the same nation again, or closing the panel, puts the map back as it was. Holding
+## Shift picks the nation for the panel only, leaving the map mode alone.
 func _on_right_click(id: int) -> void:
 	var tag: String = GameState.province_owner[id]
 	var shift := Input.is_key_pressed(KEY_SHIFT)
@@ -135,10 +172,38 @@ func _on_right_click(id: int) -> void:
 	if panel != null and panel.has_selection() and not shift:
 		get_tree().call_group("military_panel", "order_move", id)
 		return
-	if map_view.mode == MapView.Mode.DIPLOMACY and not shift:
-		map_view.set_viewpoint(tag)
-		get_tree().call_group("diplomacy_panel", "set_province", id)
+	var stats := get_tree().get_first_node_in_group("nation_stats")
+	if shift:
+		_peek_tag = ""
+		_peek_mode = -1
+		get_tree().call_group("nation_stats", "show_nation", tag)
+		return
+	if _peek_tag == tag and stats != null and stats.visible:
+		_end_peek()
+		stats.close_window()
+		return
+	if _peek_tag == "":
+		# The map mode to come back to; none if it is already the Diplomacy mode.
+		_peek_mode = -1 if map_view.mode == MapView.Mode.DIPLOMACY else map_view.mode
+		_peek_submode = map_view.submode
+		if map_view.mode != MapView.Mode.DIPLOMACY:
+			map_view.set_mode(MapView.Mode.DIPLOMACY)
+	_peek_tag = tag
+	map_view.set_viewpoint(tag)
+	get_tree().call_group("diplomacy_panel", "set_province", id)
 	get_tree().call_group("nation_stats", "show_nation", tag)
+
+
+## Puts the map back after a nation was put on show: the point of view is the player's again
+## and the map mode returns, unless the player has picked another one since.
+func _end_peek() -> void:
+	if _peek_tag == "":
+		return
+	_peek_tag = ""
+	map_view.set_viewpoint("")
+	if _peek_mode >= 0 and map_view.mode == MapView.Mode.DIPLOMACY:
+		map_view.set_mode(_peek_mode, _peek_submode)
+	_peek_mode = -1
 
 
 ## Centers the camera on a nation's population-weighted middle.
@@ -161,13 +226,7 @@ func _on_sea_zone_selected(zone: int) -> void:
 	if zone <= 0:
 		return
 	get_tree().call_group("navy_panel", "clear_selection_quiet")
-	var z: Dictionary = MapData.sea_zones[zone]
-	var next: PackedStringArray = []
-	for n in MapData.sea_adjacency[zone]:
-		next.append(MapData.sea_zones[n].name)
-	info_label.text = "%s  (sea zone)
-Borders: %s
-%d ports open on it" % [z.name, ", ".join(next), MapData.ports_in_zone(zone).size()]
+	province_panel.show_zone(zone)
 
 
 func _on_province_selected(id: int) -> void:
@@ -176,55 +235,4 @@ func _on_province_selected(id: int) -> void:
 	get_tree().call_group("economy_panel", "set_province", id)
 	get_tree().call_group("military_panel", "set_province", id)
 	get_tree().call_group("diplomacy_panel", "set_province", id)
-	var p := MapData.get_province(id)
-	if p.is_empty():
-		info_label.text = "Click a province"
-		return
-	var owner_tag: String = GameState.province_owner[id]
-	var population: int = GameState.province_population[id]
-	var lines: PackedStringArray = [
-		"%s%s" % [p.name, "  (coast)" if p.coastal else ""],
-		"%s, %s people, ~%s km²" % [GameState.nations[owner_tag].display_name, Fmt.thousands(population), Fmt.thousands(int(p.area * MapData.KM2_PER_PX))],
-		"Output £%.1fM a month, feeds %s, recruits %s" % [
-			Fmt.monthly(GameState.province_gdp[id]), Fmt.people(GameState.province_food[id]), Fmt.people(GameState.province_pool[id])],
-	]
-
-	lines[0] += "  [%s]" % Military.terrain_of(id).name.to_lower()
-	if GameState.province_controller[id] != owner_tag:
-		lines.append("Occupied by %s" % GameState.nations[GameState.province_controller[id]].display_name)
-	var here := Military.armies_at(GameState, id)
-	if not here.is_empty():
-		var parts: PackedStringArray = []
-		for a in here:
-			parts.append("%s %s (%s)" % [a.tag, a.display_name, Fmt.people(a.men())])
-		lines.append("Armies: " + "; ".join(parts))
-
-	var yard := Navy.port_level(GameState, id)
-	var docked := Navy.fleets_in_port(GameState, id)
-	if yard > 0 and not MapData.zones_of_port(id).is_empty():
-		var zones: PackedStringArray = []
-		for z in MapData.zones_of_port(id):
-			zones.append(MapData.sea_zones[z].name)
-		lines.append("Port level %d on the %s" % [yard, " and ".join(zones)])
-	if not docked.is_empty():
-		var parts: PackedStringArray = []
-		for fl in docked:
-			parts.append("%s %s (%d squadrons)" % [fl.tag, fl.display_name, fl.ships.size()])
-		lines.append("Fleets: " + "; ".join(parts))
-
-	var made := Economy.province_output(population, p.area * MapData.KM2_PER_PX, GameState.nations[owner_tag],
-			GameState.province_buildings[id], GameState.province_deposit[id], GameState.province_civ_base[id])
-	var deposits: PackedStringArray = []
-	for r in Economy.resource_ids():
-		if GameState.province_deposit[id].get(r, 0.0) >= Economy.cfg.min_deposit:
-			deposits.append("%s %s/mo" % [Economy.cfg.resources[r].name.to_lower(), Fmt.kt(Fmt.monthly(made[r]))])
-	if not deposits.is_empty():
-		lines.append("Mines: " + ", ".join(deposits))
-
-	var built: PackedStringArray = []
-	for type in Economy.building_ids():
-		if GameState.province_buildings[id].has(type):
-			built.append("%s %d" % [Economy.cfg.buildings[type].name, GameState.province_buildings[id][type]])
-	if not built.is_empty():
-		lines.append("Built: " + ", ".join(built))
-	info_label.text = "\n".join(lines)
+	province_panel.show_province(id)

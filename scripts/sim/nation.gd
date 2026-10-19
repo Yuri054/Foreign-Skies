@@ -25,6 +25,15 @@ var men_lost_month := 0.0
 ## Province ids this nation owns; maintained by GameState.
 var provinces: PackedInt32Array = []
 var population := 0
+## Yearly natural increase of the people (see Population), soldiers killed this month and in
+## all.
+var pop_growth := 0.01
+var deaths_month := 0.0
+var war_dead := 0.0
+## Share of the civilian factories the people's goods take because of the war (see Economy.step_day).
+var weariness := 0.0
+## True while blockaded imports are too few to feed the nation (see Economy.step_day).
+var starving := false
 
 # Economy (rules in Economy; constants in data/economy.json).
 ## Output multiplier: how productive this nation's economy is relative to the baseline.
@@ -55,6 +64,13 @@ var blockade_pinned := -1.0
 ## The economy law in force (see Economy.law_of) and the day it last changed.
 var economy_law := "civilian"
 var law_changed_day := -1000
+## How well the army and the navy are funded (1 = the usual upkeep; the economy law sets the
+## most, Economy.funding_cap) and how ready they are: readiness drifts toward the funding a
+## little each day (Military.step_readiness) and is what the forces fight with.
+var army_funding := 1.0
+var navy_funding := 1.0
+var army_ready := 1.0
+var navy_ready := 1.0
 ## Soldiers in service at mobilization 0.
 var peacetime_army := 0
 ## Yearly naval cost, GBP millions: the shore establishment plus the upkeep of the ships (set
@@ -86,8 +102,13 @@ var lines_auto := true
 ## GBP millions spent on equipment in all (the lines pay out of the treasury each day).
 var equipment_spent := 0.0
 var next_line_id := 1
-## Stockpile of each raw resource in thousand tonnes: resource id -> amount.
+## Stockpile of each resource that keeps one (coal and chemicals), in thousand tonnes: resource id
+## -> amount. The others are flows (see Flows).
 var stock: Dictionary = {}
+## How much of its chemicals industry the nation has (a multiplier on what its industry makes).
+var chem := 0.5
+## Draft animals the army needs, kt a year (kept up to date by Military.refresh_men).
+var animal_need := 0.0
 ## Latest figures from Economy.recompute (annual GBP millions unless stated).
 var budget: Dictionary = {}
 
@@ -108,10 +129,12 @@ func _init(p_tag: String, static_data: Dictionary, scenario_data: Dictionary) ->
 	tax_rate = scenario_data.get("tax_rate", Economy.cfg.default_tax_rate)
 	mobilization = scenario_data.get("mobilization", 0.0)
 	economy_law = scenario_data.get("economy_law", "civilian")
+	pop_growth = float(scenario_data.get("pop_growth", 0.01))
 	peacetime_army = int(scenario_data.get("peacetime_army", 0))
 	naval_budget = scenario_data.get("naval_budget", 0.0)
 	manpower = peacetime_army
 	intensity = scenario_data.get("intensity", {})
+	chem = float(scenario_data.get("chemicals", 0.5))
 	for r in Economy.resource_ids():
 		stock[r] = 0.0
 	for cat in Military.equipment_ids():

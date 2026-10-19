@@ -75,6 +75,52 @@ static func occupied_share(gs: Node, tag: String) -> float:
 	return held / maxf(float(n.population), 1.0)
 
 
+## What moves a nation's war support this month, by cause: {label: points}. At war it is the
+## weariness of fighting, the economy law, heavy taxes, the men lost so far this month, the
+## blockade, ground under the enemy and debt; in peace it is the people settling back to their level.
+static func monthly_changes(gs: Node, tag: String) -> Dictionary:
+	var c: Dictionary = cfg()
+	var n: Nation = gs.nations[tag]
+	var strain := Economy.tax_strain(n)
+	if gs.wars_of(tag).is_empty():
+		# Heavy taxes lower the level the people settle at.
+		var settle: float = n.war_support_base - Economy.cfg.tax_strain.support_penalty * strain
+		return {"settling back": clampf(settle - n.war_support, -c.recovery_per_month, c.recovery_per_month)}
+	var lost := n.men_lost_month / maxf(float(n.total_men()) + n.men_lost_month, 1.0)
+	var debt: float = maxf(-n.treasury, 0.0) / maxf(n.budget.get("revenue", 1.0), 1.0)
+	return {
+		"the war itself": -c.weariness,
+		"the economy law": -Economy.law_of(n).weariness,
+		"heavy taxes": -Economy.cfg.tax_strain.war_weariness * strain,
+		"men lost": -c.casualty_weight * lost,
+		"blockade": -c.blockade_weight * n.blockade,
+		"ground lost": -c.occupied_weight * occupied_share(gs, tag),
+		"debt": -minf(c.debt_cap, c.debt_weight * debt),
+	}
+
+
+## What a nation's support does now, in words: at war its fighting power, recruits and taxes.
+static func effects_text(gs: Node, tag: String) -> String:
+	var n: Nation = gs.nations[tag]
+	if gs.wars_of(tag).is_empty():
+		return "At peace war support does nothing; at war it sets how hard the army fights and how much tax and how many recruits the people give (now %d: fighting x%.2f, tax and recruits x%.2f)." % [
+				roundi(n.war_support), _curve(cfg().morale_mult, n.war_support), _curve(cfg().economy_mult, n.war_support)]
+	return "Fighting power x%.2f, tax and recruits x%.2f. At %d or less the people are forced into a peace." % [
+			morale_mult(gs, tag), economy_mult(gs, tag), int(cfg().white_peace_below)]
+
+
+## The month's changes as lines of text, biggest first, for a tooltip.
+static func drivers_text(gs: Node, tag: String) -> String:
+	var items := monthly_changes(gs, tag)
+	var names: Array = items.keys()
+	names.sort_custom(func(a: String, b: String) -> bool: return absf(items[a]) > absf(items[b]))
+	var lines: PackedStringArray = []
+	for name: String in names:
+		if absf(items[name]) >= 0.05:
+			lines.append("%+.1f  %s" % [items[name], name])
+	return "\n".join(lines) if not lines.is_empty() else "Nothing is moving it."
+
+
 ## Monthly: support moves with what the war has cost, then the weary are forced to terms.
 static func step_month(gs: Node) -> void:
 	var c: Dictionary = cfg()
@@ -82,13 +128,10 @@ static func step_month(gs: Node) -> void:
 		var n: Nation = gs.nations[tag]
 		if n.provinces.is_empty():
 			continue
-		if gs.wars_of(tag).is_empty():
-			change(gs, tag, clampf(n.war_support_base - n.war_support, -c.recovery_per_month, c.recovery_per_month))
-		else:
-			var lost := n.men_lost_month / maxf(float(n.total_men()) + n.men_lost_month, 1.0)
-			var debt: float = maxf(-n.treasury, 0.0) / maxf(n.budget.get("revenue", 1.0), 1.0)
-			change(gs, tag, -c.weariness - Economy.law_of(n).weariness - c.casualty_weight * lost - c.blockade_weight * n.blockade
-					- c.occupied_weight * occupied_share(gs, tag) - minf(c.debt_cap, c.debt_weight * debt))
+		var total := 0.0
+		for v: float in monthly_changes(gs, tag).values():
+			total += v
+		change(gs, tag, total)
 		n.men_lost_month = 0.0
 	Economy.recompute(gs)
 	gs.economy_updated.emit()

@@ -87,6 +87,8 @@ TERRAIN_BY_NAME = {
         "Arges", "Prahova", "Gorj", "Vâlcea", "Neamt", "Vrancea",
     ],
     "hills": [
+        # Islands added by tools/add_islands.py
+        "Isle of Man", "Cyprus", "Faroe Islands",
         "Czernowitz", "Alba", "Sibiu", "Mures", "Cluj", "Salaj", "Bihor", "Lemberg", "Tarnopol", "Rzeszow",
         "Krakow", "Košický", "Borsod-Abaúj-Zemplén", "Nógrád", "Heves",
         "Elbasan", "Berat", "Vlorë", "Tiranë",
@@ -113,6 +115,7 @@ for _terrain, _names in {
         "Rîşcani", "Sîngerei", "Świętokrzyskie", "Võru", "Madona", "Tsaritsyn 1",
     ],
     "forest": [
+        "Åland",
         "Arkhangelsk*", "Komi*", "Vologda*", "Kostroma", "Vyatka*", "Perm 1", "Perm 2", "Udmurtia", "Mari El",
         "Tver*", "Karelia 2", "Karelia 3", "Yaroslavl", "Ivanovo", "Vladimir", "Moscow Governorate",
         "Petrograd*", "Bryansk", "Zhytomyr", "Podlachian", "Vitebsk", "Minsk", "Mogilev", "Grodno",

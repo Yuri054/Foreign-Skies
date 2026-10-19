@@ -98,15 +98,23 @@ static func build_return(gs: Node, tag: String, id: int, type: String, plan: Dic
 	var output: float = gs.province_gdp[id] + gs.province_industry[id]
 	var gain: float = float(effects.get("gdp", 0.0)) * gs.province_gdp[id] + float(effects.get("industry", 0.0)) * gs.province_industry[id]
 	if type == "factory":
-		gain += Economy.factory_output(gs.nations[tag])
+		gain += Economy.factory_income(gs.nations[tag]) + Economy.factory_output(gs.nations[tag]) * gs.nations[tag].tax_rate
 	elif type == "military_factory":
 		gain += AIProduction.factory_value(gs, tag)
+	elif type == "railway":
+		# A province whose slots are all taken gets room for another factory.
+		if Economy.slots_used(gs, id) >= Economy.slots_of(gs, id):
+			var now := Economy.infrastructure(gs, id)
+			var per := float(Economy.cfg.infrastructure.slots_per_level)
+			gain += (int((now + 1.0) * per) - int(now * per)) * Economy.factory_output(gs.nations[tag]) * float(c.slot_value)
 	gain += float(effects.get("trade", 0.0)) * output * 0.5
 	gain += float(effects.get("food", 0.0)) * output * float(c.food_value)
 	if effects.has("diplomacy"):
 		gain += float(effects.diplomacy) * float(c.diplomacy_value) if Diplomacy.points(gs, tag) < float(c.buy_below) * 2.0 else 0.0
 	if type == "railway" and _near_front(gs, tag, id):
 		gain += output * float(c.front_railway_bonus)
+	if (type == "trench" or type == "fortification") and not gs.wars_of(tag).is_empty() and _near_front(gs, tag, id):
+		gain += output * float(c.front_works_bonus)
 	if id == gs.nations[tag].capital:
 		gain *= float(c.capital_multiplier)
 	return gain / maxf(plan.total, 0.01)
@@ -130,7 +138,6 @@ static func _buildings(gs: Node, tag: String) -> void:
 	var n: Nation = gs.nations[tag]
 	if n.construction.size() >= int(c.max_construction) or float(n.budget.get("net", 0.0)) < float(c.build_min_net):
 		return
-	var floor_ := float(c.build_floor) * (2.0 if not gs.wars_of(tag).is_empty() else 1.0)
 	var places: Array[int] = []
 	var owned: Array = Array(n.provinces)
 	owned.sort_custom(func(x: int, y: int) -> bool:
@@ -155,7 +162,7 @@ static func _buildings(gs: Node, tag: String) -> void:
 			if not Economy.build_problem(gs, tag, id, type, false).is_empty():
 				continue
 			var plan := Economy.build_plan(gs, id, type)
-			if plan.blocked != "" or n.treasury - plan.total < floor_:
+			if plan.blocked != "":
 				continue
 			var value := build_return(gs, tag, id, type, plan)
 			if value > best_value + 0.000001:

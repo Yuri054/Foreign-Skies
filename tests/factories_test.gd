@@ -111,7 +111,7 @@ func _test_convert() -> void:
 	var cash: float = ger.treasury
 	var cmd = Convert.new("GER", id, "military_factory")
 	_check(gs.issue(cmd), "a civilian factory is retooled")
-	_check(is_equal_approx(cash - ger.treasury, Convert.cost_of("military_factory")), "it costs a share of a new factory")
+	_check(is_equal_approx(cash, ger.treasury) and ger.construction.back().points_total == Convert.cost_of("military_factory"), "it costs a share of a new factory in IC, not money")
 	_check(gs.province_buildings[id].get("factory", 0) == civ0 - 1 and gs.province_buildings[id].get("military_factory", 0) == mil0, "the civilian factory stops at once")
 	var lost: float = gdp0 - ger.budget.gdp
 	_check(lost > 0.0 and absf(lost - Eco.factory_output(ger) * ger.budget.gdp_scale) < 0.05 * lost, "and its output is lost (£%.1fM a year)" % lost)
@@ -136,7 +136,7 @@ func _test_convert() -> void:
 	_check(not gs.issue(cmd3) and cmd3.reason != "", "a province with none to retool is refused: " + cmd3.reason)
 	ger.treasury = 0.0
 	var cmd4 = Convert.new("GER", id, "military_factory")
-	_check(not gs.issue(cmd4) and "money" in cmd4.reason, "no money, no conversion")
+	_check(not ("money" in cmd4.reason), "conversion never needs money: " + cmd4.reason)
 
 
 func _test_save() -> void:

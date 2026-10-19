@@ -10,6 +10,8 @@ var morale := 1.0
 var equip: Dictionary = {}
 ## equip_factor() as of the last refresh_factor(); power() runs often (the AI), equipment seldom changes.
 var factor := 1.0
+## True on a day the nation's shell stockpile could not supply this unit's guns (see Military._burn_shells).
+var shell_starved := false
 
 
 func _init(p_type := "infantry", p_strength := 1.0) -> void:
@@ -91,7 +93,8 @@ func draw(stock: Dictionary, limit := 1.0) -> void:
 ## missing equipment.
 func power() -> float:
 	var floor_effect: float = Military.cfg.combat.morale_floor_effect
-	return men() / 1000.0 * Military.cfg.unit_types[type].attack * lerpf(floor_effect, 1.0, morale) * factor
+	var shells := 1.0 - float(Military.cfg.combat.shell_penalty) if shell_starved else 1.0
+	return men() / 1000.0 * Military.cfg.unit_types[type].attack * lerpf(floor_effect, 1.0, morale) * factor * shells
 
 
 func to_dict() -> Dictionary:

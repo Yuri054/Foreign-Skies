@@ -31,6 +31,7 @@ static func step(gs: Node, tag: String) -> void:
 	var short := lacking(gs, tag)
 	_lines(gs, tag, short)
 	_law(gs, tag, short)
+	_funding(gs, tag)
 
 
 static func worst(lacking: Dictionary) -> float:
@@ -94,6 +95,29 @@ static func _lines(gs: Node, tag: String, lacking: Dictionary) -> void:
 			if line.factories == target or (line.factories < target) != pass_up:
 				continue
 			gs.issue_quiet(SetProductionLine.new(tag, line.id, line.category, mini(target, line.factories + Production.free_factories(n)) if pass_up else target))
+
+
+# --- Funding ------------------------------------------------------------------------------------------
+
+## At war a nation under a heavier law funds its forces above the usual, if its treasury holds
+## funding_months of its expenses; otherwise, and in peace, at the usual.
+static func wanted_funding(gs: Node, tag: String) -> float:
+	var n: Nation = gs.nations[tag]
+	if gs.wars_of(tag).is_empty():
+		return 1.0
+	var months := float(n.budget.get("expenses", 0.0)) / 12.0 * float(cfg().funding_months)
+	if n.treasury < months:
+		return 1.0
+	return clampf(float(cfg().war_funding), 1.0, Economy.funding_cap(n))
+
+
+static func _funding(gs: Node, tag: String) -> void:
+	var n: Nation = gs.nations[tag]
+	var want := wanted_funding(gs, tag)
+	for policy in ["army_funding", "navy_funding"]:
+		var now: float = n.army_funding if policy == "army_funding" else n.navy_funding
+		if not is_equal_approx(now, want):
+			gs.issue_quiet(SetEconomyPolicy.new(tag, policy, want))
 
 
 # --- Law ----------------------------------------------------------------------------------------------

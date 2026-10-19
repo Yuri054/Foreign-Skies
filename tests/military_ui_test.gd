@@ -192,7 +192,11 @@ func _initialize() -> void:
 	await process_frame
 	panel.visible = true
 	panel._refresh()
-	_check(panel._tabs.get_tab_count() == 5 and panel._tabs.get_tab_title(3) == "Wars" and panel._tabs.get_tab_title(4) == "Navy", "the Military panel has Armies, Fronts, Recruit, Wars and Navy tabs")
+	_check(panel._tabs.get_tab_count() == 3 and panel._tabs.get_tab_title(0) == "Land" and panel._tabs.get_tab_title(1) == "Wars" and panel._tabs.get_tab_title(2) == "Navy", "the Military panel has Land, Wars and Navy tabs")
+	_check(panel._box.visible and not panel._fronts_box.visible and not panel._recruit_box.visible, "the Land tab opens with Armies unfolded, Fronts and Recruit folded")
+	panel.show_tab("Recruit")
+	_check(panel._tabs.current_tab == 0 and panel._recruit_box.visible, "show_tab(\"Recruit\") unfolds that section of the Land tab")
+	panel.set_section("Recruit", false)
 	_check(panel._wars_list.item_count == 0 and panel._war_summary.text.contains("No wars"), "it starts empty")
 	gs.set_war("FRA", "GER", true)
 	gs.set_war("GBR", "ITA", true)
@@ -281,12 +285,12 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 	var layout: Array = layer._expanded_layout(1.0)
-	_check(layout.size() == 3, "every army on the selected tile gets its own banner (%d)" % layout.size())
-	_check(layout[0].army.tag == "FRA" and layout[2].army.tag == "GER", "the player's armies come first")
+	_check(layout.size() == 2, "every army the player sees exactly on the selected tile gets its own banner (%d)" % layout.size())
+	_check(layout[0].army.tag == "FRA" and layout[1].army.tag == "FRA" and layer.seen(foreign) == 1, "the visitors are not fanned out: they stay an estimate banner")
 	var seen := {}
 	for entry in layout:
 		seen[entry.army.id] = true
-	_check(seen.size() == 3, "each banner is a different army")
+	_check(seen.size() == 2, "each banner is a different army")
 	for i in layout.size():
 		for j in range(i + 1, layout.size()):
 			_check(not layout[i].rect.intersects(layout[j].rect), "banners %d and %d do not overlap" % [i, j])
@@ -307,8 +311,8 @@ func _initialize() -> void:
 	_check(panel._selected.size() == 2, "Shift adds an army")
 	panel.select_army(layout[1].army.id, true)
 	_check(panel._selected.size() == 1, "Shift on a selected army removes it")
-	panel.select_army(layout[2].army.id)
-	_check(not panel._selected.has(layout[2].army.id), "an enemy army is never selected")
+	panel.select_army(foreign.id)
+	_check(not panel._selected.has(foreign.id), "a foreign army is never selected")
 	panel.clear_selection()
 
 	# The map draws compositions without errors (selected army, then the fanned-out tile).

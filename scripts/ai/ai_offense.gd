@@ -244,7 +244,11 @@ static func _start(gs: Node, tag: String) -> Variant:
 
 # --- Running a campaign -------------------------------------------------------------------------
 
-static func _end(gs: Node, tag: String) -> void:
+static func _end(gs: Node, tag: String, c: Dictionary) -> void:
+	# A campaign run for an attack line is the line's to end (see AttackLines).
+	if c.has("line"):
+		c.done = true
+		return
 	gs.ai_campaign.erase(tag)
 	gs.ai_campaign_wait[tag] = Clock.days_elapsed + int(AI.cfg.offense.retry_days)
 
@@ -287,7 +291,7 @@ static func _run(gs: Node, tag: String, c: Dictionary) -> void:
 				all_there = false
 		if not all_there:
 			if Clock.days_elapsed - c.started > int(AI.cfg.offense.gather_days):
-				_end(gs, tag)
+				_end(gs, tag, c)
 			return
 		if armies.size() > 1:
 			var ids: Array[int] = []
@@ -298,7 +302,7 @@ static func _run(gs: Node, tag: String, c: Dictionary) -> void:
 			armies = _army_list(gs, c)
 		if _power(armies) < odds * _resistance(gs, tag, c.target) or not AI.supplied(gs, tag, c.target):
 			if Clock.days_elapsed - c.started > int(AI.cfg.offense.gather_days):
-				_end(gs, tag)
+				_end(gs, tag, c)
 			return
 		c.phase = "advance"
 		for a in armies:
@@ -319,7 +323,7 @@ static func _run(gs: Node, tag: String, c: Dictionary) -> void:
 		if _power(armies) >= odds * _resistance(gs, tag, c.target):
 			_order(gs, tag, a, c.target)
 		else:
-			_end(gs, tag)
+			_end(gs, tag, c)
 			return
 
 
@@ -345,13 +349,13 @@ static func _fall_back(gs: Node, tag: String, c: Dictionary, armies: Array[Army]
 		to = gs.nations[tag].capital
 	for a in armies:
 		gs.issue_quiet(MoveArmy.new(tag, a.id, to))
-	_end(gs, tag)
+	_end(gs, tag, c)
 
 
 ## The target is ours: go on to the next province if one is worth it and within supply.
 static func _next(gs: Node, tag: String, c: Dictionary, armies: Array[Army]) -> void:
 	if armies.is_empty() or gs.province_controller[armies[0].province] != tag:
-		_end(gs, tag)
+		_end(gs, tag, c)
 		return
 	var here: int = armies[0].province
 	for a in armies:
@@ -359,7 +363,7 @@ static func _next(gs: Node, tag: String, c: Dictionary, armies: Array[Army]) -> 
 			return
 	var pick := _best_target(gs, tag, c.enemy, _beyond(gs, c.enemy, here), armies, INF, true)
 	if pick.is_empty() or pick.utility < float(AI.cfg.offense.min_utility):
-		_end(gs, tag)
+		_end(gs, tag, c)
 		return
 	c.target = pick.target
 	c.staging = here

@@ -6,6 +6,7 @@ extends Control
 
 const MAIN_SCENE := "res://scenes/main.tscn"
 const Tutorial := preload("res://scripts/ui/tutorial.gd")
+const MenuBackdrop := preload("res://scripts/ui/menu_backdrop.gd")
 
 var _box := VBoxContainer.new()
 var _title := Label.new()
@@ -30,18 +31,42 @@ func _ready() -> void:
 	back.color = Color(0.07, 0.09, 0.12)
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	back.clip_contents = true
 	add_child(back)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
+	back.add_child(MenuBackdrop.new())
+	# Darkest on the left, where the menu is, so the buttons read against the map.
+	var shade := TextureRect.new()
+	var fade := Gradient.new()
+	fade.set_color(0, Color(0.03, 0.04, 0.07, 0.85))
+	fade.set_color(1, Color(0.03, 0.04, 0.07, 0.0))
+	fade.set_offset(0, 0.25)
+	var ramp := GradientTexture2D.new()
+	ramp.gradient = fade
+	ramp.fill_from = Vector2(0, 0.5)
+	ramp.fill_to = Vector2(1, 0.5)
+	shade.texture = ramp
+	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shade.stretch_mode = TextureRect.STRETCH_SCALE
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(shade)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 90)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(margin)
 	var panel := PanelContainer.new()
-	center.add_child(panel)
-	_box.custom_minimum_size = Vector2(460, 0)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	panel.add_theme_stylebox_override("panel", UiTheme.ornate(24.0))
+	margin.add_child(panel)
+	_box.custom_minimum_size = Vector2(420, 0)
 	_box.add_theme_constant_override("separation", 10)
 	panel.add_child(_box)
 
-	_title.add_theme_font_size_override("font_size", 28)
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title.add_theme_font_size_override("font_size", 34)
+	_title.add_theme_color_override("font_color", Color(0.92, 0.88, 0.76))
+	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.modulate = Fmt.DIM
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -74,7 +99,7 @@ func show_page(page: String) -> void:
 
 
 func _build_main() -> void:
-	_title.text = "Europa: The Last Battle"
+	_title.text = "Foreign Skies"
 	var latest := latest_save()
 	_continue = _button("Continue" if latest.is_empty() else "Continue: %s, %s" % [
 			latest.header.get("nation", ""), latest.header.get("date", "")], continue_game)

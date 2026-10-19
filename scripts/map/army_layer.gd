@@ -5,6 +5,7 @@ extends Node2D
 ## the drag-selection box. Markers keep a constant size on screen whatever the zoom.
 
 const BANNER := Vector2(62, 22)
+const CARD_ROWS := 4
 const GAP := 3.0
 const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
@@ -63,6 +64,8 @@ func _battle_icon_rect(province: int, px: float) -> Rect2:
 func pick_battle_at(world_pos: Vector2) -> int:
 	var px := 1.0 / maxf(_zoom, 0.05)
 	for province: int in GameState.engagements:
+		if not Intel.sees_province(GameState, province):
+			continue
 		if _battle_icon_rect(province, px).grow(2.0 * px).has_point(world_pos):
 			return province
 	return 0
@@ -70,6 +73,8 @@ func pick_battle_at(world_pos: Vector2) -> int:
 
 func _draw_battle_icons(px: float) -> void:
 	for province: int in GameState.engagements:
+		if not Intel.sees_province(GameState, province):
+			continue
 		var rect := _battle_icon_rect(province, px)
 		var c := rect.get_center()
 		draw_circle(c, 11.0 * px, Color(0.62, 0.12, 0.1))
@@ -93,8 +98,49 @@ func pick_at(world_pos: Vector2) -> int:
 
 
 func set_hover(province: int) -> void:
+	var changed := province != _hover
 	_hover = province
 	_update_preview()
+	if changed:
+		queue_redraw()
+
+
+## The armies the hover card describes: those drawn in the hovered province, the player's
+## first, when it is not the one fanned out already (the fanned banners show the same).
+func card_armies() -> Array[Army]:
+	var list: Array[Army] = []
+	if _hover <= 0 or _hover == _expanded and _expanded_armies().size() >= 2:
+		return list
+	for a: Army in Military.armies_at(GameState, _hover):
+		if seen(a) == Intel.EXACT:
+			list.append(a)
+	list.sort_custom(func(x: Army, y: Army) -> bool:
+		var mine_x: bool = x.tag == GameState.player_tag
+		var mine_y: bool = y.tag == GameState.player_tag
+		return mine_x and not mine_y or (mine_x == mine_y and x.id < y.id))
+	return list
+
+
+## What the hover card says of armies seen only as an estimate: nation tag to the men they
+## are guessed to number in the hovered province.
+func card_guesses() -> Dictionary:
+	var out := {}
+	if _hover <= 0:
+		return out
+	for a: Army in Military.armies_at(GameState, _hover):
+		if seen(a) == Intel.ESTIMATE:
+			out[a.tag] = out.get(a.tag, 0.0) + Intel.estimate(a.men(), a.id)
+	return out
+
+
+## One line of the hover card for an army: name, general, men, morale and supply.
+func card_line(a: Army) -> String:
+	var line := "%s · %s men · morale %d%%" % [a.display_name, Fmt.people(a.men()), roundi(a.morale() * 100.0)]
+	if not a.general_name.is_empty():
+		line += " · " + a.general_name
+	if not a.supplied:
+		line += " · no supply"
+	return line
 
 
 ## The rectangle being dragged (empty when no drag is going on).
@@ -151,6 +197,7 @@ func _draw() -> void:
 	_draw_preview(px)
 	_draw_banners(px)
 	_draw_expanded(px)
+	_draw_card(px)
 	_draw_battle_icons(px)
 	for l in _labels:
 		_front_label(l[0], l[1], l[2], px, l[3])
@@ -162,17 +209,35 @@ func _draw() -> void:
 
 # ------------------------------------------------------------------ banners
 
+## How well the player sees this army (Intel.HIDDEN, ESTIMATE or EXACT): the "Armies on the map"
+## setting can hide more of them, never show more than the player's eyes reach.
+func seen(a: Army) -> int:
+	if not UiSettings.shows_army(GameState, GameState.player_tag, a.tag):
+		return Intel.HIDDEN
+	return Intel.level(GameState, a)
+
+
+## Whether the map draws anything for this army (exactly or as an estimate).
+func shows(a: Army) -> bool:
+	return seen(a) != Intel.HIDDEN
+
+
 func _draw_banners(px: float) -> void:
 	var by_province := {}
 	for a: Army in GameState.armies.values():
+		if not shows(a):
+			continue
 		if not by_province.has(a.province):
 			by_province[a.province] = []
 		by_province[a.province].append(a)
 	var fanned := _expanded_armies().size() >= 2
 	for id: int in by_province:
-		if fanned and id == _expanded:
-			continue  # drawn one by one below
 		var here: Array = by_province[id]
+		if fanned and id == _expanded:
+			# The armies seen exactly are drawn one by one below; estimates stay as banners.
+			here = here.filter(func(a: Army) -> bool: return seen(a) == Intel.ESTIMATE)
+			if here.is_empty():
+				continue
 		here.sort_custom(func(x: Army, y: Army) -> bool: return x.id < y.id)
 		var centre: Vector2 = MapData.provinces[id].center
 		var size := BANNER * px
@@ -191,10 +256,13 @@ func _draw_banners(px: float) -> void:
 			var count := 0
 			var biggest: Army = null
 			var comp := {}
+			var guess := false
 			for a: Army in here:
 				if a.tag != tag:
 					continue
-				men += a.men()
+				# An army that is only estimated adds its estimate; what it is made of stays unknown.
+				guess = seen(a) == Intel.ESTIMATE
+				men += Intel.estimate(a.men(), a.id) if guess else a.men()
 				count += 1
 				picked = picked or selected.has(a.id)
 				if selected.has(a.id):
@@ -204,7 +272,10 @@ func _draw_banners(px: float) -> void:
 				if biggest == null or a.men() > biggest.men():
 					biggest = a
 			var rect := Rect2(Vector2(centre.x - size.x * 0.5, top + i * (size.y + gap)), size)
-			_draw_banner(rect, px, GameState.nations[tag].color, biggest.shown_icon(), men, count, picked, fighting)
+			if guess:
+				_draw_banner(rect, px, GameState.nations[tag].color, "unknown", men, 1, false, fighting, true)
+			else:
+				_draw_banner(rect, px, GameState.nations[tag].color, biggest.shown_icon(), men, count, picked, fighting)
 			if not comp.is_empty():
 				_draw_composition(comp, rect.get_center().x, rect.end.y + 3.0 * px, px)
 
@@ -213,7 +284,9 @@ func _draw_banners(px: float) -> void:
 func _expanded_armies() -> Array[Army]:
 	var list: Array[Army] = []
 	if _expanded > 0:
-		list = Military.armies_at(GameState, _expanded)
+		for a: Army in Military.armies_at(GameState, _expanded):
+			if seen(a) == Intel.EXACT:
+				list.append(a)
 		list.sort_custom(func(x: Army, y: Army) -> bool:
 			var mine_x: bool = x.tag == GameState.player_tag
 			var mine_y: bool = y.tag == GameState.player_tag
@@ -259,27 +332,27 @@ func _draw_expanded(px: float) -> void:
 		_draw_composition(a.composition(), rect.get_center().x, rect.end.y + 16.0 * px, px)
 
 
-func _draw_banner(rect: Rect2, px: float, color: Color, icon: String, men: float, count: int, picked: bool, fighting: bool) -> void:
-	draw_rect(rect, color)
+func _draw_banner(rect: Rect2, px: float, color: Color, icon: String, men: float, count: int, picked: bool, fighting: bool, guess := false) -> void:
+	draw_rect(rect, Color(color, 0.8 if guess else 1.0))
 	var frame := Rect2(rect.position + Vector2(2, 2) * px, Vector2(rect.size.y * 1.25 - 4.0 * px, rect.size.y - 4.0 * px))
 	draw_rect(frame, Color(1, 1, 1, 0.92))
 	_draw_symbol(frame, px, icon)
 	var text_color := Color.WHITE if color.get_luminance() < 0.55 else Color.BLACK
-	var label := "%d" % roundi(men / 1000.0)
+	var label := ("~" if guess else "") + "%d" % roundi(men / 1000.0)
 	if count > 1:
 		label += " ×%d" % count
 	var text_x := frame.end.x + 2.0 * px
-	draw_string(_font, Vector2(text_x, rect.end.y - 6.0 * px), label, HORIZONTAL_ALIGNMENT_CENTER,
-			rect.end.x - text_x - 1.0 * px, int(roundf(11.0 * px)), text_color)
+	MapText.draw(self, _font, Vector2(text_x, rect.end.y - 6.0 * px), label, HORIZONTAL_ALIGNMENT_CENTER,
+			rect.end.x - text_x - 1.0 * px, 11, text_color, px)
 	var border := SELECT_COLOR if picked else (BATTLE_COLOR if fighting else Color(0, 0, 0, 0.85))
 	draw_rect(rect, border, false, (2.5 if picked or fighting else 1.5) * px)
 	var mark := _size_mark(men)
 	if not mark.is_empty():
-		draw_string(_font, Vector2(rect.position.x, rect.position.y - 2.0 * px), mark, HORIZONTAL_ALIGNMENT_CENTER,
-				rect.size.x, int(roundf(10.0 * px)), Color.BLACK)
+		MapText.draw(self, _font, Vector2(rect.position.x, rect.position.y - 2.0 * px), mark, HORIZONTAL_ALIGNMENT_CENTER,
+				rect.size.x, 10, Color.BLACK, px)
 	if fighting:
-		draw_string(_font, Vector2(rect.end.x + 2.0 * px, rect.position.y + 12.0 * px), "⚔", HORIZONTAL_ALIGNMENT_LEFT,
-				-1, int(roundf(14.0 * px)), BATTLE_COLOR)
+		MapText.draw(self, _font, Vector2(rect.end.x + 2.0 * px, rect.position.y + 12.0 * px), "⚔", HORIZONTAL_ALIGNMENT_LEFT,
+				-1.0, 14, BATTLE_COLOR, px)
 
 
 func _size_mark(men: float) -> String:
@@ -316,6 +389,8 @@ func _draw_symbol(r: Rect2, px: float, icon: String) -> void:
 			for i in 3:
 				var cw := inner.size.x / 5.0
 				draw_rect(Rect2(inner.position + Vector2(i * cw * 2.0, 0), Vector2(cw, inner.size.y * 0.3)), ink)
+		"unknown":
+			MapText.draw(self, _font, Vector2(r.position.x, r.end.y - 3.0 * px), "?", HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 15, ink, px)
 		"reserve":
 			draw_line(Vector2(r.position.x, r.get_center().y), Vector2(r.end.x, r.get_center().y), ink, w)
 			draw_line(Vector2(r.get_center().x, r.position.y), Vector2(r.get_center().x, r.end.y), ink, w)
@@ -502,15 +577,15 @@ func _front_label(f: Front, at: Vector2, color: Color, px: float, chosen: bool) 
 		if a != null:
 			men += a.men()
 	var text := "%s · %d · %s" % [f.display_name, f.army_ids.size(), Fmt.people(men)]
-	var fs := int(roundf((12.0 if chosen else 11.0) * px))
-	var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var fs := 12 if chosen else 11
+	var w := MapText.size_of(_font, text, fs, px).x
 	var pad := 4.0 * px
-	var size := Vector2(w + pad * 2.0 + 5.0 * px, fs + pad * 1.6)
+	var size := Vector2(w + pad * 2.0 + 5.0 * px, fs * px + pad * 1.6)
 	var rect := Rect2(at - Vector2(size.x * 0.5, size.y + 14.0 * px), size)
 	draw_rect(rect.grow(1.2 * px), Color(0, 0, 0, 0.6))
 	draw_rect(rect, Color(0.06, 0.08, 0.12, 0.94))
 	draw_rect(Rect2(rect.position, Vector2(4.0 * px, rect.size.y)), color)
-	draw_string(_font, rect.position + Vector2(pad + 4.0 * px, fs + pad * 0.5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	MapText.draw(self, _font, rect.position + Vector2(pad + 4.0 * px, fs * px + pad * 0.5), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, Color.WHITE, px)
 
 
 func _draw_draft(px: float) -> void:
@@ -528,16 +603,46 @@ func _draw_draft(px: float) -> void:
 		_pill("%d" % (i + 1), line[i] + Vector2(0, -16.0 * px), px, DRAFT_COLOR, 10)
 
 
+## The hover card: under the banners of the hovered province, a line and the unit symbols for
+## each army standing there (at most CARD_ROWS, then a count of the rest).
+func _draw_card(px: float) -> void:
+	var list := card_armies()
+	var guesses := card_guesses()
+	if list.is_empty() and guesses.is_empty():
+		return
+	var centre: Vector2 = MapData.provinces[_hover].center
+	var nations := {}
+	for a in list:
+		nations[a.tag] = true
+	for tag: String in guesses:
+		nations[tag] = true
+	var y := centre.y + (BANNER.y * nations.size() * 0.5 + 12.0) * px
+	for i in mini(list.size(), CARD_ROWS):
+		var a := list[i]
+		_pill(card_line(a), Vector2(centre.x, y), px, Color(GameState.nations[a.tag].color.lightened(0.45), 1.0), 9)
+		_draw_composition(a.composition(), centre.x, y + 8.0 * px, px)
+		y += 28.0 * px
+	if list.size() > CARD_ROWS:
+		_pill("+ %d more armies" % (list.size() - CARD_ROWS), Vector2(centre.x, y), px, Color.WHITE, 9)
+		y += 14.0 * px
+	var tags: Array = guesses.keys()
+	tags.sort()
+	for tag: String in tags:
+		_pill("%s · %s men (estimate)" % [GameState.nations[tag].display_name, Intel.estimate_text(guesses[tag])], Vector2(centre.x, y), px,
+				Color(GameState.nations[tag].color.lightened(0.45), 1.0), 9)
+		y += 16.0 * px
+
+
 ## What an army is made of: a tiny symbol per unit type with how many of them, centred under
 ## a banner. `counts` maps unit type to number (see Army.composition).
 func _draw_composition(counts: Dictionary, centre_x: float, top: float, px: float) -> void:
-	var fs := int(roundf(9.0 * px))
+	var fs := 9
 	var icon := Vector2(13.0, 10.0) * px
 	var gap := 4.0 * px
 	var widths := {}
 	var total := 0.0
 	for type in counts:
-		var w: float = icon.x + 2.0 * px + _font.get_string_size("%d" % counts[type], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var w: float = icon.x + 2.0 * px + MapText.size_of(_font, "%d" % counts[type], fs, px).x
 		widths[type] = w
 		total += w + gap
 	total -= gap
@@ -548,16 +653,15 @@ func _draw_composition(counts: Dictionary, centre_x: float, top: float, px: floa
 		var frame := Rect2(Vector2(x, top), icon)
 		draw_rect(frame, Color(1, 1, 1, 0.92))
 		_draw_symbol(frame, px * 0.6, type)
-		draw_string(_font, Vector2(frame.end.x + 2.0 * px, top + icon.y - 1.0 * px), "%d" % counts[type],
-				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+		MapText.draw(self, _font, Vector2(frame.end.x + 2.0 * px, top + icon.y - 1.0 * px), "%d" % counts[type],
+				HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, Color.WHITE, px)
 		x += widths[type] + gap
 
 
 ## Small label on a dark pill, centred on a map position.
 func _pill(text: String, at: Vector2, px: float, color: Color, font_px: int) -> void:
-	var fs := int(roundf(font_px * px))
-	var size := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var size := MapText.size_of(_font, text, font_px, px)
 	var pad := 3.0 * px
 	var rect := Rect2(at - Vector2(size.x * 0.5 + pad, size.y * 0.5 + pad * 0.5), size + Vector2(pad * 2.0, pad))
 	draw_rect(rect, Color(0.05, 0.07, 0.1, 0.82))
-	draw_string(_font, Vector2(rect.position.x + pad, rect.end.y - pad - size.y * 0.2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(color, 1.0))
+	MapText.draw(self, _font, Vector2(rect.position.x + pad, rect.end.y - pad - size.y * 0.2), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_px, Color(color, 1.0), px)

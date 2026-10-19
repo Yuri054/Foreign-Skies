@@ -33,6 +33,7 @@ func _initialize() -> void:
 	_test_lines()
 	_test_law()
 	_test_value()
+	_test_funding()
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
 
@@ -126,3 +127,21 @@ func _test_value() -> void:
 	_check(peace > 0.0, "a military factory is worth something to an army short of arms (%.1f)" % peace)
 	Diplomacy_war("GER", "FRA")
 	_check(Plan.factory_value(gs, "GER") > peace, "and more at war (%.1f)" % Plan.factory_value(gs, "GER"))
+
+
+func _test_funding() -> void:
+	_fresh()
+	var fra = gs.nations["FRA"]
+	_check(Plan.wanted_funding(gs, "FRA") == 1.0, "in peace the AI funds its forces at the usual")
+	Diplomacy_war("FRA", "GER")
+	fra.treasury = 10000.0
+	fra.economy_law = "war_economy"
+	_check(is_equal_approx(Plan.wanted_funding(gs, "FRA"), 1.2), "at war, rich, under a war economy it funds above the usual")
+	fra.economy_law = "civilian"
+	_check(Plan.wanted_funding(gs, "FRA") == 1.0, "but not past what its law allows")
+	fra.economy_law = "war_economy"
+	fra.treasury = -50.0
+	_check(Plan.wanted_funding(gs, "FRA") == 1.0, "nor when the treasury cannot carry it")
+	fra.treasury = 10000.0
+	Plan._funding(gs, "FRA")
+	_check(is_equal_approx(fra.army_funding, 1.2) and is_equal_approx(fra.navy_funding, 1.2), "and it sets both through the policy command")

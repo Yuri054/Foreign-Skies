@@ -39,7 +39,7 @@ func _initialize() -> void:
 	await process_frame
 	var ger = gs.nations["GER"]
 	_check(eco._tabs.get_tab_title(2) == "Production", "the Economy window has a Production tab")
-	_check(ger.production_lines.size() == 2 and _find(eco._production, "CheckButton", "Automatic") != null, "it shows the lines and the Automatic switch")
+	_check(ger.production_lines.size() == 3 and _find(eco._production, "CheckButton", "Automatic") != null, "it shows the lines and the Automatic switch")
 	var minus: Node = _find(eco._production, "Button", "-")
 	minus.pressed.emit()
 	await process_frame
@@ -48,9 +48,9 @@ func _initialize() -> void:
 	_check(not add.disabled, "New line is open with a free factory")
 	add.pressed.emit()
 	await process_frame
-	_check(ger.production_lines.size() == 3 and Prod.free_factories(ger) == 0, "and opens a line")
+	_check(ger.production_lines.size() == 4 and Prod.free_factories(ger) == 0, "and opens a line")
 	_find(eco._production, "CheckButton", "Automatic").toggled.emit(true)
 	await process_frame
-	_check(ger.lines_auto and ger.production_lines.size() == 2, "Automatic folds the lines again")
+	_check(ger.lines_auto and ger.production_lines.size() == 3, "Automatic folds the lines again")
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

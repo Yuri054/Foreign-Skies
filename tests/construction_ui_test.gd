@@ -56,7 +56,8 @@ func _test_open_and_colours() -> void:
 	bar._window_buttons["construction_panel"].pressed.emit()
 	await process_frame
 	_check(panel.visible, "the top bar button opens it")
-	_check(panel.position.x < 100.0, "on the left of the screen")
+	var legend_zone := Rect2(0, root.get_visible_rect().size.y - 140.0, 620, 140)
+	_check(not panel.get_global_rect().intersects(legend_zone), "and it stays clear of the map legend and palette at the bottom left")
 	_check(map_view.mode == MapView.Mode.CONSTRUCTION and map_view.submode == "factory", "the map shows where a civilian factory can be built")
 	_check(panel.picked() == "factory" and panel._rows["factory"].button_pressed, "the first building is picked and lit")
 	var eco_panel: Node = get_first_node_in_group("economy_panel")
@@ -113,8 +114,8 @@ func _test_clicks() -> void:
 	var jobs: int = ger.construction.size()
 	var cash: float = ger.treasury
 	map_view.select(id)
-	_check(ger.construction.size() == jobs + 1 and ger.treasury < cash, "a click on a green province queues a factory and pays for it")
-	_check(panel._status.text.contains("days"), "and says what it cost: " + panel._status.text)
+	_check(ger.construction.size() == jobs + 1 and is_equal_approx(ger.treasury, cash), "a click on a green province queues a factory, which costs no money")
+	_check(panel._status.text.contains("IC"), "and says what it cost: " + panel._status.text)
 	# A province that cannot take it.
 	var blocked: int = ger.capital
 	gs.province_slots[blocked] = Eco.slots_used(gs, blocked)
@@ -125,8 +126,14 @@ func _test_clicks() -> void:
 	map_view.select(foreign)
 	_check(ger.construction.size() == jobs, "foreign land cannot be built on")
 	ger.treasury = 0.0
-	map_view.select(id)
-	_check(ger.construction.size() == jobs and "money" in panel._status.text, "without money nothing is queued: " + panel._status.text)
+	jobs = ger.construction.size()
+	var other := 0
+	for p in ger.provinces:
+		if p != id and Eco.build_problem(gs, "GER", p, "factory").is_empty():
+			other = p
+			break
+	map_view.select(other)
+	_check(ger.construction.size() == jobs + 1, "with an empty treasury it is still queued: " + panel._status.text)
 	ger.treasury = 5000.0
 
 

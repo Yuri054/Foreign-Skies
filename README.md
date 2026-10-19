@@ -1,4 +1,4 @@
-# Europa: The Last Battle
+# Foreign Skies
 
 A real-time grand strategy game on a flat 2D map of Europe, July 1914. Pick any nation, manage its
 economy, armies, navy and diplomacy, and see whether the alliances hold. Single player; the AI plays
@@ -23,7 +23,8 @@ Saves and settings are written to Godot's user folder (`user://saves/`, `user://
 | Right click | Order selected armies or fleets; otherwise show the country panel |
 | Box drag | Select every army and fleet inside the box |
 | Space, `-` `+` | Pause, change speed (five speeds) |
-| 1 to 7 | Map modes (political, diplomacy, economy, population, military, terrain, sea control and blockade) |
+| 1 to 6 | Map modes (political, diplomacy, economy, population, military with its sea control and blockade variants, terrain) |
+| C | Show or hide the command panel (armies and fleets as cards along the bottom) |
 | E, B, M, F, N | Economy (with its Production tab), Construction, Military, Diplomacy and Navy windows |
 | F5, Shift+F5, F6 | Quick save, quick load, save and load window |
 | F10, Ctrl and `+` `-` | Settings, UI scale |

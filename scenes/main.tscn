@@ -20,13 +20,6 @@ script = ExtResource("3_cam")
 offset_right = 1280.0
 script = ExtResource("4_bar")
 
-[node name="InfoLabel" type="Label" parent="UI"]
-offset_left = 16.0
-offset_top = 56.0
-offset_right = 460.0
-offset_bottom = 176.0
-text = "Click a province"
-
 [node name="HintLabel" type="Label" parent="UI"]
 modulate = Color(1, 1, 1, 0.6)
 anchors_preset = 3
@@ -41,4 +34,4 @@ offset_bottom = -4.0
 grow_horizontal = 0
 grow_vertical = 0
 horizontal_alignment = 2
-text = "WASD pan  ·  Wheel zoom  ·  Click select  ·  Right-click orders / country panel / diplomatic view  ·  1-7 map modes  ·  E M F N windows  ·  Space pause  ·  Esc menu"
+text = "WASD pan  ·  Wheel zoom  ·  Click select  ·  Right-click orders / country panel / diplomatic view  ·  1-6 map modes  ·  V 3D map  ·  E M F N windows  ·  Space pause  ·  Esc menu"

@@ -7,7 +7,7 @@ extends PanelContainer
 ## leaves the screen. Space pauses; + and - change speed.
 
 const SPEEDS := 5
-const CHIP_COLOR := Color(0.15, 0.18, 0.24, 1.0)
+const CHIP_COLOR := Color(0.07, 0.085, 0.11, 1.0)
 ## Window buttons: group of the window, label, key.
 const WINDOWS := [
 	["economy_panel", "Economy", "E"],
@@ -39,9 +39,9 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.09, 0.11, 0.15, 0.97)
-	style.border_color = Color(0.25, 0.29, 0.36)
-	style.border_width_bottom = 1
+	style.bg_color = Color(UiTheme.SLATE_DEEP, 0.97)
+	style.border_color = UiTheme.GOLD
+	style.border_width_bottom = 2
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 3
@@ -176,7 +176,9 @@ func _chip(content: Control) -> PanelContainer:
 	var chip := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = CHIP_COLOR
-	style.set_corner_radius_all(3)
+	style.border_color = UiTheme.GOLD_DIM
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(2)
 	style.content_margin_left = 6
 	style.content_margin_right = 6
 	style.content_margin_top = 2

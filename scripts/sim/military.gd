@@ -52,6 +52,25 @@ static func init_equipment(gs: Node) -> void:
 		Production.auto_assign(n)
 
 
+## What readiness (the funding that has taken effect) does to fighting power: the floor at the
+## least funding, 1 at the usual, a bonus above.
+static func readiness_power(ready: float) -> float:
+	var c: Dictionary = cfg.funding
+	if ready >= 1.0:
+		return 1.0 + (ready - 1.0) * float(c.power_bonus)
+	var least: float = Economy.cfg.funding_min
+	return lerpf(float(c.power_floor), 1.0, clampf((ready - least) / (1.0 - least), 0.0, 1.0))
+
+
+## Readiness follows funding a step a day.
+static func step_readiness(gs: Node) -> void:
+	var step: float = cfg.funding.ready_step
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		n.army_ready = move_toward(n.army_ready, n.army_funding, step)
+		n.navy_ready = move_toward(n.navy_ready, n.navy_funding, step)
+
+
 ## Units that lack equipment draw it from the national stockpile.
 static func _issue(gs: Node) -> void:
 	var rate: float = cfg.equipment.resupply_rate
@@ -65,7 +84,7 @@ static func _issue(gs: Node) -> void:
 					u.equip["arms"] = maxf(0.0, float(u.equip.get("arms", 0.0)) - float(u.needs().arms) * float(cfg.equipment.combat_use))
 					u.refresh_factor()
 			else:
-				u.draw(n.equipment, rate)
+				u.draw(n.equipment, rate * n.army_ready * (1.0 + float(cfg.cities.resupply) * city_aura(gs, a.tag, a.province)))
 
 
 ## Held equipment over need for one category across an army's units (0..1); 1 if no unit uses it.
@@ -173,11 +192,29 @@ static func men_in_service(gs: Node, tag: String) -> int:
 	return roundi(total)
 
 
+## Whether a nation's railways run: they burn coal (see Flows), and with none to be had they stop
+## helping movement and supply.
+static func railway_ok(gs: Node, tag: String) -> bool:
+	var n: Nation = gs.nations.get(tag)
+	if n == null or not n.budget.has("resources"):
+		return true
+	return float(n.budget.resources.coal.shortage) <= 0.0
+
+
+## The cost of a supply hop into province `id` for `tag`: 1, or less where a railway runs (each
+## level beyond the first makes it cheaper still).
+static func hop_cost(gs: Node, tag: String, id: int) -> float:
+	var level: int = gs.province_buildings[id].get("railway", 0)
+	if level <= 0 or not railway_ok(gs, tag):
+		return 1.0
+	return maxf(0.2, float(cfg.supply.railway_hop_cost) * (1.0 - float(cfg.supply.railway_level_gain) * (level - 1)))
+
+
 ## Days an army of the given speed needs to walk from one province into a neighbour.
 static func move_days(gs: Node, tag: String, speed: float, from: int, to: int) -> float:
 	var km := (MapData.provinces[from].center as Vector2).distance_to(MapData.provinces[to].center) * KM_PER_PX
 	var days: float = km / speed * terrain_of(to).move
-	if gs.province_controller[to] == tag:
+	if gs.province_controller[to] == tag and railway_ok(gs, tag):
 		days /= 1.0 + cfg.movement.railway_speedup * gs.province_buildings[to].get("railway", 0)
 	var link: String = MapData.sea_links.get(Vector2i(mini(from, to), maxi(from, to)), "")
 	if link == "sea":
@@ -221,12 +258,68 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 	return path
 
 
+# ------------------------------------------------------------------ city aura
+
+static var _aura: Dictionary = {}
+static var _aura_day := -1
+static var _aura_owner := 0
+static var _aura_version := -1
+
+
+## The strength of the cities' aura (0 to 1) over a province for the nation that holds it: the
+## strongest of the cities near enough that the nation owns and controls, itself and the ground
+## between. 0 for ground that is not the nation's own. Worked out once a day.
+static func city_aura(gs: Node, tag: String, id: int) -> float:
+	if _aura_day != Clock.days_elapsed or _aura_owner != gs.get_instance_id() or _aura_version != gs.owner_version:
+		_aura = _build_aura(gs)
+		_aura_day = Clock.days_elapsed
+		_aura_owner = gs.get_instance_id()
+		_aura_version = gs.owner_version
+	return float(_aura.get(tag, {}).get(id, 0.0))
+
+
+## Forgets the day's aura (a city was captured or freed, or another game was loaded).
+static func invalidate_aura() -> void:
+	_aura_day = -1
+	_aura.clear()
+
+
+static func _build_aura(gs: Node) -> Dictionary:
+	var out := {}
+	var power: Dictionary = cfg.cities.power
+	var radius: Dictionary = cfg.cities.radius
+	for city: Dictionary in gs.cities:
+		var home: int = city.province
+		var owner: String = gs.province_owner[home]
+		if gs.province_controller[home] != owner:
+			continue
+		var strength := float(power[str(city.rank)])
+		var reach := int(radius[str(city.rank)])
+		var by_tag: Dictionary = out.get(owner, {})
+		out[owner] = by_tag
+		var dist := {home: 0}
+		var open := [home]
+		while not open.is_empty():
+			var cur: int = open.pop_front()
+			var here := strength * (1.0 - float(dist[cur]) / float(reach + 1))
+			if here > float(by_tag.get(cur, 0.0)):
+				by_tag[cur] = here
+			if dist[cur] >= reach:
+				continue
+			for nb: int in neighbors(cur):
+				if dist.has(nb) or gs.province_owner[nb] != owner or gs.province_controller[nb] != owner:
+					continue
+				dist[nb] = dist[cur] + 1
+				open.append(nb)
+	return out
+
+
 ## Supply distance in hops from the nearest province the nation controls (railways make a hop
 ## cheaper); INF if it is farther than the supply range.
 static func supply_cost(gs: Node, tag: String, from: int) -> float:
 	if gs.province_controller[from] == tag and home_connected(gs, tag, from):
 		return 0.0
-	var limit: float = cfg.supply.range
+	var limit: float = cfg.supply.range + float(cfg.cities.supply_range) * city_aura(gs, tag, from)
 	var dist := {from: 0.0}
 	var open := [from]
 	while not open.is_empty():
@@ -238,7 +331,7 @@ static func supply_cost(gs: Node, tag: String, from: int) -> float:
 		if gs.province_controller[cur] == tag and home_connected(gs, tag, cur):
 			return dist[cur]
 		for n: int in neighbors(cur):
-			var step: float = cfg.supply.railway_hop_cost if gs.province_buildings[n].get("railway", 0) > 0 else 1.0
+			var step := hop_cost(gs, tag, n)
 			var nd: float = dist[cur] + step
 			if nd > limit + 0.001 or (dist.has(n) and dist[n] <= nd):
 				continue
@@ -289,7 +382,30 @@ static func home_connected(gs: Node, tag: String, id: int) -> bool:
 
 ## Defence multiplier for an army that is holding the province: terrain times entrenchment.
 static func defense_multiplier(a: Army) -> float:
-	return terrain_of(a.province).defense * (1.0 + cfg.combat.entrench_defense_per_level * a.entrenchment())
+	return terrain_of(a.province).defense * (1.0 + cfg.combat.entrench_defense_per_level * a.entrenchment() + works_defense(GameState, a))
+
+
+## The province's own works help the nation that owns it: trenches and heavy fortifications add
+## their defense bonus for every level (see data/economy.json, buildings).
+static func works_defense(gs: Node, a: Army) -> float:
+	if gs.province_owner[a.province] != a.tag:
+		return 0.0
+	var built: Dictionary = gs.province_buildings[a.province]
+	var b: Dictionary = Economy.cfg.buildings
+	return b.trench.defense * built.get("trench", 0) + b.fortification.defense * built.get("fortification", 0)
+
+
+## Share of the damage the province's works take off an attack on an army that holds it: shelling
+## is cut by the trenches (`shell_reduction` a level), assault by the fortifications
+## (`hard_reduction` a level). `shelling` is the share of the attacker's power that comes from guns.
+static func works_reduction(gs: Node, a: Army, shelling: float) -> float:
+	if gs.province_owner[a.province] != a.tag:
+		return 0.0
+	var built: Dictionary = gs.province_buildings[a.province]
+	var b: Dictionary = Economy.cfg.buildings
+	var shell := minf(0.9, b.trench.shell_reduction * built.get("trench", 0))
+	var hard := minf(0.9, b.fortification.hard_reduction * built.get("fortification", 0))
+	return shelling * shell + (1.0 - shelling) * hard
 
 
 # ------------------------------------------------------------------ setup
@@ -298,6 +414,12 @@ static func defense_multiplier(a: Army) -> float:
 static func deploy_starting(gs: Node) -> void:
 	gs.armies.clear()
 	gs.next_army_id = 1
+	gs.generals.clear()
+	gs.next_general_id = 1
+	gs.army_groups.clear()
+	gs.next_group_id = 1
+	gs.attack_lines.clear()
+	gs.next_attack_line_id = 1
 	var plans: Dictionary = gs.scenario.get("deployment", {})
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
@@ -309,10 +431,12 @@ static func deploy_starting(gs: Node) -> void:
 		var armies: Array[Army] = []
 		for i in stacks.size():
 			var a := new_army(gs, tag, stacks[i].name, stacks[i].province)
-			if i < generals.size():
-				a.general_name = generals[i][0]
-				a.general_skill = generals[i][1]
 			armies.append(a)
+		# Every general in the nation's list joins its pool; the first ones lead the armies.
+		for i in generals.size():
+			var g := new_general(gs, tag, generals[i][0], generals[i][1])
+			if i < armies.size():
+				set_general(gs, g, armies[i])
 		# Deal the units out so each stack holds men in proportion to its weight.
 		var dealt := PackedFloat32Array()
 		dealt.resize(stacks.size())
@@ -379,10 +503,158 @@ static func new_army(gs: Node, tag: String, army_name: String, province: int) ->
 	return a
 
 
+static func new_general(gs: Node, tag: String, general_name: String, skill: float) -> General:
+	var g := General.new()
+	g.id = gs.next_general_id
+	gs.next_general_id += 1
+	g.tag = tag
+	g.display_name = general_name
+	g.skill = skill
+	gs.generals[g.id] = g
+	return g
+
+
+## Puts `g` in command of `a`. Whoever led `a` goes back to the pool, and `g` leaves the army he
+## led before. With `g` null the army is left without a general; with `a` null `g` is only taken
+## off his army.
+static func set_general(gs: Node, g: General, a: Army) -> void:
+	if g != null and g.army_id != 0:
+		_clear_command(gs.armies.get(g.army_id), g)
+	if a != null:
+		var old: General = gs.generals.get(a.general_id)
+		if old != null:
+			old.army_id = 0
+		a.general_id = 0
+		a.general_name = ""
+		a.general_skill = 1.0
+	if g == null or a == null:
+		return
+	g.army_id = a.id
+	a.general_id = g.id
+	a.general_name = g.display_name
+	a.general_skill = g.skill
+
+
+static func _clear_command(a: Army, g: General) -> void:
+	g.army_id = 0
+	if a != null and a.general_id == g.id:
+		a.general_id = 0
+		a.general_name = ""
+		a.general_skill = 1.0
+
+
+## Frees generals whose army is gone (destroyed, cut off, disbanded or merged away).
+static func release_orphan_generals(gs: Node) -> void:
+	for g: General in gs.generals.values():
+		if g.army_id != 0 and (not gs.armies.has(g.army_id) or gs.armies[g.army_id].general_id != g.id):
+			g.army_id = 0
+	# The AI keeps its best free general in command of its biggest army without one.
+	for tag in gs.nations:
+		if tag == gs.player_tag:
+			continue
+		var pool := pool_of(gs, tag)
+		if pool.is_empty():
+			continue
+		var unled: Array[Army] = []
+		for a: Army in gs.armies.values():
+			if a.tag == tag and a.general_id == 0 and not a.units.is_empty():
+				unled.append(a)
+		unled.sort_custom(func(x: Army, y: Army) -> bool: return x.men() > y.men() or (x.men() == y.men() and x.id < y.id))
+		for i in mini(pool.size(), unled.size()):
+			set_general(gs, pool[i], unled[i])
+
+
+## The nation's generals who lead no army and no group, best first.
+static func pool_of(gs: Node, tag: String) -> Array[General]:
+	var out: Array[General] = []
+	for g: General in gs.generals.values():
+		if g.tag == tag and g.army_id == 0 and g.group_id == 0:
+			out.append(g)
+	out.sort_custom(func(x: General, y: General) -> bool: return x.skill > y.skill or (x.skill == y.skill and x.id < y.id))
+	return out
+
+
+static func new_group(gs: Node, tag: String, group_name: String) -> ArmyGroup:
+	var g := ArmyGroup.new()
+	g.id = gs.next_group_id
+	gs.next_group_id += 1
+	g.tag = tag
+	g.display_name = group_name if not group_name.is_empty() else "Army Group %d" % g.id
+	gs.army_groups[g.id] = g
+	return g
+
+
+## Moves armies into `group` (null takes them out of their groups).
+static func put_in_group(gs: Node, group: ArmyGroup, army_ids: Array[int]) -> void:
+	for id in army_ids:
+		var a: Army = gs.armies.get(id)
+		if a == null:
+			continue
+		var old: ArmyGroup = gs.army_groups.get(a.group_id)
+		if old != null:
+			old.army_ids.erase(a.id)
+		a.group_id = 0
+		if group != null:
+			a.group_id = group.id
+			group.army_ids.append(a.id)
+
+
+## Sets the group's marshal (null relieves him); the old marshal goes back to the pool.
+static func set_marshal(gs: Node, group: ArmyGroup, g: General) -> void:
+	var old: General = gs.generals.get(group.marshal_id)
+	if old != null:
+		old.group_id = 0
+	group.marshal_id = 0
+	if g != null:
+		g.group_id = group.id
+		group.marshal_id = g.id
+
+
+static func remove_group(gs: Node, group: ArmyGroup) -> void:
+	for id in group.army_ids:
+		if gs.armies.has(id):
+			gs.armies[id].group_id = 0
+	group.army_ids.clear()
+	set_marshal(gs, group, null)
+	gs.army_groups.erase(group.id)
+
+
+## Drops armies that no longer exist from their groups and dissolves groups left empty.
+static func prune_groups(gs: Node) -> void:
+	for group: ArmyGroup in gs.army_groups.values().duplicate():
+		for i in range(group.army_ids.size() - 1, -1, -1):
+			var a: Army = gs.armies.get(group.army_ids[i])
+			if a == null or a.group_id != group.id:
+				group.army_ids.remove_at(i)
+		if group.army_ids.is_empty():
+			remove_group(gs, group)
+
+
+## What an army's power is multiplied by for the marshal over its group.
+static func marshal_mult(a: Army) -> float:
+	if a.group_id == 0:
+		return 1.0
+	var group: ArmyGroup = GameState.army_groups.get(a.group_id)
+	if group == null:
+		return 1.0
+	var m: General = GameState.generals.get(group.marshal_id)
+	if m == null:
+		return 1.0
+	return 1.0 + (m.skill - 1.0) * float(cfg.army_group.marshal_share)
+
+
 ## Recomputes the men each nation has under arms (used for upkeep and the manpower cap).
 static func refresh_men(gs: Node) -> void:
 	for tag in gs.nations:
 		gs.nations[tag].men_in_units = men_in_service(gs, tag)
+		gs.nations[tag].animal_need = 0.0
+	# The animals the units need to haul their guns, wagons and mounts (units a day in the data).
+	for a: Army in gs.armies.values():
+		var need := 0.0
+		for u in a.units:
+			need += float(cfg.unit_types[u.type].get("animals", 0.0)) * u.strength
+		if gs.nations.has(a.tag):
+			gs.nations[a.tag].animal_need += Flows.kt("draft_animals", need)
 
 
 ## Days at which an army walking `path` from `from` reaches each province on it, counted from
@@ -495,6 +767,10 @@ static func _dist(a: int, b: int) -> float:
 
 static func step_day(gs: Node) -> void:
 	step_fronts(gs)
+	step_readiness(gs)
+	prune_groups(gs)
+	AttackLines.step_day(gs)
+	release_orphan_generals(gs)
 	Production.step_day(gs)
 	_train(gs)
 	var armies: Array = gs.armies.values()
@@ -571,6 +847,21 @@ static func _by_province(armies: Array) -> Dictionary:
 	return at
 
 
+## A day's fighting costs the guns their shells from the national stockpile; a unit it cannot
+## supply loses most of its attack (combat.shell_penalty) that day.
+static func _burn_shells(gs: Node, a: Army) -> void:
+	var n: Nation = gs.nations[a.tag]
+	for u in a.units:
+		var per_day: float = float(cfg.unit_types[u.type].get("shells", 0.0))
+		if per_day <= 0.0:
+			u.shell_starved = false
+			continue
+		var use := per_day * u.strength
+		var have: float = float(n.equipment.get("shells", 0.0))
+		u.shell_starved = have < use
+		n.equipment["shells"] = maxf(0.0, have - use)
+
+
 static func _fight(gs: Node) -> void:
 	var armies: Array = gs.armies.values()
 	var at := _by_province(armies)
@@ -589,13 +880,20 @@ static func _fight(gs: Node) -> void:
 				foes[a] = list
 		if foes.is_empty():
 			continue
+		for a in foes:
+			_burn_shells(gs, a)
 		var incoming := {}
+		var parts := {}
 		for a in foes:
 			incoming[a] = 0.0
+			parts[a] = {}
 		for b in foes:
 			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) / foes[b].size()
+			var shelling: float = b.shelling_share()
 			for a in foes[b]:
-				incoming[a] += share
+				var dealt: float = share * (1.0 - works_reduction(gs, a, shelling))
+				incoming[a] += dealt
+				parts[a][b] = dealt
 		var battle := _engagement(gs, id, foes)
 		var tags := {}
 		var today := {}
@@ -606,13 +904,14 @@ static func _fight(gs: Node) -> void:
 			var lost := _apply_casualties(a, incoming[a] * cfg.combat.casualties_per_point / mult)
 			battle.lost[a.tag] = battle.lost.get(a.tag, 0.0) + lost
 			gs.nations[a.tag].men_lost_month += lost
+			gs.nations[a.tag].deaths_month += lost
 			today[a.tag] = today.get(a.tag, 0.0) + lost
 			if incoming[a] > 0.0:
 				# Charge the loss to the wars with the armies that inflicted it.
 				for b: Army in foes[a]:
 					var war: War = gs.war_between(a.tag, b.tag)
 					if war != null:
-						war.losses[a.tag] += lost * (b.power() * WarSupport.morale_mult(gs, b.tag) / foes[b].size()) / incoming[a]
+						war.losses[a.tag] += lost * parts[a][b] / incoming[a]
 		_log_day(battle, foes, today)
 		gs.battle_fought.emit(id, tags.keys())
 		for a: Army in foes:
@@ -710,6 +1009,7 @@ static func _add_loss(gs: Node, tag: String, enemies: Array, men: float, field: 
 	if men <= 0.0:
 		return
 	gs.nations[tag].men_lost_month += men
+	gs.nations[tag].deaths_month += men
 	var wars: Array[War] = []
 	if enemies.is_empty():
 		wars = gs.wars_of(tag)
@@ -917,13 +1217,20 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 			_add_loss(gs, a.tag, [], before - a.men(), "attrition")
 		elif not a.fighting:
 			var n: Nation = gs.nations[a.tag]
+			var aura := city_aura(gs, a.tag, a.province)
 			for u in a.units:
-				u.morale = minf(1.0, u.morale + cfg.combat.morale_regain)
+				u.morale = minf(1.0, u.morale + cfg.combat.morale_regain * n.army_ready * (1.0 + float(cfg.cities.morale) * aura))
 				if u.strength < 1.0 and n.manpower > 0:
-					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate * lerpf(float(cfg.equipment.reinforce_floor), 1.0, u.coverage_min()))
+					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate * (1.0 + float(cfg.cities.reinforce) * aura) * n.army_ready * lerpf(float(cfg.equipment.reinforce_floor), 1.0, u.coverage_min()))
 					var taken := mini(n.manpower, ceili(want * u.full_size()))
 					n.manpower -= taken
 					u.strength = minf(1.0, u.strength + float(taken) / u.full_size())
+		if a.fighting and not a.units.is_empty():
+			# A city's aura steadies the men even in battle.
+			var steady := city_aura(gs, a.tag, a.province) * float(cfg.cities.morale) * float(cfg.cities.morale_fighting)
+			if steady > 0.0:
+				for u in a.units:
+					u.morale = minf(1.0, u.morale + cfg.combat.morale_regain * gs.nations[a.tag].army_ready * steady)
 		if a.path.is_empty():
 			a.still_days += 1
 	for a: Army in armies:

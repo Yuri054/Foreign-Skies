@@ -16,6 +16,9 @@ var move_days_left := 0.0
 var still_days := 0
 ## True while this army is the one that attacked in an ongoing battle.
 var attacking := false
+## The general in command (0 = none; see General and Military.set_general). The name and skill
+## are copied from him so the rest of the code need not look him up.
+var general_id := 0
 var general_name := ""
 var general_skill := 1.0
 ## Whether the army can draw supply (updated daily).
@@ -27,6 +30,8 @@ var fighting := false
 var icon := "auto"
 ## Front this army is assigned to (0 = none).
 var front_id := 0
+## Army group this army belongs to (0 = none; see ArmyGroup).
+var group_id := 0
 ## Fleet the army is embarked in (0 = on land). An embarked army stands in the port it left
 ## until it lands; it cannot fight, move or be supplied by land (see Navy).
 var fleet_id := 0
@@ -47,12 +52,26 @@ func men() -> float:
 	return total
 
 
+## The share of the army's fighting power that comes from its guns (units that burn shells).
+func shelling_share() -> float:
+	var guns := 0.0
+	var all := 0.0
+	for u in units:
+		var p: float = u.power()
+		all += p
+		if float(Military.cfg.unit_types[u.type].get("shells", 0.0)) > 0.0:
+			guns += p
+	return guns / all if all > 0.0 else 0.0
+
+
 func power() -> float:
 	var total := 0.0
 	for u in units:
 		total += u.power()
 	var landing: float = Military.cfg.landing.power_mult if landing_days > 0 else 1.0
-	return total * general_skill * landing
+	var nation: Nation = GameState.nations.get(tag)
+	var ready: float = Military.readiness_power(nation.army_ready) if nation != null else 1.0
+	return total * general_skill * Military.marshal_mult(self) * landing * ready
 
 
 ## Mean morale, weighted by men.
@@ -119,4 +138,4 @@ func to_dict() -> Dictionary:
 	for u in units:
 		list.append(u.to_dict())
 	return {"id": id, "tag": tag, "name": display_name, "province": province, "units": list,
-			"general": general_name, "skill": general_skill, "icon": icon, "front": front_id, "fleet": fleet_id}
+			"general": general_name, "general_id": general_id, "skill": general_skill, "icon": icon, "front": front_id, "group": group_id, "fleet": fleet_id}

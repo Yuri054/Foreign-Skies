@@ -10,11 +10,14 @@ var _tabs := TabContainer.new()
 var _alerts := VBoxContainer.new()
 var _tax_slider := HSlider.new()
 var _tax_label := Label.new()
+var _tax_note := Label.new()
 var _budget := HBoxContainer.new()
 var _output := Label.new()
 var _law := OptionButton.new()
 var _law_note := Label.new()
 var _law_updating := false
+## Funding sliders: policy ("army_funding", "navy_funding") -> {slider, label, note}.
+var _funding: Dictionary = {}
 var _program_boxes: Dictionary = {}
 var _resources := VBoxContainer.new()
 var _production := VBoxContainer.new()
@@ -89,7 +92,7 @@ func _build_overview() -> Control:
 	_tax_slider.step = 0.01
 	_tax_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tax_slider.focus_mode = Control.FOCUS_NONE
-	_tax_slider.tooltip_text = "Share of output taken as tax. Above %d%% it starts to choke the economy." % roundi(Economy.cfg.default_tax_rate * 100.0)
+	_tax_slider.tooltip_text = "Share of output taken as tax. Above %d%% less of it reaches the treasury, and heavy taxes slow growth and wear down the people's support." % roundi(Economy.cfg.default_tax_rate * 100.0)
 	_tax_slider.value_changed.connect(func(v: float) -> void:
 		GameState.issue(SetEconomyPolicy.new(GameState.player_tag, "tax_rate", v))
 	)
@@ -98,6 +101,10 @@ func _build_overview() -> Control:
 	for c in [tax_name, _tax_slider, _tax_label]:
 		tax_row.add_child(c)
 	box.add_child(tax_row)
+	_tax_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tax_note.custom_minimum_size = Vector2(400, 0)
+	_tax_note.modulate = Fmt.WARN
+	box.add_child(_tax_note)
 
 	var law_row := HBoxContainer.new()
 	var law_name := Label.new()
@@ -121,9 +128,14 @@ func _build_overview() -> Control:
 	_law_note.modulate = Fmt.DIM
 	box.add_child(_law_note)
 
+	for policy in ["army_funding", "navy_funding"]:
+		box.add_child(_funding_row(policy))
+
 	_budget.add_theme_constant_override("separation", 14)
 	box.add_child(_budget)
 	_output.modulate = Fmt.DIM
+	_output.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_output.custom_minimum_size = Vector2(300, 0)
 	box.add_child(_output)
 	box.add_child(HSeparator.new())
 
@@ -146,6 +158,60 @@ func _build_overview() -> Control:
 
 
 # ---------------------------------------------------------------- small widgets
+
+## A slider for how well the army or the navy is funded: 1 is the usual upkeep, the economy law
+## sets how high it can go, and the forces' readiness follows it slowly.
+func _funding_row(policy: String) -> Control:
+	var box := VBoxContainer.new()
+	var row := HBoxContainer.new()
+	var name_label := Label.new()
+	name_label.text = "Army funding" if policy == "army_funding" else "Navy funding"
+	name_label.custom_minimum_size = Vector2(110, 0)
+	row.add_child(name_label)
+	var slider := HSlider.new()
+	slider.min_value = Economy.cfg.funding_min
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.value_changed.connect(func(v: float) -> void:
+		if not _law_updating:
+			GameState.issue(SetEconomyPolicy.new(GameState.player_tag, policy, v))
+	)
+	row.add_child(slider)
+	var label := Label.new()
+	label.custom_minimum_size = Vector2(50, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(label)
+	box.add_child(row)
+	var note := Label.new()
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size = Vector2(400, 0)
+	note.modulate = Fmt.DIM
+	box.add_child(note)
+	_funding[policy] = {"slider": slider, "label": label, "note": note, "box": box}
+	return box
+
+
+func _refresh_funding(n: Nation) -> void:
+	var cap := Economy.funding_cap(n)
+	for policy in _funding:
+		var army: bool = policy == "army_funding"
+		var f: float = n.army_funding if army else n.navy_funding
+		var ready: float = n.army_ready if army else n.navy_ready
+		var parts: Dictionary = _funding[policy]
+		parts.box.visible = army or n.naval_budget > 0.0
+		_law_updating = true
+		parts.slider.max_value = cap
+		parts.slider.set_value_no_signal(f)
+		_law_updating = false
+		parts.label.text = "%d%%" % roundi(f * 100.0)
+		var cost: float = n.total_men() * Economy.cfg.soldier_upkeep / 1e6 if army else n.naval_budget
+		parts.note.text = "Costs £%.1fM a month; %s fights at %d%% of its strength%s. %s allows up to %d%%." % [
+				Fmt.monthly(cost * f), "the army" if army else "the navy", roundi(Military.readiness_power(ready) * 100.0),
+				(" (readiness is moving toward %d%%)" % roundi(Military.readiness_power(f) * 100.0)) if absf(ready - f) > 0.01 else "",
+				Economy.law_of(n).name, roundi(cap * 100.0)]
+
 
 func _heading(text: String) -> Label:
 	var l := Label.new()
@@ -211,6 +277,11 @@ func _refresh_overview(n: Nation) -> void:
 	var b := n.budget
 	_tax_slider.set_value_no_signal(n.tax_rate)
 	_tax_label.text = "%d%%" % roundi(n.tax_rate * 100.0)
+	var strain: float = n.budget.get("tax_strain", 0.0)
+	_tax_note.visible = strain > 0.005
+	var cost: Dictionary = Economy.cfg.tax_strain
+	_tax_note.text = "Heavy taxes: growth %.1f points a year lower, war support settles %d lower in peace, and %.1f a month is lost at war." % [
+			cost.growth_penalty * strain * 100.0, roundi(cost.support_penalty * strain), cost.war_weariness * strain]
 
 	# Problems first, so they cannot be missed.
 	_clear(_alerts)
@@ -230,6 +301,8 @@ func _refresh_overview(n: Nation) -> void:
 	for r in Economy.resource_ids():
 		if b.resources[r].shortage > 0.0:
 			problems.append("%s shortage: %d%% of demand unmet, hurting industry." % [Economy.cfg.resources[r].name, roundi(b.resources[r].shortage * 100.0)])
+	if not GameState.wars_of(n.tag).is_empty() and n.war_support <= 30.0:
+		problems.append("War support is %d: below %d the people force a peace. %s" % [roundi(n.war_support), int(WarSupport.cfg().white_peace_below), WarSupport.effects_text(GameState, n.tag)])
 	if problems.is_empty():
 		_alerts.add_child(_status("No problems.", Fmt.GOOD))
 	for p in problems:
@@ -242,7 +315,7 @@ func _refresh_overview(n: Nation) -> void:
 	_budget.add_child(g)
 	_budget.add_child(VSeparator.new())
 	_budget.add_child(spend)
-	var taxes: float = Fmt.monthly(b.revenue - b.trade - b.resource_exports)
+	var taxes: float = Fmt.monthly(b.revenue - b.trade - b.resource_exports - b.factory_income)
 	var trade: float = Fmt.monthly(b.trade + b.resource_exports)
 	_head_row(g, "Income")
 	_cell(g, "Taxes", 0, Color.WHITE, "Output of £%.1fM a month taxed at %d%%." % [Fmt.monthly(b.gdp), roundi(n.tax_rate * 100.0)])
@@ -250,6 +323,9 @@ func _refresh_overview(n: Nation) -> void:
 	if trade > 0.04:
 		_cell(g, "Trade", 0, Color.WHITE, "Ports £%.1fM, resource exports £%.1fM." % [Fmt.monthly(b.trade), Fmt.monthly(b.resource_exports)])
 		_cell(g, Fmt.money(trade, true), 1)
+	if absf(b.factory_income) > 0.04:
+		_cell(g, "Factories", 0, Color.WHITE, "Civilian factories built since the start pay %s each a year into the treasury (retooled ones cost it). The factories you began with are already in the taxes." % Fmt.money(Economy.factory_income(n)))
+		_cell(g, Fmt.money(Fmt.monthly(b.factory_income), true), 1)
 	_total_row(g, "Total income", Fmt.monthly(b.revenue), Color.WHITE)
 
 	_head_row(spend, "Spending")
@@ -264,13 +340,12 @@ func _refresh_overview(n: Nation) -> void:
 	if b.programs > 0.0:
 		_cell(spend, "Programs", 0)
 		_cell(spend, Fmt.money(-Fmt.monthly(b.programs), true), 1)
-	if b.equipment > 0.04:
-		_cell(spend, "Equipment", 0, Color.WHITE, "What the production lines cost at full tilt: money for every item made (see the Production tab). Paid a day at a time.")
-		_cell(spend, Fmt.money(-Fmt.monthly(b.equipment), true), 1)
 	_total_row(spend, "Total spending", -Fmt.monthly(b.expenses), Color.WHITE)
 	_total_row(g, "Net per month", Fmt.monthly(b.net), Fmt.GOOD if b.net >= 0.0 else Fmt.BAD)
 
-	_output.text = "Output £%.0fM a month, industry £%.0fM." % [Fmt.monthly(b.gdp), Fmt.monthly(b.industry)]
+	_output.text = "Output £%.0fM a month, industry £%.0fM. Factories: %d%% of civilian work goes to the people's goods (%d%% of it from war weariness), imports lock %.1f factories, %d%% of the work is left after the men under arms%s. Construction %s IC a day." % [
+			Fmt.monthly(b.gdp), Fmt.monthly(b.industry), roundi(b.consumer_share * 100.0), roundi(n.weariness * 100.0), b.trade_lock,
+			roundi(Economy.worker_share(n) * 100.0), ", and the nation is starving (-30% output)" if n.starving else "", Fmt.thousands(roundi(b.construction_points))]
 	_refresh_law(n)
 
 	for id in _program_boxes:
@@ -296,8 +371,9 @@ func _refresh_law(n: Nation) -> void:
 		if id == n.economy_law:
 			_law.select(i)
 	_law_updating = false
+	_refresh_funding(n)
 	var law := Economy.law_of(n)
-	_law_note.text = "%s Consumer goods take %d%% of civilian factory work, so %.0f construction points a day are left (%d factories). Military factories +%d%%, national output %+d%%." % [
+	_law_note.text = "%s Consumer goods take %d%% of civilian factory work, so %.0f IC of construction a day is left (%d factories). Military factories +%d%%, national output %+d%%." % [
 			_law_requires_text(n.economy_law), roundi(law.consumer * 100.0), n.budget.construction_points, int(n.budget.factories),
 			roundi((law.military - 1.0) * 100.0), roundi((law.gdp - 1.0) * 100.0)]
 	if law.weariness > 0.0:
@@ -306,8 +382,9 @@ func _refresh_law(n: Nation) -> void:
 
 func _law_text(id: String) -> String:
 	var law: Dictionary = Economy.cfg.laws[id]
-	return "%s: consumer goods %d%%, military factories %+d%%, output %+d%%%s." % [law.name, roundi(law.consumer * 100.0),
+	return "%s: consumer goods %d%%, military factories %+d%%, output %+d%%, mobilization %d to %d%%%s." % [law.name, roundi(law.consumer * 100.0),
 			roundi((law.military - 1.0) * 100.0), roundi((law.gdp - 1.0) * 100.0),
+			roundi(law.mobilization[0] * 100.0), roundi(law.mobilization[1] * 100.0),
 			(", %.1f war support a month at war" % law.weariness) if law.weariness > 0.0 else ""]
 
 
@@ -382,7 +459,27 @@ func _refresh_resources(n: Nation) -> void:
 		_cell(g, balance_text, 1, color, tip)
 		_cell(g, Fmt.kt(info.stock), 1, Color.WHITE, "Stockpile, of a possible %s. It buffers a blockade and supplies construction." % Fmt.kt(info.cap))
 
-	_resources.add_child(_note("Green balances are exported, orange ones imported (the state takes %d%% of the trade value). A blockade stops both, the stockpile runs down, and shortages cut industry and output." % roundi(Economy.cfg.trade_state_share * 100.0)))
+	_resources.add_child(HSeparator.new())
+	_resources.add_child(_heading("Where it goes, a month"))
+	var uses := _grid(5)
+	_resources.add_child(uses)
+	for h in ["", "Industry", "Homes", "Buildings", "Equipment"]:
+		_cell(uses, h, -1, Fmt.DIM)
+	var kit := Production.planned_materials(n)
+	for r in Economy.resource_ids():
+		var info: Dictionary = b.resources[r]
+		_cell(uses, Economy.cfg.resources[r].name, 0)
+		_cell(uses, Fmt.kt(Fmt.monthly(info.from_industry)), 1)
+		_cell(uses, Fmt.kt(Fmt.monthly(info.from_homes)), 1)
+		_cell(uses, Fmt.kt(Fmt.monthly(info.from_buildings)), 1, Color.WHITE, "Factories and railways burn coal and iron to run.")
+		_cell(uses, Fmt.kt(Fmt.monthly(float(kit.get(r, 0.0)))), 1, Color.WHITE,
+				"What your equipment lines use at full tilt. It comes out of the stockpile first and is bought abroad, at a markup, when that runs dry.")
+	for r in Economy.resource_ids():
+		var info2: Dictionary = b.resources[r]
+		if info2.shortage > 0.0:
+			_resources.add_child(_status("Short of %s: industry %d%% down, output %d%% down." % [
+					Economy.cfg.resources[r].name.to_lower(), roundi(info2.cost_industry * 100.0), roundi(info2.cost_gdp * 100.0)], Fmt.BAD))
+	_resources.add_child(_note("Green balances are exported, orange ones imported. Imports lock civilian factories. A blockade stops both, the stockpile runs down, and shortages cut industry and output."))
 
 
 # ---------------------------------------------------------------- production
@@ -433,7 +530,7 @@ func _refresh_production(n: Nation) -> void:
 		_refresh()
 	)
 	_production.add_child(add)
-	_production.add_child(_note("A factory makes one kind of equipment. A line starts slowly and reaches full efficiency after %d days; changing what it makes starts it over. Each item costs money and iron or coal; materials the store lacks are bought abroad at a markup, and a line short of money or cut off by a blockade makes less." % int(Military.cfg.equipment.efficiency_days)))
+	_production.add_child(_note("A factory makes one kind of equipment. A line starts at %d%% efficiency and reaches %d%% after %d days; changing what it makes keeps only %d%% of it. Each item costs industrial capacity and iron, coal or nitrates, which are flows: a line short of one makes less. Shells feed the artillery in battle, and with none left a gun loses %d%% of its attack." % [roundi(Military.cfg.equipment.efficiency_start * 100.0), roundi(Military.cfg.equipment.efficiency_cap * 100.0), int(Military.cfg.equipment.efficiency_days), roundi(Military.cfg.equipment.efficiency_keep_kind * 100.0), roundi(Military.cfg.combat.shell_penalty * 100.0)]))
 
 
 func _production_row(g: GridContainer, n: Nation, line: Dictionary, cats: Array) -> void:
@@ -475,7 +572,7 @@ func _production_row(g: GridContainer, n: Nation, line: Dictionary, cats: Array)
 	count.add_child(more)
 	g.add_child(count)
 	var eff := Production.efficiency(line)
-	_cell(g, "%d%%" % roundi(eff * 100.0), 1, Fmt.GOOD if eff >= 0.999 else Fmt.WARN,
+	_cell(g, "%d%%" % roundi(eff * 100.0), 1, Fmt.GOOD if eff >= Military.cfg.equipment.efficiency_cap - 0.001 else Fmt.WARN,
 			"Efficiency of the line: it climbs while the line runs and starts over if it changes what it makes.")
 	var made_month: float = line.made * 30.0
 	var short: bool = line.limit != ""
@@ -484,8 +581,8 @@ func _production_row(g: GridContainer, n: Nation, line: Dictionary, cats: Array)
 	var cost := Production.item_cost(line.category)
 	var parts: PackedStringArray = []
 	for key in cost:
-		if key == "money":
-			parts.append(Fmt.money(made_month * float(cost[key])))
+		if key == "ic":
+			parts.append("%s IC" % Fmt.thousands(roundi(made_month * float(cost[key]))))
 		else:
 			parts.append("%s %s" % [Economy.cfg.resources[key].name.to_lower(), Fmt.kt(made_month * float(cost[key]))])
 	_cell(g, parts[0], 1, Color.WHITE, ", ".join(parts))

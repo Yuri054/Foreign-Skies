@@ -1,65 +1,111 @@
 extends Control
-## Full-screen overlay for choosing which nation to play.
+## Choosing which nation to play, by clicking it on the map. The map stays live underneath: a
+## click on any province picks the nation that owns it, and a small panel at the right says
+## who is picked and starts the game (Play, or Enter). Only the panel takes the mouse.
 
 signal nation_chosen(tag: String)
 
-var _list := ItemList.new()
-var _tags: Array[String] = []
+var map_view: Node
+var _tag := ""
+var _flag := FlagIcon.new()
+var _name := Label.new()
+var _facts := Label.new()
+var _play := Button.new()
 
 
 func _ready() -> void:
 	add_to_group("nation_picker")
+	# The command panel has nothing to show until a nation is picked.
+	get_tree().call_group("command_panel", "_refresh")
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_STOP
-
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.55)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(dim)
-
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var panel := PanelContainer.new()
-	center.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	panel.offset_left = -300
+	panel.offset_right = -16
+	panel.offset_top = 56
+	panel.add_theme_stylebox_override("panel", UiTheme.map_panel())
+	add_child(panel)
 	var box := VBoxContainer.new()
-	box.custom_minimum_size = Vector2(460, 0)
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
 
 	var title := Label.new()
 	title.text = GameState.scenario.name
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 20)
 	box.add_child(title)
-
 	var blurb := Label.new()
 	blurb.text = GameState.scenario.get("description", "")
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	blurb.custom_minimum_size = Vector2(260, 0)
 	box.add_child(blurb)
+	var hint := Label.new()
+	hint.text = "Click a nation on the map to choose it."
+	hint.modulate = Fmt.DIM
+	box.add_child(hint)
+	box.add_child(HSeparator.new())
 
-	_list.custom_minimum_size = Vector2(0, 280)
-	_list.item_activated.connect(func(_i: int) -> void: _start())
-	box.add_child(_list)
+	var head := HBoxContainer.new()
+	head.add_child(_flag)
+	_name.add_theme_font_size_override("font_size", 18)
+	_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	head.add_child(_name)
+	box.add_child(head)
+	_facts.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_facts)
 
-	var start := Button.new()
-	start.text = "Play"
-	start.pressed.connect(_start)
-	box.add_child(start)
+	_play.pressed.connect(_start)
+	box.add_child(_play)
 
-	var sorted: Array = GameState.nations.values()
-	sorted.sort_custom(func(a: Nation, b: Nation) -> bool: return a.population > b.population)
-	for n: Nation in sorted:
-		_tags.append(n.tag)
-		var i := _list.add_item("%s  (%.1fM people, %d provinces)" % [n.display_name, n.population / 1_000_000.0, n.provinces.size()])
-		_list.set_item_custom_fg_color(i, n.color.lightened(0.3))
-		if n.tag == GameState.player_tag:
-			_list.select(i)
+	if map_view == null:
+		map_view = get_tree().get_first_node_in_group("map_view")
+	if map_view != null:
+		map_view.province_selected.connect(pick_province)
+	choose(GameState.player_tag)
+
+
+## A province was clicked: its owner is the nation picked. Sea and empty ground do nothing.
+func pick_province(id: int) -> void:
+	if id > 0:
+		choose(GameState.province_owner[id])
+
+
+func choose(tag: String) -> void:
+	var n: Nation = GameState.nations.get(tag)
+	if n == null:
+		return
+	_tag = tag
+	_flag.tag = tag
+	_name.text = n.display_name
+	var lines: PackedStringArray = [
+		"%s people, %d provinces" % [Fmt.people(n.population), n.provinces.size()],
+	]
+	var bloc := Diplomacy.bloc_of(GameState, tag)
+	if bloc != "":
+		lines.append("Bloc: %s" % bloc)
+	var rank := 1
+	for other: Nation in GameState.nations.values():
+		if other.population > n.population:
+			rank += 1
+	lines.append("%s largest of %d nations by population" % [Fmt.ordinal(rank), GameState.nations.size()])
+	_facts.text = "\n".join(lines)
+	_play.text = "Play as %s" % n.display_name
+
+
+func chosen() -> String:
+	return _tag
 
 
 func _start() -> void:
-	var sel := _list.get_selected_items()
-	if sel.is_empty():
-		return
-	nation_chosen.emit(_tags[sel[0]])
+	if _tag != "":
+		nation_chosen.emit(_tag)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER):
+		get_viewport().set_input_as_handled()
+		_start()

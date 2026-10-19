@@ -187,7 +187,7 @@ func _test_peace_screen() -> void:
 	var screen: Node = get_first_node_in_group("peace_screen")
 	var mil: Node = get_first_node_in_group("military_panel")
 	mil.toggle()
-	mil._tabs.current_tab = 3
+	mil._tabs.current_tab = 1
 	mil._refresh_wars()
 	await process_frame
 	_check(mil._peace_button.visible, "the Wars tab offers peace talks for the player's war")
@@ -378,7 +378,11 @@ func _test_perspective() -> void:
 	await process_frame
 	_check(dip._perspective_row.visible and dip._perspective.text.contains("German"), "the Diplomacy window says it is seen from Germany")
 	_check("GER" not in dip._tags and "FRA" in dip._tags, "it lists everyone but Germany, France included")
-	_check(dip._list.get_item_text(0).contains("Austria-Hungary") and dip._list.get_item_text(0).contains("ally"), "Germany's closest friend first (%s)" % dip._list.get_item_text(0))
+	var auh: int = dip._tags.find("AUH")
+	var first_war: bool = gs.at_war("GER", dip._tags[0])
+	_check(auh <= 2 and dip._list.get_item_text(auh).contains("ally") and dip._list.get_item_text(auh).contains("Austria-Hungary"), "Germany's ally is near the top, marked as one (%s)" % dip._list.get_item_text(auh).replace("\n", " / "))
+	_check(first_war or auh == 0, "wars come first, then allies (%s)" % dip._list.get_item_text(0).replace("\n", " / "))
+	_check(dip._list.get_item_icon(auh) != null and dip._header_flag.tag == dip._selected, "each nation has its flag in the list and the detail has a header")
 	_check(not dip._declare.is_visible_in_tree() and not dip._propose_buttons["alliance"].is_visible_in_tree() and not dip._gift.is_visible_in_tree(), "there are no actions: they are not France's to take")
 	_check(dip._treaties.is_visible_in_tree(), "but the treaties are shown")
 	dip._back.pressed.emit()
@@ -399,7 +403,10 @@ func _test_perspective() -> void:
 	_check(view.viewpoint == "" and not palette._view_label.visible, "leaving the Diplomacy mode drops the borrowed point of view")
 	view.province_ordered.emit(ger)
 	await process_frame
-	_check(menu.visible and menu.shown_tag() == "GER", "in other modes a right click shows the nation in the country panel")
+	_check(not menu.visible, "right-clicking the nation on show again closes the country panel, whatever the mode")
+	view.province_ordered.emit(ger)
+	await process_frame
+	_check(menu.visible and menu.shown_tag() == "GER", "and the next right click shows the nation in the country panel again")
 	menu.close_window()
 	gs.set_war("FRA", "GER", false)
 

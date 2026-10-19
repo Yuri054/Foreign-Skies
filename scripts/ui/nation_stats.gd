@@ -192,6 +192,10 @@ func _refresh() -> void:
 		provinces_text += "  (%d occupied, %d held abroad)" % [lost, held_elsewhere]
 	_row(overview, "Provinces", provinces_text)
 	_row(overview, "Population", Fmt.people(n.population), _rank(ranks.population, tag))
+	var growth := Population.growth_rate(n)
+	_row(overview, "Growth", "%+.1f%% a year" % (growth * 100.0), "", Fmt.BAD if growth < 0.0 else Color.WHITE)
+	if n.war_dead >= 1000.0:
+		_row(overview, "Lost in war", Fmt.people(n.war_dead))
 
 	var economy := _section("Economy")
 	_row(economy, "Output a month", "£%.1fM" % Fmt.monthly(b.get("gdp", 0.0)), _rank(ranks.gdp, tag))
@@ -205,7 +209,12 @@ func _refresh() -> void:
 
 	var military := _section("Military")
 	var armies := Military.armies_of(GameState, tag)
-	_row(military, "Under arms", "%s in %d %s" % [Fmt.people(Military.men_in_service(GameState, tag)), armies.size(), "army" if armies.size() == 1 else "armies"], _rank(ranks.army, tag))
+	if Intel.is_friend(GameState, tag):
+		_row(military, "Under arms", "%s in %d %s" % [Fmt.people(Military.men_in_service(GameState, tag)), armies.size(), "army" if armies.size() == 1 else "armies"], _rank(ranks.army, tag))
+	else:
+		# What is known of a nation that is not yours or an ally's: a guess at its strength.
+		_row(military, "Under arms", "%s men (estimate)" % Intel.estimate_text(Intel.estimate(Military.men_in_service(GameState, tag), tag.hash())), _rank(ranks.army, tag),
+				Color.WHITE, "An estimate: your intelligence does not show the real figure.")
 	var squadrons := int(Standings.value(GameState, tag, "navy"))
 	if squadrons > 0 or n.naval_budget > 0.0:
 		_row(military, "Navy", "%d %s afloat" % [squadrons, "squadron" if squadrons == 1 else "squadrons"], _rank(ranks.navy, tag))
@@ -227,7 +236,8 @@ func _refresh() -> void:
 	var politics := _section("Politics")
 	var floor_support: float = Diplomacy.cfg.war_support.floor
 	var support_color := Fmt.BAD if n.war_support <= floor_support else (Fmt.WARN if n.war_support < 40.0 else Color.WHITE)
-	_row(politics, "War support", "%d" % roundi(n.war_support), "", support_color)
+	_row(politics, "War support", "%d" % roundi(n.war_support), "", support_color,
+			WarSupport.effects_text(GameState, tag) + "\nThis month so far:\n" + WarSupport.drivers_text(GameState, tag))
 	_row(politics, "Prestige", "%d" % roundi(n.prestige), _rank(ranks.prestige, tag))
 	_row(politics, "Diplomacy points", "%d  (+%.1f a month)" % [roundi(n.diplomacy_points), Diplomacy.point_income(GameState, tag)])
 	if not mine:
@@ -360,15 +370,21 @@ func _section(text: String) -> GridContainer:
 	return g
 
 
-func _row(g: GridContainer, label: String, value: String, rank := "", color := Color.WHITE) -> void:
+func _row(g: GridContainer, label: String, value: String, rank := "", color := Color.WHITE, tip := "") -> void:
 	var l := Label.new()
 	l.text = label
 	l.modulate = Fmt.DIM
+	if tip != "":
+		l.tooltip_text = tip
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
 	l.custom_minimum_size = Vector2(110, 0)
 	g.add_child(l)
 	var v := Label.new()
 	v.text = value
 	v.modulate = color
+	if tip != "":
+		v.tooltip_text = tip
+		v.mouse_filter = Control.MOUSE_FILTER_PASS
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.custom_minimum_size = Vector2(140, 0)

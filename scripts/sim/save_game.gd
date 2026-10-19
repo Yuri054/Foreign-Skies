@@ -16,9 +16,9 @@ static var dir := "user://saves/"
 const EXT := ".sav"
 const MAGIC := "godot-1914-save"
 ## GameState fields that are not saved: read again from the scenario, or worked out from the rest.
-const SKIPPED := ["scenario", "scenario_dir", "economy_dirty", "autosave_enabled", "province_deposit", "province_gdp", "province_industry",
-		"province_food", "province_pool", "owner_version"]
-const CLASS_NAMES := ["Nation", "Army", "Unit", "Fleet", "Ship", "Front", "War", "Treaty"]
+const SKIPPED := ["scenario", "scenario_dir", "economy_dirty", "autosave_enabled", "economy_sums", "province_deposit", "province_gdp", "province_industry",
+		"province_food", "province_pool", "owner_version", "cities", "cities_by_province"]
+const CLASS_NAMES := ["Nation", "Army", "Unit", "Fleet", "Ship", "Front", "War", "Treaty", "General", "ArmyGroup", "AttackLine"]
 
 
 ## Everything in `gs` and the clock, as plain data.
@@ -212,6 +212,12 @@ static func _decode_object(v: Dictionary) -> Object:
 			obj = War.new()
 		"Treaty":
 			obj = Treaty.new()
+		"General":
+			obj = General.new()
+		"ArmyGroup":
+			obj = ArmyGroup.new()
+		"AttackLine":
+			obj = AttackLine.new()
 		_:
 			assert(false, "Unknown class in the save: %s" % v["@o"])
 	for key: String in v.p:

@@ -16,14 +16,14 @@
 		{
 			"id": "map_mode",
 			"title": "Read a map mode",
-			"text": "The buttons at the bottom left recolour the map: who owns what, the economy, population, armies, terrain. Click one (keys 1 to 7 do the same).",
+			"text": "The buttons at the bottom left recolour the map: who owns what, the economy, population, armies, terrain. Click one (keys 1 to 6 do the same).",
 			"highlight": {"group": "map_modes"},
 			"done": {"signal": "mode_changed"}
 		},
 		{
 			"id": "build",
 			"title": "Build something",
-			"text": "Open the Construction panel (B), pick a building, and click a green province on the map to build it there. It costs money and takes time, and shows in the queue at the bottom right.",
+			"text": "Open the Construction panel (B), pick a building, and click a green province on the map to build it there. It costs industrial capacity (IC), not money, and takes at least a few weeks; your civilian factories set how much IC you have each day. It shows in the queue at the bottom right.",
 			"highlight": {"button": "Build"},
 			"done": {"command": "ConstructBuilding"}
 		},
@@ -37,7 +37,7 @@
 		{
 			"id": "equip",
 			"title": "Equip your army",
-			"text": "Units need arms and guns, and fight worse without them. Open the Economy window (E), its Production tab, and move a factory between lines with the plus and minus buttons. Your economy law, on the Overview tab, trades civilian output for military output once you are at war.",
+			"text": "Units need arms and guns, and the guns need shells; without them they fight worse. Open the Economy window (E), its Production tab, and move a factory between the Arms, Artillery and Shells lines with the plus and minus buttons. Items cost industrial capacity, iron, coal and nitrates, not money. Your economy law, on the Overview tab, trades civilian output for military output once you are at war.",
 			"highlight": {"button": "Economy"},
 			"done": {"command": "SetProductionLine"}
 		},
@@ -50,8 +50,8 @@
 		{
 			"id": "front",
 			"title": "Set a front",
-			"text": "With armies selected, use the bar at the bottom of the screen to draw a front: a line of provinces your army holds against an enemy. Armies assigned to a front defend it.",
-			"highlight": {"group": "army_action_bar"},
+			"text": "With armies selected, press C to open the command panel at the bottom of the screen and draw a front: a line of provinces your army holds against an enemy. Armies assigned to a front defend it.",
+			"highlight": {"group": "command_panel"},
 			"done": {"command": "DesignateFront"}
 		},
 		{

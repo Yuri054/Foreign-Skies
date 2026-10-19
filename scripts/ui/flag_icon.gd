@@ -1,7 +1,21 @@
 class_name FlagIcon
 extends Control
-## A nation's flag, drawn from simple shapes: bands, crosses, a disc or a crescent. Nations
-## without a design here get a plain swatch of their map colour. Set `tag` to choose it.
+## A nation's flag: the picture in assets/flags (see tools/build_flags.gd), cropped to fit the
+## box. A nation without a picture gets the flag drawn from simple shapes (bands, crosses, a disc
+## or a crescent) when there is a design for it here, else a plain swatch of its map colour. Set
+## `tag` to choose it.
+
+const FLAG_DIR := "res://assets/flags/"
+static var _textures := {}
+
+
+## The picture of a nation's flag, or null if there is none.
+static func texture_of(flag_tag: String) -> Texture2D:
+	if not _textures.has(flag_tag):
+		var path := FLAG_DIR + flag_tag + ".png"
+		_textures[flag_tag] = load(path) if ResourceLoader.exists(path) else null
+	return _textures[flag_tag]
+
 
 ## How each 1914 flag is built. Keys: h / v (bands, with optional weights), field plus one of
 ## cross, nordic, crescent, disc, or the special designs union and greek.
@@ -43,6 +57,14 @@ func _init(p_tag := "") -> void:
 
 func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, size)
+	var picture := texture_of(tag)
+	if picture != null:
+		# Fill the box and crop what spills over, so a flag never looks squashed.
+		var full := picture.get_size()
+		var scale := maxf(r.size.x / full.x, r.size.y / full.y)
+		var shown := r.size / scale
+		draw_texture_rect_region(picture, r, Rect2((full - shown) / 2.0, shown))
+		return
 	var design: Dictionary = DESIGNS.get(tag, {})
 	if design.is_empty():
 		var n: Nation = GameState.nations.get(tag)

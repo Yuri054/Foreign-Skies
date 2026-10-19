@@ -62,7 +62,12 @@ var province_owner: PackedStringArray = []
 var owner_version := 0
 var province_controller: PackedStringArray = []
 var province_population := PackedInt32Array()
+## The part of a person each province's growth has not yet added (see Population).
+var province_pop_frac := PackedFloat32Array()
 ## Province output before nation-wide modifiers; filled by Economy.recompute.
+## The summed province output of each nation from the last Economy.recompute (kept so the daily
+## refresh need not go through the provinces again).
+var economy_sums: Dictionary = {}
 var province_gdp := PackedFloat32Array()       # GBP millions per year
 var province_industry := PackedFloat32Array()  # GBP millions per year
 ## Building slots of each province, and the civilian factories it began with (the output the
@@ -73,11 +78,25 @@ var province_food := PackedFloat32Array()      # people the land can feed
 var province_pool := PackedFloat32Array()      # recruitable men
 ## Indexed by province id: resource id -> potential output in thousand tonnes per year.
 var province_deposit: Array[Dictionary] = []
+## The major cities (data/scenarios/<scenario>/cities.tsv), biggest first: {id, name, province, pos
+## (a point on the map), pop, rank (1 a capital, 2 a great city, 3 a large one), est}.
+var cities: Array[Dictionary] = []
+## Province id to the cities in it.
+var cities_by_province: Dictionary = {}
 ## Indexed by province id: building type -> level.
 var province_buildings: Array[Dictionary] = []
 ## army id -> Army.
 var armies: Dictionary = {}
 var next_army_id := 1
+## The commanders each nation holds, by id (see General), and the next id.
+var generals: Dictionary = {}
+var next_general_id := 1
+## Army groups by id (see ArmyGroup) and the next id.
+var army_groups: Dictionary = {}
+var next_group_id := 1
+## Attack lines by id (see AttackLine) and the next id.
+var attack_lines: Dictionary = {}
+var next_attack_line_id := 1
 ## id -> Fleet.
 var fleets: Dictionary = {}
 var next_fleet_id := 1
@@ -200,7 +219,23 @@ func _ready() -> void:
 	Clock.month_ticked.connect(_on_month_ticked)
 
 
+## Reads the scenario's list of major cities (none if it has no cities.tsv).
+func _load_cities(dir: String) -> void:
+	cities.clear()
+	cities_by_province.clear()
+	if not FileAccess.file_exists(dir + "cities.tsv"):
+		return
+	for row in MapData.read_table(dir + "cities.tsv"):
+		var city := {"id": int(row.id), "name": row.name, "province": int(row.province),
+				"pos": Vector2(float(row.x), float(row.y)), "pop": int(row.pop), "rank": int(row.rank), "est": int(row.est) == 1}
+		cities.append(city)
+		if not cities_by_province.has(city.province):
+			cities_by_province[city.province] = []
+		cities_by_province[city.province].append(city)
+
+
 func load_scenario(dir: String) -> void:
+	Military.invalidate_aura()
 	Economy.load_config()
 	Military.load_config()
 	Navy.load_config()
@@ -228,14 +263,17 @@ func load_scenario(dir: String) -> void:
 	province_owner.resize(count)
 	province_controller.resize(count)
 	province_population.resize(count)
+	province_pop_frac.resize(count)
+	province_pop_frac.fill(0.0)
 	province_buildings.clear()
 	province_deposit.clear()
 	for i in count:
 		province_buildings.append({})
 		province_deposit.append({})
 	for row in MapData.read_table(dir + "resources.tsv"):
-		for r in Economy.resource_ids():
+		for r in Economy.deposit_ids():
 			province_deposit[int(row.id)][r] = float(row[r])
+	_load_cities(dir)
 	for id in range(1, count):
 		province_owner[id] = MapData.provinces[id].owner
 		owner_version += 1
@@ -254,10 +292,11 @@ func load_scenario(dir: String) -> void:
 	Economy.recompute(self)
 	for tag in nations:
 		Production.auto_assign(nations[tag])
-	# Start with half a full reserve of everything the nation uses.
+	# Start with half a full reserve of everything the nation can keep a stockpile of.
 	for tag in nations:
 		for r in Economy.resource_ids():
-			nations[tag].stock[r] = 0.5 * nations[tag].budget.resources[r].cap
+			if Economy.cfg.resources[r].stockpile:
+				nations[tag].stock[r] = 0.5 * nations[tag].budget.resources[r].cap
 	Economy.recompute(self)
 
 	var d: Array = scenario.start_date
@@ -297,6 +336,7 @@ func finish_load() -> void:
 		front.dirty = true
 	Military._home_cache.clear()
 	Military._home_day = -1
+	Military.invalidate_aura()
 	AI._index_key = -1
 	AI._threat_cache.clear()
 	AI._worth_cache.clear()
@@ -431,6 +471,7 @@ func set_controller(id: int, tag: String) -> void:
 	if old == tag:
 		return
 	province_controller[id] = tag
+	Military.invalidate_aura()
 	province_controller_changed.emit(id, old, tag)
 
 
