@@ -9,6 +9,8 @@ var gs: Node
 var clock: Node
 var main: Node
 var shots := 0
+var _clicking := false
+var _over_name := ""
 
 
 func _initialize() -> void:
@@ -27,6 +29,12 @@ func _initialize() -> void:
 	load("res://scripts/ui/ui_settings.gd").apply_saved(root)
 	gs.set_player(player)
 	gs.ai_enabled = true
+	main.map_view.province_selected.connect(func(id: int) -> void:
+		if _clicking:
+			var frames := []
+			for f in get_stack():
+				frames.append("%s:%d %s" % [str(f.source).get_file(), f.line, f.function])
+			print("SELECT %d during click on %s via %s" % [id, _over_name, " < ".join(frames.slice(1, 7))]))
 	var started := Time.get_ticks_msec()
 	for step in steps:
 		await _act()
@@ -97,12 +105,15 @@ func _act() -> void:
 			mb.global_position = pos
 			mb.button_index = MOUSE_BUTTON_LEFT if rng.randf() < 0.7 else MOUSE_BUTTON_RIGHT
 			mb.pressed = true
+			_over_name = "%s (%s)" % [over.name if over != null else "map", over.get_class() if over != null else ""]
+			_clicking = over != null
 			Input.parse_input_event(mb)
 			await process_frame
 			mb = mb.duplicate()
 			mb.pressed = false
 			Input.parse_input_event(mb)
 			await process_frame
+			_clicking = false
 			# A click on a control must not reach the map: no province picked under it.
 			if over != null and over.mouse_filter == Control.MOUSE_FILTER_STOP and mb.button_index == MOUSE_BUTTON_LEFT \
 					and main.map_view.selected_id != before and main.map_view.selected_id != 0:
