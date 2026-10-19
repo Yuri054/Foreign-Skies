@@ -146,6 +146,7 @@
 		"total_min_support": 40,
 		"factory_value": 20.0,
 		"war_factor": 1.5,
+		"nitrate_value": 2.0,
 		"war_funding": 1.2,
 		"funding_months": 3
 	},

@@ -132,7 +132,7 @@ func _test_buildings() -> void:
 	n.budget["net"] = -2.0
 	n.treasury = 200.0
 	B.step(gs, "FRA")
-	_check(n.construction.is_empty(), "no building while the budget is in deficit")
+	_check(n.construction.all(func(j: Dictionary) -> bool: return j.type == "haber_bosch"), "no ordinary building while the budget is in deficit (a nitrate plant costs IC only)")
 	_fresh()
 	n = gs.nations["FRA"]
 	n.budget["net"] = 20.0

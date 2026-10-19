@@ -202,4 +202,14 @@ static func deficit(gs: Node, tag: String) -> Dictionary:
 	var out := {}
 	for cat in need:
 		out[cat] = clampf((float(need[cat]) - float(held.get(cat, 0.0)) - float(n.equipment.get(cat, 0.0))) / float(need[cat]), 0.0, 1.0)
+	# Shells are not part of a unit's kit but a store the guns burn: the lack is how far the
+	# stock falls short of shell_reserve_days of the guns firing (shell_firing_share of them at a time).
+	var burn := 0.0
+	for a: Army in gs.armies.values():
+		if a.tag == tag:
+			for u in a.units:
+				burn += float(Military.cfg.unit_types[u.type].get("shells", 0.0)) * u.strength
+	if burn > 0.0:
+		var reserve := burn * float(cfg().shell_reserve_days) * float(cfg().shell_firing_share)
+		out["shells"] = clampf((reserve - float(n.equipment.get("shells", 0.0))) / reserve, 0.0, 1.0)
 	return out

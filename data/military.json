@@ -25,6 +25,8 @@
 		},
 		"auto_split": {"arms": 0.4, "artillery": 0.3, "shells": 0.3},
 		"military_factory_ic": 4.5,
+		"shell_reserve_days": 20,
+		"shell_firing_share": 0.25,
 		"efficiency_start": 0.15,
 		"efficiency_cap": 0.5,
 		"efficiency_days": 120,

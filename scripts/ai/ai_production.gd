@@ -48,6 +48,22 @@ static func factory_value(gs: Node, tag: String) -> float:
 	return float(cfg().factory_value) * worst(lacking(gs, tag)) * (float(cfg().war_factor) if at_war else 1.0)
 
 
+## What a Haber-Bosch plant is worth a year: the nation's shells and industry lean on nitrates it
+## buys abroad (each purchase locks civilian factories), so the more of its need it imports, and the
+## less the plants it has already built cover, the more another one is worth; more at war.
+static func nitrate_value(gs: Node, tag: String) -> float:
+	var n: Nation = gs.nations[tag]
+	var info: Dictionary = n.budget.get("resources", {}).get("nitrates", {})
+	if info.is_empty():
+		return 0.0
+	var need: float = float(info.get("need", 0.0))
+	var demand: float = float(info.get("demand", 0.0))
+	if demand <= 0.0 or need <= 0.0:
+		return 0.0
+	var at_war: bool = not gs.wars_of(tag).is_empty()
+	return float(cfg().nitrate_value) * minf(1.0, need / demand) * (float(cfg().war_factor) if at_war else 1.0)
+
+
 # --- Lines -------------------------------------------------------------------------------------------
 
 ## The factories each category should have: the automatic split, bent toward the categories the

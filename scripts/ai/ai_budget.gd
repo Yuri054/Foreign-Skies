@@ -101,6 +101,8 @@ static func build_return(gs: Node, tag: String, id: int, type: String, plan: Dic
 		gain += Economy.factory_income(gs.nations[tag]) + Economy.factory_output(gs.nations[tag]) * gs.nations[tag].tax_rate
 	elif type == "military_factory":
 		gain += AIProduction.factory_value(gs, tag)
+	elif type == "haber_bosch":
+		gain += AIProduction.nitrate_value(gs, tag)
 	elif type == "railway":
 		# A province whose slots are all taken gets room for another factory.
 		if Economy.slots_used(gs, id) >= Economy.slots_of(gs, id):
@@ -131,11 +133,41 @@ static func _near_front(gs: Node, tag: String, id: int) -> bool:
 	return false
 
 
+## A nation that buys nitrates abroad (its shells and industry need them, each purchase locks civilian
+## factories and a blockade cuts them) builds one Haber-Bosch plant, in its busiest province with a
+## free slot. It costs no money, only IC, so it does not wait for the treasury. True if it started one.
+static func _nitrate_plant(gs: Node, tag: String) -> bool:
+	var n: Nation = gs.nations[tag]
+	var info: Dictionary = n.budget.get("resources", {}).get("nitrates", {})
+	if info.is_empty() or float(info.get("need", 0.0)) <= 0.0:
+		return false
+	for job in n.construction:
+		if job.type == "haber_bosch":
+			return false
+	for id in n.provinces:
+		if gs.province_buildings[id].get("haber_bosch", 0) > 0:
+			return false
+	var best := 0
+	var best_output := -1.0
+	for id: int in n.provinces:
+		if not Economy.build_problem(gs, tag, id, "haber_bosch", false).is_empty():
+			continue
+		var out: float = gs.province_gdp[id] + gs.province_industry[id]
+		if out > best_output:
+			best = id
+			best_output = out
+	if best == 0:
+		return false
+	return gs.issue_quiet(ConstructBuilding.new(tag, best, "haber_bosch"))
+
+
 ## One building a month, where it earns most, if the treasury stays above the floor and few
 ## jobs are already under way.
 static func _buildings(gs: Node, tag: String) -> void:
 	var c := cfg()
 	var n: Nation = gs.nations[tag]
+	if _nitrate_plant(gs, tag):
+		return
 	if n.construction.size() >= int(c.max_construction) or float(n.budget.get("net", 0.0)) < float(c.build_min_net):
 		return
 	var places: Array[int] = []
