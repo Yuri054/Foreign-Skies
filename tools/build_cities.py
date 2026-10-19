@@ -157,7 +157,7 @@ def main() -> None:
             c["rank"] = 2 if c["pop"] >= RANK2_POP else 3
     out = scenario_dir / "cities.tsv"
     with open(out, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f, delimiter="\t")
+        w = csv.writer(f, delimiter="\t", lineterminator="\n")
         w.writerow(["id", "name", "province", "x", "y", "pop", "rank", "est"])
         for i, c in enumerate(rows, 1):
             w.writerow([i, c["name"], c["province"], c["x"], c["y"], c["pop"], c["rank"], c["est"]])
