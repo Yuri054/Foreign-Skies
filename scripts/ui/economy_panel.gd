@@ -343,9 +343,16 @@ func _refresh_overview(n: Nation) -> void:
 	_total_row(spend, "Total spending", -Fmt.monthly(b.expenses), Color.WHITE)
 	_total_row(g, "Net per month", Fmt.monthly(b.net), Fmt.GOOD if b.net >= 0.0 else Fmt.BAD)
 
-	_output.text = "Output £%.0fM a month, industry £%.0fM. Factories: %d%% of civilian work goes to the people's goods (%d%% of it from war weariness), imports lock %.1f factories, %d%% of the work is left after the men under arms%s. Construction %s IC a day." % [
-			Fmt.monthly(b.gdp), Fmt.monthly(b.industry), roundi(b.consumer_share * 100.0), roundi(n.weariness * 100.0), b.trade_lock,
-			roundi(Economy.worker_share(n) * 100.0), ", and the nation is starving (-30% output)" if n.starving else "", Fmt.thousands(roundi(b.construction_points))]
+	var lines: PackedStringArray = [
+		"Output £%.0fM a month, industry £%.0fM." % [Fmt.monthly(b.gdp), Fmt.monthly(b.industry)],
+		"People's goods take %d%% of the civilian factories' work (war weariness adds %d points)." % [roundi(b.consumer_share * 100.0), roundi(n.weariness * 100.0)],
+		"Imports lock %.1f factories." % b.trade_lock,
+		"Labor: %d%% of the work is left after the men under arms." % roundi(Economy.worker_share(n) * 100.0),
+		"Construction: %s IC a day, %s in use (buildings and ships)." % [Fmt.thousands(roundi(b.construction_points)), Fmt.thousands(roundi(n.construction_used))],
+	]
+	if n.starving:
+		lines.append("The nation is starving: -30% output.")
+	_output.text = "\n".join(lines)
 	_refresh_law(n)
 
 	for id in _program_boxes:

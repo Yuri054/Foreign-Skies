@@ -71,7 +71,7 @@
 		{
 			"id": "fleet",
 			"title": "Send a fleet",
-			"text": "Open the Navy panel (N), select a fleet, then right-click a patch of sea to send it there. Fleets stationed in the right waters can cut an enemy's trade.",
+			"text": "Open the Navy panel (N), select a fleet, then right-click a patch of sea to send it there. Fleets stationed in the right waters can cut an enemy's trade. New ships are built at your ports and cost industrial capacity and iron and wood, drawn from the same daily IC as buildings.",
 			"highlight": {"group": "navy_panel"},
 			"requires": "fleet",
 			"done": {"command": "MoveFleet"}
