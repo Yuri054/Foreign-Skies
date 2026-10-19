@@ -849,10 +849,17 @@ static func _by_province(armies: Array) -> Dictionary:
 	return at
 
 
+## Counts for the balance reports (not saved): per nation, the artillery unit-days fought, those with
+## no shells to fire, and the shells burned.
+static var shell_stats: Dictionary = {}
+
+
 ## A day's fighting costs the guns their shells from the national stockpile; a unit it cannot
 ## supply loses most of its attack (combat.shell_penalty) that day.
 static func _burn_shells(gs: Node, a: Army) -> void:
 	var n: Nation = gs.nations[a.tag]
+	var stats: Dictionary = shell_stats.get(a.tag, {"unit_days": 0, "starved": 0, "used": 0.0})
+	shell_stats[a.tag] = stats
 	for u in a.units:
 		var per_day: float = float(cfg.unit_types[u.type].get("shells", 0.0))
 		if per_day <= 0.0:
@@ -861,6 +868,10 @@ static func _burn_shells(gs: Node, a: Army) -> void:
 		var use := per_day * u.strength
 		var have: float = float(n.equipment.get("shells", 0.0))
 		u.shell_starved = have < use
+		stats.unit_days += 1
+		stats.used += minf(use, have)
+		if u.shell_starved:
+			stats.starved += 1
 		n.equipment["shells"] = maxf(0.0, have - use)
 
 
