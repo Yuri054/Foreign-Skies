@@ -52,6 +52,8 @@ var _gift_amount := SpinBox.new()
 var _gift := Button.new()
 var _peace := Button.new()
 var _status := Label.new()
+## One dim line per action that is not open and why (the buttons say it only in a tooltip).
+var _why := Label.new()
 var _action_labels: Array[Label] = []
 var _scroll := ScrollContainer.new()
 var _box := VBoxContainer.new()
@@ -205,6 +207,11 @@ func _ready() -> void:
 	_improve.pressed.connect(_on_improve)
 	_box.add_child(_improve)
 
+	_why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_why.custom_minimum_size = Vector2(250, 0)
+	_why.modulate = Fmt.DIM
+	_why.add_theme_font_size_override("font_size", 12)
+	_box.add_child(_why)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.custom_minimum_size = Vector2(250, 0)
 	_box.add_child(_status)
@@ -235,8 +242,9 @@ func _ready() -> void:
 
 func _heading(text: String) -> Label:
 	var l := Label.new()
-	l.text = text
-	l.modulate = Fmt.DIM
+	l.text = text.to_upper()
+	l.add_theme_font_size_override("font_size", 11)
+	l.modulate = UiTheme.ACCENT
 	return l
 
 
@@ -421,6 +429,7 @@ func _refresh_detail() -> void:
 	for b: Button in _propose_buttons.values():
 		b.visible = has and acting
 	_status.visible = acting
+	_why.visible = _why.visible and acting
 	if not has:
 		_detail.text = "No nation selected."
 		return
@@ -514,7 +523,8 @@ func _refresh_actions() -> void:
 		_declare.disabled = block != "" or gate != "" or poor
 		_cb_info.text = BLOCKS.get(block, "") if block != "" else _cb_cost_text(cb, gate)
 
-	# Proposals and gifts.
+	# Proposals and gifts. What is not open says why on a line of its own.
+	var reasons: PackedStringArray = []
 	for kind: String in _propose_buttons:
 		var block := Diplomacy.proposal_block(GameState, me, tag, kind)
 		var b: Button = _propose_buttons[kind]
@@ -522,6 +532,10 @@ func _refresh_actions() -> void:
 		var poor := not Diplomacy.can_afford(GameState, me, cost)
 		b.text = "%s (%d)" % [PROPOSALS.filter(func(p: Array) -> bool: return p[0] == kind)[0][1], int(cost)]
 		b.disabled = block != "" or poor
+		if block != "":
+			reasons.append("%s: %s" % [PROPOSALS.filter(func(p: Array) -> bool: return p[0] == kind)[0][1], BLOCKS.get(block, block)])
+		elif poor:
+			reasons.append("%s: not enough diplomacy points (need %d)." % [PROPOSALS.filter(func(p: Array) -> bool: return p[0] == kind)[0][1], int(cost)])
 		var need: int = Diplomacy.cfg.actions.treaty_accept[kind]
 		var verdict: String = BLOCKS.get(block, "") if block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(cost), roundi(Diplomacy.points(GameState, me))] if poor else "Possible")
 		b.tooltip_text = "%s\nCosts %d diplomacy points (half back if refused).\n%s (their opinion of you %+d, needs %+d)" % [
@@ -533,6 +547,12 @@ func _refresh_actions() -> void:
 	var improve_poor := not Diplomacy.can_afford(GameState, me, improve_cost)
 	_improve.text = "Improving… (%d months left)" % effort.months_left if effort != null else "Improve relations (%d)" % int(improve_cost)
 	_improve.disabled = improve_block != "" or improve_poor
+	if improve_block != "":
+		reasons.append("Improve relations: %s" % BLOCKS.get(improve_block, improve_block))
+	elif improve_poor:
+		reasons.append("Improve relations: not enough diplomacy points (need %d)." % int(improve_cost))
+	_why.text = "\n".join(reasons)
+	_why.visible = not reasons.is_empty()
 	_improve.tooltip_text = (BLOCKS.get(improve_block, "") if improve_block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(improve_cost), roundi(Diplomacy.points(GameState, me))] if improve_poor else "")) + "\n" + "For a year, each month the two nations think better of each other (+%d, and part of it lasts). %d points; up to %d efforts at a time." % [int(Diplomacy.cfg.points.improve.monthly), int(Diplomacy.cost_of("improve_relations")), int(Diplomacy.cfg.points.improve.max_active)]
 	var treasury: float = GameState.nations[me].treasury
 	var gift_cost := Diplomacy.cost_of("gift")
