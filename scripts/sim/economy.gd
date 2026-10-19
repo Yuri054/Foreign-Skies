@@ -483,7 +483,11 @@ static func _budgets(gs: Node, force := true) -> void:
 		_flows_owner = gs.get_instance_id()
 	var flows := _flows
 	for tag in gs.nations:
-		gs.nations[tag].budget = nation_budget(gs.nations[tag], gs.economy_sums[tag], WarSupport.economy_mult(gs, tag), flows[tag])
+		var n: Nation = gs.nations[tag]
+		n.budget = nation_budget(n, gs.economy_sums[tag], WarSupport.economy_mult(gs, tag), flows[tag])
+		# Factories lost (to occupation or retooling) leave no line over-assigned, even for a day.
+		if not n.lines_auto:
+			Production._fit(n)
 
 
 ## The daily refresh of flows and budgets, without going through the provinces again.
