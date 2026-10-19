@@ -192,11 +192,29 @@ static func men_in_service(gs: Node, tag: String) -> int:
 	return roundi(total)
 
 
+## Whether a nation's railways run: they burn coal (see Flows), and with none to be had they stop
+## helping movement and supply.
+static func railway_ok(gs: Node, tag: String) -> bool:
+	var n: Nation = gs.nations.get(tag)
+	if n == null or not n.budget.has("resources"):
+		return true
+	return float(n.budget.resources.coal.shortage) <= 0.0
+
+
+## The cost of a supply hop into province `id` for `tag`: 1, or less where a railway runs (each
+## level beyond the first makes it cheaper still).
+static func hop_cost(gs: Node, tag: String, id: int) -> float:
+	var level: int = gs.province_buildings[id].get("railway", 0)
+	if level <= 0 or not railway_ok(gs, tag):
+		return 1.0
+	return maxf(0.2, float(cfg.supply.railway_hop_cost) * (1.0 - float(cfg.supply.railway_level_gain) * (level - 1)))
+
+
 ## Days an army of the given speed needs to walk from one province into a neighbour.
 static func move_days(gs: Node, tag: String, speed: float, from: int, to: int) -> float:
 	var km := (MapData.provinces[from].center as Vector2).distance_to(MapData.provinces[to].center) * KM_PER_PX
 	var days: float = km / speed * terrain_of(to).move
-	if gs.province_controller[to] == tag:
+	if gs.province_controller[to] == tag and railway_ok(gs, tag):
 		days /= 1.0 + cfg.movement.railway_speedup * gs.province_buildings[to].get("railway", 0)
 	var link: String = MapData.sea_links.get(Vector2i(mini(from, to), maxi(from, to)), "")
 	if link == "sea":
@@ -257,7 +275,7 @@ static func supply_cost(gs: Node, tag: String, from: int) -> float:
 		if gs.province_controller[cur] == tag and home_connected(gs, tag, cur):
 			return dist[cur]
 		for n: int in neighbors(cur):
-			var step: float = cfg.supply.railway_hop_cost if gs.province_buildings[n].get("railway", 0) > 0 else 1.0
+			var step := hop_cost(gs, tag, n)
 			var nd: float = dist[cur] + step
 			if nd > limit + 0.001 or (dist.has(n) and dist[n] <= nd):
 				continue
@@ -308,7 +326,30 @@ static func home_connected(gs: Node, tag: String, id: int) -> bool:
 
 ## Defence multiplier for an army that is holding the province: terrain times entrenchment.
 static func defense_multiplier(a: Army) -> float:
-	return terrain_of(a.province).defense * (1.0 + cfg.combat.entrench_defense_per_level * a.entrenchment())
+	return terrain_of(a.province).defense * (1.0 + cfg.combat.entrench_defense_per_level * a.entrenchment() + works_defense(GameState, a))
+
+
+## The province's own works help the nation that owns it: trenches and heavy fortifications add
+## their defense bonus for every level (see data/economy.json, buildings).
+static func works_defense(gs: Node, a: Army) -> float:
+	if gs.province_owner[a.province] != a.tag:
+		return 0.0
+	var built: Dictionary = gs.province_buildings[a.province]
+	var b: Dictionary = Economy.cfg.buildings
+	return b.trench.defense * built.get("trench", 0) + b.fortification.defense * built.get("fortification", 0)
+
+
+## Share of the damage the province's works take off an attack on an army that holds it: shelling
+## is cut by the trenches (`shell_reduction` a level), assault by the fortifications
+## (`hard_reduction` a level). `shelling` is the share of the attacker's power that comes from guns.
+static func works_reduction(gs: Node, a: Army, shelling: float) -> float:
+	if gs.province_owner[a.province] != a.tag:
+		return 0.0
+	var built: Dictionary = gs.province_buildings[a.province]
+	var b: Dictionary = Economy.cfg.buildings
+	var shell := minf(0.9, b.trench.shell_reduction * built.get("trench", 0))
+	var hard := minf(0.9, b.fortification.hard_reduction * built.get("fortification", 0))
+	return shelling * shell + (1.0 - shelling) * hard
 
 
 # ------------------------------------------------------------------ setup
@@ -786,12 +827,17 @@ static func _fight(gs: Node) -> void:
 		for a in foes:
 			_burn_shells(gs, a)
 		var incoming := {}
+		var parts := {}
 		for a in foes:
 			incoming[a] = 0.0
+			parts[a] = {}
 		for b in foes:
 			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) / foes[b].size()
+			var shelling: float = b.shelling_share()
 			for a in foes[b]:
-				incoming[a] += share
+				var dealt: float = share * (1.0 - works_reduction(gs, a, shelling))
+				incoming[a] += dealt
+				parts[a][b] = dealt
 		var battle := _engagement(gs, id, foes)
 		var tags := {}
 		var today := {}
@@ -809,7 +855,7 @@ static func _fight(gs: Node) -> void:
 				for b: Army in foes[a]:
 					var war: War = gs.war_between(a.tag, b.tag)
 					if war != null:
-						war.losses[a.tag] += lost * (b.power() * WarSupport.morale_mult(gs, b.tag) / foes[b].size()) / incoming[a]
+						war.losses[a.tag] += lost * parts[a][b] / incoming[a]
 		_log_day(battle, foes, today)
 		gs.battle_fought.emit(id, tags.keys())
 		for a: Army in foes:

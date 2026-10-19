@@ -68,6 +68,7 @@
 	"supply": {
 		"range": 3.0,
 		"railway_hop_cost": 0.5,
+		"railway_level_gain": 0.1,
 		"attrition": 0.004,
 		"attrition_morale": 0.01,
 		"reinforce_rate": 0.01

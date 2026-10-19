@@ -52,6 +52,18 @@ func men() -> float:
 	return total
 
 
+## The share of the army's fighting power that comes from its guns (units that burn shells).
+func shelling_share() -> float:
+	var guns := 0.0
+	var all := 0.0
+	for u in units:
+		var p: float = u.power()
+		all += p
+		if float(Military.cfg.unit_types[u.type].get("shells", 0.0)) > 0.0:
+			guns += p
+	return guns / all if all > 0.0 else 0.0
+
+
 func power() -> float:
 	var total := 0.0
 	for u in units:
