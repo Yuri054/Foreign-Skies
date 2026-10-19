@@ -319,7 +319,7 @@ Status: phases 1 to 12 are built (phase 6, the AI, step by step below). Phases 1
 
 14. **World content.** *(proposed; needs phase 10's hooks)*
    - *Norway and Sweden* join the map (Denmark exists): provinces, nation data, scenario and AI.
-   - *Cities:* a data file of the most important cities with an icon that shows when zoomed in.
+   - *Cities:* **done** (see Major cities below): a data file of 98 cities with markers and names that show as you zoom in, and an aura for the nation that holds them.
    - *National focus system:* generic, with hand-built trees for the important nations, giving small nations such as Albania ways to grow (development, claims, alliances) and the AI goals to work toward after the opening war. Effects use the economy and diplomacy hooks from phases 10 and 13.
    - *The late-game AI:* after the opening war it does almost nothing. The fix is the focus system plus an AI that wants things (claims, growth); scripted events are a thin layer of flavour on top, not the main fix.
 
@@ -398,7 +398,7 @@ Status: phases 1 to 12 are built (phase 6, the AI, step by step below). Phases 1
 
 14. **World content.** *(proposed; needs phase 10's hooks)*
    - *Norway and Sweden* join the map (Denmark exists): provinces, nation data, scenario and AI.
-   - *Cities:* a data file of the most important cities with an icon that shows when zoomed in.
+   - *Cities:* **done** (see Major cities below): a data file of 98 cities with markers and names that show as you zoom in, and an aura for the nation that holds them.
    - *National focus system:* generic, with hand-built trees for the important nations, giving small nations such as Albania ways to grow (development, claims, alliances) and the AI goals to work toward after the opening war. Effects use the economy and diplomacy hooks from phases 10 and 13.
    - *The late-game AI:* after the opening war it does almost nothing. The fix is the focus system plus an AI that wants things (claims, growth); scripted events are a thin layer of flavour on top, not the main fix.
 
