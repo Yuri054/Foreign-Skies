@@ -37,5 +37,22 @@ func _initialize() -> void:
 	for i in 12:
 		D.step_month(gs)
 	_check(D.gift_effect(gs, "FRA", "SRB", 4.0) > again * 2.0, "and the memory fades over a year (%.1f)" % D.gift_effect(gs, "FRA", "SRB", 4.0))
+	# Prestige: cheaper justifications, a pull on treaty offers.
+	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	var n = gs.nations["GER"]
+	n.prestige = 0.0
+	var base: float = D.justify_cost(gs, "GER")
+	n.prestige = 20.0
+	var high: float = D.justify_cost(gs, "GER")
+	n.prestige = 1000.0
+	_check(high < base and D.justify_cost(gs, "GER") >= base * 0.6 - 0.001, "prestige cuts the price of a justification (%.0f to %.0f), up to 40%%" % [base, high])
+	n.prestige = -20.0
+	_check(D.justify_cost(gs, "GER") > base, "and a bad name raises it")
+	n.prestige = 0.0
+	var need: float = D.cfg.actions.treaty_accept.nap
+	D.set_relation(gs, "NED", "GER", need - 5.0)
+	var refused: bool = not D.treaty_acceptable(gs, "GER", "NED", "nap")
+	n.prestige = 20.0
+	_check(refused and D.treaty_acceptable(gs, "GER", "NED", "nap"), "prestige adds pull to a treaty offer")
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

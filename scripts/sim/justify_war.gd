@@ -18,7 +18,7 @@ func execute(gs: Node) -> bool:
 	reason = Diplomacy.justify_block(gs, a, b)
 	if reason != "":
 		return false
-	var cost := Diplomacy.cost_of("justify")
+	var cost := Diplomacy.justify_cost(gs, a)
 	if not Diplomacy.can_afford(gs, a, cost):
 		reason = "points"
 		return false

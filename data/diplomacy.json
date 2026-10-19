@@ -310,6 +310,13 @@
 			},
 			"gift": 10,
 			"justify": 25
+		},
+		"prestige_uses": {
+			"_note": "What prestige buys besides point income: each point cuts the price of a war justification by justify_discount (at most justify_discount_max of it, and a negative prestige raises it by as much), and adds alliance_pull to how others regard the proposer when it offers a treaty (at most alliance_pull_max either way).",
+			"justify_discount": 0.01,
+			"justify_discount_max": 0.4,
+			"alliance_pull": 0.5,
+			"alliance_pull_max": 15
 		}
 	}
 }

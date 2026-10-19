@@ -290,6 +290,19 @@ static func cost_of(action: String, detail := "") -> float:
 	return float(costs.get(action, {}).get(detail, 0.0))
 
 
+## What a war justification costs `tag`: the base price, less what its prestige buys.
+static func justify_cost(gs: Node, tag: String) -> float:
+	var u: Dictionary = cfg.points.prestige_uses
+	var cut := clampf(gs.nations[tag].prestige * float(u.justify_discount), -float(u.justify_discount_max), float(u.justify_discount_max))
+	return cost_of("justify") * (1.0 - cut)
+
+
+## How much a nation's prestige adds to the regard others have of it when it offers a treaty.
+static func prestige_pull(gs: Node, tag: String) -> float:
+	var u: Dictionary = cfg.points.prestige_uses
+	return clampf(gs.nations[tag].prestige * float(u.alliance_pull), -float(u.alliance_pull_max), float(u.alliance_pull_max))
+
+
 static func points(gs: Node, tag: String) -> float:
 	return gs.nations[tag].diplomacy_points if gs.nations.has(tag) else 0.0
 
@@ -474,7 +487,7 @@ static func proposal_block(gs: Node, from: String, to: String, kind: String) -> 
 ## Whether `to` would agree (the AI's rule): its opinion of `from` reaches the bar for the kind,
 ## and an alliance does not cross opposed blocs.
 static func treaty_acceptable(gs: Node, from: String, to: String, kind: String) -> bool:
-	if relation(gs, to, from) < cfg.actions.treaty_accept[kind]:
+	if relation(gs, to, from) + prestige_pull(gs, from) < cfg.actions.treaty_accept[kind]:
 		return false
 	if kind == "alliance":
 		var a := bloc_of(gs, from)

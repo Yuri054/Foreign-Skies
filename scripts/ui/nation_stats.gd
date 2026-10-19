@@ -507,7 +507,7 @@ func _refresh_actions(tag: String) -> void:
 		var entry: Array = DiplomacyPanel.PROPOSALS.filter(func(p: Array) -> bool: return p[0] == kind)[0]
 		b.text = "%s (%d)" % [entry[1], int(cost)]
 		b.disabled = block != "" or poor
-		var need: int = Diplomacy.cfg.actions.treaty_accept[kind]
+		var need: int = Diplomacy.cfg.actions.treaty_accept[kind] - roundi(Diplomacy.prestige_pull(GameState, me))
 		var verdict: String = DiplomacyPanel.BLOCKS.get(block, "") if block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(cost), roundi(Diplomacy.points(GameState, me))] if poor else "Possible")
 		b.tooltip_text = "%s\nCosts %d diplomacy points (half back if refused).\n%s (their opinion of you %+d, needs %+d)" % [entry[2], int(cost), verdict,
 				roundi(Diplomacy.relation(GameState, tag, me)), need]

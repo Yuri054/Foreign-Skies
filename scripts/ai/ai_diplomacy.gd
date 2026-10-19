@@ -245,7 +245,7 @@ static func consider_justify(gs: Node, tag: String) -> void:
 	var temperament: Dictionary = AI.temperament(gs, tag)
 	if float(temperament.aggression) < float(w.unjustified_min_aggression):
 		return
-	var cost := Diplomacy.cost_of("justify") + Diplomacy.cost_of("declare_war", "fabricated_claim")
+	var cost := Diplomacy.justify_cost(gs, tag) + Diplomacy.cost_of("declare_war", "fabricated_claim")
 	if not Diplomacy.can_afford(gs, tag, cost):
 		return
 	var best := ""
