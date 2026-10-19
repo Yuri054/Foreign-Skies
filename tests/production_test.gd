@@ -85,10 +85,12 @@ func _test_output() -> void:
 func _test_shortage() -> void:
 	_fresh()
 	var srb = gs.nations["SRB"]
+	srb.blockade_pinned = 1.0
+	srb.blockade = 1.0
 	Clock.advance_day()
 	var line = _line(srb, "arms")
 	var iron_mult: float = srb.budget.resources.iron.mult
-	_check(iron_mult < 1.0 and line.limit == "iron" and line.made < line.factories * Mil.cfg.equipment.categories.arms.output, "Serbia buys no iron (landlocked, no sellers): its line is slowed by it (x%.2f, %s)" % [iron_mult, line.limit])
+	_check(iron_mult < 1.0 and line.limit == "iron" and line.made < line.factories * Mil.cfg.equipment.categories.arms.output, "a blockaded Serbia buys no iron: its line is slowed by it (x%.2f, %s)" % [iron_mult, line.limit])
 	_fresh()
 	var fra = gs.nations["FRA"]
 	fra.treasury = 100.0

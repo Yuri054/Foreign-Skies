@@ -381,7 +381,8 @@
 	"ic_value": 0.00055,
 	"import_markup": 1.5,
 	"flows": {
-		"_note": "Daily resource flows (Flows). stockpile_days: how many days of demand a stockpiling resource may be saved up. overseas: units a day the world outside the map will sell to any nation with a coast (shared among them, cut by the blockade; -1 is without limit). chem_per_industry: kt of chemicals a year per GBP million of industrial output times the nation's chemicals figure. chem_per_man: kt of chemicals a year the medical services use per man in service. animals_per_food: kt of draft animals a year per person a province's farmland feeds.",
+		"_note": "Daily resource flows (Flows). min_trade_factories: the trade capacity (in civilian factories) every nation has at least, so tiny nations with no factories of their own can still buy what they lack. stockpile_days: how many days of demand a stockpiling resource may be saved up. overseas: units a day the world outside the map will sell to any nation with a coast (or a landlocked one with a friendly coastal neighbour) (shared among them, cut by the blockade; -1 is without limit). chem_per_industry: kt of chemicals a year per GBP million of industrial output times the nation's chemicals figure. chem_per_man: kt of chemicals a year the medical services use per man in service. animals_per_food: kt of draft animals a year per person a province's farmland feeds.",
+		"min_trade_factories": 2.0,
 		"stockpile_days": 90,
 		"overseas": {
 			"iron": 18.0,

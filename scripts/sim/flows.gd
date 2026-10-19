@@ -101,9 +101,15 @@ static func _trade(gs: Node, tags: Array, out: Dictionary, raws: Dictionary) -> 
 		var n: Nation = gs.nations[tag]
 		var raw: Dictionary = raws[tag]
 		var entry: Dictionary = out[tag]
-		var free := maxf(0.0, float(raw.factories) * (1.0 - Economy.consumer_share(n)))
+		var free := maxf(float(cfg().min_trade_factories), float(raw.factories) * (1.0 - Economy.consumer_share(n)))
 		var throughput := 1.0 - n.blockade
 		var coastal: bool = float(raw.get("coast", 0.0)) > 0.0
+		if not coastal:
+			# A landlocked nation is supplied from overseas through a friendly neighbour's ports.
+			for other: String in Diplomacy.neighbor_nations(gs, tag):
+				if raws.has(other) and float(raws[other].get("coast", 0.0)) > 0.0 and not gs.at_war(tag, other):
+					coastal = true
+					break
 		for r in Economy.resource_ids():
 			var info: Dictionary = entry.res[r]
 			var def: Dictionary = Economy.cfg.resources[r]

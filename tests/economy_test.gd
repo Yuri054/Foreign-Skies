@@ -212,9 +212,9 @@ func _initialize() -> void:
 	_check(gs.nations["ITA"].budget.resources.coal.balance < 0 and gs.nations["FRA"].budget.resources.coal.balance < 0, "Italy and France import coal")
 	_check(gs.nations["ESP"].budget.resources.iron.balance > 5000, "Spain exports iron ore")
 	_check(gs.nations["GER"].budget.resources.iron.balance < 0, "Germany imports iron ore")
-	# Landlocked and tiny nations may start short of iron or timber: trade needs civilian factories to
-	# lock, a coast for the overseas supply and a seller who is not busy elsewhere.
-	for tag in ["GBR", "FRA", "GER", "ITA", "AUH", "RUS", "BEL"]:
+	# Every nation starts supplied: tiny nations trade on a minimum capacity and landlocked ones through
+	# a friendly neighbour's ports.
+	for tag in gs.nations:
 		for r in res_names:
 			_check(gs.nations[tag].budget.resources[r].shortage == 0.0, "%s has no %s shortage at the start" % [tag, r])
 	for tag in targets:
