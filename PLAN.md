@@ -27,7 +27,7 @@ M1 comes first. M2 and M6 can be done at any gap. M3 before M4 before M5 is a re
 
 **1.3 Pin the engine version and add a build check (S).** The project file says Godot 4.7; every run in this work used 4.6. Decide the target, record it in the README, and add a GitHub Actions workflow that imports the project and runs the suite headless on it.
 *Done:* a green check on every push to `main`.
-*Needs your answer:* which Godot version to target.
+Target: Godot 4.7.2.
 
 **1.3b Repository housekeeping (S).** The repository was renamed to Foreign-Skies but the local remote still uses the old URL; move it, and note in the README how to run the tests and the soak tools (`tools/soak.gd`, `tools/ui_soak.gd`).
 
@@ -41,7 +41,7 @@ M1 comes first. M2 and M6 can be done at any gap. M3 before M4 before M5 is a re
 **2.3 City labels and army counters (S).** Counters hide some city names. Offset a city's label away from a counter at its province, or draw a short leader line, and let city names show over counters when zoomed in. Test with the screenshot tool at three zooms.
 
 **2.4 Command panel closed state (S).** The closed panel still shows a small button. Decide whether to keep it, fold it into the top bar, or show it only when armies are selected.
-*Needs your answer.*
+Decided: keep the small button, nothing else.
 
 **2.5 Flags in the remaining places (S).** Nation picker lists, peace screen, join prompt, battle screens and the event feed use plain names. Add the flag where a nation is named in a list.
 
@@ -57,7 +57,7 @@ M1 comes first. M2 and M6 can be done at any gap. M3 before M4 before M5 is a re
 *Done:* a two-year AI run shows no nation stuck at zero shells in peace, and every power with a nitrate shortage builds a plant.
 
 **3.4 Naval build on IC (M, reopens a decision).** Ships still use the old money build system. Move shipbuilding to IC and materials, with the dockyard building (already defined, hidden) setting yard capacity.
-*Needs your answer:* this was deferred on purpose; confirm it is now wanted.
+Decided: yes, now.
 
 **3.5 Interface and tutorial (S).** Economy Overview shows the weariness, labor and starvation lines in a clear block, the Production tab explains each line's limit, and the tutorial's economy steps match.
 
@@ -75,7 +75,7 @@ Order matters: justifications first, since the AI uses them.
 **4.4 Named alliances (S–M).** A new alliance gets a generated bloc name from its members, or one the player types, and the interface tells it from the historic blocs (Entente, Central Powers).
 *Done:* the Diplomacy and Rankings windows show bloc names; saves keep them.
 
-*Needs your answer for 4.1 and 4.3:* the exact penalties and prestige uses you want; I would propose numbers and you adjust.
+Numbers are mine to propose, kept in data files.
 
 ## M5. Phase 14: World content
 
@@ -93,7 +93,7 @@ Order matters: justifications first, since the AI uses them.
 **6.1 Turning the map (M).** Yaw, with panning following the view direction.
 
 **6.2 Relief (L).** Needs an elevation source; I have not found one reachable from here yet (check GitHub-hosted DEM tiles or derive pseudo-relief from the terrain types). Displace the plane, light it, and make picking work on the relief.
-*Needs your answer:* whether true terrain height is worth the data and effort.
+Decided: yes, real relief.
 
 **6.3 3D unit markers (M).** Replace the flat banners in 3D mode with small drawn models or billboards.
 
@@ -106,13 +106,11 @@ Order matters: justifications first, since the AI uses them.
 3. For visible changes, take screenshots with the tools in `tools/` and check them.
 4. Commit to `main` with a message that says what changed and why; update `DESIGN.md` for anything a later reader needs.
 
-## Decisions needed from you
+## Decisions (made 19 October 2026)
 
-1. Godot version to target (1.3).
-2. What the closed command panel should leave on screen (2.4).
-3. Whether naval build moves to IC now (3.4).
-4. War-justification and prestige rules, or let me propose them (4.1, 4.3).
-5. Whether real relief is wanted in 3D (6.2).
+1. **Godot 4.7.2** is the target (1.3). Tests and tools run on it from now on.
+2. **Real terrain relief in 3D is wanted** (6.2). It goes ahead; the data source is the first job there.
+3. Everything else is left to me. My calls: the closed command panel keeps only a small "Command (C)" button and shows nothing else (2.4); ships move to IC and materials in M3 (3.4); war-justification and prestige numbers are mine to propose and tune (4.1, 4.3), written into `data/diplomacy.json` so they are easy to change.
 
 ## Suggested order
 
