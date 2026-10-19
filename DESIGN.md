@@ -72,7 +72,7 @@ This is the biggest piece of work.
   - `tools/` one-off scripts (adjacency builder, map validator)
 
 ## Roadmap
-Status: phases 1 to 12 are built (phase 6, the AI, step by step below). Phases 13 and 14 are proposed.
+Status: phases 1 to 12 are built (phase 6, the AI, step by step below). Phases 13 and 14 are proposed; phase 15 (a second economic rework) is in progress.
 
 1. **Map foundation.** *(done)* Province bitmap, shader rendering, selection, camera, adjacency builder, map modes (political, terrain).
 2. **Sim core.** *(done)* Clock, `GameState`, nation and province data, the 1914 scenario loader, and the top bar HUD.
@@ -322,6 +322,24 @@ Status: phases 1 to 12 are built (phase 6, the AI, step by step below). Phases 1
    - *Cities:* a data file of the most important cities with an icon that shows when zoomed in.
    - *National focus system:* generic, with hand-built trees for the important nations, giving small nations such as Albania ways to grow (development, claims, alliances) and the AI goals to work toward after the opening war. Effects use the economy and diplomacy hooks from phases 10 and 13.
    - *The late-game AI:* after the opening war it does almost nothing. The fix is the focus system plus an AI that wants things (claims, growth); scripted events are a thin layer of flavour on top, not the main fix.
+
+15. **Economic rework 2.** *(in progress, from the owner's specification)* The economy becomes a daily system of flows and industrial capacity (IC), replacing the monthly, money-priced resource balance and the money cost of buildings and equipment. Money stays for taxes, upkeep, debt and diplomacy.
+
+   **Decisions by the owner.** (1) Buildings and equipment cost IC and materials only, no money. (2) Trade is automatic: a nation short of a resource imports it, locking civilian factories at the trade rate; blockades cut it. (3) The naval dockyard exists as a building but ships keep the current build system until a navy pass. (4) Railways keep today's hop-based supply reach; levels extend it and burn coal, and with no coal they stop helping.
+
+   **Defaults taken (change them in the data files).** A "state" of the specification is a province. "National Unity" is war support. Per-hour effects are per day of combat. Resource figures are units a day: one unit a day is 1,000 kt a year of the old figures (Germany: coal 225, iron 28, timber 25 a day). Chemicals are made by industry (a nation figure times its industrial output, `chemicals` in `data/nations.json`) and can be stockpiled; draft animals come from farmland; nitrates come from Haber-Bosch plants and from an overseas supply that blockades cut. An IC "item" cost is calibrated so that a military factory at the 50% efficiency cap makes what it made at 100% before.
+
+   **Resources** (`data/economy.json`, `resources`): coal (stockpiles, 1 civilian factory buys 8 a day, shortage costs up to 100% of what it powers), iron or steel (flow only, 8, 100%), nitrates (flow, 4, 90%), draft animals (flow, 10, 50%), chemicals (stockpiles, 4, 100%), timber (flow, 12, 75%). Flow resources cannot be saved: a surplus is lost (or exported), a shortage hits at once. Coal and chemicals keep a stockpile that covers shortages.
+
+   **Buildings.** Civilian factory (10,800 IC; 5.0 IC of construction a day; at most 20 a province; pays the consumer share and trades for resources), military factory (7,200 IC; 4.5 IC of equipment a day; 20), naval dockyard (6,400 IC; 2.5 IC a day; 10; coastal; ships stay as they are for now, so the building waits), Haber-Bosch plant (15,000 IC; 2 nitrates a day; 3). Province works: trench complex (1,200 IC a level, ten levels, +15% defense and 5% less shell damage a level), heavy fortification (8,000 IC for the first level, rising by half again each level, ten levels, +30% defense and 10% less hard attack a level), railway (2,500 IC a level, five levels, burns 0.5 coal a day a level). A project takes in at most its cost over a minimum number of days a day, so construction is capped by capacity and by the project.
+
+   **Production.** Shells are a third equipment category (1.5 IC, 1 iron and 2 nitrates a unit) with a national stockpile; artillery in combat burns them daily, and with an empty stockpile every artillery unit loses 75% of its attack. A line starts at 15% efficiency and rises to the 50% cap; changing to a newer version of the same equipment keeps 85% of the efficiency, changing to a different kind keeps 20%.
+
+   **Macro pressures.** Labor: factory output is multiplied by 1 - 1.2 times the share of the people under arms. Consumer goods: civilian factories locked = all of them times the economy law's share plus war weariness (1% for every 100,000 casualties, easing in peace). Blockade: import throughput is the convoys that get through less the enemy's naval supremacy; below 30% the nation starves: -30% factory output and 0.1 war support lost a day.
+
+   **Daily order** (`Economy.step_day`, then the military, then the rest): labor, domestic resources, blockades, trade and convoys, consumer goods, coal consumption, ammunition (in combat), production lines, construction, efficiency and stability.
+
+   **Build order.** 1. Resources, daily flows and automatic trade. 2. Buildings and construction in IC. 3. The daily engine, labor, weariness and the blockade. 4. Shells and production lines. 5. Trench, fortification, railway coal and draft animals in the military. 6. Interface, AI and tuning (the AI history markers and the speed limits will be retuned). Each step keeps the tests passing.
 
 **Look of the interface.** `UiTheme` (scripts/ui/ui_theme.gd) gives every control the same look: slate panels, gold rules and corner studs (a nine-patch frame drawn in code, `UiTheme.ornate`, used by windows, the main menu and the side panels), cream serif text (a `SystemFont` that tries Georgia, Palatino, Cambria and Times New Roman), brown buttons with a gold rim, gold tabs and slider grooves, a gold top bar and parchment-coloured buttons on the map mode palette (`UiTheme.parchment`). `UiTheme.frame` and `UiTheme.compact` serve the blocks along the bottom. No image files are used. `tools/screenshot_panel.gd` and `tools/screenshot_menu.gd` save pictures of the real window.
 
