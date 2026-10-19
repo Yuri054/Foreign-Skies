@@ -20,6 +20,7 @@ signal fleets_changed
 signal sea_battle_fought(zone: int, tags: Array)
 signal ship_sunk(tag: String, zone: int, type: String)
 signal blockade_changed(tag: String, value: float)
+signal casus_belli_ready(holder: String, target: String)
 signal ship_built(tag: String, province: int, type: String)
 signal war_changed(a: String, b: String, at_war: bool)
 ## A nation lost its last province and its armies broke up.
@@ -167,6 +168,8 @@ var join_calls: Dictionary = {}
 var standings_history: Array[Dictionary] = []
 ## Efforts to improve relations under way: {from, to, months_left}.
 var relation_projects: Array[Dictionary] = []
+## War justifications under way: {holder, target, done_day}.
+var justifications: Array[Dictionary] = []
 ## Every command issued so far, in order.
 var command_log: Array[Dictionary] = []
 ## AI temperament overrides by nation (aggression, caution), and the plans read from the

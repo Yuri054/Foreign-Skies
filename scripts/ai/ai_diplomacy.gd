@@ -232,6 +232,38 @@ static func consider_war(gs: Node, tag: String) -> void:
 	var option := best_war(gs, tag)
 	if not option.is_empty():
 		gs.issue_quiet(DeclareWar.new(tag, option.target, option.cb))
+	else:
+		consider_justify(gs, tag)
+
+
+## A nation that has a plan against a neighbour, the temper for it and the odds, but no
+## casus belli, works to fabricate one instead of striking unjustified.
+static func consider_justify(gs: Node, tag: String) -> void:
+	var w: Dictionary = cfg().war
+	if not gs.justifications.is_empty() and not Diplomacy.justifications_of(gs, tag).is_empty():
+		return
+	var temperament: Dictionary = AI.temperament(gs, tag)
+	if float(temperament.aggression) < float(w.unjustified_min_aggression):
+		return
+	var cost := Diplomacy.cost_of("justify") + Diplomacy.cost_of("declare_war", "fabricated_claim")
+	if not Diplomacy.can_afford(gs, tag, cost):
+		return
+	var best := ""
+	var best_desire := -INF
+	for target in Diplomacy.neighbor_nations(gs, tag):
+		if Diplomacy.justify_block(gs, tag, target) != "" or in_truce(gs, tag, target) or not has_plan(gs, tag, target):
+			continue
+		var options := Diplomacy.casus_belli_options(gs, tag, target)
+		if options[0] != "none":
+			continue
+		var desire := war_desire(gs, tag, target, false)
+		if desire < float(w.min_motive) or odds_against(gs, tag, target) < AI.required_odds(gs, tag) * float(w.odds_margin):
+			continue
+		if desire > best_desire:
+			best = target
+			best_desire = desire
+	if best != "":
+		gs.issue_quiet(JustifyWar.new(tag, best))
 
 
 # --- Treaties and relations ----------------------------------------------------------------------

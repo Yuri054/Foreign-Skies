@@ -10,21 +10,84 @@
 	},
 	"treaties": {
 		"_note": "Directed treaties run from a to b (a guarantees b, a lets b's armies cross); the rest bind both. relation_bonus is added to the pair's baseline while the treaty stands.",
-		"alliance": {"label": "Alliance", "directed": false, "relation_bonus": 40},
-		"guarantee": {"label": "Guarantee", "directed": true, "relation_bonus": 10},
-		"nap": {"label": "Non-aggression pact", "directed": false, "relation_bonus": 15},
-		"passage": {"label": "Passage rights", "directed": true, "relation_bonus": 5},
-		"neutral_pact": {"label": "Neutrality clause", "directed": false, "relation_bonus": 0}
+		"alliance": {
+			"label": "Alliance",
+			"directed": false,
+			"relation_bonus": 40
+		},
+		"guarantee": {
+			"label": "Guarantee",
+			"directed": true,
+			"relation_bonus": 10
+		},
+		"nap": {
+			"label": "Non-aggression pact",
+			"directed": false,
+			"relation_bonus": 15
+		},
+		"passage": {
+			"label": "Passage rights",
+			"directed": true,
+			"relation_bonus": 5
+		},
+		"neutral_pact": {
+			"label": "Neutrality clause",
+			"directed": false,
+			"relation_bonus": 0
+		}
 	},
 	"war": {
 		"_note": "Declaring a war (Diplomacy.declare_war). A casus belli sets what a declaration costs: target_relations is added to the target's opinion of the aggressor and world_relations to every other nation's; prestige goes to the aggressor. 'none' is always allowed. unprovoked_aggression is not declared on, it is earned: a war with no casus belli gives it, for cb_years, to the aggressor's land neighbours and the guarantors of its victim.",
 		"casus_belli": {
-			"border_claim": {"label": "Border claim", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 0},
-			"reconquest": {"label": "Reconquest", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 5},
-			"guarantee_defence": {"label": "Defence of a guaranteed nation", "target_relations": -30, "world_relations": 0, "prestige": 5, "war_support": 5},
-			"ally_called": {"label": "Ally called to arms", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 0},
-			"unprovoked_aggression": {"label": "Unprovoked aggression", "target_relations": -30, "world_relations": 0, "prestige": 0, "war_support": 5},
-			"none": {"label": "No justification", "target_relations": -50, "world_relations": -20, "prestige": -15, "war_support": -10}
+			"border_claim": {
+				"label": "Border claim",
+				"target_relations": -30,
+				"world_relations": 0,
+				"prestige": 0,
+				"war_support": 0
+			},
+			"reconquest": {
+				"label": "Reconquest",
+				"target_relations": -30,
+				"world_relations": 0,
+				"prestige": 0,
+				"war_support": 5
+			},
+			"guarantee_defence": {
+				"label": "Defence of a guaranteed nation",
+				"target_relations": -30,
+				"world_relations": 0,
+				"prestige": 5,
+				"war_support": 5
+			},
+			"ally_called": {
+				"label": "Ally called to arms",
+				"target_relations": -30,
+				"world_relations": 0,
+				"prestige": 0,
+				"war_support": 0
+			},
+			"unprovoked_aggression": {
+				"label": "Unprovoked aggression",
+				"target_relations": -30,
+				"world_relations": 0,
+				"prestige": 0,
+				"war_support": 5
+			},
+			"none": {
+				"label": "No justification",
+				"target_relations": -50,
+				"world_relations": -20,
+				"prestige": -15,
+				"war_support": -10
+			},
+			"fabricated_claim": {
+				"label": "Fabricated claim",
+				"target_relations": -35,
+				"world_relations": -5,
+				"prestige": -2,
+				"war_support": 0
+			}
 		},
 		"cb_years": 5,
 		"provocation": {
@@ -34,21 +97,63 @@
 		},
 		"cancel": {
 			"_note": "What it costs the cancelling nation to tear up a treaty: partner_relations (the other party's opinion), world_relations (everyone else's), prestige.",
-			"nap": {"partner_relations": -30, "world_relations": -15, "prestige": -10},
-			"alliance": {"partner_relations": -40, "world_relations": 0, "prestige": -5},
-			"guarantee": {"partner_relations": -20, "world_relations": 0, "prestige": -10},
-			"passage": {"partner_relations": -5, "world_relations": 0, "prestige": 0},
-			"neutral_pact": {"partner_relations": 0, "world_relations": 0, "prestige": 0}
+			"nap": {
+				"partner_relations": -30,
+				"world_relations": -15,
+				"prestige": -10
+			},
+			"alliance": {
+				"partner_relations": -40,
+				"world_relations": 0,
+				"prestige": -5
+			},
+			"guarantee": {
+				"partner_relations": -20,
+				"world_relations": 0,
+				"prestige": -10
+			},
+			"passage": {
+				"partner_relations": -5,
+				"world_relations": 0,
+				"prestige": 0
+			},
+			"neutral_pact": {
+				"partner_relations": 0,
+				"world_relations": 0,
+				"prestige": 0
+			}
+		},
+		"justify": {
+			"days": 90,
+			"grievance": 8,
+			"max_active": 2,
+			"_note": "JustifyWar: the nation pays points.costs.justify and works for `days` days to manufacture a fabricated_claim casus belli against a nation that is not its ally or pact partner and is not at war with it. The target resents the effort (`grievance`). Ends early if the two go to war, ally or sign a pact; at most `max_active` at once. The finished claim lasts war.cb_years."
 		}
 	},
 	"join": {
 		"_note": "Join decisions (Diplomacy.offer_joins). A declaration offers every ally and guarantor of the nations in the war a choice. Bound obligations are alliance_defence (the original target was attacked), alliance_called (an ally at war calls you; defensive-only alliances are not bound by it), and guarantee (the original target is a guaranteed nation). An entente is optional: an AI nation joins when its opinion of an enemy is at or below entente_join_relation. Declining a bound obligation costs what decline says: ally_relations (the opinion of the nation you let down), prestige, and end_treaty (the treaty lapses). The AI decides by utility (AIDiplomacy.join_value; data/ai.json, diplomacy), and never joins if it would have to fight an ally or a pact partner.",
 		"entente_join_relation": -40,
 		"decline": {
-			"alliance_defence": {"ally_relations": -40, "prestige": -10, "end_treaty": true},
-			"alliance_called": {"ally_relations": -25, "prestige": -5, "end_treaty": false},
-			"guarantee": {"ally_relations": -30, "prestige": -10, "end_treaty": true},
-			"entente": {"ally_relations": 0, "prestige": 0, "end_treaty": false}
+			"alliance_defence": {
+				"ally_relations": -40,
+				"prestige": -10,
+				"end_treaty": true
+			},
+			"alliance_called": {
+				"ally_relations": -25,
+				"prestige": -5,
+				"end_treaty": false
+			},
+			"guarantee": {
+				"ally_relations": -30,
+				"prestige": -10,
+				"end_treaty": true
+			},
+			"entente": {
+				"ally_relations": 0,
+				"prestige": 0,
+				"end_treaty": false
+			}
 		}
 	},
 	"crisis": {
@@ -101,7 +206,11 @@
 	},
 	"war_support": {
 		"_note": "War support (scripts/sim/war_support.gd), 0..100. A government sets what a nation starts with and returns to in peace (recovery_per_month). At war it falls each month by weariness plus casualty_weight times the share of its men lost that month, blockade_weight times the blockade, and occupied_weight times the share of its people under enemy control; a battle won raises it by win_bonus (home_win_bonus on its own soil) and a battle lost lowers it by loss_penalty. While at war it multiplies tax and recruitment (economy_mult) and the fighting power of its armies (morale_mult) along a curve through the at_0, at_50 and at_100 values. At or below floor an AI accepts any terms it can be made to pay and seeks peace; at or below white_peace_below it is forced into a white peace with every enemy it is not clearly losing to (score at least white_peace_score); at surrender_at it can be made to give anything. A war with no casus belli also costs support (casus_belli.war_support).",
-		"start": {"constitutional_monarchy": 60, "republic": 55, "default": 55},
+		"start": {
+			"constitutional_monarchy": 60,
+			"republic": 55,
+			"default": 55
+		},
 		"recovery_per_month": 3,
 		"weariness": 0.5,
 		"casualty_weight": 150,
@@ -110,10 +219,16 @@
 		"win_bonus": 2,
 		"home_win_bonus": 3,
 		"loss_penalty": 1.5,
-		"economy_mult": {"at_0": 0.7, "at_50": 1.0, "at_100": 1.0},
-		"morale_mult": {"at_0": 0.75, "at_50": 1.0, "at_100": 1.1},
-		"debt_weight": 15,
-		"debt_cap": 6,
+		"economy_mult": {
+			"at_0": 0.7,
+			"at_50": 1.0,
+			"at_100": 1.0
+		},
+		"morale_mult": {
+			"at_0": 0.75,
+			"at_50": 1.0,
+			"at_100": 1.1
+		},
 		"debt_weight": 15,
 		"debt_cap": 6,
 		"floor": 25,
@@ -123,7 +238,12 @@
 	},
 	"actions": {
 		"_note": "Player diplomacy (Diplomacy.propose_treaty, Diplomacy.gift). A proposal is accepted when the other nation's opinion of the proposer is at least treaty_accept for the kind; an alliance also needs the two not to be in opposed blocs. A gift of N million raises the receiver's opinion by gift_relation_per_million times N, to at most gift_max_relation more per gift.",
-		"treaty_accept": {"alliance": 40, "guarantee": -25, "nap": 10, "passage": 30},
+		"treaty_accept": {
+			"alliance": 40,
+			"guarantee": -25,
+			"nap": 10,
+			"passage": 30
+		},
 		"gift_relation_per_million": 0.5,
 		"gift_max_relation": 20
 	},
@@ -131,17 +251,63 @@
 		"_note": "Diplomacy points (Nation.diplomacy_points): a nation's stock of diplomatic effort, spent by the commands DeclareWar, ProposeTreaty, CancelTreaty and Gift (costs below; an AI nation's own internal moves, such as joining a war it is bound to, are free) and earned each month: income.base, plus prestige_weight per point of prestige, plus top_output_bonus for the top_output_count nations by output, never below income.min. The stock cannot pass max. A refused treaty proposal gives refusal_refund of its cost back. purchase: pay base_cost GBP millions for a batch of points, the price rising by price_growth with each purchase and easing back by price_decay each month. improve: improve_relations starts a project that adds monthly to the opinion of the pair (and base_monthly to what it settles at) for months, at most max_active at once. prestige: a battle won earns battle_win, peace terms earn the taker peace_per_score a point of their cost (at most peace_cap, the loser loses peace_loser_share of that), a new alliance or guarantee earns the treaty value, and all of it fades by decay_per_month. Other income sources: the diplomatic service program and the foreign ministry building (see economy.json). A scenario nation can set its own start with diplomacy_points.",
 		"start": 50,
 		"max": 200,
-		"income": {"base": 3.0, "prestige_weight": 0.04, "min": 1.0, "top_output_count": 5, "top_output_bonus": 1.5},
+		"income": {
+			"base": 3.0,
+			"prestige_weight": 0.04,
+			"min": 1.0,
+			"top_output_count": 5,
+			"top_output_bonus": 1.5
+		},
 		"refusal_refund": 0.5,
-		"purchase": {"batch": 10, "base_cost": 3.0, "price_growth": 1.25, "price_decay": 0.92},
-		"improve": {"months": 12, "monthly": 3.0, "base_monthly": 0.25, "max_active": 3},
-		"prestige": {"battle_win": 0.25, "peace_per_score": 0.4, "peace_cap": 12.0, "peace_loser_share": 0.5, "treaty": {"alliance": 1.0, "guarantee": 1.0}, "decay_per_month": 0.01},
+		"purchase": {
+			"batch": 10,
+			"base_cost": 3.0,
+			"price_growth": 1.25,
+			"price_decay": 0.92
+		},
+		"improve": {
+			"months": 12,
+			"monthly": 3.0,
+			"base_monthly": 0.25,
+			"max_active": 3
+		},
+		"prestige": {
+			"battle_win": 0.25,
+			"peace_per_score": 0.4,
+			"peace_cap": 12.0,
+			"peace_loser_share": 0.5,
+			"treaty": {
+				"alliance": 1.0,
+				"guarantee": 1.0
+			},
+			"decay_per_month": 0.01
+		},
 		"costs": {
-			"declare_war": {"border_claim": 10, "reconquest": 10, "guarantee_defence": 0, "ally_called": 0, "unprovoked_aggression": 10, "none": 30},
+			"declare_war": {
+				"border_claim": 10,
+				"reconquest": 10,
+				"guarantee_defence": 0,
+				"ally_called": 0,
+				"unprovoked_aggression": 10,
+				"none": 30,
+				"fabricated_claim": 10
+			},
 			"improve_relations": 10,
-			"propose": {"alliance": 40, "guarantee": 20, "nap": 15, "passage": 15},
-			"cancel": {"alliance": 20, "guarantee": 10, "nap": 10, "passage": 5, "neutral_pact": 0},
-			"gift": 5
+			"propose": {
+				"alliance": 40,
+				"guarantee": 20,
+				"nap": 15,
+				"passage": 15
+			},
+			"cancel": {
+				"alliance": 20,
+				"guarantee": 10,
+				"nap": 10,
+				"passage": 5,
+				"neutral_pact": 0
+			},
+			"gift": 5,
+			"justify": 25
 		}
 	}
 }

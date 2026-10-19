@@ -6,6 +6,11 @@ extends FloatingWindow
 ## Clicking a province on the map selects its owner. Toggle with F (D pans the map).
 
 ## Why a declaration or proposal is not possible, in words.
+const JUSTIFY_BLOCKS := {
+	"active": "You are already working on a claim against them.",
+	"limit": "All your justification efforts are in use.",
+	"has_cause": "You already hold a casus belli against them.",
+}
 const BLOCKS := {
 	"same": "That is your own nation.",
 	"unknown": "Unknown nation.",
@@ -34,6 +39,7 @@ var _points := Label.new()
 var _buy := Button.new()
 var _projects := Label.new()
 var _improve := Button.new()
+var _justify := Button.new()
 var _perspective := Label.new()
 var _back := Button.new()
 var _perspective_row := VBoxContainer.new()
@@ -206,6 +212,9 @@ func _ready() -> void:
 	_improve.focus_mode = Control.FOCUS_NONE
 	_improve.pressed.connect(_on_improve)
 	_box.add_child(_improve)
+	_justify.focus_mode = Control.FOCUS_NONE
+	_justify.pressed.connect(_on_justify)
+	_box.add_child(_justify)
 
 	_why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_why.custom_minimum_size = Vector2(250, 0)
@@ -424,7 +433,7 @@ func _refresh_detail() -> void:
 	var has := GameState.nations.has(_selected)
 	_treaties.visible = has
 	_header.visible = has
-	for c in [_cancel, _cb_picker, _cb_info, _declare, _peace, _gift_amount, _gift, _improve] + _action_labels:
+	for c in [_cancel, _cb_picker, _cb_info, _declare, _peace, _gift_amount, _gift, _improve, _justify] + _action_labels:
 		c.visible = has and acting
 	for b: Button in _propose_buttons.values():
 		b.visible = has and acting
@@ -551,6 +560,18 @@ func _refresh_actions() -> void:
 		reasons.append("Improve relations: %s" % BLOCKS.get(improve_block, improve_block))
 	elif improve_poor:
 		reasons.append("Improve relations: not enough diplomacy points (need %d)." % int(improve_cost))
+	var jcost := Diplomacy.cost_of("justify")
+	var jblock := Diplomacy.justify_block(GameState, me, tag)
+	var jwork: Variant = Diplomacy.justifying(GameState, me, tag)
+	var jpoor := not Diplomacy.can_afford(GameState, me, jcost)
+	_justify.text = "Building a claim… (%d days left)" % maxi(0, jwork.done_day - Clock.days_elapsed) if jwork != null else "Justify war (%d)" % int(jcost)
+	_justify.disabled = jblock != "" or jpoor
+	if jblock != "":
+		if jblock != "active":
+			reasons.append("Justify war: %s" % JUSTIFY_BLOCKS.get(jblock, BLOCKS.get(jblock, jblock)))
+	elif jpoor:
+		reasons.append("Justify war: not enough diplomacy points (need %d)." % int(jcost))
+	_justify.tooltip_text = "Spend %d points and %d days to fabricate a casus belli against them. Declaring war on it costs less prestige and goodwill than a war with no cause. The target resents the effort; the claim lasts %d years." % [int(jcost), int(Diplomacy.cfg.war.justify.days), int(Diplomacy.cfg.war.cb_years)]
 	_why.text = "\n".join(reasons)
 	_why.visible = not reasons.is_empty()
 	_improve.tooltip_text = (BLOCKS.get(improve_block, "") if improve_block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(improve_cost), roundi(Diplomacy.points(GameState, me))] if improve_poor else "")) + "\n" + "For a year, each month the two nations think better of each other (+%d, and part of it lasts). %d points; up to %d efforts at a time." % [int(Diplomacy.cfg.points.improve.monthly), int(Diplomacy.cost_of("improve_relations")), int(Diplomacy.cfg.points.improve.max_active)]
@@ -632,6 +653,17 @@ func _on_improve() -> void:
 		_status.modulate = Fmt.GOOD
 	else:
 		_status.text = BLOCKS.get(cmd.reason, "That is not possible.")
+		_status.modulate = Fmt.BAD
+	_refresh()
+
+
+func _on_justify() -> void:
+	var cmd := JustifyWar.new(GameState.player_tag, _selected)
+	if GameState.issue(cmd):
+		_status.text = "You begin to build a case against %s." % GameState.nations[_selected].display_name
+		_status.modulate = Fmt.GOOD
+	else:
+		_status.text = JUSTIFY_BLOCKS.get(cmd.reason, BLOCKS.get(cmd.reason, "That is not possible."))
 		_status.modulate = Fmt.BAD
 	_refresh()
 

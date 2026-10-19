@@ -66,7 +66,7 @@ Decided: yes, now. *Done:* hulls draw IC from the construction pool, gold cost r
 Order matters: justifications first, since the AI uses them.
 
 **4.1 War justifications (M).** A justification takes points and time before a declaration; declaring without one costs prestige, relations and war support. Add the command, the casus belli list, the cost table in `data/diplomacy.json`, and the AI's use of it (the unjustified-war limit already exists in `ai.json`).
-*Done:* tests for cost, delay, the penalties for skipping it, and an AI run where wars mostly follow justifications.
+*Done:* tests for cost, delay, the penalties for skipping it, and an AI run where wars mostly follow justifications. *Built* (tests/justify_test.gd); the AI-run share is still to be measured with the soak tool.
 
 **4.2 Gifts (S).** Raise the price, scale it by the receiver's size and add diminishing returns.
 
