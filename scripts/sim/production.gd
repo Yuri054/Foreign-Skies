@@ -140,50 +140,30 @@ static func _run(n: Nation, line: Dictionary) -> void:
 		return
 	var cost := item_cost(line.category)
 	var paid := paid_share(n)
-	var markup: float = Economy.cfg.import_markup
-	# Materials come from the stockpile first; what is short is bought at a markup, but not past
-	# a blockade.
+	# Materials are flows (see Flows): what the nation lacks of one slows every line that needs it.
 	var ratio := 1.0
 	var limit := ""
+	var flows: Dictionary = n.budget.get("resources", {})
 	for key in cost:
-		if key == "money":
+		if key == "money" or float(cost[key]) <= 0.0:
 			continue
-		var need: float = want * float(cost[key])
-		if need <= 0.0:
-			continue
-		var stock: float = n.stock.get(key, 0.0)
-		var reach := (stock + (1.0 - n.blockade) * maxf(0.0, need - stock)) / need
-		if reach < ratio:
-			ratio = reach
+		var m: float = float(flows.get(key, {}).get("mult", 1.0))
+		if m < ratio:
+			ratio = m
 			limit = key
-	var bill := _bill(n, cost, want * ratio, paid, markup)
+	var bill := want * ratio * float(cost.get("money", 0.0)) * paid
 	if bill > maxf(0.0, n.treasury):
 		ratio *= maxf(0.0, n.treasury) / bill
 		limit = "money"
 	if ratio < 1.0:
 		line.limit = limit
 	var made := want * ratio
-	var pay := _bill(n, cost, made, paid, markup)
+	var pay := made * float(cost.get("money", 0.0)) * paid
 	n.treasury -= pay
 	n.equipment_spent += pay
-	for key in cost:
-		if key != "money":
-			n.stock[key] = maxf(0.0, float(n.stock.get(key, 0.0)) - made * float(cost[key]))
 	line.made = made
 	line.days += ratio
 	n.equipment[line.category] = float(n.equipment.get(line.category, 0.0)) + made
-
-
-## Money for `items` of a category: the item's money cost (after the arsenals' share) and the
-## materials the stockpile cannot cover, bought at a markup.
-static func _bill(n: Nation, cost: Dictionary, items: float, paid: float, markup: float) -> float:
-	var total: float = items * float(cost.get("money", 0.0)) * paid
-	for key in cost:
-		if key == "money":
-			continue
-		var short: float = maxf(0.0, items * float(cost[key]) - float(n.stock.get(key, 0.0)))
-		total += short * float(Economy.cfg.resources[key].price) / 1000.0 * markup
-	return total
 
 
 ## Share of what a nation's units and training units need that it does not have, by category

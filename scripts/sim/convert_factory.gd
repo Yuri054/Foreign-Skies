@@ -2,8 +2,8 @@ class_name ConvertFactory
 extends Command
 ## Retools one factory of a province: a civilian one into a military one, or back. The old
 ## factory's output stops at once; the new one stands after `convert_days`, and the conversion
-## costs `convert_cost_share` of a new factory (money only: the machinery is reused). The
-## factory keeps its slot while it is being retooled.
+## costs `convert_cost_share` of the IC of a new factory (the machinery is reused). The factory
+## keeps its slot while it is being retooled.
 
 var tag: String
 var province: int
@@ -24,8 +24,9 @@ func from_type() -> String:
 	return "factory" if to_type == "military_factory" else "military_factory"
 
 
+## The IC a conversion costs.
 static func cost_of(to: String) -> float:
-	return Economy.cfg.buildings[to].cost * Economy.cfg.factories.convert_cost_share
+	return float(Economy.cfg.buildings[to].ic) * float(Economy.cfg.factories.convert_cost_share)
 
 
 func execute(gs: Node) -> bool:
@@ -45,15 +46,11 @@ func execute(gs: Node) -> bool:
 		return false
 	var n: Nation = gs.nations[tag]
 	var cost := cost_of(to_type)
-	if n.treasury < cost:
-		reason = "Not enough money (£%.1fM)." % cost
-		return false
-	n.treasury -= cost
 	owned[from_type()] -= 1
 	if owned[from_type()] == 0:
 		owned.erase(from_type())
 	var days: int = Economy.cfg.factories.convert_days
-	n.construction.append(Economy.new_job(province, to_type, days, true))
+	n.construction.append(Economy.new_job(province, to_type, cost, days, true))
 	return true
 
 

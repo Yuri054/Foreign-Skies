@@ -34,9 +34,9 @@
 	},
 	"size_marks": [[150000, "XXX"], [50000, "XX"], [10000, "X"]],
 	"unit_types": {
-		"infantry": {"name": "Infantry division", "size": 12000, "needs": {"arms": 12}, "attack": 1.0, "speed": 15.0, "cost": 0.6, "train_days": 30, "color": "#5b6f8a", "share": 0.75},
-		"cavalry": {"name": "Cavalry division", "size": 4000, "needs": {"arms": 4}, "attack": 0.8, "speed": 25.0, "cost": 0.5, "train_days": 45, "color": "#8a7a4a", "share": 0.05},
-		"artillery": {"name": "Artillery brigade", "size": 3000, "needs": {"arms": 3, "artillery": 12}, "attack": 3.0, "speed": 12.0, "cost": 1.2, "train_days": 60, "color": "#8a4a4a", "share": 0.20}
+		"infantry": {"name": "Infantry division", "size": 12000, "needs": {"arms": 12}, "animals": 0.4, "attack": 1.0, "speed": 15.0, "cost": 0.6, "train_days": 30, "color": "#5b6f8a", "share": 0.75},
+		"cavalry": {"name": "Cavalry division", "size": 4000, "needs": {"arms": 4}, "animals": 2.0, "attack": 0.8, "speed": 25.0, "cost": 0.5, "train_days": 45, "color": "#8a7a4a", "share": 0.05},
+		"artillery": {"name": "Artillery brigade", "size": 3000, "needs": {"arms": 3, "artillery": 12}, "animals": 3.0, "attack": 3.0, "speed": 12.0, "cost": 1.2, "train_days": 60, "color": "#8a4a4a", "share": 0.20}
 	},
 	"terrain": {
 		"plains": {"name": "Plains", "defense": 1.0, "move": 1.0, "occupy_days": 5, "color": "#d9d38a"},

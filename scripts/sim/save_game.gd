@@ -16,7 +16,7 @@ static var dir := "user://saves/"
 const EXT := ".sav"
 const MAGIC := "godot-1914-save"
 ## GameState fields that are not saved: read again from the scenario, or worked out from the rest.
-const SKIPPED := ["scenario", "scenario_dir", "economy_dirty", "autosave_enabled", "province_deposit", "province_gdp", "province_industry",
+const SKIPPED := ["scenario", "scenario_dir", "economy_dirty", "autosave_enabled", "economy_sums", "province_deposit", "province_gdp", "province_industry",
 		"province_food", "province_pool", "owner_version"]
 const CLASS_NAMES := ["Nation", "Army", "Unit", "Fleet", "Ship", "Front", "War", "Treaty", "General", "ArmyGroup", "AttackLine"]
 

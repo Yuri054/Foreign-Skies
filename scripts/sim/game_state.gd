@@ -65,6 +65,9 @@ var province_population := PackedInt32Array()
 ## The part of a person each province's growth has not yet added (see Population).
 var province_pop_frac := PackedFloat32Array()
 ## Province output before nation-wide modifiers; filled by Economy.recompute.
+## The summed province output of each nation from the last Economy.recompute (kept so the daily
+## refresh need not go through the provinces again).
+var economy_sums: Dictionary = {}
 var province_gdp := PackedFloat32Array()       # GBP millions per year
 var province_industry := PackedFloat32Array()  # GBP millions per year
 ## Building slots of each province, and the civilian factories it began with (the output the
@@ -247,7 +250,7 @@ func load_scenario(dir: String) -> void:
 		province_buildings.append({})
 		province_deposit.append({})
 	for row in MapData.read_table(dir + "resources.tsv"):
-		for r in Economy.resource_ids():
+		for r in Economy.deposit_ids():
 			province_deposit[int(row.id)][r] = float(row[r])
 	for id in range(1, count):
 		province_owner[id] = MapData.provinces[id].owner
@@ -267,10 +270,11 @@ func load_scenario(dir: String) -> void:
 	Economy.recompute(self)
 	for tag in nations:
 		Production.auto_assign(nations[tag])
-	# Start with half a full reserve of everything the nation uses.
+	# Start with half a full reserve of everything the nation can keep a stockpile of.
 	for tag in nations:
 		for r in Economy.resource_ids():
-			nations[tag].stock[r] = 0.5 * nations[tag].budget.resources[r].cap
+			if Economy.cfg.resources[r].stockpile:
+				nations[tag].stock[r] = 0.5 * nations[tag].budget.resources[r].cap
 	Economy.recompute(self)
 
 	var d: Array = scenario.start_date

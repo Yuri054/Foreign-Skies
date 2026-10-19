@@ -1,15 +1,14 @@
 class_name MassConstructBuilding
 extends Command
 ## Starts one level of a building in many provinces at once: the best provinces first (see
-## Economy.build_priority), until the province limit is reached, the spending limit would be
-## exceeded, or the money (or a blockaded material) runs out. Each province is paid for like
-## a single ConstructBuilding, so materials run down the stockpile as it goes.
+## Economy.build_priority), until the province limit is reached or the limit on the IC queued
+## would be exceeded. Each province is queued like a single ConstructBuilding.
 
 var tag: String
 var type: String
 ## Most provinces to build in.
 var max_count: int
-## Most to spend in total, GBP millions (gold plus bought materials); 0 means no limit.
+## Most IC to queue in total; 0 means no limit.
 var max_spend: float
 ## Provinces that were built in; filled in by execute().
 var built: Array[int] = []
@@ -36,13 +35,13 @@ func execute(gs: Node) -> bool:
 			stopped_by = "count"
 			break
 		var plan := Economy.build_plan(gs, id, type)
-		if max_spend > 0.0 and spent + plan.total > max_spend:
+		if max_spend > 0.0 and spent + plan.ic > max_spend:
 			stopped_by = "spend"
 			break
 		if not ConstructBuilding.new(tag, id, type).execute(gs):
 			stopped_by = "money"
 			break
-		spent += plan.total
+		spent += plan.ic
 		built.append(id)
 	return not built.is_empty()
 
@@ -52,13 +51,9 @@ func preview(gs: Node) -> Dictionary:
 	if not gs.nations.has(tag):
 		return {"count": 0, "spent": 0.0, "stopped_by": "all"}
 	var n: Nation = gs.nations[tag]
-	var treasury := n.treasury
-	var stock := n.stock.duplicate()
 	var jobs := n.construction.duplicate(true)
 	execute(gs)
 	var result := {"count": built.size(), "spent": spent, "stopped_by": stopped_by}
-	n.treasury = treasury
-	n.stock = stock
 	n.construction.clear()
 	n.construction.append_array(jobs)
 	return result

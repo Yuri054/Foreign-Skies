@@ -38,17 +38,72 @@
 	"funding_min": 0.5,
 	"mobilization_rate": 0.15,
 	"construction": {
-		"_note": "Construction capacity. Each day a nation has a pool of construction points: base_points (small works everywhere) plus points_per_factory for each civilian factory it holds, less the share the people's consumer goods take (the economy law's consumer share). The queue is served in order; a building takes at most its `rate` points a day, so with ample capacity it still takes build_days (its points are build_days times its rate), and with little it takes longer.",
-		"base_points": 4.0,
-		"points_per_factory": 1.0
+		"_note": "Construction capacity in IC (industrial capacity) a day. A nation has base_ic (small works everywhere) plus ic_per_factory for each civilian factory it holds that is not locked, less the people's consumer goods (the economy law's share) and the factories that pay for imports. A project costs `ic` and takes in at most its cost over `min_days` a day, so with ample capacity it still takes min_days, and with little it takes longer.",
+		"base_ic": 20.0,
+		"ic_per_factory": 5.0
 	},
 	"laws": {
 		"_note": "Economy laws, from peace to total war, switched with the SetEconomyLaw command. consumer is the share of the civilian factories' work that goes to the people's goods and so is not available for construction; military multiplies the output of military factories (production lines); gdp multiplies the national output (the civilian economy is run down); weariness is lost from war support each month while at war. requires: war (the nation must be at war), mobilization (the least mobilization), war_or_mobilization (at war or that much mobilized). funding is the most the army and the navy may be funded under the law (1 is the usual upkeep; the least is funding_min); mobilization is the lowest and highest the nation may be mobilized under the law (a nation at war may always go up to the war floor of data/diplomacy.json); below the lowest it is raised a step a day, above the highest it is brought down at once. A higher law than the one in force can be taken only cooldown_days after the last change; a law whose requirements stop holding is dropped a step each month.",
 		"cooldown_days": 30,
-		"civilian": {"name": "Civilian economy", "mobilization": [0.0, 0.4], "funding": 1.0, "consumer": 0.35, "military": 1.0, "gdp": 1.0, "weariness": 0.0, "requires": {}},
-		"early_mobilization": {"name": "Early mobilization", "mobilization": [0.1, 0.7], "funding": 1.15, "consumer": 0.30, "military": 1.10, "gdp": 0.98, "weariness": 0.0, "requires": {"war_or_mobilization": 0.2}},
-		"war_economy": {"name": "War economy", "mobilization": [0.3, 0.9], "funding": 1.3, "consumer": 0.20, "military": 1.25, "gdp": 0.94, "weariness": 0.3, "requires": {"war": true}},
-		"total_mobilization": {"name": "Total mobilization", "mobilization": [0.5, 1.0], "funding": 1.5, "consumer": 0.10, "military": 1.40, "gdp": 0.88, "weariness": 0.8, "requires": {"war": true, "mobilization": 0.5}}
+		"civilian": {
+			"name": "Civilian economy",
+			"mobilization": [
+				0.0,
+				0.4
+			],
+			"funding": 1.0,
+			"consumer": 0.35,
+			"military": 1.0,
+			"gdp": 1.0,
+			"weariness": 0.0,
+			"requires": {}
+		},
+		"early_mobilization": {
+			"name": "Early mobilization",
+			"mobilization": [
+				0.1,
+				0.7
+			],
+			"funding": 1.15,
+			"consumer": 0.3,
+			"military": 1.1,
+			"gdp": 0.98,
+			"weariness": 0.0,
+			"requires": {
+				"war_or_mobilization": 0.2
+			}
+		},
+		"war_economy": {
+			"name": "War economy",
+			"mobilization": [
+				0.3,
+				0.9
+			],
+			"funding": 1.3,
+			"consumer": 0.2,
+			"military": 1.25,
+			"gdp": 0.94,
+			"weariness": 0.3,
+			"requires": {
+				"war": true
+			}
+		},
+		"total_mobilization": {
+			"name": "Total mobilization",
+			"mobilization": [
+				0.5,
+				1.0
+			],
+			"funding": 1.5,
+			"consumer": 0.1,
+			"military": 1.4,
+			"gdp": 0.88,
+			"weariness": 0.8,
+			"requires": {
+				"war": true,
+				"mobilization": 0.5
+			}
+		}
 	},
 	"infrastructure": {
 		"_note": "Infrastructure of a province: its railway level plus network_share of the best railway level among the neighbours the same nation owns, so a line of provinces with railways lifts all of them. Each point of it gives slots_per_level more building slots (rounded down) on top of the province's own slots.",
@@ -67,65 +122,109 @@
 		"convert_days": 45
 	},
 	"buildings": {
-		"_note": "Province buildings: civilian and military factories (slot buildings: they take one of the province's slots, cost the same each time and are limited by free slots), railways and ports (up to max_level levels; the cost is for level 1 and scales with the level being built). effects are fractional bonuses per level: 'trade' is tariff income as a share of the province's output (lost to blockade). materials are thousand tonnes needed (level 1 for levelled buildings), taken from the national stockpile and bought at a markup if short. consumes is thousand tonnes per level per year. requires: 'coastal' needs a sea coast, 'deposit:<resource>' a deposit, 'capital' only the capital province. Raw resources are no longer built up: a province yields its whole deposit (extraction_base).",
+		"_note": "Province buildings. Everything costs IC (and flows of materials), no money. ic is the cost of the first level (a slot building costs the same each time); ic_growth raises the cost of each further level by that share of the previous one (0 = every level costs ic); min_days is the fewest days a project takes. materials are units of a resource consumed for each IC of progress (a flow: a shortage slows the project). Slot buildings take one of the province's slots and are limited to max_per_province. produces: units a day of a resource each one makes. consumes: kt a year per level. effects are fractional bonuses per level ('trade' is tariff income as a share of the province's output, lost to blockade). requires: 'coastal' needs a sea coast, 'capital' only the capital province. enabled false hides a building that waits for a later phase.",
 		"factory": {
 			"name": "Civilian factory",
 			"slot": true,
 			"max_level": 99,
-			"cost": 6.0,
-			"build_days": 150,
-			"rate": 10,
+			"max_per_province": 20,
+			"ic": 10800,
+			"min_days": 120,
 			"effects": {},
-			"materials": {
-				"iron": 1500,
-				"coal": 800
-			}
+			"materials": {}
 		},
 		"military_factory": {
 			"name": "Military factory",
 			"slot": true,
 			"max_level": 99,
-			"cost": 8.0,
-			"build_days": 180,
-			"rate": 10,
+			"max_per_province": 20,
+			"ic": 7200,
+			"min_days": 90,
 			"effects": {},
+			"materials": {}
+		},
+		"naval_dockyard": {
+			"name": "Naval dockyard",
+			"slot": true,
+			"max_level": 99,
+			"max_per_province": 10,
+			"enabled": false,
+			"requires": "coastal",
+			"ic": 6400,
+			"min_days": 90,
+			"effects": {},
+			"materials": {}
+		},
+		"haber_bosch": {
+			"name": "Haber-Bosch plant",
+			"slot": true,
+			"max_level": 99,
+			"max_per_province": 3,
+			"ic": 15000,
+			"min_days": 150,
+			"produces": {
+				"nitrates": 2.0
+			},
+			"effects": {},
+			"materials": {}
+		},
+		"trench": {
+			"name": "Trench complex",
+			"max_level": 10,
+			"ic": 1200,
+			"ic_growth": 0.0,
+			"min_days": 15,
 			"materials": {
-				"iron": 2000,
-				"coal": 800
-			}
+				"wood": 0.05
+			},
+			"effects": {},
+			"defense": 0.15,
+			"shell_reduction": 0.05
+		},
+		"fortification": {
+			"name": "Heavy fortification",
+			"max_level": 10,
+			"ic": 8000,
+			"ic_growth": 0.5,
+			"min_days": 60,
+			"materials": {
+				"wood": 0.04
+			},
+			"effects": {},
+			"defense": 0.3,
+			"hard_reduction": 0.1
 		},
 		"railway": {
 			"name": "Railway network",
-			"max_level": 3,
-			"cost": 8.0,
-			"build_days": 180,
-			"rate": 6,
+			"max_level": 5,
+			"ic": 2500,
+			"ic_growth": 0.0,
+			"min_days": 45,
+			"materials": {
+				"iron": 0.02
+			},
 			"effects": {
 				"gdp": 0.06,
 				"food": 0.05
 			},
-			"materials": {
-				"iron": 2500,
-				"wood": 600
-			},
 			"consumes": {
-				"coal": 400
+				"coal": 500
 			}
 		},
 		"port": {
 			"name": "Port",
 			"max_level": 3,
-			"cost": 7.0,
-			"build_days": 150,
-			"rate": 6,
+			"ic": 3000,
+			"ic_growth": 0.0,
+			"min_days": 60,
 			"requires": "coastal",
+			"materials": {
+				"wood": 0.04,
+				"iron": 0.01
+			},
 			"effects": {
 				"gdp": 0.05,
 				"trade": 0.06
-			},
-			"materials": {
-				"wood": 1200,
-				"iron": 600
 			}
 		}
 	},
@@ -162,11 +261,16 @@
 		}
 	},
 	"resources": {
-		"_note": "Raw resources, in thousand tonnes per year. price is GBP per tonne. industry_demand is kt used per GBP million of industrial output, pop_demand is kt per inhabitant. shortage: output lost per unit of unmet demand (1.0 = all demand unmet).",
+		"_note": "Resources, as flows. Figures are kt a year internally; one unit a day is 1,000 kt a year (units_per_kt 0.001), which is how the trade rates and the interface count them. deposits: the resource has a deposit table. stockpile: surplus is saved in a national stockpile (the others are flows: a surplus is lost or exported and a shortage bites at once). trade_rate: units a day one civilian factory buys. max_penalty: the share of what the resource powers that is lost when none of it is to be had. price is GBP a tonne (only the old money figures use it). industry_demand is kt used per GBP million of industrial output, pop_demand kt per inhabitant. shortage: output lost per unit of unmet demand (1.0 = all demand unmet).",
 		"coal": {
 			"name": "Coal",
 			"color": "#3a3a3a",
 			"price": 0.6,
+			"deposits": true,
+			"stockpile": true,
+			"units_per_kt": 0.001,
+			"trade_rate": 8,
+			"max_penalty": 1.0,
 			"industry_demand": 160.0,
 			"pop_demand": 0.00025,
 			"shortage": {
@@ -175,9 +279,14 @@
 			}
 		},
 		"iron": {
-			"name": "Iron ore",
+			"name": "Iron / Steel",
 			"color": "#b5532a",
 			"price": 0.5,
+			"deposits": true,
+			"stockpile": false,
+			"units_per_kt": 0.001,
+			"trade_rate": 8,
+			"max_penalty": 1.0,
 			"industry_demand": 34.0,
 			"pop_demand": 0.0,
 			"shortage": {
@@ -185,10 +294,63 @@
 				"gdp": 0.1
 			}
 		},
+		"nitrates": {
+			"name": "Nitrates",
+			"color": "#d8d27a",
+			"price": 1.2,
+			"deposits": false,
+			"stockpile": false,
+			"units_per_kt": 0.001,
+			"trade_rate": 4,
+			"max_penalty": 0.9,
+			"industry_demand": 0.0,
+			"pop_demand": 0.0,
+			"shortage": {
+				"industry": 0.0,
+				"gdp": 0.0
+			}
+		},
+		"draft_animals": {
+			"name": "Draft animals",
+			"color": "#8a6a3a",
+			"price": 1.0,
+			"deposits": false,
+			"stockpile": false,
+			"units_per_kt": 0.001,
+			"trade_rate": 10,
+			"max_penalty": 0.5,
+			"industry_demand": 0.0,
+			"pop_demand": 0.0,
+			"shortage": {
+				"industry": 0.0,
+				"gdp": 0.0
+			}
+		},
+		"chemicals": {
+			"name": "Chemicals",
+			"color": "#7a3a9a",
+			"price": 1.5,
+			"deposits": false,
+			"stockpile": true,
+			"units_per_kt": 0.001,
+			"trade_rate": 4,
+			"max_penalty": 1.0,
+			"industry_demand": 0.0,
+			"pop_demand": 0.0,
+			"shortage": {
+				"industry": 0.0,
+				"gdp": 0.0
+			}
+		},
 		"wood": {
 			"name": "Timber",
 			"color": "#3f8f3a",
 			"price": 0.9,
+			"deposits": true,
+			"stockpile": false,
+			"units_per_kt": 0.001,
+			"trade_rate": 12,
+			"max_penalty": 0.75,
 			"industry_demand": 12.0,
 			"pop_demand": 0.0002,
 			"shortage": {
@@ -199,8 +361,18 @@
 	},
 	"extraction_base": 1.0,
 	"min_deposit": 50,
-	"trade_state_share": 0.5,
-	"stockpile_months": 3,
-	"stockpile_share": 0.25,
-	"import_markup": 1.5
+	"ic_value": 0.00055,
+	"import_markup": 1.5,
+	"flows": {
+		"_note": "Daily resource flows (Flows). stockpile_days: how many days of demand a stockpiling resource may be saved up. overseas: units a day the world outside the map will sell to any nation with a coast (shared among them, cut by the blockade; -1 is without limit). chem_per_industry: kt of chemicals a year per GBP million of industrial output times the nation's chemicals figure. chem_per_man: kt of chemicals a year the medical services use per man in service. animals_per_food: kt of draft animals a year per person a province's farmland feeds.",
+		"stockpile_days": 90,
+		"overseas": {
+			"iron": 18.0,
+			"wood": 40.0,
+			"nitrates": -1
+		},
+		"chem_per_industry": 12.0,
+		"chem_per_man": 0.0114,
+		"animals_per_food": 0.004
+	}
 }

@@ -550,6 +550,14 @@ static func marshal_mult(a: Army) -> float:
 static func refresh_men(gs: Node) -> void:
 	for tag in gs.nations:
 		gs.nations[tag].men_in_units = men_in_service(gs, tag)
+		gs.nations[tag].animal_need = 0.0
+	# The animals the units need to haul their guns, wagons and mounts (units a day in the data).
+	for a: Army in gs.armies.values():
+		var need := 0.0
+		for u in a.units:
+			need += float(cfg.unit_types[u.type].get("animals", 0.0)) * u.strength
+		if gs.nations.has(a.tag):
+			gs.nations[a.tag].animal_need += Flows.kt("draft_animals", need)
 
 
 ## Days at which an army walking `path` from `from` reaches each province on it, counted from

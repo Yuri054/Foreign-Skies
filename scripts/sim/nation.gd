@@ -98,8 +98,13 @@ var lines_auto := true
 ## GBP millions spent on equipment in all (the lines pay out of the treasury each day).
 var equipment_spent := 0.0
 var next_line_id := 1
-## Stockpile of each raw resource in thousand tonnes: resource id -> amount.
+## Stockpile of each resource that keeps one (coal and chemicals), in thousand tonnes: resource id
+## -> amount. The others are flows (see Flows).
 var stock: Dictionary = {}
+## How much of its chemicals industry the nation has (a multiplier on what its industry makes).
+var chem := 0.5
+## Draft animals the army needs, kt a year (kept up to date by Military.refresh_men).
+var animal_need := 0.0
 ## Latest figures from Economy.recompute (annual GBP millions unless stated).
 var budget: Dictionary = {}
 
@@ -125,6 +130,7 @@ func _init(p_tag: String, static_data: Dictionary, scenario_data: Dictionary) ->
 	naval_budget = scenario_data.get("naval_budget", 0.0)
 	manpower = peacetime_army
 	intensity = scenario_data.get("intensity", {})
+	chem = float(scenario_data.get("chemicals", 0.5))
 	for r in Economy.resource_ids():
 		stock[r] = 0.0
 	for cat in Military.equipment_ids():
