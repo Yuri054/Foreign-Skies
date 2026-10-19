@@ -51,8 +51,8 @@ func execute(gs: Node) -> bool:
 			n.production_lines.remove_at(i)
 			return true
 		if category != line.category:
+			line.days = Production.retained_days(line)
 			line.category = category
-			line.days = 0
 		line.factories = factories
 		return true
 	reason = "No such line."

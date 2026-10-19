@@ -2,9 +2,9 @@ class_name Production
 extends RefCounted
 ## Equipment production lines. A line makes one category of equipment with some of the
 ## nation's military factories (and the arsenals every army has, `base_factories`). Output a day
-## is factories x the category's output x efficiency x the economy law's military figure.
-## Efficiency climbs from `efficiency_start` to 1 over `efficiency_days` days of running and starts
-## over if the line changes product. Each item costs money and raw materials (data/military.json,
+## is factories x the category's output x efficiency over the cap x the economy law's military figure.
+## Efficiency climbs from `efficiency_start` to `efficiency_cap` over `efficiency_days` days of running
+## and a line that changes product keeps a share of it. Each item costs money and raw materials (data/military.json,
 ## "equipment"); a line short of either makes only what it can pay for. While `lines_auto` is
 ## set (everyone at the start, and the AI for now) the factories are shared between the
 ## categories by `auto_split` and re-shared as their number changes.
@@ -42,10 +42,23 @@ static func free_factories(n: Nation) -> int:
 	return maxi(0, total_factories(n) - assigned(n))
 
 
-## Share of its best output a line makes now, 0..1 (the efficiency).
+## A line's efficiency now: it starts at efficiency_start and climbs to efficiency_cap.
 static func efficiency(line: Dictionary) -> float:
+	return lerpf(float(cfg().efficiency_start), float(cfg().efficiency_cap), minf(1.0, float(line.days) / float(cfg().efficiency_days)))
+
+
+## Days of running that give a line the efficiency `eff` (the inverse of efficiency()).
+static func days_for(eff: float) -> float:
 	var start: float = cfg().efficiency_start
-	return lerpf(start, 1.0, minf(1.0, float(line.days) / float(cfg().efficiency_days)))
+	var cap: float = cfg().efficiency_cap
+	return clampf((eff - start) / (cap - start), 0.0, 1.0) * float(cfg().efficiency_days)
+
+
+## What a line keeps of its efficiency when it changes product: a different kind of equipment
+## keeps efficiency_keep_kind of it, a newer version of the same kind efficiency_keep_version.
+static func retained_days(line: Dictionary, same_kind := false) -> float:
+	var keep: float = cfg().efficiency_keep_version if same_kind else cfg().efficiency_keep_kind
+	return days_for(efficiency(line) * keep)
 
 
 ## GBP millions a year the nation's lines would cost at full tilt (what the budget counts).
@@ -69,7 +82,7 @@ static func planned_materials(n: Nation) -> Dictionary:
 
 ## Items a day the line could make with all it needs at hand.
 static func capacity(n: Nation, line: Dictionary) -> float:
-	return line.factories * float(cfg().categories[line.category].output) * efficiency(line) * float(Economy.law_of(n).military) * Economy.worker_share(n)
+	return line.factories * float(cfg().categories[line.category].output) * efficiency(line) / float(cfg().efficiency_cap) * float(Economy.law_of(n).military) * Economy.worker_share(n)
 
 
 ## What one item of a category costs: {"money": GBP millions, resource id: thousand tonnes ...}.

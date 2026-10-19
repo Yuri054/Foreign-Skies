@@ -17,14 +17,19 @@
 		"ready_step": 0.02
 	},
 	"equipment": {
-		"_note": "Equipment units need to fight. A unit type's needs are for a full-strength unit (arms in thousands of rifles, artillery in batteries); a unit holds what it has and its coverage is held over need at its present strength. Each category's floor is the share of its power left with none of it. Raising a unit takes what it needs from the store at once and sets it aside for the unit until training ends. Casualties and attrition destroy equipment in step with men; a unit in combat uses combat_use of its full need of arms a day; a unit short of equipment reinforces at only reinforce_floor to 1 times the usual rate; a supplied unit not fighting draws up to resupply_rate of its full need a day from the national stockpile. Production lines (see Production) turn military factories (and base_factories more, the arsenals and imports every army has) into equipment: `output` of a category a day per factory, times efficiency and the economy law's military figure, for `cost` (money in GBP millions and materials in thousand tonnes per item). Efficiency climbs from efficiency_start to 1 over efficiency_days and starts over when a line changes product. materials short in the stockpile are bought at the import markup (not past a blockade) and paid for with the money; the money for the first free_factories factories' worth is part of army upkeep and not charged; auto_split shares the factories while a nation's lines are automatic. The stockpile at the start is start_stock_days of automatic output.",
+		"_note": "Equipment units need to fight. A unit type's needs are for a full-strength unit (arms in thousands of rifles, artillery in batteries); a unit holds what it has and its coverage is held over need at its present strength. Each category's floor is the share of its power left with none of it. Raising a unit takes what it needs from the store at once and sets it aside for the unit until training ends. Casualties and attrition destroy equipment in step with men; a unit in combat uses combat_use of its full need of arms a day; a unit short of equipment reinforces at only reinforce_floor to 1 times the usual rate; a supplied unit not fighting draws up to resupply_rate of its full need a day from the national stockpile. Production lines (see Production) turn military factories (and base_factories more, the arsenals and imports every army has) into equipment: `output` of a category a day per factory at the efficiency cap, scaled by efficiency over the cap and by the economy law's military figure. An item costs `ic` (industrial capacity: a military factory's military_factory_ic a day times the cap over `ic` is its output) and materials in thousand tonnes; materials are flows (see Flows) and a shortage slows every line that needs them. No money is spent. Efficiency starts at efficiency_start and climbs to efficiency_cap over efficiency_days of running; a line that changes to another kind of equipment keeps efficiency_keep_kind of what it had (a newer version of the same kind would keep efficiency_keep_version). Shells are the third category: artillery in combat burns its type's `shells` a day (at full strength) from the national stockpile, and with none left loses combat.shell_penalty of its attack. auto_split shares the factories while a nation's lines are automatic. The stockpile at the start is start_stock_days of automatic output.",
 		"categories": {
-			"arms": {"name": "Arms", "floor": 0.35, "output": 0.16, "cost": {"money": 0.004, "iron": 0.004}},
-			"artillery": {"name": "Artillery", "floor": 0.5, "output": 0.14, "cost": {"money": 0.01, "iron": 0.012, "coal": 0.004}}
+			"arms": {"name": "Arms", "floor": 0.35, "output": 0.16, "cost": {"ic": 14.0, "iron": 0.004}},
+			"artillery": {"name": "Artillery", "floor": 0.5, "output": 0.14, "cost": {"ic": 16.0, "iron": 0.012, "coal": 0.004}},
+			"shells": {"name": "Shells", "floor": 1.0, "output": 1.5, "cost": {"ic": 1.5, "iron": 0.055, "nitrates": 0.11}}
 		},
-		"auto_split": {"arms": 0.5, "artillery": 0.5},
-		"efficiency_start": 0.4,
-		"efficiency_days": 90,
+		"auto_split": {"arms": 0.4, "artillery": 0.3, "shells": 0.3},
+		"military_factory_ic": 4.5,
+		"efficiency_start": 0.15,
+		"efficiency_cap": 0.5,
+		"efficiency_days": 120,
+		"efficiency_keep_kind": 0.2,
+		"efficiency_keep_version": 0.85,
 		"combat_use": 0.01,
 		"reinforce_floor": 0.5,
 		"resupply_rate": 0.05,
@@ -36,7 +41,7 @@
 	"unit_types": {
 		"infantry": {"name": "Infantry division", "size": 12000, "needs": {"arms": 12}, "animals": 0.4, "attack": 1.0, "speed": 15.0, "cost": 0.6, "train_days": 30, "color": "#5b6f8a", "share": 0.75},
 		"cavalry": {"name": "Cavalry division", "size": 4000, "needs": {"arms": 4}, "animals": 2.0, "attack": 0.8, "speed": 25.0, "cost": 0.5, "train_days": 45, "color": "#8a7a4a", "share": 0.05},
-		"artillery": {"name": "Artillery brigade", "size": 3000, "needs": {"arms": 3, "artillery": 12}, "animals": 3.0, "attack": 3.0, "speed": 12.0, "cost": 1.2, "train_days": 60, "color": "#8a4a4a", "share": 0.20}
+		"artillery": {"name": "Artillery brigade", "size": 3000, "needs": {"arms": 3, "artillery": 12}, "animals": 3.0, "attack": 3.0, "shells": 0.05, "speed": 12.0, "cost": 1.2, "train_days": 60, "color": "#8a4a4a", "share": 0.20}
 	},
 	"terrain": {
 		"plains": {"name": "Plains", "defense": 1.0, "move": 1.0, "occupy_days": 5, "color": "#d9d38a"},
@@ -48,6 +53,7 @@
 	},
 	"combat": {
 		"casualties_per_point": 7.0,
+		"shell_penalty": 0.75,
 		"morale_floor_effect": 0.5,
 		"morale_loss_per_casualty": 8.0,
 		"morale_loss_base": 0.01,

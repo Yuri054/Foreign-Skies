@@ -529,7 +529,7 @@ func _refresh_production(n: Nation) -> void:
 		_refresh()
 	)
 	_production.add_child(add)
-	_production.add_child(_note("A factory makes one kind of equipment. A line starts slowly and reaches full efficiency after %d days; changing what it makes starts it over. Each item costs money and iron or coal; materials the store lacks are bought abroad at a markup, and a line short of money or cut off by a blockade makes less." % int(Military.cfg.equipment.efficiency_days)))
+	_production.add_child(_note("A factory makes one kind of equipment. A line starts at %d%% efficiency and reaches %d%% after %d days; changing what it makes keeps only %d%% of it. Each item costs industrial capacity and iron, coal or nitrates, which are flows: a line short of one makes less. Shells feed the artillery in battle, and with none left a gun loses %d%% of its attack." % [roundi(Military.cfg.equipment.efficiency_start * 100.0), roundi(Military.cfg.equipment.efficiency_cap * 100.0), int(Military.cfg.equipment.efficiency_days), roundi(Military.cfg.equipment.efficiency_keep_kind * 100.0), roundi(Military.cfg.combat.shell_penalty * 100.0)]))
 
 
 func _production_row(g: GridContainer, n: Nation, line: Dictionary, cats: Array) -> void:
@@ -571,7 +571,7 @@ func _production_row(g: GridContainer, n: Nation, line: Dictionary, cats: Array)
 	count.add_child(more)
 	g.add_child(count)
 	var eff := Production.efficiency(line)
-	_cell(g, "%d%%" % roundi(eff * 100.0), 1, Fmt.GOOD if eff >= 0.999 else Fmt.WARN,
+	_cell(g, "%d%%" % roundi(eff * 100.0), 1, Fmt.GOOD if eff >= Military.cfg.equipment.efficiency_cap - 0.001 else Fmt.WARN,
 			"Efficiency of the line: it climbs while the line runs and starts over if it changes what it makes.")
 	var made_month: float = line.made * 30.0
 	var short: bool = line.limit != ""
@@ -580,8 +580,8 @@ func _production_row(g: GridContainer, n: Nation, line: Dictionary, cats: Array)
 	var cost := Production.item_cost(line.category)
 	var parts: PackedStringArray = []
 	for key in cost:
-		if key == "money":
-			parts.append(Fmt.money(made_month * float(cost[key])))
+		if key == "ic":
+			parts.append("%s IC" % Fmt.thousands(roundi(made_month * float(cost[key]))))
 		else:
 			parts.append("%s %s" % [Economy.cfg.resources[key].name.to_lower(), Fmt.kt(made_month * float(cost[key]))])
 	_cell(g, parts[0], 1, Color.WHITE, ", ".join(parts))

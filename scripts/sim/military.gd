@@ -750,6 +750,21 @@ static func _by_province(armies: Array) -> Dictionary:
 	return at
 
 
+## A day's fighting costs the guns their shells from the national stockpile; a unit it cannot
+## supply loses most of its attack (combat.shell_penalty) that day.
+static func _burn_shells(gs: Node, a: Army) -> void:
+	var n: Nation = gs.nations[a.tag]
+	for u in a.units:
+		var per_day: float = float(cfg.unit_types[u.type].get("shells", 0.0))
+		if per_day <= 0.0:
+			u.shell_starved = false
+			continue
+		var use := per_day * u.strength
+		var have: float = float(n.equipment.get("shells", 0.0))
+		u.shell_starved = have < use
+		n.equipment["shells"] = maxf(0.0, have - use)
+
+
 static func _fight(gs: Node) -> void:
 	var armies: Array = gs.armies.values()
 	var at := _by_province(armies)
@@ -768,6 +783,8 @@ static func _fight(gs: Node) -> void:
 				foes[a] = list
 		if foes.is_empty():
 			continue
+		for a in foes:
+			_burn_shells(gs, a)
 		var incoming := {}
 		for a in foes:
 			incoming[a] = 0.0
