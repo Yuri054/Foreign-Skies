@@ -64,6 +64,8 @@ func _battle_icon_rect(province: int, px: float) -> Rect2:
 func pick_battle_at(world_pos: Vector2) -> int:
 	var px := 1.0 / maxf(_zoom, 0.05)
 	for province: int in GameState.engagements:
+		if not Intel.sees_province(GameState, province):
+			continue
 		if _battle_icon_rect(province, px).grow(2.0 * px).has_point(world_pos):
 			return province
 	return 0
@@ -71,6 +73,8 @@ func pick_battle_at(world_pos: Vector2) -> int:
 
 func _draw_battle_icons(px: float) -> void:
 	for province: int in GameState.engagements:
+		if not Intel.sees_province(GameState, province):
+			continue
 		var rect := _battle_icon_rect(province, px)
 		var c := rect.get_center()
 		draw_circle(c, 11.0 * px, Color(0.62, 0.12, 0.1))
@@ -108,13 +112,25 @@ func card_armies() -> Array[Army]:
 	if _hover <= 0 or _hover == _expanded and _expanded_armies().size() >= 2:
 		return list
 	for a: Army in Military.armies_at(GameState, _hover):
-		if shows(a):
+		if seen(a) == Intel.EXACT:
 			list.append(a)
 	list.sort_custom(func(x: Army, y: Army) -> bool:
 		var mine_x: bool = x.tag == GameState.player_tag
 		var mine_y: bool = y.tag == GameState.player_tag
 		return mine_x and not mine_y or (mine_x == mine_y and x.id < y.id))
 	return list
+
+
+## What the hover card says of armies seen only as an estimate: nation tag to the men they
+## are guessed to number in the hovered province.
+func card_guesses() -> Dictionary:
+	var out := {}
+	if _hover <= 0:
+		return out
+	for a: Army in Military.armies_at(GameState, _hover):
+		if seen(a) == Intel.ESTIMATE:
+			out[a.tag] = out.get(a.tag, 0.0) + Intel.estimate(a.men(), a.id)
+	return out
 
 
 ## One line of the hover card for an army: name, general, men, morale and supply.
@@ -193,9 +209,17 @@ func _draw() -> void:
 
 # ------------------------------------------------------------------ banners
 
-## Whether the map draws this army, by the "Armies on the map" setting.
+## How well the player sees this army (Intel.HIDDEN, ESTIMATE or EXACT): the "Armies on the map"
+## setting can hide more of them, never show more than the player's eyes reach.
+func seen(a: Army) -> int:
+	if not UiSettings.shows_army(GameState, GameState.player_tag, a.tag):
+		return Intel.HIDDEN
+	return Intel.level(GameState, a)
+
+
+## Whether the map draws anything for this army (exactly or as an estimate).
 func shows(a: Army) -> bool:
-	return UiSettings.shows_army(GameState, GameState.player_tag, a.tag)
+	return seen(a) != Intel.HIDDEN
 
 
 func _draw_banners(px: float) -> void:
@@ -208,9 +232,12 @@ func _draw_banners(px: float) -> void:
 		by_province[a.province].append(a)
 	var fanned := _expanded_armies().size() >= 2
 	for id: int in by_province:
-		if fanned and id == _expanded:
-			continue  # drawn one by one below
 		var here: Array = by_province[id]
+		if fanned and id == _expanded:
+			# The armies seen exactly are drawn one by one below; estimates stay as banners.
+			here = here.filter(func(a: Army) -> bool: return seen(a) == Intel.ESTIMATE)
+			if here.is_empty():
+				continue
 		here.sort_custom(func(x: Army, y: Army) -> bool: return x.id < y.id)
 		var centre: Vector2 = MapData.provinces[id].center
 		var size := BANNER * px
@@ -229,10 +256,13 @@ func _draw_banners(px: float) -> void:
 			var count := 0
 			var biggest: Army = null
 			var comp := {}
+			var guess := false
 			for a: Army in here:
 				if a.tag != tag:
 					continue
-				men += a.men()
+				# An army that is only estimated adds its estimate; what it is made of stays unknown.
+				guess = seen(a) == Intel.ESTIMATE
+				men += Intel.estimate(a.men(), a.id) if guess else a.men()
 				count += 1
 				picked = picked or selected.has(a.id)
 				if selected.has(a.id):
@@ -242,7 +272,10 @@ func _draw_banners(px: float) -> void:
 				if biggest == null or a.men() > biggest.men():
 					biggest = a
 			var rect := Rect2(Vector2(centre.x - size.x * 0.5, top + i * (size.y + gap)), size)
-			_draw_banner(rect, px, GameState.nations[tag].color, biggest.shown_icon(), men, count, picked, fighting)
+			if guess:
+				_draw_banner(rect, px, GameState.nations[tag].color, "unknown", men, 1, false, fighting, true)
+			else:
+				_draw_banner(rect, px, GameState.nations[tag].color, biggest.shown_icon(), men, count, picked, fighting)
 			if not comp.is_empty():
 				_draw_composition(comp, rect.get_center().x, rect.end.y + 3.0 * px, px)
 
@@ -252,7 +285,7 @@ func _expanded_armies() -> Array[Army]:
 	var list: Array[Army] = []
 	if _expanded > 0:
 		for a: Army in Military.armies_at(GameState, _expanded):
-			if shows(a):
+			if seen(a) == Intel.EXACT:
 				list.append(a)
 		list.sort_custom(func(x: Army, y: Army) -> bool:
 			var mine_x: bool = x.tag == GameState.player_tag
@@ -299,13 +332,13 @@ func _draw_expanded(px: float) -> void:
 		_draw_composition(a.composition(), rect.get_center().x, rect.end.y + 16.0 * px, px)
 
 
-func _draw_banner(rect: Rect2, px: float, color: Color, icon: String, men: float, count: int, picked: bool, fighting: bool) -> void:
-	draw_rect(rect, color)
+func _draw_banner(rect: Rect2, px: float, color: Color, icon: String, men: float, count: int, picked: bool, fighting: bool, guess := false) -> void:
+	draw_rect(rect, Color(color, 0.8 if guess else 1.0))
 	var frame := Rect2(rect.position + Vector2(2, 2) * px, Vector2(rect.size.y * 1.25 - 4.0 * px, rect.size.y - 4.0 * px))
 	draw_rect(frame, Color(1, 1, 1, 0.92))
 	_draw_symbol(frame, px, icon)
 	var text_color := Color.WHITE if color.get_luminance() < 0.55 else Color.BLACK
-	var label := "%d" % roundi(men / 1000.0)
+	var label := ("~" if guess else "") + "%d" % roundi(men / 1000.0)
 	if count > 1:
 		label += " ×%d" % count
 	var text_x := frame.end.x + 2.0 * px
@@ -356,6 +389,8 @@ func _draw_symbol(r: Rect2, px: float, icon: String) -> void:
 			for i in 3:
 				var cw := inner.size.x / 5.0
 				draw_rect(Rect2(inner.position + Vector2(i * cw * 2.0, 0), Vector2(cw, inner.size.y * 0.3)), ink)
+		"unknown":
+			MapText.draw(self, _font, Vector2(r.position.x, r.end.y - 3.0 * px), "?", HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 15, ink, px)
 		"reserve":
 			draw_line(Vector2(r.position.x, r.get_center().y), Vector2(r.end.x, r.get_center().y), ink, w)
 			draw_line(Vector2(r.get_center().x, r.position.y), Vector2(r.get_center().x, r.end.y), ink, w)
@@ -572,12 +607,15 @@ func _draw_draft(px: float) -> void:
 ## each army standing there (at most CARD_ROWS, then a count of the rest).
 func _draw_card(px: float) -> void:
 	var list := card_armies()
-	if list.is_empty():
+	var guesses := card_guesses()
+	if list.is_empty() and guesses.is_empty():
 		return
 	var centre: Vector2 = MapData.provinces[_hover].center
 	var nations := {}
 	for a in list:
 		nations[a.tag] = true
+	for tag: String in guesses:
+		nations[tag] = true
 	var y := centre.y + (BANNER.y * nations.size() * 0.5 + 12.0) * px
 	for i in mini(list.size(), CARD_ROWS):
 		var a := list[i]
@@ -586,6 +624,13 @@ func _draw_card(px: float) -> void:
 		y += 28.0 * px
 	if list.size() > CARD_ROWS:
 		_pill("+ %d more armies" % (list.size() - CARD_ROWS), Vector2(centre.x, y), px, Color.WHITE, 9)
+		y += 14.0 * px
+	var tags: Array = guesses.keys()
+	tags.sort()
+	for tag: String in tags:
+		_pill("%s · %s men (estimate)" % [GameState.nations[tag].display_name, Intel.estimate_text(guesses[tag])], Vector2(centre.x, y), px,
+				Color(GameState.nations[tag].color.lightened(0.45), 1.0), 9)
+		y += 16.0 * px
 
 
 ## What an army is made of: a tiny symbol per unit type with how many of them, centred under

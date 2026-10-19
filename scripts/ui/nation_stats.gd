@@ -209,7 +209,12 @@ func _refresh() -> void:
 
 	var military := _section("Military")
 	var armies := Military.armies_of(GameState, tag)
-	_row(military, "Under arms", "%s in %d %s" % [Fmt.people(Military.men_in_service(GameState, tag)), armies.size(), "army" if armies.size() == 1 else "armies"], _rank(ranks.army, tag))
+	if Intel.is_friend(GameState, tag):
+		_row(military, "Under arms", "%s in %d %s" % [Fmt.people(Military.men_in_service(GameState, tag)), armies.size(), "army" if armies.size() == 1 else "armies"], _rank(ranks.army, tag))
+	else:
+		# What is known of a nation that is not yours or an ally's: a guess at its strength.
+		_row(military, "Under arms", "%s men (estimate)" % Intel.estimate_text(Intel.estimate(Military.men_in_service(GameState, tag), tag.hash())), _rank(ranks.army, tag),
+				Color.WHITE, "An estimate: your intelligence does not show the real figure.")
 	var squadrons := int(Standings.value(GameState, tag, "navy"))
 	if squadrons > 0 or n.naval_budget > 0.0:
 		_row(military, "Navy", "%d %s afloat" % [squadrons, "squadron" if squadrons == 1 else "squadrons"], _rank(ranks.navy, tag))

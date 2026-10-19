@@ -17,7 +17,7 @@ const SCALE_STEP := 0.05
 static var scale := 1.0
 
 ## Which armies the map draws: "all", "allies" (yours and your allies') or "own".
-const ARMY_VIEWS := {"all": "All armies", "allies": "Mine and allies'", "own": "Mine only"}
+const ARMY_VIEWS := {"all": "Everything I can see", "allies": "Mine and allies'", "own": "Mine only"}
 static var army_view := "all"
 ## Whether the command panel at the bottom shows its cards (C hides them).
 static var command_open := true

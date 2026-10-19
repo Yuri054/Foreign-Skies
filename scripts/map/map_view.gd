@@ -459,14 +459,20 @@ func _count_forces() -> void:
 	_men_at.clear()
 	_coverage_at.clear()
 	var covered := {}
+	var known := {}
 	for a: Army in GameState.armies.values():
 		if a.embarked():
 			continue
-		var men := a.men()
+		var level := Intel.level(GameState, a)
+		if level == Intel.HIDDEN:
+			continue
+		var men := Intel.men_seen(GameState, a)
 		_men_at[a.province] = _men_at.get(a.province, 0.0) + men
-		covered[a.province] = covered.get(a.province, 0.0) + Military.army_coverage(a) * men
+		if level == Intel.EXACT:
+			covered[a.province] = covered.get(a.province, 0.0) + Military.army_coverage(a) * men
+			known[a.province] = known.get(a.province, 0.0) + men
 	for id: int in covered:
-		_coverage_at[id] = covered[id] / maxf(_men_at[id], 1.0)
+		_coverage_at[id] = covered[id] / maxf(known[id], 1.0)
 	_max_value = 0.0
 	for id: int in _men_at:
 		_max_value = maxf(_max_value, _men_at[id])

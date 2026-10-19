@@ -174,13 +174,22 @@ func show_province(id: int) -> void:
 		_section("Built")
 		_table(built)
 
-	var here := Military.armies_at(GameState, id)
+	var here := Military.armies_at(GameState, id).filter(func(a: Army) -> bool: return Intel.level(GameState, a) != Intel.HIDDEN)
 	var docked := Navy.fleets_in_port(GameState, id)
 	if not here.is_empty() or not docked.is_empty():
 		_section("Forces")
 		var rows: Array = []
+		var guessed := {}
 		for a in here:
-			rows.append(["%s army" % a.tag, "%s (%s)" % [a.display_name, Fmt.people(a.men())]])
+			match Intel.level(GameState, a):
+				Intel.EXACT:
+					rows.append(["%s army" % a.tag, "%s (%s)" % [a.display_name, Fmt.people(a.men())]])
+				Intel.ESTIMATE:
+					guessed[a.tag] = guessed.get(a.tag, 0.0) + Intel.estimate(a.men(), a.id)
+		var tags: Array = guessed.keys()
+		tags.sort()
+		for tag: String in tags:
+			rows.append(["%s forces" % tag, "%s men (estimate)" % Intel.estimate_text(guessed[tag])])
 		for fl in docked:
 			rows.append(["%s fleet" % fl.tag, "%s (%d squadrons)" % [fl.display_name, fl.ships.size()]])
 		_table(rows)
