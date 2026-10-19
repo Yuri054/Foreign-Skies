@@ -4,6 +4,7 @@ extends FloatingWindow
 ## staying out would cost. Join or Stay out answers it; the next waiting decision follows.
 
 var _title := Label.new()
+var _flag := FlagIcon.new()
 var _why := Label.new()
 var _join_text := Label.new()
 var _stay_text := Label.new()
@@ -27,7 +28,12 @@ func _ready() -> void:
 	setup_window("Decision", false, Vector2(540, 0), 0, true, Color(0.55, 0.4, 0.12))
 
 	_title.add_theme_font_size_override("font_size", 22)
-	box.add_child(_title)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	_flag.custom_minimum_size = Vector2(48, 32)
+	head.add_child(_flag)
+	head.add_child(_title)
+	box.add_child(head)
 	for l: Label in [_why, _join_text, _stay_text]:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(l)
@@ -59,6 +65,7 @@ func _show_next() -> void:
 		return
 	_decision = GameState.pending_joins[0]
 	var d := _decision
+	_flag.tag = d.ally
 	var ally: String = GameState.nations[d.ally].display_name
 	var names: PackedStringArray = []
 	for e: String in d.enemies:

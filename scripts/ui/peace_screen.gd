@@ -10,6 +10,8 @@ var _offer: Dictionary = {}
 var _incoming := false
 
 var _title := Label.new()
+var _flag_a := FlagIcon.new()
+var _flag_b := FlagIcon.new()
 var _score := Label.new()
 var _mode := OptionButton.new()
 var _compose := VBoxContainer.new()
@@ -54,7 +56,14 @@ func _ready() -> void:
 	setup_window("Peace talks", true, Vector2(600, 0), 0, true)
 
 	_title.add_theme_font_size_override("font_size", 20)
-	box.add_child(_title)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	_flag_a.custom_minimum_size = Vector2(42, 28)
+	_flag_b.custom_minimum_size = Vector2(42, 28)
+	head.add_child(_flag_a)
+	head.add_child(_flag_b)
+	head.add_child(_title)
+	box.add_child(head)
 	_score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_score)
 
@@ -217,6 +226,8 @@ func _show_next_offer() -> void:
 	var me: String = GameState.player_tag
 	var other: String = offer.from
 	var other_name: String = GameState.nations[other].display_name
+	_flag_a.tag = other
+	_flag_b.tag = me
 	_title.text = "%s proposes peace" % other_name
 	var score := Peace.war_score(GameState, war, me) if war != null else 0.0
 	_score.text = "War score: you %+.1f." % score
@@ -288,6 +299,8 @@ func _rebuild_terms() -> void:
 	var taker := _taker()
 	var me_name: String = GameState.nations[_me()].display_name
 	var enemy_name: String = GameState.nations[_enemy()].display_name
+	_flag_a.tag = _me()
+	_flag_b.tag = _enemy()
 	_title.text = "Peace between %s and %s" % [me_name, enemy_name]
 	var entries: Array = []
 	for id: int in GameState.nations[giver].provinces:
