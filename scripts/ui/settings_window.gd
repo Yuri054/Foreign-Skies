@@ -10,6 +10,7 @@ var _scale_label := Label.new()
 var _scale_held := false
 var _note := Label.new()
 var _army_view := OptionButton.new()
+var _map_3d := CheckButton.new()
 var _updating := false
 ## Whether the window offers a way back to the main menu (the menu's own copy does not).
 var offer_quit_to_menu := true
@@ -79,6 +80,16 @@ func _ready() -> void:
 	)
 	box.add_child(_army_view)
 
+	_map_3d.text = "3D map (V)"
+	_map_3d.focus_mode = Control.FOCUS_NONE
+	_map_3d.tooltip_text = "Shows the map in 3D, tilted under a perspective camera. Page Up and Page Down tilt it; the flat map is the default."
+	_map_3d.toggled.connect(func(on: bool) -> void:
+		if not _updating:
+			for m in get_tree().get_nodes_in_group("map_3d"):
+				m.set_enabled(on)
+	)
+	box.add_child(_map_3d)
+
 	var sound := Label.new()
 	sound.text = "Sound"
 	box.add_child(sound)
@@ -138,6 +149,8 @@ func toggle() -> void:
 ## Shows the scale in force.
 func _sync() -> void:
 	_updating = true
+	for m in get_tree().get_nodes_in_group("map_3d"):
+		_map_3d.button_pressed = m.enabled
 	_slider.value = UiSettings.scale
 	_scale_label.text = "%d%%" % roundi(UiSettings.scale * 100.0)
 	for i in _army_view.item_count:

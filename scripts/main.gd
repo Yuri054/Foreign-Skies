@@ -11,6 +11,7 @@ const NavalBattleScreen := preload("res://scripts/ui/naval_battle_screen.gd")
 const AIOverlay := preload("res://scripts/map/ai_overlay.gd")
 const SlotLabels := preload("res://scripts/map/slot_labels.gd")
 const CityLayer := preload("res://scripts/map/city_layer.gd")
+const Map3DMode := preload("res://scripts/map/map_3d.gd")
 ## How solid the army and fleet banners are while the Construction map mode is on.
 const BUILD_MODE_UNIT_ALPHA := 0.25
 const EventFeed := preload("res://scripts/ui/event_feed.gd")
@@ -58,6 +59,10 @@ func _ready() -> void:
 	slot_labels.map_view = map_view
 	slot_labels.camera = camera
 	add_child(slot_labels)
+	# The 3D view of the map, off until V (or the Settings window) switches it on.
+	var map_3d := Map3DMode.new()
+	map_3d.main = self
+	add_child(map_3d)
 	map_view.province_hovered.connect(army_layer.set_hover)
 	map_view.province_selected.connect(army_layer.set_expanded)
 	map_view.battle_clicked.connect(func(province: int) -> void:

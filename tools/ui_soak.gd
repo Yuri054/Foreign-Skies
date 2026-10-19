@@ -76,7 +76,7 @@ func _act() -> void:
 			if panel != null and not mine.is_empty():
 				panel.select_ids(mine)
 		6:
-			var keys := [KEY_E, KEY_B, KEY_M, KEY_F, KEY_N, KEY_R, KEY_C, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_SPACE, KEY_ESCAPE, KEY_TAB, KEY_Q, KEY_W]
+			var keys := [KEY_V, KEY_V, KEY_PAGEUP, KEY_PAGEDOWN, KEY_E, KEY_B, KEY_M, KEY_F, KEY_N, KEY_R, KEY_C, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_SPACE, KEY_ESCAPE, KEY_TAB, KEY_Q, KEY_W]
 			var ev := InputEventKey.new()
 			ev.keycode = keys[rng.randi() % keys.size()]
 			ev.physical_keycode = ev.keycode
