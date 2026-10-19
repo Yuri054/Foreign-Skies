@@ -84,7 +84,7 @@ static func _issue(gs: Node) -> void:
 					u.equip["arms"] = maxf(0.0, float(u.equip.get("arms", 0.0)) - float(u.needs().arms) * float(cfg.equipment.combat_use))
 					u.refresh_factor()
 			else:
-				u.draw(n.equipment, rate * n.army_ready)
+				u.draw(n.equipment, rate * n.army_ready * (1.0 + float(cfg.cities.resupply) * city_aura(gs, a.tag, a.province)))
 
 
 ## Held equipment over need for one category across an army's units (0..1); 1 if no unit uses it.
@@ -258,12 +258,62 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 	return path
 
 
+# ------------------------------------------------------------------ city aura
+
+static var _aura: Dictionary = {}
+static var _aura_day := -1
+static var _aura_owner := 0
+static var _aura_version := -1
+
+
+## The strength of the cities' aura (0 to 1) over a province for the nation that holds it: the
+## strongest of the cities near enough that the nation owns and controls, itself and the ground
+## between. 0 for ground that is not the nation's own. Worked out once a day.
+static func city_aura(gs: Node, tag: String, id: int) -> float:
+	if _aura_day != Clock.days_elapsed or _aura_owner != gs.get_instance_id() or _aura_version != gs.owner_version:
+		_aura = _build_aura(gs)
+		_aura_day = Clock.days_elapsed
+		_aura_owner = gs.get_instance_id()
+		_aura_version = gs.owner_version
+	return float(_aura.get(tag, {}).get(id, 0.0))
+
+
+static func _build_aura(gs: Node) -> Dictionary:
+	var out := {}
+	var power: Dictionary = cfg.cities.power
+	var radius: Dictionary = cfg.cities.radius
+	for city: Dictionary in gs.cities:
+		var home: int = city.province
+		var owner: String = gs.province_owner[home]
+		if gs.province_controller[home] != owner:
+			continue
+		var strength := float(power[str(city.rank)])
+		var reach := int(radius[str(city.rank)])
+		var by_tag: Dictionary = out.get(owner, {})
+		out[owner] = by_tag
+		var dist := {home: 0}
+		var open := [home]
+		while not open.is_empty():
+			var cur: int = open.pop_front()
+			var here := strength * (1.0 - float(dist[cur]) / float(reach + 1))
+			if here > float(by_tag.get(cur, 0.0)):
+				by_tag[cur] = here
+			if dist[cur] >= reach:
+				continue
+			for nb: int in neighbors(cur):
+				if dist.has(nb) or gs.province_owner[nb] != owner or gs.province_controller[nb] != owner:
+					continue
+				dist[nb] = dist[cur] + 1
+				open.append(nb)
+	return out
+
+
 ## Supply distance in hops from the nearest province the nation controls (railways make a hop
 ## cheaper); INF if it is farther than the supply range.
 static func supply_cost(gs: Node, tag: String, from: int) -> float:
 	if gs.province_controller[from] == tag and home_connected(gs, tag, from):
 		return 0.0
-	var limit: float = cfg.supply.range
+	var limit: float = cfg.supply.range + float(cfg.cities.supply_range) * city_aura(gs, tag, from)
 	var dist := {from: 0.0}
 	var open := [from]
 	while not open.is_empty():
@@ -1161,13 +1211,20 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 			_add_loss(gs, a.tag, [], before - a.men(), "attrition")
 		elif not a.fighting:
 			var n: Nation = gs.nations[a.tag]
+			var aura := city_aura(gs, a.tag, a.province)
 			for u in a.units:
-				u.morale = minf(1.0, u.morale + cfg.combat.morale_regain * n.army_ready)
+				u.morale = minf(1.0, u.morale + cfg.combat.morale_regain * n.army_ready * (1.0 + float(cfg.cities.morale) * aura))
 				if u.strength < 1.0 and n.manpower > 0:
-					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate * n.army_ready * lerpf(float(cfg.equipment.reinforce_floor), 1.0, u.coverage_min()))
+					var want := minf(1.0 - u.strength, cfg.supply.reinforce_rate * (1.0 + float(cfg.cities.reinforce) * aura) * n.army_ready * lerpf(float(cfg.equipment.reinforce_floor), 1.0, u.coverage_min()))
 					var taken := mini(n.manpower, ceili(want * u.full_size()))
 					n.manpower -= taken
 					u.strength = minf(1.0, u.strength + float(taken) / u.full_size())
+		if a.fighting and not a.units.is_empty():
+			# A city's aura steadies the men even in battle.
+			var steady := city_aura(gs, a.tag, a.province) * float(cfg.cities.morale) * float(cfg.cities.morale_fighting)
+			if steady > 0.0:
+				for u in a.units:
+					u.morale = minf(1.0, u.morale + cfg.combat.morale_regain * gs.nations[a.tag].army_ready * steady)
 		if a.path.is_empty():
 			a.still_days += 1
 	for a: Army in armies:

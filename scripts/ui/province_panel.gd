@@ -189,10 +189,13 @@ func show_province(id: int) -> void:
 	var used := Economy.slots_used(GameState, id)
 	var slots := Economy.slots_of(GameState, id)
 	# What matters at a glance stays on the card.
+	var aura := Military.city_aura(GameState, owner_tag, id)
 	var towns: Array = GameState.cities_by_province.get(id, [])
 	var city_rows: Array = []
 	for c: Dictionary in towns:
 		city_rows.append(["Capital" if c.rank == 1 else "City", "%s  ·  %s%s" % [c.name, CityLayer.people(c.pop), "" if not c.est else " (est.)"]])
+	if aura > 0.0 and GameState.province_controller[id] == owner_tag:
+		city_rows.append(["Aura", "%d%% supply and morale" % roundi(aura * 100.0)])
 	if not city_rows.is_empty():
 		_table(city_rows, _box)
 	_table([
