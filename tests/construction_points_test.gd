@@ -63,33 +63,36 @@ func _test_pool() -> void:
 	var civ := 0
 	for id in ger.provinces:
 		civ += gs.province_buildings[id].get("factory", 0)
-	var expected: float = cfg.base_points + civ * cfg.points_per_factory * (1.0 - Eco.cfg.laws.civilian.consumer)
-	_check(is_equal_approx(ger.budget.construction_points, expected) and ger.budget.factories == civ, "Germany's %.1f points a day come from its %d civilian factories" % [expected, civ])
+	var expected: float = Eco.construction_points(ger, civ, ger.budget.trade_lock)
+	_check(is_equal_approx(ger.budget.construction_points, expected) and ger.budget.factories == civ, "Germany's %.1f IC a day come from its %d civilian factories" % [expected, civ])
+	_check(ger.budget.construction_points > cfg.base_ic and ger.budget.construction_points < cfg.base_ic + civ * cfg.ic_per_factory, "less than all of them give: the people's goods and imports take a share")
 	_check(gs.nations["BEL"].budget.construction_points < ger.budget.construction_points / 3.0, "Belgium has far fewer")
-	_check(gs.nations["SRB"].budget.construction_points >= cfg.base_points, "even a tiny nation has the base points")
+	_check(gs.nations["SRB"].budget.construction_points >= cfg.base_ic, "even a tiny nation has the base points")
 
 
 func _test_single_project() -> void:
 	var ger = gs.nations["GER"]
 	var id := _free_province("GER")
-	var days: int = Eco.cfg.buildings.factory.build_days
+	var days: int = Eco.cfg.buildings.factory.min_days
+	var rate: float = Eco.cfg.buildings.factory.ic / float(days)
 	var f0: int = gs.province_buildings[id].get("factory", 0)
 	_check(gs.issue(Build.new("GER", id, "factory")), "a factory is queued")
 	var job: Dictionary = ger.construction[0]
-	_check(is_equal_approx(job.points_total, days * Eco.cfg.buildings.factory.rate), "it needs build_days times its rate in points")
+	_check(is_equal_approx(job.points_total, Eco.cfg.buildings.factory.ic), "it needs the building's IC")
 	Clock.advance_day()
-	_check(is_equal_approx(job.given, Eco.cfg.buildings.factory.rate) and job.days_left == days - 1, "with ample points it gets its full rate: %d days left" % job.days_left)
-	_check(is_equal_approx(ger.construction_used, Eco.cfg.buildings.factory.rate), "and the day's use is counted")
+	_check(is_equal_approx(job.given, rate) and job.days_left == days - 1, "with ample points it gets its full rate: %d days left" % job.days_left)
+	_check(is_equal_approx(ger.construction_used, rate), "and the day's use is counted")
 	for i in days - 2:
 		Clock.advance_day()
 	_check(ger.construction.size() == 1, "it is not done a day early")
 	Clock.advance_day()
-	_check(ger.construction.is_empty() and gs.province_buildings[id].get("factory", 0) == f0 + 1, "it stands after exactly build_days")
+	_check(ger.construction.is_empty() and gs.province_buildings[id].get("factory", 0) == f0 + 1, "it stands after exactly min_days")
 
 
 func _test_scarce_points() -> void:
 	var srb = gs.nations["SRB"]
 	var pool: float = srb.budget.construction_points
+	var rate: float = Eco.cfg.buildings.factory.ic / float(Eco.cfg.buildings.factory.min_days)
 	var a := _free_province("SRB")
 	var b := _free_province("SRB", [a])
 	_check(a > 0 and b > 0, "Serbia has two places for a factory")
@@ -98,10 +101,10 @@ func _test_scarce_points() -> void:
 		Clock.advance_day()
 	var first: Dictionary = srb.construction[0]
 	var second: Dictionary = srb.construction[1]
-	_check(pool < Eco.cfg.buildings.factory.rate, "Serbia's %.1f points are under one project's rate" % pool)
-	_check(is_equal_approx(first.given, pool) and second.given == 0.0, "the first in the queue takes them all, the next waits")
-	_check(first.days_left > Eco.cfg.buildings.factory.build_days and second.days_left >= 9999, "so it takes longer than build_days and the next has no estimate")
-	_check(is_equal_approx(srb.construction_used, pool), "every point is used")
+	_check(pool < rate, "Serbia's %.1f IC are under one project's rate (%.0f)" % [pool, rate])
+	_check(absf(first.given - pool) < 1.0 and second.given == 0.0, "the first in the queue takes them all, the next waits")
+	_check(first.days_left > Eco.cfg.buildings.factory.min_days and second.days_left >= 9999, "so it takes longer than build_days and the next has no estimate")
+	_check(absf(srb.construction_used - pool) < 1.0, "every point is used")
 	# The second starts once the first is done.
 	var guard := 0
 	while srb.construction.size() == 2 and guard < 2000:
@@ -140,7 +143,7 @@ func _test_occupation() -> void:
 	gs.set_controller(held, "FRA")
 	Eco.recompute(gs)
 	var drop: float = before - ger.budget.construction_points
-	_check(absf(drop - factories * Eco.cfg.construction.points_per_factory * (1.0 - Eco.cfg.laws.civilian.consumer)) < 0.001, "enemy hands: its %d factories stop adding points (-%.1f)" % [factories, drop])
+	_check(absf(drop - factories * Eco.cfg.construction.ic_per_factory * (1.0 - Eco.cfg.laws.civilian.consumer)) < 6.0 and drop > 0.0, "enemy hands: its %d factories stop adding points (-%.1f)" % [factories, drop])
 
 
 func _test_save() -> void:

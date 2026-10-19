@@ -166,7 +166,7 @@ func act_on(id: int, retool := false) -> bool:
 			return false
 		var cmd := ConvertFactory.new(tag, id, type)
 		if GameState.issue(cmd):
-			_say("Retooling a factory in %s: £%.1fM, %d days." % [MapData.provinces[id].name, ConvertFactory.cost_of(type), Economy.cfg.factories.convert_days], Fmt.GOOD)
+			_say("Retooling a factory in %s: %s IC, %d days." % [MapData.provinces[id].name, Fmt.thousands(int(ConvertFactory.cost_of(type))), Economy.cfg.factories.convert_days], Fmt.GOOD)
 			return true
 		_say(cmd.reason, Fmt.WARN)
 		return false
@@ -176,7 +176,7 @@ func act_on(id: int, retool := false) -> bool:
 		return false
 	var plan := Economy.build_plan(GameState, id, type)
 	if GameState.issue(ConstructBuilding.new(tag, id, type)):
-		_say("%s in %s: £%.1fM, %d days." % [Economy.cfg.buildings[type].name, MapData.provinces[id].name, plan.total, Economy.cfg.buildings[type].build_days], Fmt.GOOD)
+		_say("%s in %s: %s IC, at least %d days." % [Economy.cfg.buildings[type].name, MapData.provinces[id].name, Fmt.thousands(int(plan.ic)), plan.days], Fmt.GOOD)
 		return true
 	return false
 
@@ -199,7 +199,7 @@ func status_of(id: int) -> String:
 	var problem := Economy.build_problem(GameState, tag, id, type)
 	if problem.is_empty():
 		var plan := Economy.build_plan(GameState, id, type)
-		return "%s (%s): click to build for £%.1fM, %d days." % [pname, held, plan.total, Economy.cfg.buildings[type].build_days]
+		return "%s (%s): click to build for %s IC, at least %d days." % [pname, held, Fmt.thousands(int(plan.ic)), plan.days]
 	return "%s (%s): %s." % [pname, held, problem]
 
 
@@ -283,7 +283,7 @@ func _detail_text(type: String) -> String:
 	var def: Dictionary = Economy.cfg.buildings[type]
 	var lines: PackedStringArray = []
 	if def.get("slot", false):
-		lines.append("Takes one building slot. £%.1fM each, %d days." % [def.cost, def.build_days])
+		lines.append("Takes one building slot. %s IC each, at least %d days, at most %d in a province." % [Fmt.thousands(int(def.ic)), def.min_days, def.get("max_per_province", 99)])
 		lines.append("A province's slots come from its people and its infrastructure: each point of it, a railway level or half of a neighbour's, adds a slot. The numbers on the map are slots used out of slots.")
 		if type == "factory":
 			var me := GameState.get_player()
@@ -291,7 +291,7 @@ func _detail_text(type: String) -> String:
 		else:
 			lines.append("Makes equipment instead of income. Retooling a civilian factory costs its output.")
 	else:
-		lines.append("Level 1 costs £%.1fM, each further level more. %d days." % [def.cost, def.build_days])
+		lines.append("Level 1 costs %s IC%s. At least %d days a level, at most %d levels." % [Fmt.thousands(int(def.ic)), ", each further level more" if def.get("ic_growth", 0.0) > 0.0 else "", def.min_days, def.max_level])
 		var effects := _effects_text(def.effects)
 		if effects != "":
 			lines.append("Per level: " + effects)

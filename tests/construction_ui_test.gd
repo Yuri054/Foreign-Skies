@@ -114,8 +114,8 @@ func _test_clicks() -> void:
 	var jobs: int = ger.construction.size()
 	var cash: float = ger.treasury
 	map_view.select(id)
-	_check(ger.construction.size() == jobs + 1 and ger.treasury < cash, "a click on a green province queues a factory and pays for it")
-	_check(panel._status.text.contains("days"), "and says what it cost: " + panel._status.text)
+	_check(ger.construction.size() == jobs + 1 and is_equal_approx(ger.treasury, cash), "a click on a green province queues a factory, which costs no money")
+	_check(panel._status.text.contains("IC"), "and says what it cost: " + panel._status.text)
 	# A province that cannot take it.
 	var blocked: int = ger.capital
 	gs.province_slots[blocked] = Eco.slots_used(gs, blocked)
@@ -126,8 +126,14 @@ func _test_clicks() -> void:
 	map_view.select(foreign)
 	_check(ger.construction.size() == jobs, "foreign land cannot be built on")
 	ger.treasury = 0.0
-	map_view.select(id)
-	_check(ger.construction.size() == jobs and "money" in panel._status.text, "without money nothing is queued: " + panel._status.text)
+	jobs = ger.construction.size()
+	var other := 0
+	for p in ger.provinces:
+		if p != id and Eco.build_problem(gs, "GER", p, "factory").is_empty():
+			other = p
+			break
+	map_view.select(other)
+	_check(ger.construction.size() == jobs + 1, "with an empty treasury it is still queued: " + panel._status.text)
 	ger.treasury = 5000.0
 
 

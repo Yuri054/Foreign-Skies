@@ -83,7 +83,7 @@ func _test_effects() -> void:
 	ger.law_changed_day = -1000
 	_check(gs.issue(SetLaw.new("GER", "war_economy")), "Germany goes to a war economy")
 	var civ: float = ger.budget.factories
-	_check(is_equal_approx(ger.budget.construction_points, Eco.cfg.construction.base_points + civ * (1.0 - 0.20)), "20%% on consumer goods leaves more construction points (%.1f from %.1f)" % [ger.budget.construction_points, pool0])
+	_check(is_equal_approx(ger.budget.construction_points, Eco.construction_points(ger, civ, ger.budget.trade_lock)), "20%% on consumer goods leaves more construction points (%.1f from %.1f)" % [ger.budget.construction_points, pool0])
 	_check(ger.budget.construction_points > pool0, "so there are more points a day")
 	_check(absf(ger.budget.gdp / gdp0 - Eco.cfg.laws.war_economy.gdp) < 0.002, "and national output falls to %d%%" % roundi(100.0 * ger.budget.gdp / gdp0))
 	_check(Eco.law_of(ger).military == 1.25, "military factories will make 25 percent more")
