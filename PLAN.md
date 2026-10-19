@@ -57,7 +57,7 @@ Decided: keep the small button, nothing else.
 *Done:* a two-year AI run shows no nation stuck at zero shells in peace, and every power with a nitrate shortage builds a plant.
 
 **3.4 Naval build on IC (M, reopens a decision).** Ships still use the old money build system. Move shipbuilding to IC and materials, with the dockyard building (already defined, hidden) setting yard capacity.
-Decided: yes, now.
+Decided: yes, now. *Done:* hulls draw IC from the construction pool, gold cost removed, AI throttles on the pool (see DESIGN.md). The dockyard building stays hidden: port level still sets yard capacity.
 
 **3.5 Interface and tutorial (S).** Economy Overview shows the weariness, labor and starvation lines in a clear block, the Production tab explains each line's limit, and the tutorial's economy steps match.
 

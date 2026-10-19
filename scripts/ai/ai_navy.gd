@@ -502,11 +502,12 @@ static func build(gs: Node, tag: String) -> void:
 	var plan: Dictionary = Navy.ship_plan(gs, tag, type, 1)
 	if n.treasury - plan.total < float(b.build_floor):
 		return
-	var monthly_revenue := maxf(0.0, float(n.budget.get("revenue", 0.0))) / 12.0
-	var in_hand: float = plan.total
+	# The slips draw on the construction pool: hulls already building plus this one may take only a share of it.
+	var pool: float = n.budget.get("construction_points", 0.0)
+	var rate := float(def.ic) / maxf(float(def.build_days), 1.0)
 	for job in n.shipbuilding:
-		in_hand += float(Navy.cfg.types[job.type].cost)
-	if in_hand > float(b.income_share) * monthly_revenue * float(b.horizon_months):
+		rate += float(job.rate)
+	if rate > float(b.income_share) * pool:
 		return
 	if float(n.budget.get("net", 0.0)) - float(def.upkeep) < -float(b.deficit_tolerance) * float(n.budget.get("revenue", 0.0)):
 		return

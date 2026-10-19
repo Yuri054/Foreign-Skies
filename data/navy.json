@@ -1,5 +1,5 @@
 {
-	"_note": "Navy constants. Money is GBP millions; upkeep is per year; speeds are km per day; materials are thousand tonnes per squadron; attack is per squadron at full strength and morale. A 'squadron' is a handful of hulls (see DESIGN.md phase 7).",
+	"_note": "Navy constants. Ships cost IC (industrial capacity, drawn from the construction pool over build_days) and materials; money pays only upkeep and imported materials. `cost` is the old money price, kept for the AI's budget sense; upkeep is per year; speeds are km per day; materials are thousand tonnes per squadron; attack is per squadron at full strength and morale. A 'squadron' is a handful of hulls (see DESIGN.md phase 7).",
 	"port_days": 1,
 	"min_hop_days": 1,
 	"slots_per_port_level": 2,
@@ -19,6 +19,7 @@
 			"detection": 1.0,
 			"upkeep": 2.0,
 			"cost": 10.0,
+			"ic": 10000,
 			"build_days": 720,
 			"min_port": 3,
 			"materials": {
@@ -39,6 +40,7 @@
 			"detection": 1.5,
 			"upkeep": 0.8,
 			"cost": 4.0,
+			"ic": 4000,
 			"build_days": 420,
 			"min_port": 2,
 			"materials": {
@@ -59,6 +61,7 @@
 			"detection": 1.0,
 			"upkeep": 0.4,
 			"cost": 1.5,
+			"ic": 1500,
 			"build_days": 200,
 			"min_port": 1,
 			"materials": {
@@ -79,6 +82,7 @@
 			"detection": 0.4,
 			"upkeep": 0.3,
 			"cost": 1.2,
+			"ic": 1200,
 			"build_days": 240,
 			"min_port": 1,
 			"materials": {
@@ -99,6 +103,7 @@
 			"detection": 0.8,
 			"upkeep": 0.3,
 			"cost": 1.0,
+			"ic": 1000,
 			"build_days": 150,
 			"min_port": 1,
 			"materials": {

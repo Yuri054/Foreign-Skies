@@ -42,6 +42,14 @@ func _days(n: int) -> void:
 		Nav.step_day(gs)
 
 
+## Days with the economy too: the hulls draw their IC from the construction pool.
+func _econ_days(n: int) -> void:
+	var econ = load("res://scripts/sim/economy.gd")
+	for i in n:
+		econ.step_day(gs)
+		Nav.step_day(gs)
+
+
 func _initialize() -> void:
 	await process_frame
 	gs = root.get_node("GameState")
@@ -170,15 +178,19 @@ func _test_building() -> void:
 	var treasury: float = n.treasury
 	var iron: float = n.stock.iron
 	_check(gs.issue(RaiseC.new("GER", 394, "dreadnought", 1)), "the order is accepted")
-	_check(n.shipbuilding.size() == 1 and absf(treasury - n.treasury - plan.total) < 0.001, "it costs %.1fM up front" % plan.total)
+	_check(n.shipbuilding.size() == 1 and absf(treasury - n.treasury - plan.total) < 0.001 and plan.gold == 0.0, "it costs no gold, only imported materials (%.1fM)" % plan.total)
+	_check(absf(n.shipbuilding[0].points_total - 10000.0) < 0.001, "the hull costs 10,000 IC")
 	_check(absf(iron - n.stock.iron - plan.from_stock.iron) < 0.001, "materials come out of the stockpile")
 	_check(Nav.build_problem(gs, "GER", 394, "dreadnought", 6) == "The yard is full", "a port builds only so many at once")
 	var seas = _fleet("GER", "High Seas Fleet")
 	var before: int = seas.ships.size()
-	n.shipbuilding[0].days_left = 2
-	_days(1)
-	_check(n.shipbuilding.size() == 1 and seas.ships.size() == before, "nothing launches early")
-	_days(1)
+	_econ_days(1)
+	_check(n.shipbuilding.size() == 1 and n.shipbuilding[0].given > 0.0 and n.shipbuilding[0].points_left < 10000.0 and seas.ships.size() == before, "each day takes IC from the construction pool, nothing launches early")
+	_check(n.construction_used > 0.0, "and the pool shows it in use")
+	n.shipbuilding[0].points_left = n.shipbuilding[0].rate * 1.5
+	_econ_days(1)
+	_check(n.shipbuilding.size() == 1 and seas.ships.size() == before, "the last points are not yet in")
+	_econ_days(1)
 	_check(n.shipbuilding.is_empty() and seas.ships.size() == before + 1 and seas.ships[-1].type == "dreadnought", "the squadron joins the fleet in port")
 	var c = gs.nations["GBR"]
 	c.treasury = 100.0
@@ -188,8 +200,10 @@ func _test_building() -> void:
 	_check(Nav.build_problem(gs, "GBR", 330, "submarine", 0) != "", "a count of none is no order")
 	_check(Nav.build_problem(gs, "XXX", 330, "destroyer", 1) != "", "an unknown nation builds nothing")
 	var poor = gs.nations["DEN"]
-	poor.treasury = 0.1
-	_check(Nav.build_problem(gs, "DEN", 91, "cruiser", 1).begins_with("Not enough money") or Nav.build_problem(gs, "DEN", 91, "cruiser", 1) == "Needs a level 2 port", "no money, no ships")
+	poor.treasury = 0.0
+	poor.stock.iron = 0.0
+	poor.stock.wood = 0.0
+	_check(Nav.build_problem(gs, "DEN", 91, "cruiser", 1).begins_with("Not enough money") or Nav.build_problem(gs, "DEN", 91, "cruiser", 1) == "Needs a level 2 port", "no money for imported materials, no ships")
 	_check(not gs.issue(RaiseC.new("DEN", 91, "cruiser", 1)), "and the order is refused")
 	var g = gs.nations["FRA"]
 	g.treasury = 100.0
@@ -200,9 +214,9 @@ func _test_building() -> void:
 	_check(Nav.build_problem(gs, "FRA", 247, "dreadnought", 1) == "", "but can once the blockade lifts (it buys at a markup)")
 	n.treasury = 100.0
 	gs.issue(RaiseC.new("GER", 394, "destroyer", 1))
-	n.shipbuilding[0].days_left = 1
+	n.shipbuilding[0].points_left = 0.001
 	gs.set_controller(394, "FRA")
-	_days(1)
+	_econ_days(1)
 	_check(n.shipbuilding.is_empty() and seas.ships.size() == before + 1, "a captured yard launches nothing")
 	gs.set_controller(394, "GER")
 

@@ -335,7 +335,7 @@ static func _drown(gs: Node, a: Army, frac: float, what: String) -> void:
 static func ship_plan(gs: Node, tag: String, type: String, count: int) -> Dictionary:
 	var def: Dictionary = cfg.types[type]
 	var n: Nation = gs.nations[tag]
-	var plan := {"gold": def.cost * count, "materials": {}, "from_stock": {}, "buy": {}, "purchase": 0.0, "total": 0.0, "blocked": ""}
+	var plan := {"gold": 0.0, "ic": float(def.ic) * count, "materials": {}, "from_stock": {}, "buy": {}, "purchase": 0.0, "total": 0.0, "blocked": ""}
 	for r in def.materials:
 		var need: float = def.materials[r] * count
 		var use := minf(need, n.stock.get(r, 0.0))
@@ -484,8 +484,7 @@ static func _build(gs: Node) -> bool:
 		var n: Nation = gs.nations[tag]
 		for i in range(n.shipbuilding.size() - 1, -1, -1):
 			var job: Dictionary = n.shipbuilding[i]
-			job.days_left -= 1
-			if job.days_left > 0:
+			if job.points_left > 0.0001:
 				continue
 			n.shipbuilding.remove_at(i)
 			# A yard that has changed hands launches nothing.

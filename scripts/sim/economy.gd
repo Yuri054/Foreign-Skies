@@ -652,12 +652,19 @@ static func step_day(gs: Node) -> void:
 	var finished := false
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
-		if n.construction.is_empty():
+		if n.construction.is_empty() and n.shipbuilding.is_empty():
 			n.construction_used = 0.0
 			continue
 		# The queue is served in order: each project takes what it can use of the day's capacity.
+		# Hulls on the slips come first, then the buildings.
 		var pool: float = n.budget.get("construction_points", cfg.construction.base_ic)
 		var left := pool
+		for job in n.shipbuilding:
+			var give := minf(minf(job.rate, left), job.points_left)
+			left -= give
+			job.points_left -= give
+			job.given = give
+			job.days_left = ceili(job.points_left / give) if give > 0.0 and job.points_left > 0.0 else (0 if job.points_left <= 0.0 else 9999)
 		for job in n.construction:
 			var give := minf(minf(job.rate, left), job.points_left)
 			left -= give

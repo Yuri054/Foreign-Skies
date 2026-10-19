@@ -578,9 +578,10 @@ func _refresh_yard() -> void:
 	var mats: PackedStringArray = []
 	for r in def.materials:
 		mats.append("%s %s" % [Fmt.kt(def.materials[r] * count), Economy.cfg.resources[r].name.to_lower()])
-	var cost := "£%.1fM, %d days, needs a level %d port, %s" % [def.cost * count, def.build_days, def.min_port, ", ".join(mats)]
+	var cost := "%s IC, at least %d days, needs a level %d port, %s" % [Fmt.thousands(roundi(def.ic * count)), def.build_days, def.min_port, ", ".join(mats)]
 	if ok_province and problem.is_empty() or (ok_province and problem.begins_with("Not enough money")):
-		cost = "£%.1fM with materials, %d days" % [Navy.ship_plan(GameState, tag, type, count).total, def.build_days]
+		var bought: float = Navy.ship_plan(GameState, tag, type, count).purchase
+		cost = "%s IC, at least %d days%s" % [Fmt.thousands(roundi(def.ic * count)), def.build_days, ", £%.1fM of imported materials" % bought if bought > 0.0 else ""]
 	_build.disabled = not problem.is_empty()
 	_build_label.text = cost if problem.is_empty() else "%s (%s)" % [problem, cost]
 	_build_label.modulate = Color.WHITE if problem.is_empty() else Fmt.WARN
