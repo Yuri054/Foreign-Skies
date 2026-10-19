@@ -134,6 +134,8 @@ func _build_overview() -> Control:
 	_budget.add_theme_constant_override("separation", 14)
 	box.add_child(_budget)
 	_output.modulate = Fmt.DIM
+	_output.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_output.custom_minimum_size = Vector2(300, 0)
 	box.add_child(_output)
 	box.add_child(HSeparator.new())
 
