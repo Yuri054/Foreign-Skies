@@ -113,6 +113,8 @@ static func build_return(gs: Node, tag: String, id: int, type: String, plan: Dic
 		gain += float(effects.diplomacy) * float(c.diplomacy_value) if Diplomacy.points(gs, tag) < float(c.buy_below) * 2.0 else 0.0
 	if type == "railway" and _near_front(gs, tag, id):
 		gain += output * float(c.front_railway_bonus)
+	if (type == "trench" or type == "fortification") and not gs.wars_of(tag).is_empty() and _near_front(gs, tag, id):
+		gain += output * float(c.front_works_bonus)
 	if id == gs.nations[tag].capital:
 		gain *= float(c.capital_multiplier)
 	return gain / maxf(plan.total, 0.01)

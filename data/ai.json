@@ -130,6 +130,7 @@
 		"food_value": 0.5,
 		"diplomacy_value": 3.0,
 		"front_railway_bonus": 0.05,
+		"front_works_bonus": 0.08,
 		"capital_multiplier": 1.5,
 		"slot_value": 0.5,
 		"buy_below": 30,
