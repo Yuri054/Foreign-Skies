@@ -278,6 +278,12 @@ static func city_aura(gs: Node, tag: String, id: int) -> float:
 	return float(_aura.get(tag, {}).get(id, 0.0))
 
 
+## Forgets the day's aura (a city was captured or freed, or another game was loaded).
+static func invalidate_aura() -> void:
+	_aura_day = -1
+	_aura.clear()
+
+
 static func _build_aura(gs: Node) -> Dictionary:
 	var out := {}
 	var power: Dictionary = cfg.cities.power

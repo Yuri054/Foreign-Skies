@@ -235,6 +235,7 @@ func _load_cities(dir: String) -> void:
 
 
 func load_scenario(dir: String) -> void:
+	Military.invalidate_aura()
 	Economy.load_config()
 	Military.load_config()
 	Navy.load_config()
@@ -335,6 +336,7 @@ func finish_load() -> void:
 		front.dirty = true
 	Military._home_cache.clear()
 	Military._home_day = -1
+	Military.invalidate_aura()
 	AI._index_key = -1
 	AI._threat_cache.clear()
 	AI._worth_cache.clear()
@@ -469,6 +471,7 @@ func set_controller(id: int, tag: String) -> void:
 	if old == tag:
 		return
 	province_controller[id] = tag
+	Military.invalidate_aura()
 	province_controller_changed.emit(id, old, tag)
 
 
