@@ -298,7 +298,10 @@ func _detail_text(type: String) -> String:
 		if type == "railway":
 			lines.append("Raises infrastructure: a building slot more for each level here and for half a level in the neighbouring provinces you own. The numbers on the map are levels out of the most.")
 	if not def.get("materials", {}).is_empty():
-		lines.append("Needs: " + _amounts_text(def.materials))
+		var per_thousand := {}
+		for r in def.materials:
+			per_thousand[r] = float(def.materials[r]) * 1000.0
+		lines.append("Needs, for every 1,000 IC: " + _amounts_text(per_thousand))
 	if def.get("requires", "") == "coastal":
 		lines.append("Coastal provinces only.")
 	return "\n".join(lines)
