@@ -113,6 +113,27 @@ SLICES = {
         "a_max": {"AUH": 60000},
         "a_max_default": 22000,
     },
+    "scandinavia": {
+        "admins": {"Norway": "NOR", "Sweden": "SWE"},
+        "units": {},
+        "skip_old": [],
+        "clip": {},
+        "rename": {
+            ("Norway", "Oslo"): "Christiania", ("Sweden", "Stockholm"): "Stockholm City",
+            ("Norway", "Sør-Trøndelag"): "Sor-Trondelag", ("Norway", "Nord-Trøndelag"): "Nord-Trondelag",
+            ("Norway", "Møre og Romsdal"): "More og Romsdal", ("Norway", "Troms"): "Troms",
+            ("Sweden", "Västra Götaland"): "Vastra Gotaland", ("Sweden", "Skåne"): "Skane",
+            ("Sweden", "Södermanland"): "Sodermanland", ("Sweden", "Örebro"): "Orebro",
+            ("Sweden", "Östergötland"): "Ostergotland", ("Sweden", "Jämtland"): "Jamtland",
+            ("Sweden", "Västerbotten"): "Vasterbotten", ("Sweden", "Västernorrland"): "Vasternorrland",
+            ("Sweden", "Västmanland"): "Vastmanland",
+        },
+        "rename_dup": {},
+        "no_merge": ["Christiania", "Stockholm City"],
+        "a_min": 6000,
+        "a_max": {"NOR": 60000, "SWE": 50000},
+        "a_max_default": 22000,
+    },
     "russia": {
         "admins": {
             "Russia": "RUS", "Finland": "RUS", "Estonia": "RUS", "Latvia": "RUS", "Lithuania": "RUS",

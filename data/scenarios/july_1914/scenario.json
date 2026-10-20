@@ -18,6 +18,8 @@
 		"POR": {"pop_growth": 0.01, "capital": 536, "development": 0.591, "intensity": {"coal": 0.15, "iron": 0.09, "wood": 0.95}, "agri_yield": 0.883, "peacetime_army": 30000, "naval_budget": 1, "treasury": 2, "government": "republic"},
 		"DEN": {"pop_growth": 0.012, "capital": 91, "development": 1.438, "intensity": {"coal": 0.59, "iron": 0.11, "wood": 1.69}, "agri_yield": 1.066, "peacetime_army": 20000, "naval_budget": 2, "treasury": 2, "government": "constitutional_monarchy"},
 		"AUH": {"chemicals": 0.7, "pop_growth": 0.009, "war_support": 60, "capital": 72, "development": 0.743, "intensity": {"coal": 0.64, "iron": 0.48, "wood": 1.88}, "agri_yield": 1.142, "peacetime_army": 400000, "naval_budget": 8, "treasury": 24, "government": "constitutional_monarchy"},
+		"NOR": {"pop_growth": 0.01, "capital": 888, "development": 1.29, "intensity": {"coal": 0.8, "iron": 0.55, "wood": 3.0}, "agri_yield": 0.09, "peacetime_army": 20000, "naval_budget": 1, "treasury": 3, "government": "constitutional_monarchy"},
+		"SWE": {"pop_growth": 0.008, "capital": 929, "development": 1.21, "intensity": {"coal": 1.07, "iron": 1.7, "wood": 3.0}, "agri_yield": 0.19, "peacetime_army": 65000, "naval_budget": 3, "treasury": 10, "government": "constitutional_monarchy"},
 		"ALB": {"pop_growth": 0.01, "capital": 565, "development": 0.465, "intensity": {"coal": 0.01, "iron": 0.02, "wood": 0.86}, "agri_yield": 0.403, "peacetime_army": 5000, "naval_budget": 0, "treasury": 0.1, "government": "constitutional_monarchy"},
 		"BUL": {"pop_growth": 0.013, "capital": 625, "development": 0.637, "intensity": {"coal": 0.12, "iron": 0.04, "wood": 1.14}, "agri_yield": 0.909, "peacetime_army": 51500, "naval_budget": 0.5, "treasury": 2, "government": "constitutional_monarchy"},
 		"GRE": {"pop_growth": 0.01, "capital": 638, "development": 0.726, "intensity": {"coal": 0.1, "iron": 0.05, "wood": 0.68}, "agri_yield": 0.387, "peacetime_army": 24500, "naval_budget": 1.5, "treasury": 3, "government": "constitutional_monarchy"},
@@ -173,6 +175,17 @@
 		],
 		"ALB": [
 			{"name": "Gendarmerie (Tirana)", "at": "Tiranë", "weight": 1}
+		],
+		"NOR": [
+			{"name": "1st Division (Christiania)", "at": "Christiania", "weight": 2},
+			{"name": "3rd Division (Bergen)", "at": "Hordaland", "weight": 1},
+			{"name": "5th Division (Trondheim)", "at": "Sor-Trondelag", "weight": 1}
+		],
+		"SWE": [
+			{"name": "Stockholm Army", "at": "Stockholm City", "weight": 2},
+			{"name": "Skane Corps", "at": "Skane", "weight": 2},
+			{"name": "Western Corps", "at": "Vastra Gotaland 1", "weight": 1},
+			{"name": "Norrland Corps", "at": "Vasternorrland 1", "weight": 1}
 		]
 	},
 	"blocs": {
@@ -185,7 +198,11 @@
 	"guarantees": [
 		{"guarantor": "GBR", "guaranteed": "BEL"},
 		{"guarantor": "GER", "guaranteed": "BEL", "note": "1839 Treaty of London signatory"},
-		{"guarantor": "FRA", "guaranteed": "BEL"}
+		{"guarantor": "FRA", "guaranteed": "BEL"},
+		{"guarantor": "GBR", "guaranteed": "NOR", "note": "1907 Integrity Treaty"},
+		{"guarantor": "FRA", "guaranteed": "NOR", "note": "1907 Integrity Treaty"},
+		{"guarantor": "GER", "guaranteed": "NOR", "note": "1907 Integrity Treaty"},
+		{"guarantor": "RUS", "guaranteed": "NOR", "note": "1907 Integrity Treaty"}
 	],
 	"_alliances_note": "Treaty web read by Diplomacy.load_scenario. Italy is in no bloc: the neutral_pacts entry above gives it a defensive-only alliance with Germany and Austria-Hungary plus the neutrality clause. An entente term marks a friendship that calls for a join decision rather than binding automatically. passage entries are {host, mover}; nap entries {a, b}; relations entries {a, b, value} override the baseline worked out from blocs and treaties.",
 	"alliances": [
@@ -233,6 +250,9 @@
 		{"a": "ROM", "b": "RUS", "value": 10},
 		{"a": "OTT", "b": "RUS", "value": -45},
 		{"a": "OTT", "b": "GER", "value": 25},
+		{"a": "NOR", "b": "SWE", "value": 20, "note": "Union dissolved peacefully, 1905"},
+		{"a": "SWE", "b": "RUS", "value": -30, "note": "Fear of Russia; Finland and the Aland question"},
+		{"a": "SWE", "b": "GER", "value": 25, "note": "Conservative sympathy for Germany"},
 		{"a": "ALB", "b": "SRB", "value": -40},
 		{"a": "ALB", "b": "MNE", "value": -35},
 		{"a": "DEN", "b": "GER", "value": -20, "note": "Schleswig"},

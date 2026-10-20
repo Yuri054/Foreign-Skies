@@ -47,7 +47,7 @@ CITIES = {
     "Marseille": ("Marseille", 550), "Lyon": ("Lyon", 523), "Bordeaux": ("Bordeaux", 261), "Lille": ("Lille", 217),
     "Toulouse": ("Toulouse", 150), "Nantes": ("Nantes", 170), "Nice": ("Nice", 150), "Le Havre": ("Le Havre", 130),
     "Brussels": ("Brussels", 720), "Antwerp": ("Antwerp", 330), "Amsterdam": ("Amsterdam", 570), "Rotterdam": ("Rotterdam", 510),
-    "The Hague": ("The Hague", 280), "Copenhagen": ("Copenhagen", 560), "Stockholm": ("Stockholm", 360), "Gothenburg": ("Gothenburg", 170),
+    "The Hague": ("The Hague", 280), "Copenhagen": ("Copenhagen", 560), "Stockholm": ("Stockholm", 360), "Gothenburg": ("Gothenburg", 170), "Goteborg": ("Gothenburg", 170), "Malmo": ("Malmo", 95), "Bergen": ("Bergen", 78), "Trondheim": ("Trondheim", 45),
     "Oslo": ("Christiania", 250), "Helsinki": ("Helsinki", 190), "Madrid": ("Madrid", 600), "Barcelona": ("Barcelona", 600),
     "Valencia": ("Valencia", 230), "Seville": ("Seville", 150), "Bilbao": ("Bilbao", 100), "Lisbon": ("Lisbon", 435),
     "Porto": ("Porto", 195), "Athens": ("Athens", 170), "Belgrade": ("Belgrade", 90), "Sofia": ("Sofia", 100),

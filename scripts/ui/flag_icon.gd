@@ -30,6 +30,8 @@ const DESIGNS := {
 	"ESP": {"h": ["#aa151b", "#f1bf00", "#aa151b"], "weights": [1, 2, 1]},
 	"POR": {"v": ["#046a38", "#da291c"], "weights": [2, 3]},
 	"DEN": {"field": "#c8102e", "nordic": "#ffffff"},
+	"NOR": {"field": "#ba0c2f", "nordic": "#ffffff"},
+	"SWE": {"field": "#006aa7", "nordic": "#fecc02"},
 	"AUH": {"h": ["#c8102e", "#ffffff", "#c8102e"]},
 	"SRB": {"h": ["#c6363c", "#0c4076", "#ffffff"]},
 	"MNE": {"h": ["#c40308", "#1d3c85", "#ffffff"]},

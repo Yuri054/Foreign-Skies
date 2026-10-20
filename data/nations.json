@@ -1,22 +1,90 @@
 {
-	"GBR": {"name": "United Kingdom", "color": "#c8445a"},
-	"FRA": {"name": "France", "color": "#3b6fb6"},
-	"GER": {"name": "German Empire", "color": "#6b6b6b"},
-	"BEL": {"name": "Belgium", "color": "#e0b43a"},
-	"NED": {"name": "Netherlands", "color": "#e8873a"},
-	"LUX": {"name": "Luxembourg", "color": "#5fb4d6"},
-	"SUI": {"name": "Switzerland", "color": "#d94b3d"},
-	"ITA": {"name": "Italy", "color": "#4f9d5d"},
-	"ESP": {"name": "Spain", "color": "#c9a227"},
-	"POR": {"name": "Portugal", "color": "#2e8b6e"},
-	"DEN": {"name": "Denmark", "color": "#b5483c"},
-	"AUH": {"name": "Austria-Hungary", "color": "#9a7fb8"},
-	"SRB": {"name": "Serbia", "color": "#7a3b69"},
-	"MNE": {"name": "Montenegro", "color": "#3f7f93"},
-	"ALB": {"name": "Albania", "color": "#8a8f3a"},
-	"GRE": {"name": "Greece", "color": "#3d5fd0"},
-	"BUL": {"name": "Bulgaria", "color": "#6fa83c"},
-	"ROM": {"name": "Romania", "color": "#c27c2c"},
-	"OTT": {"name": "Ottoman Empire", "color": "#7e2a2a"},
-	"RUS": {"name": "Russian Empire", "color": "#4a6b3a"}
+	"GBR": {
+		"name": "United Kingdom",
+		"color": "#c8445a"
+	},
+	"FRA": {
+		"name": "France",
+		"color": "#3b6fb6"
+	},
+	"GER": {
+		"name": "German Empire",
+		"color": "#6b6b6b"
+	},
+	"BEL": {
+		"name": "Belgium",
+		"color": "#e0b43a"
+	},
+	"NED": {
+		"name": "Netherlands",
+		"color": "#e8873a"
+	},
+	"LUX": {
+		"name": "Luxembourg",
+		"color": "#5fb4d6"
+	},
+	"SUI": {
+		"name": "Switzerland",
+		"color": "#d94b3d"
+	},
+	"ITA": {
+		"name": "Italy",
+		"color": "#4f9d5d"
+	},
+	"ESP": {
+		"name": "Spain",
+		"color": "#c9a227"
+	},
+	"POR": {
+		"name": "Portugal",
+		"color": "#2e8b6e"
+	},
+	"DEN": {
+		"name": "Denmark",
+		"color": "#b5483c"
+	},
+	"AUH": {
+		"name": "Austria-Hungary",
+		"color": "#9a7fb8"
+	},
+	"SRB": {
+		"name": "Serbia",
+		"color": "#7a3b69"
+	},
+	"MNE": {
+		"name": "Montenegro",
+		"color": "#3f7f93"
+	},
+	"ALB": {
+		"name": "Albania",
+		"color": "#8a8f3a"
+	},
+	"GRE": {
+		"name": "Greece",
+		"color": "#3d5fd0"
+	},
+	"BUL": {
+		"name": "Bulgaria",
+		"color": "#6fa83c"
+	},
+	"ROM": {
+		"name": "Romania",
+		"color": "#c27c2c"
+	},
+	"OTT": {
+		"name": "Ottoman Empire",
+		"color": "#7e2a2a"
+	},
+	"RUS": {
+		"name": "Russian Empire",
+		"color": "#4a6b3a"
+	},
+	"NOR": {
+		"name": "Norway",
+		"color": "#8a2f3f"
+	},
+	"SWE": {
+		"name": "Sweden",
+		"color": "#e3cf4f"
+	}
 }
