@@ -67,7 +67,7 @@ func _initialize() -> void:
 	var turned: Vector2 = mode.to_picture(root.get_visible_rect().size / 2.0)
 	_check(turned.distance_to(picture_centre) < 3.0, "turned round, the centre of the screen is still the picture's centre")
 	var top: Vector2 = mode.to_picture(Vector2(root.get_visible_rect().size.x / 2.0, 20.0))
-	_check(top.x < picture_centre.x - 100.0 and absf(top.y - picture_centre.y) < 5.0, "and the top of the screen shows the picture's left side (%s)" % str(top))
+	_check(top.x < picture_centre.x * 0.7 and absf(top.y - picture_centre.y) < 5.0, "and the top of the screen shows the picture's left side (%s)" % str(top))
 	_check(is_equal_approx(main.camera.pan_rotation, M3.pan_rotation_for(90.0)), "the panning keys are turned the same way")
 	var up := Vector2(0, -1).rotated(main.camera.pan_rotation)
 	_check(up.x < -0.99, "so that up goes toward the picture's left (%s)" % str(up))
