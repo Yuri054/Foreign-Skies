@@ -278,11 +278,12 @@ func _apply_level(level: int) -> void:
 	_net.visible = level < 5
 	_chips["treasury"].visible = level < 6
 	_flag.get_parent().visible = level < 5
+	_window_buttons["focus_panel"].visible = level < 4
 	_nation_button.text = "N" if level >= 3 else "Nation"
-	_rankings_button.text = "R" if level >= 3 else "Rankings"
+	_rankings_button.text = "R" if level >= 2 else "Rankings"
 	for w: Array in WINDOWS:
 		var b: Button = _window_buttons[w[0]]
-		b.text = w[2] if level >= 3 else w[1]
+		b.text = w[2] if level >= (2 if w[0] == "focus_panel" else 3) else w[1]
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

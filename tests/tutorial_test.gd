@@ -138,6 +138,8 @@ func _do(step: Dictionary) -> bool:
 				if _C_RaiseUnits.problem(gs, tag, id, type, 1).is_empty():
 					return gs.issue(_C_RaiseUnits.new(tag, id, type, 1))
 			return false
+		"SetFocus":
+			return gs.issue(load("res://scripts/sim/set_focus.gd").new(tag, load("res://scripts/sim/focus.gd").tree_of(tag)[0].id))
 		"SetProductionLine":
 			var line = nation.production_lines[0]
 			return gs.issue(_C_SetLine.new(tag, line.id, line.category, line.factories - 1))
