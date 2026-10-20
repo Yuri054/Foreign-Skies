@@ -76,6 +76,8 @@ func _test_history() -> void:
 			for tag in ["SRB", "BEL", "MNE"]:
 				survived = survived and not gs.nations[tag].provinces.is_empty()
 		if gs.wars.is_empty() and day > 150:
+			if debt_leader.is_empty():
+				debt_leader = _great_debt_leader()
 			break
 	_check(winter_cross <= 12, "the Western front is a static line by the first winter (%d provinces held across it)" % winter_cross)
 	_check(collapsed.is_empty(), "no nation collapses (%s)" % str(collapsed))

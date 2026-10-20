@@ -67,9 +67,9 @@ func _initialize() -> void:
 	var text: String = _text(win)
 	for needle in ["your nation", "Capital", "Paris", "Population", "Output a month", "Net per month", "Treasury", "Under arms", "Mobilization", "War support", "Diplomacy points", "Alliances", "Russian Empire", "At war with", "nobody", "Coal"]:
 		_check(text.contains(needle), "it lists %s" % needle)
-	_check(text.contains("#") and text.contains(" of 20"), "and ranks the figures that can be compared")
+	_check(text.contains("#") and text.contains(" of 22"), "and ranks the figures that can be compared")
 	_check(not text.contains("Opinion of you"), "there is no opinion of yourself")
-	_check(win._picker.item_count == 20 and win._picker.get_item_text(win._tags.find("FRA")).ends_with("(you)"), "the picker lists all twenty nations, marking yours")
+	_check(win._picker.item_count == 22 and win._picker.get_item_text(win._tags.find("FRA")).ends_with("(you)"), "the picker lists all 22 nations, marking yours")
 
 	# Another nation, by the picker.
 	var ger: int = win._tags.find("GER")

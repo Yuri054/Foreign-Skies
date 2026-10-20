@@ -75,7 +75,7 @@ func _test_panel() -> void:
 	panel.toggle()
 	await process_frame
 	_check(panel.visible, "it opens")
-	_check(panel._list.item_count == 19, "the list shows the other 19 nations (%d)" % panel._list.item_count)
+	_check(panel._list.item_count == 21, "the list shows the other 21 nations (%d)" % panel._list.item_count)
 	_check(panel._list.get_item_text(0).contains("Russia") or panel._list.get_item_text(0).contains("Britain") or panel._list.get_item_text(0).contains("United Kingdom"), "the friendliest nation comes first (%s)" % panel._list.get_item_text(0))
 
 	_check(gs.nations["FRA"].diplomacy_points == 50.0, "every nation starts with 50 diplomacy points")

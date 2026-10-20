@@ -83,7 +83,7 @@ func _test_treaties() -> void:
 	var entente = D.find_treaty(gs, "alliance", "GBR", "FRA")
 	_check(entente != null and entente.terms.get("entente", false), "the Entente Cordiale is an entente, not a binding alliance")
 	_check(D.guarantors_of(gs, "BEL").size() == 3 and "GBR" in D.guarantors_of(gs, "BEL"), "Belgium is guaranteed by Britain, Germany and France")
-	_check(D.guaranteed_by(gs, "GBR") == ["BEL"], "Britain guarantees Belgium")
+	_check(D.guaranteed_by(gs, "GBR").size() == 2 and "BEL" in D.guaranteed_by(gs, "GBR") and "NOR" in D.guaranteed_by(gs, "GBR"), "Britain guarantees Belgium and Norway")
 	_check(D.has_treaty(gs, "guarantee", "GBR", "BEL") and not D.has_treaty(gs, "guarantee", "BEL", "GBR"), "guarantees run one way")
 	_check(D.has_passage(gs, "FRA", "RUS"), "allies may cross each other's land")
 	_check(D.has_passage(gs, "GBR", "FRA") and D.has_passage(gs, "FRA", "GBR"), "so may entente partners")

@@ -52,7 +52,7 @@ func _test_standings() -> void:
 		ids.append(m.id)
 	_check(ids.size() == 12 and "navy" in ids and "diplomacy_points" in ids and "population" in ids and "treasury" in ids and "war_support" in ids, "twelve figures can be ranked (%s)" % ", ".join(ids))
 	var pop: Array = S.ranking(gs, "population")
-	_check(pop.size() == 20, "every nation with land is ranked (%d)" % pop.size())
+	_check(pop.size() == 22, "every nation with land is ranked (%d)" % pop.size())
 	var sorted := true
 	for i in range(1, pop.size()):
 		if pop[i].value > pop[i - 1].value:
@@ -68,7 +68,7 @@ func _test_standings() -> void:
 	gs.nations["GER"].treasury = 45.0
 	# A nation without land is left out.
 	var luxembourg: Array = gs.nations["LUX"].provinces.duplicate()
-	_check(S.ranking(gs, "army").size() == 20, "armies are ranked for every nation")
+	_check(S.ranking(gs, "army").size() == 22, "armies are ranked for every nation")
 
 
 func _test_history() -> void:
@@ -114,7 +114,7 @@ func _test_window() -> void:
 	_check(win._tabs.get_tab_count() == 3 and win._tabs.get_tab_title(0) == "Chart" and win._tabs.get_tab_title(1) == "Table" and win._tabs.get_tab_title(2) == "Trend", "it has a chart, a table and a trend")
 
 	# Chart.
-	_check(win._chart_rows.get_child_count() == 20, "the chart has a row for each nation (%d)" % win._chart_rows.get_child_count())
+	_check(win._chart_rows.get_child_count() == 22, "the chart has a row for each nation (%d)" % win._chart_rows.get_child_count())
 	_check(win._summary.text.contains("Population") and win._summary.text.contains("you are #") and win._summary.text.contains("Russian Empire leads"), "the summary says where you stand and who leads (%s)" % win._summary.text)
 	var first_row: Node = win._chart_rows.get_child(0)
 	var names: PackedStringArray = []
@@ -136,7 +136,7 @@ func _test_window() -> void:
 	win._tabs.current_tab = 1
 	await process_frame
 	await process_frame
-	_check(win._table.get_child_count() == (2 + win.TABLE_COLUMNS.size()) * 21, "the table has a heading row and a row per nation (%d cells)" % win._table.get_child_count())
+	_check(win._table.get_child_count() == (2 + win.TABLE_COLUMNS.size()) * 23, "the table has a heading row and a row per nation (%d cells)" % win._table.get_child_count())
 	var heading: Button = win._table.get_child(2 + win.TABLE_COLUMNS.find("gdp"))
 	heading.pressed.emit()
 	await process_frame

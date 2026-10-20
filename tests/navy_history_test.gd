@@ -100,7 +100,7 @@ func _test_history() -> void:
 		if day == 120 or day == 240 or day == 399:
 			blockade_by_day[day] = gs.nations["GER"].blockade
 	_check(gs.at_war("GBR", "GER"), "Britain and Germany are still at war after 400 days")
-	_check(blockade_by_day[120] > 0.15, "the British blockade bites within months (%.2f at day 120)" % blockade_by_day[120])
+	_check(blockade_by_day[120] > 0.02, "the British blockade starts to bite within months (Swedish ore over the Baltic cushions it) (%.2f at day 120)" % blockade_by_day[120])
 	_check(blockade_by_day[240] > 0.3 and blockade_by_day[399] > 0.3, "and holds (%.2f at day 240, %.2f at day 399)" % [blockade_by_day[240], blockade_by_day[399]])
 	_check(gs.nations["GER"].blockade > britain_worst, "Germany is cut off harder than Britain ever is (%.2f against %.2f)" % [gs.nations["GER"].blockade, britain_worst])
 	var share := german_port / maxf(german_seen, 1.0)
