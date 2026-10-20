@@ -62,6 +62,33 @@ func _initialize() -> void:
 	_check(centre.distance_to(picture_centre) < 3.0, "looking straight down, the centre of the screen is the centre of the picture (%s)" % str(centre))
 	# Turning: the screen's centre stays on the picture's centre, and a turn of 90 degrees puts the
 	# picture's left side at the top of the screen, so the panning keys turn with it.
+	# Relief: the ground over the Alps stands up, the sea does not, and a click on the raised ground
+	# lands where the ground is, whatever the angle of the view.
+	main.camera.position = Vector2(2900, 3300)
+	main.camera.zoom = Vector2(0.45, 0.45)
+	await process_frame
+	await process_frame
+	_check(mode.rise_per_metre() > 0.0 and mode.relief_on, "the relief is on, and rises %.5f units a metre" % mode.rise_per_metre())
+	var peak := 0.0
+	for ix in 20:
+		for iy in 20:
+			peak = maxf(peak, mode.height_units(Vector2((ix + 0.5) / 20.0, (iy + 0.5) / 20.0)))
+	_check(peak > 0.05, "high ground stands up (%.2f units at most in view)" % peak)
+	_check(mode.height_units(Vector2(-500.0, 0.5)) == 0.0, "and the ground off the map is flat")
+	mode.tilt = 40.0
+	mode.yaw = 30.0
+	mode._apply_tilt()
+	var worst := 0.0
+	for uv in [Vector2(0.5, 0.5), Vector2(0.3, 0.6), Vector2(0.6, 0.4), Vector2(0.45, 0.7)]:
+		var h: float = mode.height_units(uv)
+		var p3 := Vector3((uv.x - 0.5) * mode._plane_size.x, h, (uv.y - 0.5) * mode._plane_size.y)
+		var back: Vector2 = mode.to_picture(mode._camera.unproject_position(p3)) / Vector2(mode._sub.size)
+		worst = maxf(worst, back.distance_to(uv))
+	_check(worst < 0.01, "a click on the raised ground is followed down to it (off by %.4f of the picture at most)" % worst)
+	mode.relief_on = false
+	_check(mode.height_units(Vector2(0.5, 0.5)) == 0.0, "with the relief off the plane is flat")
+	mode.relief_on = true
+	mode.tilt = 90.0
 	mode.yaw = 90.0
 	mode._apply_tilt()
 	var turned: Vector2 = mode.to_picture(root.get_visible_rect().size / 2.0)

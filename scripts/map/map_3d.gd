@@ -9,7 +9,9 @@ extends Node
 ## round. Panning and zooming go on as before: they move the 2D camera inside
 ## the picture. The mouse is followed through the plane: a click on it is turned into the click on
 ## the picture that lies under it, and sent to the layers, so selecting, ordering and box-selecting
-## work unchanged. The windows and the top bar stay on the screen as they are. Off, the layers go
+## work unchanged (a click is followed down onto the raised ground, see `height_units`). The relief
+## is real: data/map/relief.png (tools/build_relief.py) holds the ground's height, and the plane is
+## raised by it (exaggerated, `RELIEF_EXAGGERATION`) and lit from the north west. The windows and the top bar stay on the screen as they are. Off, the layers go
 ## back to where they were.
 
 signal toggled(on: bool)
@@ -26,6 +28,15 @@ const YAW_STEP := 15.0
 ## The plane is this many units high; its width follows the picture's shape.
 const PLANE_HEIGHT := 9.0
 const SEA := Color(0.045, 0.065, 0.1)
+## The relief picture: grey is the square root of the height, TOP_M metres at 255 (tools/build_relief.py).
+const RELIEF_PATH := "res://data/map/relief.png"
+const RELIEF_TOP_M := 3000.0
+## How much taller than true the ground is drawn, and the most it may rise (plane units).
+const RELIEF_EXAGGERATION := 22.0
+const RELIEF_MAX := 1.0
+const KM_PER_PX := 0.6928
+## Plane subdivisions: the ground is a grid of this many by this many squares.
+const GRID := Vector2i(260, 146)
 
 var enabled := false
 ## The angle of the camera above the horizon, in degrees: 90 looks straight down.
@@ -41,6 +52,13 @@ var _plane_size := Vector2(16.0, PLANE_HEIGHT)
 var _moved: Array = []
 var _tilting := false
 var _last_mapped := Vector2(-1, -1)
+var _material: ShaderMaterial
+var _relief: Image
+## Whether the ground is raised by its relief (off, the plane is flat).
+var relief_on := true
+## The part of the map the picture shows, in map pixels: where its top left is and how big it is.
+var _view_origin := Vector2.ZERO
+var _view_size := Vector2(1, 1)
 
 
 func _ready() -> void:
@@ -65,10 +83,10 @@ func set_enabled(on: bool) -> void:
 
 ## Where a camera ray meets the flat plane (which lies in the XZ plane, `plane_size` units across),
 ## as a point of the picture from 0 to 1 on each side; (-1, -1) if it misses.
-static func plane_hit(origin: Vector3, direction: Vector3, plane_size: Vector2) -> Vector2:
+static func plane_hit(origin: Vector3, direction: Vector3, plane_size: Vector2, height := 0.0) -> Vector2:
 	if absf(direction.y) < 0.00001:
 		return Vector2(-1, -1)
-	var t := -origin.y / direction.y
+	var t := (height - origin.y) / direction.y
 	if t < 0.0:
 		return Vector2(-1, -1)
 	var p := origin + direction * t
@@ -142,6 +160,7 @@ func _leave() -> void:
 		_sub.queue_free()
 		_sub = null
 	_camera = null
+	_material = null
 	_tilting = false
 	var flat_cam: Camera2D = main.get("camera")
 	if flat_cam != null:
@@ -157,27 +176,58 @@ func _build_scene() -> void:
 	var world := WorldEnvironment.new()
 	world.environment = env
 	_scene.add_child(world)
-	var mesh := QuadMesh.new()
+	var mesh := PlaneMesh.new()
 	mesh.size = _plane_size
+	mesh.subdivide_width = GRID.x
+	mesh.subdivide_depth = GRID.y
 	var shader := Shader.new()
 	shader.code = """shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform sampler2D picture : source_color, filter_linear;
+uniform sampler2D relief : hint_default_black, filter_linear, repeat_disable;
+uniform vec2 view_origin;
+uniform vec2 view_size;
+uniform vec2 map_size;
+// Plane units a relief metre rises (0 for a flat plane), and the metres a texel of the relief spans.
+uniform float rise;
+uniform float texel_m;
+varying vec2 ground_uv;
+float metres(vec2 uv) {
+	float g = textureLod(relief, uv, 0.0).r;
+	return g * g * 3000.0;
+}
+void vertex() {
+	ground_uv = (view_origin + UV * view_size) / map_size;
+	VERTEX.y += metres(ground_uv) * rise;
+}
 void fragment() {
 	vec4 c = texture(picture, UV);
+	vec2 e = 1.0 / vec2(textureSize(relief, 0));
+	float dx = (metres(ground_uv + vec2(e.x, 0.0)) - metres(ground_uv - vec2(e.x, 0.0))) / (2.0 * texel_m);
+	float dz = (metres(ground_uv + vec2(0.0, e.y)) - metres(ground_uv - vec2(0.0, e.y))) / (2.0 * texel_m);
+	vec3 n = normalize(vec3(-dx * 6.0, 1.0, -dz * 6.0));
+	vec3 light = normalize(vec3(-0.55, 0.85, -0.6));
+	float shade = dot(n, light) - light.y;
+	float lit = rise > 0.0 ? clamp(1.0 + shade * 1.4, 0.55, 1.5) : 1.0;
 	// The edges of the picture melt into the background, so a tilt shows no hard border.
 	float edge = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
-	ALBEDO = c.rgb;
+	ALBEDO = c.rgb * lit;
 	ALPHA = smoothstep(0.0, 0.05, edge);
 }
 """
-	var material := ShaderMaterial.new()
-	material.shader = shader
-	material.set_shader_parameter("picture", _sub.get_texture())
+	_material = ShaderMaterial.new()
+	_material.shader = shader
+	_material.set_shader_parameter("picture", _sub.get_texture())
+	var tex: Texture2D = load(RELIEF_PATH)
+	if tex != null:
+		_material.set_shader_parameter("relief", tex)
+		if _relief == null:
+			_relief = tex.get_image()
+		_material.set_shader_parameter("map_size", Vector2(MapData.map_size))
+		_material.set_shader_parameter("texel_m", float(MapData.map_size.x) / float(tex.get_width()) * KM_PER_PX * 1000.0)
 	var plane := MeshInstance3D.new()
 	plane.mesh = mesh
-	plane.material_override = material
-	plane.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	plane.material_override = _material
 	_scene.add_child(plane)
 	_camera = Camera3D.new()
 	_camera.fov = FOV
@@ -203,13 +253,54 @@ func _apply_tilt() -> void:
 		flat_cam.set("pan_rotation", pan_rotation_for(yaw))
 
 
+func _process(_delta: float) -> void:
+	if not enabled or _sub == null or _material == null:
+		return
+	var inverse := _sub.get_canvas_transform().affine_inverse()
+	_view_origin = inverse * Vector2.ZERO
+	_view_size = inverse.basis_xform(Vector2(_sub.size))
+	_material.set_shader_parameter("view_origin", _view_origin)
+	_material.set_shader_parameter("view_size", _view_size)
+	_material.set_shader_parameter("rise", rise_per_metre() if relief_on else 0.0)
+
+
+## Plane units a metre of height rises while the picture shows `_view_size` map pixels: true to
+## scale, times RELIEF_EXAGGERATION, and held so that the highest ground (RELIEF_TOP_M) never rises
+## more than RELIEF_MAX.
+func rise_per_metre() -> float:
+	var units_per_px := PLANE_HEIGHT / maxf(_view_size.y, 1.0)
+	var per_metre := units_per_px / (KM_PER_PX * 1000.0) * RELIEF_EXAGGERATION
+	return minf(per_metre, RELIEF_MAX / RELIEF_TOP_M)
+
+
+## How high the ground stands (plane units) at a point of the picture, 0 to 1 on each side.
+func height_units(uv: Vector2) -> float:
+	if not relief_on or _relief == null:
+		return 0.0
+	var at := (_view_origin + uv * _view_size) / Vector2(MapData.map_size)
+	if at.x < 0.0 or at.y < 0.0 or at.x > 1.0 or at.y > 1.0:
+		return 0.0
+	var px := Vector2i(clampi(int(at.x * _relief.get_width()), 0, _relief.get_width() - 1), clampi(int(at.y * _relief.get_height()), 0, _relief.get_height() - 1))
+	var g := _relief.get_pixelv(px).r
+	return g * g * RELIEF_TOP_M * rise_per_metre()
+
+
 ## Where a point of the screen falls on the off-screen picture, in its pixels; (-1, -1) off it.
 func to_picture(screen: Vector2) -> Vector2:
 	if _camera == null or _sub == null:
 		return Vector2(-1, -1)
-	var uv := plane_hit(_camera.project_ray_origin(screen), _camera.project_ray_normal(screen), _plane_size)
-	if uv.x < 0.0:
-		return uv
+	var origin := _camera.project_ray_origin(screen)
+	var direction := _camera.project_ray_normal(screen)
+	var uv := plane_hit(origin, direction, _plane_size)
+	# Down onto the raised ground: the ray meets the surface where it is, not where the flat plane is.
+	for i in 5:
+		if uv.x < 0.0:
+			return uv
+		var next := plane_hit(origin, direction, _plane_size, height_units(uv))
+		if next.x < 0.0 or next.distance_squared_to(uv) < 0.0000001:
+			uv = next if next.x >= 0.0 else uv
+			break
+		uv = next
 	return uv * Vector2(_sub.size)
 
 

@@ -11,6 +11,7 @@ var _scale_held := false
 var _note := Label.new()
 var _army_view := OptionButton.new()
 var _map_3d := CheckButton.new()
+var _relief := CheckButton.new()
 var _updating := false
 ## Whether the window offers a way back to the main menu (the menu's own copy does not).
 var offer_quit_to_menu := true
@@ -89,6 +90,15 @@ func _ready() -> void:
 				m.set_enabled(on)
 	)
 	box.add_child(_map_3d)
+	_relief.text = "Terrain relief in 3D"
+	_relief.focus_mode = Control.FOCUS_NONE
+	_relief.tooltip_text = "Raises mountains and valleys on the 3D map from real elevation data, and lights them from the north west."
+	_relief.toggled.connect(func(on: bool) -> void:
+		if not _updating:
+			for m in get_tree().get_nodes_in_group("map_3d"):
+				m.relief_on = on
+	)
+	box.add_child(_relief)
 
 	var sound := Label.new()
 	sound.text = "Sound"
@@ -151,6 +161,7 @@ func _sync() -> void:
 	_updating = true
 	for m in get_tree().get_nodes_in_group("map_3d"):
 		_map_3d.button_pressed = m.enabled
+		_relief.button_pressed = m.relief_on
 	_slider.value = UiSettings.scale
 	_scale_label.text = "%d%%" % roundi(UiSettings.scale * 100.0)
 	for i in _army_view.item_count:
