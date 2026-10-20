@@ -26,6 +26,7 @@ func _initialize() -> void:
 	var Mil = load("res://scripts/sim/military.gd")
 	var Dip = load("res://scripts/sim/diplomacy.gd")
 	var AIc = load("res://scripts/ai/ai.gd")
+	Mil.profile = true
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
 	gs.set_player(player)
 	gs.ai_enabled = true
@@ -53,4 +54,7 @@ func _initialize() -> void:
 	keys.sort_custom(func(a, b) -> bool: return totals[a] > totals[b])
 	for k in keys:
 		print("  %-20s %6.1f ms a day, worst %6.1f ms" % [k, float(totals[k]) / days / 1000.0, float(worst[k]) / 1000.0])
+	print("  inside military.step_day:")
+	for k in Mil.timings:
+		print("    %-14s %6.1f ms a day, worst %6.1f ms" % [k, float(Mil.timings[k]) / days / 1000.0, float(Mil.worst[k]) / 1000.0])
 	quit(0)

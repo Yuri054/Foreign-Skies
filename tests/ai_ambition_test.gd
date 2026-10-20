@@ -51,7 +51,7 @@ func _initialize() -> void:
 	clock.days_elapsed = int(ai_cfg.ambition.start_delay_days) + 5
 	for tr in gs.treaties.duplicate():
 		if tr.kind == "nap":
-			tr.end_day = 0
+			D.end_treaty(gs, tr)
 	var best: Dictionary = Amb.best_target(gs, "FRA")
 	_check(not best.is_empty() and best.score >= float(ai_cfg.ambition.threshold), "France finds a neighbour worth fighting (%s, score %.2f)" % [best.get("target", "-"), best.get("score", 0.0)])
 	for d in 95:

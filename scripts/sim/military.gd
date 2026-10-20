@@ -231,15 +231,19 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 		return path
 	var dist := {from: 0.0}
 	var prev := {}
-	var open := [from]
-	while not open.is_empty():
-		var bi := 0
-		for i in open.size():
-			if dist[open[i]] < dist[open[bi]]:
-				bi = i
-		var cur: int = open.pop_at(bi)
+	# A binary heap of [days, order, province] (lazy deletion): the nearest first, and among equals
+	# the one that was queued first.
+	var heap: Array = [[0.0, 0, from]]
+	var queued := {from: 0}
+	var seq := 1
+	while not heap.is_empty():
+		var top: Array = _heap_pop(heap)
+		var cur: int = top[2]
+		if top[0] > dist[cur]:
+			continue
 		if cur == to:
 			break
+		queued.erase(cur)
 		for n: int in neighbors_for(gs, tag, cur):
 			if not can_enter(gs, tag, n):
 				continue
@@ -247,8 +251,10 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 			if not dist.has(n) or nd < dist[n]:
 				dist[n] = nd
 				prev[n] = cur
-				if not open.has(n):
-					open.append(n)
+				if not queued.has(n):
+					queued[n] = seq
+					seq += 1
+				_heap_push(heap, [nd, queued[n], n])
 	if not prev.has(to):
 		return path
 	var step := to
@@ -256,6 +262,47 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 		path.push_front(step)
 		step = prev[step]
 	return path
+
+
+static func _heap_less(x: Array, y: Array) -> bool:
+	return x[0] < y[0] or (x[0] == y[0] and x[1] < y[1])
+
+
+static func _heap_push(heap: Array, item: Array) -> void:
+	heap.append(item)
+	var i := heap.size() - 1
+	while i > 0:
+		var parent := (i - 1) >> 1
+		if not _heap_less(heap[i], heap[parent]):
+			break
+		var tmp: Array = heap[i]
+		heap[i] = heap[parent]
+		heap[parent] = tmp
+		i = parent
+
+
+static func _heap_pop(heap: Array) -> Array:
+	var top: Array = heap[0]
+	var last: Array = heap.pop_back()
+	if not heap.is_empty():
+		heap[0] = last
+		var i := 0
+		var n := heap.size()
+		while true:
+			var l := 2 * i + 1
+			var r := l + 1
+			var m := i
+			if l < n and _heap_less(heap[l], heap[m]):
+				m = l
+			if r < n and _heap_less(heap[r], heap[m]):
+				m = r
+			if m == i:
+				break
+			var tmp: Array = heap[i]
+			heap[i] = heap[m]
+			heap[m] = tmp
+			i = m
+	return top
 
 
 # ------------------------------------------------------------------ city aura
@@ -702,12 +749,15 @@ static func leave_front(gs: Node, a: Army) -> void:
 
 ## Spreads each front's armies along its line and sends idle ones to their province.
 static func step_fronts(gs: Node) -> void:
+	var routes_left := int(cfg.front_pathing.paths_per_day)
 	for f: Front in gs.fronts.values():
 		if not f.against.is_empty() and f.line_stamp != gs.control_version:
 			# A border front follows the war: re-read the line from who holds what (when anything
 			# has changed hands since it was last read).
 			f.line_stamp = gs.control_version
+			var t0 := Time.get_ticks_usec() if profile else 0
 			var line := border_provinces(gs, f.tag, f.against)
+			_note("front_line", t0)
 			if line != f.provinces:
 				f.provinces = line
 				f.dirty = true
@@ -723,16 +773,21 @@ static func step_fronts(gs: Node) -> void:
 			f.slots.clear()
 			continue
 		if f.dirty:
+			var t1 := Time.get_ticks_usec() if profile else 0
 			_deal_slots(gs, f)
+			_note("front_slots", t1)
 			f.dirty = false
 		for id in f.army_ids:
 			var a: Army = gs.armies[id]
 			var slot: int = f.slots.get(id, 0)
 			if slot == 0 or a.province == slot or not a.path.is_empty() or a.fighting:
 				continue
-			if Clock.days_elapsed < f.retry.get(id, -1):
+			if Clock.days_elapsed < f.retry.get(id, -1) or routes_left <= 0:
 				continue
+			routes_left -= 1
+			var t2 := Time.get_ticks_usec() if profile else 0
 			var route := find_path(gs, a.tag, a.speed(), a.province, slot)
+			_note("front_path", t2)
 			if route.is_empty():
 				f.retry[id] = Clock.days_elapsed + 10
 				continue
@@ -768,26 +823,52 @@ static func _dist(a: int, b: int) -> float:
 # ------------------------------------------------------------------ daily step
 
 static func step_day(gs: Node) -> void:
-	step_fronts(gs)
+	_timed("fronts", func() -> void: step_fronts(gs))
 	step_readiness(gs)
 	prune_groups(gs)
 	AttackLines.step_day(gs)
 	release_orphan_generals(gs)
-	Production.step_day(gs)
+	_timed("production", func() -> void: Production.step_day(gs))
 	_train(gs)
 	var armies: Array = gs.armies.values()
 	for a: Army in armies:
 		a.fighting = false
-	_move(gs, armies)
-	_fight(gs)
-	var captured := _upkeep_and_occupy(gs)
-	_issue(gs)
+	_timed("move", func() -> void: _move(gs, armies))
+	_timed("fight", func() -> void: _fight(gs))
+	var captured: bool = false
+	_timed("occupy", func() -> void: captured = _upkeep_and_occupy(gs))
+	_timed("issue", func() -> void: _issue(gs))
 	_collapse_nations(gs)
 	refresh_men(gs)
 	if captured:
-		Economy.recompute(gs)
+		_timed("recompute", func() -> void: Economy.recompute(gs))
 		gs.economy_updated.emit()
 	gs.armies_changed.emit()
+
+
+## Microseconds spent in the parts of the daily step, by name, and the worst single day of each,
+## while `profile` is true (tools/profile_days.gd).
+static var profile := false
+static var timings: Dictionary = {}
+static var worst: Dictionary = {}
+
+
+static func _note(part: String, started: int) -> void:
+	if profile:
+		var dt := Time.get_ticks_usec() - started
+		timings[part] = timings.get(part, 0) + dt
+		worst[part] = maxi(worst.get(part, 0), dt)
+
+
+static func _timed(part: String, work: Callable) -> void:
+	if not profile:
+		work.call()
+		return
+	var t := Time.get_ticks_usec()
+	work.call()
+	var dt := Time.get_ticks_usec() - t
+	timings[part] = timings.get(part, 0) + dt
+	worst[part] = maxi(worst.get(part, 0), dt)
 
 
 ## Finishes units whose training is over and puts them in the province they were raised in.

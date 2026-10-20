@@ -36,6 +36,7 @@ static func pair_key(a: String, b: String) -> String:
 ## the nations exist.
 static func load_scenario(gs: Node) -> void:
 	gs.treaties.clear()
+	_treaty_epoch += 1
 	gs.next_treaty_id = 1
 	gs.relations.clear()
 	gs.relation_base.clear()
@@ -241,11 +242,32 @@ static func step_month(gs: Node) -> void:
 
 ## Treaties that are in force today.
 static func active_treaties(gs: Node) -> Array[Treaty]:
-	var out: Array[Treaty] = []
-	for t: Treaty in gs.treaties:
-		if t.active_on(Clock.days_elapsed):
-			out.append(t)
-	return out
+	if _active_day != Clock.days_elapsed or _active_epoch != _treaty_epoch or _active_size != gs.treaties.size() or _active_gs != gs.get_instance_id():
+		var out: Array[Treaty] = []
+		for t: Treaty in gs.treaties:
+			if t.active_on(Clock.days_elapsed):
+				out.append(t)
+		_active = out
+		_active_day = Clock.days_elapsed
+		_active_epoch = _treaty_epoch
+		_active_size = gs.treaties.size()
+		_active_gs = gs.get_instance_id()
+	return _active
+
+
+## The day's list of treaties in force is kept until a treaty is added, ended or loaded: callers
+## must not change what they get back.
+static var _active: Array[Treaty] = []
+static var _active_day := -1
+static var _active_epoch := -1
+static var _active_size := -1
+static var _active_gs := 0
+static var _treaty_epoch := 0
+
+
+## Forgets the kept list of treaties in force (after treaties were changed by hand or a game was loaded).
+static func invalidate_treaties() -> void:
+	_treaty_epoch += 1
 
 
 ## Treaties of any kind between two nations, in either direction.
@@ -290,6 +312,7 @@ static func add_treaty(gs: Node, kind: String, a: String, b: String, end_day := 
 	var t := Treaty.new(gs.next_treaty_id, kind, a, b, Clock.days_elapsed, end_day, terms, note)
 	gs.next_treaty_id += 1
 	gs.treaties.append(t)
+	_treaty_epoch += 1
 	_shift_baseline(gs, a, b, cfg.treaties[kind].relation_bonus)
 	gs.treaty_changed.emit(t, true)
 	return t
@@ -300,6 +323,7 @@ static func end_treaty(gs: Node, t: Treaty) -> void:
 	if not t.active_on(Clock.days_elapsed):
 		return
 	t.end_day = Clock.days_elapsed
+	_treaty_epoch += 1
 	_shift_baseline(gs, t.a, t.b, -cfg.treaties[t.kind].relation_bonus)
 	gs.treaty_changed.emit(t, false)
 

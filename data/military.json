@@ -67,6 +67,10 @@
 		"entrench_days_per_level": 4,
 		"entrench_defense_per_level": 0.12
 	},
+	"front_pathing": {
+		"_note": "Armies sent to their front slot are routed by find_path, which is costly in a big war: at most paths_per_day routes are worked out in one day's step_fronts (the rest wait for the next day).",
+		"paths_per_day": 24
+	},
 	"cities": {
 		"_note": "The aura of the major cities. A city held (owned and controlled) by a nation lifts the nation's own provinces around it, strongest in its own province and fading to nothing past `radius` hops: a capital most, then a great city, then a large one. At full strength in a province an army there is supplied up to supply_range hops farther than usual, draws resupply and reinforcement faster by the `resupply` and `reinforce` shares, regains morale faster by the `morale` share, and while fighting still regains `morale_fighting` times its normal recovery. A city never supplies anyone itself: its aura only helps ground that is already the nation's own.",
 		"power": {"1": 1.0, "2": 0.6, "3": 0.35},

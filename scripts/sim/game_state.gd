@@ -354,6 +354,7 @@ func load_game(path: String) -> String:
 ## What a loaded game needs to run: tables worked out from the saved state, and no cache
 ## filled by the game that was there before.
 func finish_load() -> void:
+	Diplomacy.invalidate_treaties()
 	owner_version += 1
 	_rebuild_nation_provinces()
 	control_version += 1
