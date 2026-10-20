@@ -835,8 +835,9 @@ static func step_day(gs: Node) -> void:
 		a.fighting = false
 	_timed("move", func() -> void: _move(gs, armies))
 	_timed("fight", func() -> void: _fight(gs))
-	var captured: bool = false
-	_timed("occupy", func() -> void: captured = _upkeep_and_occupy(gs))
+	var t_occupy := Time.get_ticks_usec() if profile else 0
+	var captured := _upkeep_and_occupy(gs)
+	_note("occupy", t_occupy)
 	_timed("issue", func() -> void: _issue(gs))
 	_collapse_nations(gs)
 	refresh_men(gs)
