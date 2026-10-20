@@ -5,7 +5,8 @@ extends Node
 ## they are moved into an off-screen viewport, 1.5 times the window, and that picture is laid on a
 ## flat plane that a perspective camera looks at. Looking straight down (90 degrees) it is the 2D
 ## map again; tilting it (Page Up and Page Down, Shift and the wheel, Ctrl and the middle button)
-## brings the horizon into view. Panning and zooming go on as before: they move the 2D camera inside
+## brings the horizon into view, and [ and ] (or Ctrl and the middle button, moved sideways) turn it
+## round. Panning and zooming go on as before: they move the 2D camera inside
 ## the picture. The mouse is followed through the plane: a click on it is turned into the click on
 ## the picture that lies under it, and sent to the layers, so selecting, ordering and box-selecting
 ## work unchanged. The windows and the top bar stay on the screen as they are. Off, the layers go
@@ -21,6 +22,7 @@ const MIN_TILT := 35.0
 const MAX_TILT := 90.0
 const DEFAULT_TILT := 58.0
 const TILT_STEP := 4.0
+const YAW_STEP := 15.0
 ## The plane is this many units high; its width follows the picture's shape.
 const PLANE_HEIGHT := 9.0
 const SEA := Color(0.045, 0.065, 0.1)
@@ -28,6 +30,8 @@ const SEA := Color(0.045, 0.065, 0.1)
 var enabled := false
 ## The angle of the camera above the horizon, in degrees: 90 looks straight down.
 var tilt := DEFAULT_TILT
+## How far the map is turned round, in degrees: 0 has north at the top of the screen.
+var yaw := 0.0
 var main: Node2D
 var _sub: SubViewport
 var _scene: Node3D
@@ -74,6 +78,11 @@ static func plane_hit(origin: Vector3, direction: Vector3, plane_size: Vector2) 
 	return uv
 
 
+## The turn to give the panning keys so that "up" goes toward the top of a screen turned by `yaw` degrees.
+static func pan_rotation_for(yaw_degrees: float) -> float:
+	return -deg_to_rad(yaw_degrees)
+
+
 ## How far the camera stands from the plane's centre so that, looking straight down, the screen
 ## shows 1 / SCALE of the picture's height (one picture pixel to one screen pixel).
 static func camera_distance(plane_height: float) -> float:
@@ -111,7 +120,7 @@ func _enter() -> void:
 	_build_scene()
 	enabled = true
 	_apply_tilt()
-	get_tree().call_group("event_feed", "say", "3D map on. Page Up and Page Down tilt it, V goes back to the flat map.", Fmt.DIM)
+	get_tree().call_group("event_feed", "say", "3D map on. Page Up and Page Down tilt it, [ and ] turn it, V goes back to the flat map.", Fmt.DIM)
 
 
 func _leave() -> void:
@@ -134,6 +143,9 @@ func _leave() -> void:
 		_sub = null
 	_camera = null
 	_tilting = false
+	var flat_cam: Camera2D = main.get("camera")
+	if flat_cam != null:
+		flat_cam.set("pan_rotation", 0.0)
 
 
 func _build_scene() -> void:
@@ -179,10 +191,16 @@ func _apply_tilt() -> void:
 	if _camera == null:
 		return
 	tilt = clampf(tilt, MIN_TILT, MAX_TILT)
+	yaw = wrapf(yaw, -180.0, 180.0)
 	var d := camera_distance(PLANE_HEIGHT)
 	var angle := deg_to_rad(tilt)
-	var at := Vector3(0.0, sin(angle) * d, cos(angle) * d)
-	_camera.look_at_from_position(at, Vector3.ZERO, Vector3(0, 0, -1))
+	var turn := deg_to_rad(yaw)
+	var at := Vector3(0.0, sin(angle) * d, cos(angle) * d).rotated(Vector3.UP, turn)
+	_camera.look_at_from_position(at, Vector3.ZERO, Vector3(0, 0, -1).rotated(Vector3.UP, turn))
+	# The keys that pan the map go the way the screen's top points.
+	var flat_cam: Camera2D = main.get("camera")
+	if flat_cam != null:
+		flat_cam.set("pan_rotation", pan_rotation_for(yaw))
 
 
 ## Where a point of the screen falls on the off-screen picture, in its pixels; (-1, -1) off it.
@@ -213,8 +231,17 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		tilt -= TILT_STEP
 		_apply_tilt()
 		get_viewport().set_input_as_handled()
+	elif enabled and event.keycode == KEY_BRACKETLEFT:
+		yaw -= YAW_STEP
+		_apply_tilt()
+		get_viewport().set_input_as_handled()
+	elif enabled and event.keycode == KEY_BRACKETRIGHT:
+		yaw += YAW_STEP
+		_apply_tilt()
+		get_viewport().set_input_as_handled()
 	elif enabled and event.keycode == KEY_HOME:
 		tilt = DEFAULT_TILT
+		yaw = 0.0
 		_apply_tilt()
 		get_viewport().set_input_as_handled()
 
@@ -240,6 +267,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	if event is InputEventMouseMotion and _tilting:
 		tilt = clampf(tilt - event.relative.y * 0.25, MIN_TILT, MAX_TILT)
+		yaw += event.relative.x * 0.25
 		_apply_tilt()
 		return
 	var at := to_picture(event.position)

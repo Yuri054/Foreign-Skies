@@ -60,6 +60,23 @@ func _initialize() -> void:
 	var centre: Vector2 = mode.to_picture(root.get_visible_rect().size / 2.0)
 	var picture_centre := Vector2(map_view.get_viewport().size) / 2.0
 	_check(centre.distance_to(picture_centre) < 3.0, "looking straight down, the centre of the screen is the centre of the picture (%s)" % str(centre))
+	# Turning: the screen's centre stays on the picture's centre, and a turn of 90 degrees puts the
+	# picture's left side at the top of the screen, so the panning keys turn with it.
+	mode.yaw = 90.0
+	mode._apply_tilt()
+	var turned: Vector2 = mode.to_picture(root.get_visible_rect().size / 2.0)
+	_check(turned.distance_to(picture_centre) < 3.0, "turned round, the centre of the screen is still the picture's centre")
+	var top: Vector2 = mode.to_picture(Vector2(root.get_visible_rect().size.x / 2.0, 20.0))
+	_check(top.x < picture_centre.x - 100.0 and absf(top.y - picture_centre.y) < 5.0, "and the top of the screen shows the picture's left side (%s)" % str(top))
+	_check(is_equal_approx(main.camera.pan_rotation, M3.pan_rotation_for(90.0)), "the panning keys are turned the same way")
+	var up := Vector2(0, -1).rotated(main.camera.pan_rotation)
+	_check(up.x < -0.99, "so that up goes toward the picture's left (%s)" % str(up))
+	mode.yaw = 270.0
+	mode._apply_tilt()
+	_check(absf(mode.yaw + 90.0) < 0.001, "the turn wraps round (270 is -90)")
+	mode.yaw = 0.0
+	mode._apply_tilt()
+	_check(is_equal_approx(main.camera.pan_rotation, 0.0), "turned back, the keys are as they were")
 	for i in 3:
 		root.get_node("Clock").advance_day()
 	await process_frame

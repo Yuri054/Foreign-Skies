@@ -91,7 +91,7 @@ Numbers are mine to propose, kept in data files.
 
 ## M6. 3D map, second stage (optional)
 
-**6.1 Turning the map (M).** Yaw, with panning following the view direction.
+**6.1 Turning the map (M).** Yaw, with panning following the view direction. *Built:* `[` and `]` turn the 3D map 15 degrees, Ctrl and the middle button turn it sideways, Home resets; `Camera2D.pan_rotation` makes the WASD keys follow the screen.
 
 **6.2 Relief (L).** Needs an elevation source; I have not found one reachable from here yet (check GitHub-hosted DEM tiles or derive pseudo-relief from the terrain types). Displace the plane, light it, and make picking work on the relief.
 Decided: yes, real relief.

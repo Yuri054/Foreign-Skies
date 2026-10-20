@@ -9,6 +9,8 @@ extends Camera2D
 @export var min_zoom: float = 0.2
 @export var max_zoom: float = 3.0
 
+## Turns the panning keys (radians), when the map is seen turned round (see Map3D).
+var pan_rotation := 0.0
 var _dragging := false
 
 
@@ -34,7 +36,7 @@ func keep_on_map() -> void:
 
 func _process(delta: float) -> void:
 	var dir := Input.get_vector("pan_left", "pan_right", "pan_up", "pan_down")
-	position += dir * pan_speed * delta / zoom.x
+	position += dir.rotated(pan_rotation) * pan_speed * delta / zoom.x
 	keep_on_map()
 
 
