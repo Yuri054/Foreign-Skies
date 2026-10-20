@@ -96,7 +96,7 @@ Numbers are mine to propose, kept in data files.
 **6.2 Relief (L).** Needs an elevation source; I have not found one reachable from here yet (check GitHub-hosted DEM tiles or derive pseudo-relief from the terrain types). Displace the plane, light it, and make picking work on the relief.
 Decided: yes, real relief. *Built:* elevation from the open Terrarium tiles (reachable from the build machine), shader displacement and shading, picking on the relief; see DESIGN.md.
 
-**6.3 3D unit markers (M).** Replace the flat banners in 3D mode with small drawn models or billboards.
+**6.3 3D unit markers (M).** Replace the flat banners in 3D mode with small drawn models or billboards. *Built:* flagged poles and little ships (see DESIGN.md).
 
 ---
 

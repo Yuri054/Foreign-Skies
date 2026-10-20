@@ -87,6 +87,36 @@ func _initialize() -> void:
 	_check(worst < 0.01, "a click on the raised ground is followed down to it (off by %.4f of the picture at most)" % worst)
 	mode.relief_on = false
 	_check(mode.height_units(Vector2(0.5, 0.5)) == 0.0, "with the relief off the plane is flat")
+	# Unit models: the flat banners are listed instead, and stand up as models that can be clicked.
+	var armies: Node = get_first_node_in_group("army_layer")
+	var fleets: Node = get_first_node_in_group("fleet_layer")
+	_check(armies.markers_only and fleets.markers_only, "in 3D the layers list their banners as markers instead of drawing them")
+	root.get_node("GameState").set_player("GER")
+	armies.queue_redraw()
+	fleets.queue_redraw()
+	await process_frame
+	await process_frame
+	var entries: Array = mode.marker_entries()
+	_check(not entries.is_empty(), "the layers list %d markers" % entries.size())
+	main.camera.position = entries[0].pos
+	main.camera.zoom = Vector2(1.0, 1.0)
+	await process_frame
+	await process_frame
+	mode._update_markers()
+	_check(not mode._shown.is_empty() and mode._shown.size() == mode._standees.filter(func(n: Node3D) -> bool: return n.visible).size(), "models stand for the armies and fleets in view (%d)" % mode._shown.size())
+	var picked_entry: Dictionary = {}
+	for e in mode._shown:
+		if e.kind == "army":
+			picked_entry = e
+			break
+	if not picked_entry.is_empty():
+		var top: Vector3 = picked_entry.ground + Vector3(0, M3.standee_height("army", picked_entry.men) * 0.7, 0)
+		var hit: Dictionary = mode.marker_at(mode._camera.unproject_position(top))
+		_check(not hit.is_empty() and hit.pos == picked_entry.pos, "a click on a model is a click on the place it stands")
+	_check(M3.standee_height("army", 100000.0) > M3.standee_height("army", 1000.0), "bigger armies stand taller")
+	mode.markers_on = false
+	_check(not armies.markers_only and not fleets.markers_only, "with the models off the flat banners are drawn again")
+	mode.markers_on = true
 	mode.relief_on = true
 	mode.tilt = 90.0
 	mode.yaw = 90.0
@@ -109,6 +139,7 @@ func _initialize() -> void:
 	await process_frame
 	mode.set_enabled(false)
 	await process_frame
+	_check(not get_first_node_in_group("army_layer").markers_only, "switched off, the banners are back")
 	var restored := true
 	for c in before:
 		restored = restored and c.get_parent() == main

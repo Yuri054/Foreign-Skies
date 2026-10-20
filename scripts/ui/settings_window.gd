@@ -12,6 +12,7 @@ var _note := Label.new()
 var _army_view := OptionButton.new()
 var _map_3d := CheckButton.new()
 var _relief := CheckButton.new()
+var _models := CheckButton.new()
 var _updating := false
 ## Whether the window offers a way back to the main menu (the menu's own copy does not).
 var offer_quit_to_menu := true
@@ -99,6 +100,15 @@ func _ready() -> void:
 				m.relief_on = on
 	)
 	box.add_child(_relief)
+	_models.text = "Unit models in 3D"
+	_models.focus_mode = Control.FOCUS_NONE
+	_models.tooltip_text = "Armies and fleets stand up on the 3D map as small flagged poles and ships, not flat banners."
+	_models.toggled.connect(func(on: bool) -> void:
+		if not _updating:
+			for m in get_tree().get_nodes_in_group("map_3d"):
+				m.markers_on = on
+	)
+	box.add_child(_models)
 
 	var sound := Label.new()
 	sound.text = "Sound"
@@ -162,6 +172,7 @@ func _sync() -> void:
 	for m in get_tree().get_nodes_in_group("map_3d"):
 		_map_3d.button_pressed = m.enabled
 		_relief.button_pressed = m.relief_on
+		_models.button_pressed = m.markers_on
 	_slider.value = UiSettings.scale
 	_scale_label.text = "%d%%" % roundi(UiSettings.scale * 100.0)
 	for i in _army_view.item_count:

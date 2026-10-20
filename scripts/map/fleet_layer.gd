@@ -18,6 +18,14 @@ var selected: Array[int] = []
 
 var _font: Font = ThemeDB.fallback_font
 var _zoom := 0.0
+## While true the banners are not drawn: each is listed in `markers` instead, for the 3D map to stand
+## up as models ({tag, squadrons, fleets, men, picked, fighting, pos in map pixels}).
+var markers_only := false:
+	set(value):
+		markers_only = value
+		queue_redraw()
+var markers: Array = []
+var _collecting := false
 
 
 func _ready() -> void:
@@ -100,6 +108,17 @@ func _groups(px: float) -> Array:
 	return out
 
 
+## The banners as markers (see `markers_only`), worked out now rather than at the next redraw.
+func collect_markers() -> Array:
+	markers.clear()
+	_collecting = true
+	var px := 1.0 / maxf(_zoom, 0.05)
+	for g in _groups(px):
+		_draw_group(g, px)
+	_collecting = false
+	return markers
+
+
 ## Ids of the fleets whose banner is under a map position (empty if none).
 func pick_at(world_pos: Vector2) -> Array[int]:
 	var out: Array[int] = []
@@ -141,6 +160,7 @@ func pick_battle_at(world_pos: Vector2) -> int:
 func _draw() -> void:
 	var px := 1.0 / maxf(_zoom, 0.05)
 	_draw_routes(px)
+	markers.clear()
 	for g in _groups(px):
 		_draw_group(g, px)
 	_draw_battle_icons(px)
@@ -164,6 +184,10 @@ func _draw_group(g: Dictionary, px: float) -> void:
 			mission = f.mission
 		elif mission != f.mission:
 			mixed = true
+	if markers_only or _collecting:
+		markers.append({"tag": g.tag, "squadrons": squadrons, "fleets": g.fleets.size(), "men": men, "picked": picked,
+				"fighting": fighting, "pos": rect.get_center()})
+		return
 	draw_rect(rect, color)
 	var frame := Rect2(rect.position + Vector2(2, 2) * px, Vector2(rect.size.y * 1.25 - 4.0 * px, rect.size.y - 4.0 * px))
 	draw_rect(frame, Color(1, 1, 1, 0.92))

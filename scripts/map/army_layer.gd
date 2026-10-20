@@ -29,6 +29,14 @@ var _preview_etas: Array[float] = []
 var _preview_from := 0
 ## Front labels waiting to be drawn over the banners: [front, position, colour, chosen].
 var _labels: Array = []
+## While true the banners are not drawn: each is listed in `markers` instead, for the 3D map to stand
+## up as models ({province, tag, men, count, picked, fighting, guess, pos in map pixels}).
+var markers_only := false:
+	set(value):
+		markers_only = value
+		queue_redraw()
+var markers: Array = []
+var _collecting := false
 
 
 func _ready() -> void:
@@ -87,6 +95,15 @@ func _draw_battle_icons(px: float) -> void:
 		draw_line(c + Vector2(7.5, 2.0) * px, c + Vector2(2.0, 7.5) * px, Color.WHITE, w)
 		var day: int = Clock.days_elapsed - GameState.engagements[province].start_day + 1
 		_pill("day %d" % day, c + Vector2(0, 18.0 * px), px, Color.WHITE, 9)
+
+
+## The banners as markers (see `markers_only`), worked out now rather than at the next redraw.
+func collect_markers() -> Array:
+	markers.clear()
+	_collecting = true
+	_draw_banners(1.0 / maxf(_zoom, 0.05))
+	_collecting = false
+	return markers
 
 
 ## Id of the army whose fanned-out banner is under a map position (0 if none).
@@ -192,6 +209,7 @@ func _update_preview() -> void:
 func _draw() -> void:
 	var px := 1.0 / maxf(_zoom, 0.05)
 	_labels.clear()
+	markers.clear()
 	_draw_fronts(px)
 	_draw_routes(px)
 	_draw_preview(px)
@@ -272,6 +290,10 @@ func _draw_banners(px: float) -> void:
 				if biggest == null or a.men() > biggest.men():
 					biggest = a
 			var rect := Rect2(Vector2(centre.x - size.x * 0.5, top + i * (size.y + gap)), size)
+			if markers_only or _collecting:
+				markers.append({"province": id, "tag": tag, "men": men, "count": 1 if guess else count, "picked": picked,
+						"fighting": fighting, "guess": guess, "pos": rect.get_center()})
+				continue
 			if guess:
 				_draw_banner(rect, px, GameState.nations[tag].color, "unknown", men, 1, false, fighting, true)
 			else:
