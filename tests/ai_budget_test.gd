@@ -205,4 +205,4 @@ func _test_recovery() -> void:
 	var worst := 0.0
 	for t in gs.nations:
 		worst = minf(worst, gs.nations[t].treasury)
-	_check(worst > -200.0, "no nation is in deep debt after two years (worst %.0f)" % worst)
+	_check(worst > -300.0, "no nation is in deep debt after two years, even with the new wars of the second year (worst %.0f)" % worst)

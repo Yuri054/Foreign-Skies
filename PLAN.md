@@ -87,7 +87,7 @@ Numbers are mine to propose, kept in data files.
 *Done:* every nation has at least a short tree; the AI picks and finishes foci; a test per effect type. *Built* (tests/focus_test.gd).
 
 **5.3 The late-game AI (L).** After the opening war the AI does almost nothing. With the focus system in place, give it goals (claims, growth, rebuilding armies after a war, new alliances) and a way to want things. Scripted events stay a thin layer of flavour.
-*Done:* a five-year AI run (with the soak tool) shows continued wars and treaties after year two, no stalls, and no invariant violations.
+*Done:* a five-year AI run (with the soak tool) shows continued wars and treaties after year two, no stalls, and no invariant violations. *Built* (tests/ai_ambition_test.gd; 5-year soak, seed 67: 0 violations). Open: the daily step averages 86 ms over four years once the wars go on (worst single day about 1 s in the military step).
 
 ## M6. 3D map, second stage (optional)
 
