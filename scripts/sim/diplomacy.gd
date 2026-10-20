@@ -123,6 +123,74 @@ static func bloc_of(gs: Node, tag: String) -> String:
 	return ""
 
 
+## Nations tied to `tag` by standing alliances (the nation itself first), through however many.
+static func alliance_circle(gs: Node, tag: String) -> Array[String]:
+	var out: Array[String] = [tag]
+	var i := 0
+	while i < out.size():
+		for ally in allies_of(gs, out[i]):
+			if ally not in out:
+				out.append(ally)
+		i += 1
+	return out
+
+
+## The name shown for the group a nation stands in: its scenario bloc (Entente, Central
+## Powers), else the name of the alliance it has signed, else "". A new alliance is named when
+## it is signed (see `_name_alliance`) and can be renamed with RenameAlliance.
+static func bloc_name(gs: Node, tag: String) -> String:
+	var bloc := bloc_of(gs, tag)
+	if bloc != "":
+		return bloc
+	var t := _named_treaty(gs, tag)
+	return t.terms.name if t != null else ""
+
+
+## Whether the name is a historic bloc of the scenario, not one made in play.
+static func is_historic_bloc(gs: Node, tag: String) -> bool:
+	return bloc_of(gs, tag) != ""
+
+
+## The lowest-numbered alliance treaty of `tag`'s circle that carries a name, or null.
+static func _named_treaty(gs: Node, tag: String) -> Treaty:
+	var circle := alliance_circle(gs, tag)
+	if circle.size() < 2:
+		return null
+	var best: Treaty = null
+	for t: Treaty in gs.treaties:
+		if t.kind == "alliance" and t.active_on(Clock.days_elapsed) and t.terms.has("name") and t.a in circle and t.b in circle:
+			if best == null or t.id < best.id:
+				best = t
+	return best
+
+
+## Names a freshly signed alliance after its members unless one of them already stands in a
+## named group, which the new treaty then joins.
+static func _name_alliance(gs: Node, t: Treaty) -> void:
+	var existing := _named_treaty(gs, t.a)
+	if existing == null:
+		existing = _named_treaty(gs, t.b)
+	if existing != null:
+		t.terms["name"] = existing.terms.name
+		return
+	if bloc_of(gs, t.a) != "" or bloc_of(gs, t.b) != "":
+		return
+	t.terms["name"] = "%s–%s Alliance" % [gs.nations[t.a].display_name, gs.nations[t.b].display_name]
+
+
+## Sets the name of the alliance group `tag` stands in (the lowest named treaty carries it).
+static func rename_alliance(gs: Node, tag: String, name: String) -> bool:
+	var clean := name.strip_edges().left(40)
+	var t := _named_treaty(gs, tag)
+	if clean.is_empty() or t == null or bloc_of(gs, tag) != "":
+		return false
+	t.terms["name"] = clean
+	for other: Treaty in gs.treaties:
+		if other.kind == "alliance" and other.active_on(Clock.days_elapsed) and other.terms.has("name") and other.a in alliance_circle(gs, tag):
+			other.terms["name"] = clean
+	return true
+
+
 static func bloc_members(gs: Node, bloc: String) -> Array:
 	return gs.scenario.get("blocs", {}).get(bloc, [])
 
@@ -507,7 +575,9 @@ static func propose_treaty(gs: Node, from: String, to: String, kind: String) -> 
 		if kind == "passage":
 			add_treaty(gs, kind, to, from)
 		else:
-			add_treaty(gs, kind, from, to)
+			var made := add_treaty(gs, kind, from, to)
+			if made != null and kind == "alliance":
+				_name_alliance(gs, made)
 		var worth: float = cfg.points.prestige.treaty.get(kind, 0.0)
 		gain_prestige(gs, from, worth)
 		gain_prestige(gs, to, worth)

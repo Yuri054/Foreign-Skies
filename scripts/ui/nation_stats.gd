@@ -159,7 +159,7 @@ func _refresh() -> void:
 	title = "Nation: %s" % n.display_name
 	_flag.tag = tag
 	_name.text = n.display_name
-	var bloc := Diplomacy.bloc_of(GameState, tag)
+	var bloc := Diplomacy.bloc_name(GameState, tag)
 	_sub.text = "%s · %s%s" % [n.government.replace("_", " ").capitalize() if n.government != "" else "Government unknown",
 			bloc if bloc != "" else "no bloc", " · your nation" if mine else ""]
 	_fill_picker(tag)

@@ -40,6 +40,9 @@ var _buy := Button.new()
 var _projects := Label.new()
 var _improve := Button.new()
 var _justify := Button.new()
+var _rename_row := HBoxContainer.new()
+var _rename_edit := LineEdit.new()
+var _rename := Button.new()
 var _perspective := Label.new()
 var _back := Button.new()
 var _perspective_row := VBoxContainer.new()
@@ -215,6 +218,15 @@ func _ready() -> void:
 	_justify.focus_mode = Control.FOCUS_NONE
 	_justify.pressed.connect(_on_justify)
 	_box.add_child(_justify)
+	_rename_edit.placeholder_text = "Alliance name"
+	_rename_edit.max_length = 40
+	_rename_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rename_row.add_child(_rename_edit)
+	_rename.text = "Rename"
+	_rename.focus_mode = Control.FOCUS_NONE
+	_rename.pressed.connect(_on_rename)
+	_rename_row.add_child(_rename)
+	_box.add_child(_rename_row)
 
 	_why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_why.custom_minimum_size = Vector2(250, 0)
@@ -449,8 +461,8 @@ func _refresh_detail() -> void:
 	_header_flag.tag = _selected
 	_header_name.text = n.display_name
 	lines.append("%s's opinion of %s: %s (%+d), settling at %+d." % [n.display_name, _who(me), mood(r), roundi(r), roundi(base)])
-	var bloc := Diplomacy.bloc_of(GameState, _selected)
-	lines.append("Bloc: %s" % (bloc if bloc != "" else "none"))
+	var bloc := Diplomacy.bloc_name(GameState, _selected)
+	lines.append("Bloc: %s%s" % [bloc if bloc != "" else "none", " (historic)" if Diplomacy.is_historic_bloc(GameState, _selected) else ""])
 	lines.append("War support %d  ·  Mobilization %d%%  ·  Prestige %d" % [roundi(n.war_support), roundi(n.mobilization * 100.0), roundi(n.prestige)])
 	var grievance := Diplomacy.grievance(GameState, _selected, me)
 	if grievance >= 1.0:
@@ -560,6 +572,9 @@ func _refresh_actions() -> void:
 		reasons.append("Improve relations: %s" % BLOCKS.get(improve_block, improve_block))
 	elif improve_poor:
 		reasons.append("Improve relations: not enough diplomacy points (need %d)." % int(improve_cost))
+	var circle := Diplomacy.alliance_circle(GameState, me)
+	_rename_row.visible = _acting() and _selected in circle and _selected != me and not Diplomacy.is_historic_bloc(GameState, me) and Diplomacy.bloc_name(GameState, me) != ""
+	_rename.tooltip_text = "Name the alliance you share with %s." % GameState.nations[tag].display_name
 	var jcost := Diplomacy.justify_cost(GameState, me)
 	var jblock := Diplomacy.justify_block(GameState, me, tag)
 	var jwork: Variant = Diplomacy.justifying(GameState, me, tag)
@@ -654,6 +669,18 @@ func _on_improve() -> void:
 		_status.modulate = Fmt.GOOD
 	else:
 		_status.text = BLOCKS.get(cmd.reason, "That is not possible.")
+		_status.modulate = Fmt.BAD
+	_refresh()
+
+
+func _on_rename() -> void:
+	var cmd := RenameAlliance.new(GameState.player_tag, _rename_edit.text)
+	if GameState.issue(cmd):
+		_status.text = "Your alliance is now the %s." % _rename_edit.text.strip_edges()
+		_status.modulate = Fmt.GOOD
+		_rename_edit.text = ""
+	else:
+		_status.text = "Give the alliance a name."
 		_status.modulate = Fmt.BAD
 	_refresh()
 

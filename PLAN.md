@@ -73,7 +73,7 @@ Order matters: justifications first, since the AI uses them.
 **4.3 Points and prestige (M).** Rebalance income and costs. Give prestige uses beyond point income: justification cost, peace terms, alliance pull.
 
 **4.4 Named alliances (S–M).** A new alliance gets a generated bloc name from its members, or one the player types, and the interface tells it from the historic blocs (Entente, Central Powers).
-*Done:* the Diplomacy and Rankings windows show bloc names; saves keep them.
+*Done (built, tests/alliance_names_test.gd):* the Diplomacy and Rankings windows show bloc names; saves keep them. M4 as a whole is built; peace-terms use of prestige was left out (point income and treaty pull/justification discount cover its uses).
 
 Numbers are mine to propose, kept in data files.
 

@@ -185,7 +185,8 @@ func _refresh_chart(ranking: Array[Dictionary]) -> void:
 		row.add_theme_stylebox_override("panel", style)
 		row.mouse_filter = Control.MOUSE_FILTER_STOP
 		row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		row.tooltip_text = "Show %s in the country panel" % n.display_name
+		var bloc_text := Diplomacy.bloc_name(GameState, tag)
+		row.tooltip_text = "Show %s in the country panel%s" % [n.display_name, "\nBloc: " + bloc_text if bloc_text != "" else ""]
 		row.gui_input.connect(func(event: InputEvent) -> void:
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 				_show_nation(tag)
@@ -208,6 +209,13 @@ func _refresh_chart(ranking: Array[Dictionary]) -> void:
 		name.clip_text = true
 		name.custom_minimum_size = Vector2(140, 0)
 		h.add_child(name)
+		var bloc_label := Label.new()
+		bloc_label.text = bloc_text
+		bloc_label.modulate = Fmt.DIM
+		bloc_label.clip_text = true
+		bloc_label.custom_minimum_size = Vector2(130, 0)
+		bloc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(bloc_label)
 		var bar := Control.new()
 		bar.custom_minimum_size = Vector2(60, 16)
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -269,7 +277,8 @@ func _refresh_table() -> void:
 		link.focus_mode = Control.FOCUS_NONE
 		link.clip_text = true
 		link.modulate = color
-		link.tooltip_text = "Show %s in the country panel" % n.display_name
+		var table_bloc := Diplomacy.bloc_name(GameState, tag)
+		link.tooltip_text = "Show %s in the country panel%s" % [n.display_name, "\nBloc: " + table_bloc if table_bloc != "" else ""]
 		link.pressed.connect(func() -> void: _show_nation(tag))
 		_table.add_child(link)
 		for id: String in TABLE_COLUMNS:
