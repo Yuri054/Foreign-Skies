@@ -127,6 +127,7 @@ static func think(gs: Node, tag: String) -> void:
 		_timed("landing", func() -> void: AILanding.step(gs, tag))
 	_timed("diplomacy", func() -> void: AIDiplomacy.step(gs, tag))
 	_timed("budget", func() -> void: AIBudget.step(gs, tag))
+	_timed("focus", func() -> void: AIFocus.step(gs, tag))
 
 
 ## Microseconds spent in each part of the AI, by name, while `profile` is true (tools/ai_report.gd).

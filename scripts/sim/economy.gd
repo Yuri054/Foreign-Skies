@@ -47,7 +47,7 @@ static func program_ids() -> Array:
 
 ## Summed fractional bonuses from a province's buildings and the owner's programs:
 ## gdp, industry, food, trade, growth and diplomacy.
-static func modifiers(buildings: Dictionary, programs: Dictionary) -> Dictionary:
+static func modifiers(buildings: Dictionary, programs: Dictionary, focus_fx := {}) -> Dictionary:
 	var m := {"gdp": 0.0, "industry": 0.0, "food": 0.0, "trade": 0.0, "growth": 0.0, "diplomacy": 0.0}
 	for type in buildings:
 		for k in cfg.buildings[type].effects:
@@ -55,6 +55,8 @@ static func modifiers(buildings: Dictionary, programs: Dictionary) -> Dictionary
 	for id in programs:
 		for k in cfg.programs[id].effects:
 			m[k] += cfg.programs[id].effects[k]
+	for k in ["gdp", "industry", "food", "trade", "growth"]:
+		m[k] += focus_fx.get(k, 0.0)
 	return m
 
 
@@ -67,7 +69,7 @@ static func province_output(population: int, area_km2: float, nation: Nation, bu
 	var density := population / maxf(area_km2, 1.0)
 	var mod := clampf(pow(density / cfg.reference_density, cfg.density_exponent), cfg.density_min, cfg.density_max)
 	var urban := inverse_lerp(cfg.density_min, cfg.density_max, mod)
-	var fx := modifiers(buildings, nation.programs)
+	var fx := modifiers(buildings, nation.programs, nation.focus_fx)
 	var gdp: float = population * cfg.gdp_per_capita * nation.development * mod / 1e6 * (1.0 + fx.gdp)
 	var industry: float = gdp * lerpf(cfg.industry_share_min, cfg.industry_share_max, urban) * (1.0 + fx.industry)
 	# Factories beyond the calibrated base add their output; civilian ones turned military take it away.
@@ -220,7 +222,7 @@ static func enforce_laws(gs: Node) -> void:
 ## the people's goods and trade give.
 static func construction_points(n: Nation, factories: float, lock := 0.0) -> float:
 	var free := maxf(0.0, factories * (1.0 - consumer_share(n)) - lock)
-	return float(cfg.construction.base_ic) + free * float(cfg.construction.ic_per_factory) * worker_share(n)
+	return float(cfg.construction.base_ic) + float(n.focus_fx.get("construction", 0.0)) + free * float(cfg.construction.ic_per_factory) * worker_share(n)
 
 
 ## GBP millions a year one civilian factory pays the treasury (beyond the calibrated start).
@@ -725,7 +727,7 @@ static func step_month(gs: Node) -> void:
 		# does not take it again.
 		n.treasury += (b.net + b.equipment) / 12.0
 
-		var growth: float = (cfg.baseline_growth + modifiers({}, n.programs).growth - cfg.tax_strain.growth_penalty * tax_strain(n)) / 12.0
+		var growth: float = (cfg.baseline_growth + modifiers({}, n.programs, n.focus_fx).growth - cfg.tax_strain.growth_penalty * tax_strain(n)) / 12.0
 		n.development *= 1.0 + growth
 
 		# The cap covers everyone in service; what is not under arms is the reserve.

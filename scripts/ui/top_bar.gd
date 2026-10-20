@@ -14,6 +14,7 @@ const WINDOWS := [
 	["construction_panel", "Build", "B"],
 	["military_panel", "Military", "M"],
 	["diplomacy_panel", "Diplomacy", "F"],
+	["focus_panel", "Focus", "O"],
 ]
 
 var _flag := FlagIcon.new()

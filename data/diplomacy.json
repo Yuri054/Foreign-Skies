@@ -87,6 +87,13 @@
 				"world_relations": -5,
 				"prestige": -2,
 				"war_support": 0
+			},
+			"national_claim": {
+				"label": "National claim",
+				"target_relations": -30,
+				"world_relations": 0,
+				"prestige": 0,
+				"war_support": 5
 			}
 		},
 		"cb_years": 5,
@@ -292,7 +299,8 @@
 				"ally_called": 0,
 				"unprovoked_aggression": 10,
 				"none": 30,
-				"fabricated_claim": 10
+				"fabricated_claim": 10,
+				"national_claim": 10
 			},
 			"improve_relations": 10,
 			"propose": {

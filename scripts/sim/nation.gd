@@ -109,6 +109,12 @@ var stock: Dictionary = {}
 var chem := 0.5
 ## Draft animals the army needs, kt a year (kept up to date by Military.refresh_men).
 var animal_need := 0.0
+## National focus (see Focus): the one being worked on, {id, days_left, days_total} or {}; the
+## ones finished; and the summed lasting effects of those (gdp, industry, food, trade, growth,
+## diplomacy, construction).
+var focus: Dictionary = {}
+var focus_done: Array[String] = []
+var focus_fx: Dictionary = {}
 ## Latest figures from Economy.recompute (annual GBP millions unless stated).
 var budget: Dictionary = {}
 

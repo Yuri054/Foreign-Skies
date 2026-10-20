@@ -413,6 +413,7 @@ static func point_income_parts(gs: Node, tag: String) -> Dictionary:
 	var program := 0.0
 	for id: String in n.programs:
 		program += Economy.cfg.programs[id].effects.get("diplomacy", 0.0)
+	program += n.focus_fx.get("diplomacy", 0.0)
 	return {"base": base, "prestige": prestige, "output": output, "program": program,
 			"total": maxf(base + prestige + output + program, float(inc.min))}
 

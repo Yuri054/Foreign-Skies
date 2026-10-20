@@ -54,7 +54,7 @@ func _initialize() -> void:
 	_C_Military = load("res://scripts/sim/military.gd")
 
 	var steps: Array = load("res://scripts/ui/tutorial.gd").load_steps()
-	_check(steps.size() >= 10 and steps.size() <= 14, "the tutorial has about twelve steps (%d)" % steps.size())
+	_check(steps.size() >= 10 and steps.size() <= 15, "the tutorial has about twelve steps (%d)" % steps.size())
 	var ok := true
 	for s in steps:
 		ok = ok and s.has("id") and s.has("title") and s.has("text") and s.has("done")

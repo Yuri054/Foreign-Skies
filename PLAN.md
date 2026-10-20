@@ -84,7 +84,7 @@ Numbers are mine to propose, kept in data files.
 *Done:* both nations play (their economy balances, they field armies, the AI runs them) and every map-wide test passes with 22 nations. Check performance again after the extra provinces.
 
 **5.2 National focus system (L).** A generic focus engine (a focus has a cost in time, requirements, effects) using the economy and diplomacy hooks from M3 and M4; hand-built trees for the major powers and a smaller one for each minor nation so Albania, Serbia and the rest can grow (development, claims, alliances). Interface: a Focus window with the tree and the current focus. Save and load the progress.
-*Done:* every nation has at least a short tree; the AI picks and finishes foci; a test per effect type.
+*Done:* every nation has at least a short tree; the AI picks and finishes foci; a test per effect type. *Built* (tests/focus_test.gd).
 
 **5.3 The late-game AI (L).** After the opening war the AI does almost nothing. With the focus system in place, give it goals (claims, growth, rebuilding armies after a war, new alliances) and a way to want things. Scripted events stay a thin layer of flavour.
 *Done:* a five-year AI run (with the soak tool) shows continued wars and treaties after year two, no stalls, and no invariant violations.

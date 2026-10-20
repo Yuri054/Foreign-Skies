@@ -104,6 +104,7 @@ func _ready() -> void:
 	ui.add_child(MilitaryPanel.new())
 	ui.add_child(CommandPanel.new())
 	ui.add_child(DiplomacyPanel.new())
+	ui.add_child(FocusPanel.new())
 	var nation_stats := NationStats.new()
 	nation_stats.closed.connect(_end_peek)
 	ui.add_child(nation_stats)

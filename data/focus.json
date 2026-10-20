@@ -1,0 +1,762 @@
+{
+	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci.",
+	"templates": {
+		"major": [
+			{
+				"id": "industrial_drive",
+				"name": "Industrial drive",
+				"desc": "Subsidise the factories and the railways that feed them.",
+				"x": 0,
+				"y": 0,
+				"days": 70,
+				"requires": [],
+				"effects": {
+					"gdp": 0.04
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "agrarian_reform",
+				"name": "Agrarian reform",
+				"desc": "Better seed, drainage and credit for the farmers.",
+				"x": 1,
+				"y": 0,
+				"days": 70,
+				"requires": [],
+				"effects": {
+					"food": 0.1
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "army_reform",
+				"name": "Army reform",
+				"desc": "Longer service and more cadres: a larger peacetime army.",
+				"x": 2,
+				"y": 0,
+				"days": 80,
+				"requires": [],
+				"effects": {
+					"army_size": 0.1
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "heavy_industry",
+				"name": "Heavy industry",
+				"desc": "Steel, shipyards and machine shops.",
+				"x": 0,
+				"y": 1,
+				"days": 100,
+				"requires": [
+					"industrial_drive"
+				],
+				"effects": {
+					"industry": 0.08,
+					"construction": 8
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "civil_service",
+				"name": "Civil service",
+				"desc": "A trained administration that collects and spends better.",
+				"x": 1,
+				"y": 1,
+				"days": 80,
+				"requires": [
+					"agrarian_reform"
+				],
+				"effects": {
+					"growth": 0.003,
+					"gdp": 0.02
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "diplomatic_corps",
+				"name": "Diplomatic corps",
+				"desc": "A larger foreign service and more envoys abroad.",
+				"x": 2,
+				"y": 1,
+				"days": 70,
+				"requires": [
+					"army_reform"
+				],
+				"effects": {
+					"diplomacy": 1.0
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "national_unity",
+				"name": "National unity",
+				"desc": "Schools, parades and a shared story.",
+				"x": 1,
+				"y": 2,
+				"days": 90,
+				"requires": [
+					"civil_service"
+				],
+				"effects": {
+					"war_support": 8,
+					"growth": 0.002
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "great_power_standing",
+				"name": "Great-power standing",
+				"desc": "Be seen to matter in every capital.",
+				"x": 2,
+				"y": 2,
+				"days": 90,
+				"requires": [
+					"diplomatic_corps"
+				],
+				"effects": {
+					"prestige": 8,
+					"diplomacy": 0.5
+				},
+				"ai": 1.0
+			}
+		],
+		"minor": [
+			{
+				"id": "administrative_reform",
+				"name": "Administrative reform",
+				"desc": "Clear the offices of sinecures.",
+				"x": 0,
+				"y": 0,
+				"days": 60,
+				"requires": [],
+				"effects": {
+					"gdp": 0.03
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "farm_cooperatives",
+				"name": "Farm cooperatives",
+				"desc": "Credit and marketing for smallholders.",
+				"x": 1,
+				"y": 0,
+				"days": 60,
+				"requires": [],
+				"effects": {
+					"food": 0.08
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "modernise_army",
+				"name": "Modernise the army",
+				"desc": "Better rifles and drill for the little army we have.",
+				"x": 2,
+				"y": 0,
+				"days": 70,
+				"requires": [],
+				"effects": {
+					"army_size": 0.1
+				},
+				"ai": 1.0
+			},
+			{
+				"id": "seek_friends",
+				"name": "Seek friends",
+				"desc": "Quiet diplomacy for a small state in a big neighbourhood.",
+				"x": 1,
+				"y": 1,
+				"days": 60,
+				"requires": [
+					"administrative_reform"
+				],
+				"effects": {
+					"diplomacy": 0.5,
+					"prestige": 3
+				},
+				"ai": 1.0
+			}
+		]
+	},
+	"nations": {
+		"GBR": {
+			"template": "major",
+			"extra": [
+				{
+					"id": "imperial_preference",
+					"name": "Imperial preference",
+					"desc": "Favour trade inside the Empire.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"industrial_drive"
+					],
+					"effects": {
+						"trade": 0.1,
+						"gdp": 0.02
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "two_power_standard",
+					"name": "Two-power standard",
+					"desc": "Keep the navy a match for the next two combined.",
+					"x": 3,
+					"y": 1,
+					"days": 100,
+					"requires": [
+						"heavy_industry"
+					],
+					"effects": {
+						"construction": 6,
+						"prestige": 4
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"FRA": {
+			"template": "major",
+			"extra": [
+				{
+					"id": "revanche",
+					"name": "Revanche",
+					"desc": "Keep the lost provinces in view.",
+					"x": 3,
+					"y": 0,
+					"days": 90,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"claim": [
+							"GER"
+						],
+						"war_support": 6
+					},
+					"ai": 0.6,
+					"min_aggression": 0.5
+				},
+				{
+					"id": "colonial_army",
+					"name": "Colonial army",
+					"desc": "Raise troops in the empire.",
+					"x": 3,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"army_size": 0.08,
+						"prestige": 2
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"GER": {
+			"template": "major",
+			"extra": [
+				{
+					"id": "weltpolitik",
+					"name": "Weltpolitik",
+					"desc": "A place in the sun.",
+					"x": 3,
+					"y": 0,
+					"days": 90,
+					"requires": [
+						"heavy_industry"
+					],
+					"effects": {
+						"prestige": 6,
+						"industry": 0.05
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "rail_mobilisation",
+					"name": "Railway mobilisation",
+					"desc": "Timetables and marshalling yards for the great plan.",
+					"x": 3,
+					"y": 1,
+					"days": 100,
+					"requires": [
+						"heavy_industry"
+					],
+					"effects": {
+						"construction": 10
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"AUH": {
+			"template": "major",
+			"extra": [
+				{
+					"id": "dual_monarchy_reform",
+					"name": "Dual-monarchy reform",
+					"desc": "Smooth the Compromise's quarrels over the common budget.",
+					"x": 3,
+					"y": 0,
+					"days": 90,
+					"requires": [
+						"civil_service"
+					],
+					"effects": {
+						"gdp": 0.03,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "south_slav_question",
+					"name": "The South Slav question",
+					"desc": "Press the case against Serbia.",
+					"x": 3,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"claim": [
+							"SRB"
+						],
+						"war_support": 5
+					},
+					"ai": 0.6,
+					"min_aggression": 0.5
+				}
+			]
+		},
+		"RUS": {
+			"template": "major",
+			"extra": [
+				{
+					"id": "great_programme",
+					"name": "Great Programme",
+					"desc": "The army's rearmament plan.",
+					"x": 3,
+					"y": 0,
+					"days": 100,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"army_size": 0.12,
+						"construction": 10
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "pan_slav_patron",
+					"name": "Patron of the Slavs",
+					"desc": "Stand behind Serbia and Montenegro.",
+					"x": 3,
+					"y": 1,
+					"days": 70,
+					"requires": [
+						"diplomatic_corps"
+					],
+					"effects": {
+						"relation": [
+							[
+								"SRB",
+								25
+							],
+							[
+								"MNE",
+								25
+							]
+						],
+						"prestige": 3
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"ITA": {
+			"template": "major",
+			"extra": [
+				{
+					"id": "irredentism",
+					"name": "Irredentism",
+					"desc": "Trento and Trieste are still Italian.",
+					"x": 3,
+					"y": 0,
+					"days": 90,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"claim": [
+							"AUH"
+						],
+						"war_support": 5
+					},
+					"ai": 0.6,
+					"min_aggression": 0.5
+				},
+				{
+					"id": "libyan_development",
+					"name": "Libyan development",
+					"desc": "Settle and exploit the new colony.",
+					"x": 3,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"industrial_drive"
+					],
+					"effects": {
+						"gdp": 0.03
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"OTT": {
+			"template": "major",
+			"extra": [
+				{
+					"id": "young_turk_reforms",
+					"name": "Young Turk reforms",
+					"desc": "Modernise the state, the schools and the courts.",
+					"x": 3,
+					"y": 0,
+					"days": 90,
+					"requires": [
+						"civil_service"
+					],
+					"effects": {
+						"gdp": 0.04,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "german_mission",
+					"name": "German military mission",
+					"desc": "Officers and rifles from Berlin.",
+					"x": 3,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"army_size": 0.1,
+						"relation": [
+							[
+								"GER",
+								25
+							]
+						]
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"SRB": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "greater_serbia",
+					"name": "Greater Serbia",
+					"desc": "The Serbs of Bosnia and the south.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"claim": [
+							"AUH"
+						],
+						"war_support": 6
+					},
+					"ai": 0.6,
+					"min_aggression": 0.5
+				}
+			]
+		},
+		"BUL": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "revise_bucharest",
+					"name": "Revise Bucharest",
+					"desc": "The 1913 settlement was unjust.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"claim": [
+							"SRB"
+						],
+						"war_support": 6
+					},
+					"ai": 0.6,
+					"min_aggression": 0.5
+				}
+			]
+		},
+		"GRE": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "megali_idea",
+					"name": "The Great Idea",
+					"desc": "Greeks beyond the frontier.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"claim": [
+							"OTT"
+						],
+						"war_support": 5
+					},
+					"ai": 0.6,
+					"min_aggression": 0.5
+				}
+			]
+		},
+		"ROM": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "transylvania",
+					"name": "Transylvania",
+					"desc": "Romanians under the Hungarian crown.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"claim": [
+							"AUH"
+						],
+						"war_support": 5
+					},
+					"ai": 0.6,
+					"min_aggression": 0.5
+				}
+			]
+		},
+		"MNE": {
+			"template": "minor",
+			"extra": []
+		},
+		"ALB": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "state_building",
+					"name": "State building",
+					"desc": "A government, a gendarmerie and roads.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"administrative_reform"
+					],
+					"effects": {
+						"gdp": 0.04,
+						"growth": 0.003
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"BEL": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "fortress_belgium",
+					"name": "Fortress Belgium",
+					"desc": "Liege and Namur kept in repair.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"army_size": 0.1,
+						"construction": 3
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"NED": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "colonial_trade",
+					"name": "Colonial trade",
+					"desc": "Spices, rubber and the Rotterdam transit.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"administrative_reform"
+					],
+					"effects": {
+						"trade": 0.1
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"DEN": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "dairy_exports",
+					"name": "Dairy exports",
+					"desc": "Butter and bacon for Britain.",
+					"x": 3,
+					"y": 0,
+					"days": 70,
+					"requires": [
+						"farm_cooperatives"
+					],
+					"effects": {
+						"food": 0.1,
+						"gdp": 0.03
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"NOR": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "neutrality_league",
+					"name": "Nordic neutrality",
+					"desc": "Agree with Stockholm and Copenhagen to stay out.",
+					"x": 3,
+					"y": 0,
+					"days": 70,
+					"requires": [
+						"seek_friends"
+					],
+					"effects": {
+						"relation": [
+							[
+								"SWE",
+								15
+							],
+							[
+								"DEN",
+								15
+							]
+						]
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"SWE": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "armed_neutrality",
+					"name": "Armed neutrality",
+					"desc": "Strong enough to be left alone.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"army_size": 0.1,
+						"construction": 3
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"SUI": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "militia_system",
+					"name": "Militia system",
+					"desc": "Every man a soldier, every house an armoury.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"army_size": 0.12
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"ESP": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "regenerationism",
+					"name": "Regenerationism",
+					"desc": "Rebuild after 1898.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"administrative_reform"
+					],
+					"effects": {
+						"gdp": 0.03,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"POR": {
+			"template": "minor",
+			"extra": [
+				{
+					"id": "colonial_empire",
+					"name": "Colonial empire",
+					"desc": "Angola and Mozambique pay their way.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"administrative_reform"
+					],
+					"effects": {
+						"trade": 0.08
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"LUX": {
+			"template": "minor",
+			"extra": []
+		}
+	}
+}
