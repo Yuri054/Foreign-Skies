@@ -46,6 +46,8 @@ static func block(gs: Node, tag: String, id: String) -> String:
 	var n: Nation = gs.nations[tag]
 	if id in n.focus_done:
 		return "done"
+	if f.get("repeatable", false) and int(n.focus_count.get(id, 0)) >= int(f.get("max", 1)):
+		return "done"
 	if n.provinces.is_empty():
 		return "unknown"
 	if not n.focus.is_empty():
@@ -92,8 +94,14 @@ static func complete(gs: Node, tag: String) -> void:
 	n.focus = {}
 	if id in n.focus_done:
 		return
-	n.focus_done.append(id)
-	var fx: Dictionary = find(tag, id).effects
+	var f := find(tag, id)
+	if f.get("repeatable", false):
+		n.focus_count[id] = int(n.focus_count.get(id, 0)) + 1
+		if n.focus_count[id] >= int(f.get("max", 1)):
+			n.focus_done.append(id)
+	else:
+		n.focus_done.append(id)
+	var fx: Dictionary = f.effects
 	apply_effects(gs, tag, fx)
 	gs.focus_completed.emit(tag, id)
 	gs.focus_changed.emit(tag)

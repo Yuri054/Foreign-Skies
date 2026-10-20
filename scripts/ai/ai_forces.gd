@@ -28,6 +28,24 @@ static func step(gs: Node, tag: String) -> void:
 			return
 
 
+## In peace, a nation well under its peacetime army (a war has bled it) raises units at its
+## capital, a couple per turn, within the same limits as in war.
+static func rebuild(gs: Node, tag: String) -> void:
+	var a: Dictionary = AI.cfg.ambition
+	var n: Nation = gs.nations[tag]
+	if not a.enabled or n.provinces.is_empty() or gs.province_controller[n.capital] != tag:
+		return
+	var target := float(n.peacetime_army) * float(a.rebuild_share)
+	for i in int(AI.cfg.forces.per_turn):
+		if n.recruiting.size() >= int(AI.cfg.forces.max_training) or Military.men_in_service(gs, tag) >= target:
+			return
+		var type := _next_type(gs, tag)
+		if not _affordable(gs, tag, Military.cfg.unit_types[type]):
+			return
+		if not gs.issue_quiet(RaiseUnits.new(tag, n.capital, type, 1)):
+			return
+
+
 ## Whether there is a war to raise troops for: a front to hold, or home ground in enemy hands.
 static func _needs_forces(gs: Node, tag: String) -> bool:
 	if gs.wars_of(tag).is_empty():

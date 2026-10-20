@@ -115,6 +115,8 @@ var animal_need := 0.0
 var focus: Dictionary = {}
 var focus_done: Array[String] = []
 var focus_fx: Dictionary = {}
+## Times each repeatable focus has been finished: focus id -> count.
+var focus_count: Dictionary = {}
 ## Latest figures from Economy.recompute (annual GBP millions unless stated).
 var budget: Dictionary = {}
 

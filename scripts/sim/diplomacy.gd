@@ -1144,6 +1144,8 @@ static func mobilization_target(gs: Node, tag: String) -> float:
 	for key: String in gs.join_calls:
 		if gs.join_calls[key].tag == tag:
 			target = maxf(target, c.called_level)
+	if gs.ai_ambition.has(tag):
+		target = maxf(target, float(AI.cfg.ambition.mobilization))
 	if not gs.wars_of(tag).is_empty():
 		target = maxf(target, c.war_floor)
 	return target

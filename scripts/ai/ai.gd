@@ -31,6 +31,8 @@ static func load_config() -> void:
 static func load_scenario(gs: Node) -> void:
 	gs.ai_traits.clear()
 	gs.ai_plans.clear()
+	gs.ai_ambition.clear()
+	gs.ai_ambition_wait.clear()
 	gs.ai_reserve.clear()
 	gs.ai_campaign.clear()
 	gs.ai_diplo_stamp.clear()
@@ -125,9 +127,12 @@ static func think(gs: Node, tag: String) -> void:
 		_timed("forces", func() -> void: AIForces.step(gs, tag))
 		_timed("navy", func() -> void: AINavy.step(gs, tag))
 		_timed("landing", func() -> void: AILanding.step(gs, tag))
+	else:
+		_timed("rebuild", func() -> void: AIForces.rebuild(gs, tag))
 	_timed("diplomacy", func() -> void: AIDiplomacy.step(gs, tag))
 	_timed("budget", func() -> void: AIBudget.step(gs, tag))
 	_timed("focus", func() -> void: AIFocus.step(gs, tag))
+	_timed("ambition", func() -> void: AIAmbition.step(gs, tag))
 
 
 ## Microseconds spent in each part of the AI, by name, while `profile` is true (tools/ai_report.gd).

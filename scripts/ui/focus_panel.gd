@@ -128,7 +128,7 @@ func _rebuild(tag: String) -> void:
 	var far := Vector2.ZERO
 	for f: Dictionary in Focus.tree_of(tag):
 		var b := Button.new()
-		b.text = "%s\n%d days" % [f.name, int(f.days)]
+		b.text = "%s\n%d days%s" % [f.name, int(f.days), " (repeatable)" if f.get("repeatable", false) else ""]
 		b.toggle_mode = true
 		b.focus_mode = Control.FOCUS_NONE
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

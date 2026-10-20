@@ -1,5 +1,5 @@
 {
-	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci.",
+	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci. A focus with repeatable and max can be taken again after finishing, up to max times in all (Nation.focus_count); its effects apply each time.",
 	"templates": {
 		"major": [
 			{
@@ -119,6 +119,53 @@
 					"diplomacy": 0.5
 				},
 				"ai": 1.0
+			},
+			{
+				"id": "rearmament",
+				"name": "Rearmament drive",
+				"desc": "Another round of orders for the arsenals.",
+				"x": 0,
+				"y": 3,
+				"days": 90,
+				"requires": [],
+				"effects": {
+					"army_size": 0.05,
+					"construction": 2
+				},
+				"ai": 0.4,
+				"repeatable": true,
+				"max": 5
+			},
+			{
+				"id": "expansion",
+				"name": "Economic expansion",
+				"desc": "Another round of investment.",
+				"x": 1,
+				"y": 3,
+				"days": 90,
+				"requires": [],
+				"effects": {
+					"gdp": 0.015
+				},
+				"ai": 0.4,
+				"repeatable": true,
+				"max": 6
+			},
+			{
+				"id": "diplomatic_offensive",
+				"name": "Diplomatic offensive",
+				"desc": "A season of visits and receptions.",
+				"x": 2,
+				"y": 3,
+				"days": 70,
+				"requires": [],
+				"effects": {
+					"points": 15,
+					"prestige": 2
+				},
+				"ai": 0.4,
+				"repeatable": true,
+				"max": 6
 			}
 		],
 		"minor": [
@@ -176,6 +223,37 @@
 					"prestige": 3
 				},
 				"ai": 1.0
+			},
+			{
+				"id": "local_investment",
+				"name": "Local investment",
+				"desc": "Roads, harbours and schools, a little at a time.",
+				"x": 0,
+				"y": 2,
+				"days": 70,
+				"requires": [],
+				"effects": {
+					"gdp": 0.01
+				},
+				"ai": 0.4,
+				"repeatable": true,
+				"max": 6
+			},
+			{
+				"id": "quiet_diplomacy",
+				"name": "Quiet diplomacy",
+				"desc": "Keep the neighbours friendly.",
+				"x": 2,
+				"y": 2,
+				"days": 60,
+				"requires": [],
+				"effects": {
+					"points": 10,
+					"prestige": 1
+				},
+				"ai": 0.4,
+				"repeatable": true,
+				"max": 6
 			}
 		]
 	},

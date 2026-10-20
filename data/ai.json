@@ -3,7 +3,10 @@
 	"think_days": 3,
 	"temperament": {
 		"_note": "aggression and caution, 0 to 1. They scale the odds an AI wants before it attacks, the share of its army it commits and how readily it digs in or pulls back.",
-		"default": {"aggression": 0.5, "caution": 0.5}
+		"default": {
+			"aggression": 0.5,
+			"caution": 0.5
+		}
 	},
 	"odds": {
 		"_note": "Attacker power over defender power wanted before an advance: the bold (aggression 1, caution 0) ask for `bold`, the cautious (aggression 0, caution 1) for `cautious`.",
@@ -62,7 +65,11 @@
 		"income_share": 0.5,
 		"horizon_months": 2,
 		"train_hops": 2,
-		"mix": {"infantry": 0.75, "cavalry": 0.05, "artillery": 0.2}
+		"mix": {
+			"infantry": 0.75,
+			"cavalry": 0.05,
+			"artillery": 0.2
+		}
 	},
 	"navy": {
 		"_note": "AINavy and AILanding. Fleets of a nation at war are split by role in port (transports and submarines apart, and cruisers and destroyers detached as patrols) and then given a sea zone each: the cordon that would seal an enemy's ports from the open sea (a path-blocking search, narrowest zones first), the zones next to its own ports where enemy ships lie, and the zones where an escort is wanted for a landing. A zone's score = w_blockade / cordon size (or w_defend * its share of the nation's port trade, w_kill for a zone with enemy ships, w_escort) - w_days * days to get there; a fleet goes only where its power (with what is already sent there) is at least the nation's required odds times the enemy power in or around the zone (adjacent zones count adj_decay, fleets in port opening on it port_share). Below min_score it stays in, or goes to, port. A fleet whose nation is weaker (times sortie_ratio) than its enemies within theatre_hops zones of it seeks out neither the cordon nor the enemy's ships, only the waters by its ports; submarines go anyway. A zone already held by fleets sent there is worth stack_decay of its value to the next. repair_below / ready_strength: strength to go home and to sail again; range_factor: days at sea as a multiple of the shortest range before going home. replan_days: the pause between a fleet being given orders and a change of mind (it changes only for a gain of hysteresis). Landings: with no enemy ground across a land border, a nation with transports in port picks an enemy coast by AIOffense worth + w_margin * margin - w_days * days, needing power over the defenders times odds divided by the landing penalty; it gathers the armies (reach_hops by land) and the transports in the port, waits for its ships to hold the landing zone and the route (escort_days), then sends them. Building: at war, below build_ratio times the enemy fleets' power, one squadron at a time (max_building), by the type furthest below its share in the mix, if the treasury keeps build_floor, the hulls on the slips (this one too) draw at most income_share of the construction pool a day and the budget carries the upkeep (tolerance of net).",
@@ -106,7 +113,13 @@
 			"build_floor": 10,
 			"income_share": 0.5,
 			"deficit_tolerance": 0.1,
-			"mix": {"dreadnought": 0.25, "cruiser": 0.2, "destroyer": 0.3, "submarine": 0.2, "transport": 0.05}
+			"mix": {
+				"dreadnought": 0.25,
+				"cruiser": 0.2,
+				"destroyer": 0.3,
+				"submarine": 0.2,
+				"transport": 0.05
+			}
 		}
 	},
 	"budget": {
@@ -120,7 +133,10 @@
 		"rich_months": 12,
 		"program_floor": 10,
 		"program_margin": 1.0,
-		"program_order": ["diplomatic_service", "education"],
+		"program_order": [
+			"diplomatic_service",
+			"education"
+		],
 		"max_construction": 2,
 		"build_min_net": 0.0,
 		"build_floor": 10,
@@ -153,7 +169,12 @@
 		"_note": "AIDiplomacy. join: value = kind[kind] + w_ally_relation * opinion of the ally + w_enemy_relation * dislike of the enemies + w_border * share of enemies at its border + w_odds * (own side's share of power - 0.5) * 2 + w_support * war support above 50 - w_debt * debt (in months of revenue, at most 1) + w_decline * what declining costs; it joins at threshold. war: desire = w_hostile * dislike + w_grievance * grievance + w_plan if it has a plan against the target + w_cb if it has a casus belli; it never declares on a nation it made peace with in the last truce_days, nor without a motive of at least min_motive (desire without the casus belli); it declares when desire * (0.5 + aggression) reaches declare_threshold and the odds (its side's power over the target's side, with allies and guarantors) reach its required odds times odds_margin. With no casus belli it also needs a plan, aggression of at least unjustified_min_aggression, odds of unjustified_odds, and room under the cap (unjustified_share_max in this file). treaties: once a month it may propose the treaty of greatest value at least propose_threshold (alliance: w_need * how much stronger a hostile neighbour is + w_bloc + w_relation; guarantee: w_menace * the menace to the guaranteed + w_bloc + w_relation; nap: w_need + w_relation; passage: w_passage when an enemy lies beyond a neutral) and improve relations with a friend (within improve_window of the alliance bar) or a strong neighbour (improve_threshold), always keeping points_reserve diplomacy points. rival_relation: a neighbour below it is a rival.",
 		"join": {
 			"threshold": 30,
-			"kind": {"alliance_defence": 60, "guarantee": 45, "alliance_called": 40, "entente": 0},
+			"kind": {
+				"alliance_defence": 60,
+				"guarantee": 45,
+				"alliance_called": 40,
+				"entente": 0
+			},
 			"w_ally_relation": 20,
 			"w_enemy_relation": 30,
 			"w_border": 10,
@@ -209,5 +230,25 @@
 		"indemnity_months": 12,
 		"afford_share": 0.4
 	},
-	"unjustified_share_max": 0.15
+	"unjustified_share_max": 0.15,
+	"ambition": {
+		"_note": "Ambitions begin only start_delay_days after the scenario starts, so the opening crisis plays out as scripted. AIAmbition: what an AI nation wants once the opening crisis is over. Every review_days a nation at peace with an aggression of at least min_aggression looks over its land neighbours it could declare on (not allied, no truce) where its side has odds_margin times the odds it needs, and scores each: w_claim if it holds a casus belli, plus w_hostile * how little the target likes it, w_grievance * its grievance, w_weak * how much smaller the target's economy is, plus w_opportunity * how far the odds are past what it needs (a tenfold margin counts in full), less w_guarantee for each guarantor of the target. The best above threshold becomes its ambition: a plan (objectives on the target's border provinces and its capital) is made, the nation mobilizes to `mobilization`, works for a casus belli if it has none (AIDiplomacy.consider_justify) and declares when the ordinary rules allow. An ambition is dropped if the target stops being a fit, after give_up_days, or when the nation goes to war; cooldown_days must pass before the next. Peacetime rebuilding: a nation under rebuild_share of its peacetime army raises units at its capital.",
+		"enabled": true,
+		"review_days": 90,
+		"threshold": 1.0,
+		"min_aggression": 0.4,
+		"w_claim": 0.6,
+		"w_hostile": 0.8,
+		"w_grievance": 1.0,
+		"w_weak": 0.5,
+		"w_guarantee": 0.3,
+		"odds_margin": 1.2,
+		"mobilization": 0.4,
+		"give_up_days": 540,
+		"cooldown_days": 270,
+		"rebuild_share": 0.85,
+		"objectives": 4,
+		"w_opportunity": 0.8,
+		"start_delay_days": 365
+	}
 }

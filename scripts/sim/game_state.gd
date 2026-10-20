@@ -180,6 +180,10 @@ var command_log: Array[Dictionary] = []
 ## scenario: [{nation, enemy, posture, objectives: [{province, weight}]}]. See AI.
 var ai_traits: Dictionary = {}
 var ai_plans: Array[Dictionary] = []
+## What each AI nation is working toward after the opening: tag -> {target, since}; and the day each may
+## next take up a new ambition. See AIAmbition.
+var ai_ambition: Dictionary = {}
+var ai_ambition_wait: Dictionary = {}
 ## Wars the AI has declared so far, and how many of them had no casus belli. Declarations by
 ## the player do not count.
 var ai_declarations := {"total": 0, "unjustified": 0}
