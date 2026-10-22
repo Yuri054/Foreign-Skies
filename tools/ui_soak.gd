@@ -46,11 +46,11 @@ func _initialize() -> void:
 
 func _groups() -> Array:
 	return ["economy_panel", "construction_panel", "military_panel", "navy_panel", "diplomacy_panel", "nation_stats",
-			"rankings_window", "settings_window", "map_modes", "command_panel", "event_feed", "province_panel"]
+			"rankings_window", "focus_panel", "settings_window", "map_modes", "command_panel", "event_feed", "province_panel"]
 
 
 func _act() -> void:
-	var roll := rng.randi() % 14
+	var roll := rng.randi() % 15
 	match roll:
 		0, 1:
 			var g: String = _groups()[rng.randi() % _groups().size()]
@@ -76,7 +76,7 @@ func _act() -> void:
 			if panel != null and not mine.is_empty():
 				panel.select_ids(mine)
 		6:
-			var keys := [KEY_V, KEY_V, KEY_PAGEUP, KEY_PAGEDOWN, KEY_E, KEY_B, KEY_M, KEY_F, KEY_N, KEY_R, KEY_C, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_SPACE, KEY_ESCAPE, KEY_TAB, KEY_Q, KEY_W]
+			var keys := [KEY_V, KEY_V, KEY_PAGEUP, KEY_PAGEDOWN, KEY_BRACKETLEFT, KEY_BRACKETRIGHT, KEY_HOME, KEY_O, KEY_E, KEY_B, KEY_M, KEY_F, KEY_N, KEY_R, KEY_C, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_SPACE, KEY_ESCAPE, KEY_TAB, KEY_Q, KEY_W]
 			var ev := InputEventKey.new()
 			ev.keycode = keys[rng.randi() % keys.size()]
 			ev.physical_keycode = ev.keycode
@@ -132,6 +132,15 @@ func _act() -> void:
 			if panel2 != null and panel2.visible:
 				var types: Array = panel2._rows.keys()
 				panel2._rows[types[rng.randi() % types.size()]].pressed.emit()
+		14:
+			var focus := get_first_node_in_group("focus_panel")
+			if focus != null and focus.visible:
+				var ids: Array = focus._buttons.keys()
+				focus.select(ids[rng.randi() % ids.size()])
+				if rng.randf() < 0.5:
+					focus._on_start()
+				elif rng.randf() < 0.3:
+					focus._on_cancel()
 		13:
 			var eco := get_first_node_in_group("economy_panel")
 			if eco != null and eco.visible and eco._tabs != null:
