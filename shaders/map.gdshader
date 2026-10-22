@@ -28,6 +28,14 @@ uniform vec4 sea_color : source_color = vec4(0.12, 0.2, 0.32, 1.0);
 uniform vec4 background_color : source_color = vec4(0.58, 0.58, 0.54, 1.0);
 uniform float border_px = 1.0;
 
+// The painted land texture (data/map/land.jpg) blended into the land colours: how much (0 to 1) depends
+// on how far the camera is zoomed in, and on the map mode (land_on).
+uniform sampler2D land_texture : source_color, filter_linear_mipmap, repeat_disable;
+uniform bool land_on = false;
+uniform float land_blend = 0.0;
+uniform float land_natural = 0.3;   // share of the ground's own colour in the blend; the rest is the nation's colour
+uniform float land_washed = 1.0;    // how much of the ground's colour (against grey) is kept
+
 const int SEA = 0;
 const int BACKGROUND = -1;
 
@@ -89,6 +97,18 @@ void fragment() {
 			float band = fract((map_px.x + map_px.y) / (px_per_screen * stripe_px));
 			col = band < 0.5 ? col : owner_rgb;
 		}
+	}
+
+	if (land_on && land_blend > 0.0 && id != SEA) {
+		vec3 natural = texture(land_texture, UV).rgb;
+		float grey = dot(natural, vec3(0.299, 0.587, 0.114));
+		// The nation's colour is lit by the ground's light and dark; the ground's own colours, washed
+		// out so they do not turn a nation's colour to mud, come in over it the closer the camera is.
+		vec3 lit_nation = clamp(col * (0.45 + 1.0 * grey), 0.0, 1.0);
+		vec3 washed = mix(vec3(grey), natural, land_washed);
+		vec3 blended = mix(lit_nation, washed, land_natural);
+		float strength = land_blend * (id == BACKGROUND ? 0.9 : 1.0);
+		col = mix(col, blended, strength);
 	}
 
 	if ((diplomacy || hatch_marks) && id > 0) {

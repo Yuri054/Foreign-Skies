@@ -32,9 +32,11 @@ const SEA := Color(0.045, 0.065, 0.1)
 const RELIEF_PATH := "res://data/map/relief.png"
 const RELIEF_TOP_M := 3000.0
 ## How much taller than true the ground is drawn, and the most it may rise (plane units).
-const RELIEF_EXAGGERATION := 22.0
+const RELIEF_EXAGGERATION := 16.0
 const RELIEF_MAX := 1.0
 const KM_PER_PX := 0.6928
+## The land texture shows as if the flat map were zoomed in this far, while the 3D map is on.
+const LAND_ZOOM_FLOOR := 0.9
 const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
 ## Plane subdivisions: the ground is a grid of this many by this many squares.
@@ -150,12 +152,14 @@ func _enter() -> void:
 	_build_scene()
 	enabled = true
 	_set_layers_to_markers(markers_on)
+	_set_land_floor(LAND_ZOOM_FLOOR)
 	_apply_tilt()
 	get_tree().call_group("event_feed", "say", "3D map on. Page Up and Page Down tilt it, [ and ] turn it, V goes back to the flat map.", Fmt.DIM)
 
 
 func _leave() -> void:
 	_set_layers_to_markers(false)
+	_set_land_floor(0.0)
 	enabled = false
 	for entry in _moved:
 		var node: Node = entry.node
@@ -222,10 +226,10 @@ void fragment() {
 	vec2 e = 1.0 / vec2(textureSize(relief, 0));
 	float dx = (metres(ground_uv + vec2(e.x, 0.0)) - metres(ground_uv - vec2(e.x, 0.0))) / (2.0 * texel_m);
 	float dz = (metres(ground_uv + vec2(0.0, e.y)) - metres(ground_uv - vec2(0.0, e.y))) / (2.0 * texel_m);
-	vec3 n = normalize(vec3(-dx * 6.0, 1.0, -dz * 6.0));
+	vec3 n = normalize(vec3(-dx * 3.5, 1.0, -dz * 3.5));
 	vec3 light = normalize(vec3(-0.55, 0.85, -0.6));
 	float shade = dot(n, light) - light.y;
-	float lit = rise > 0.0 ? clamp(1.0 + shade * 1.4, 0.55, 1.5) : 1.0;
+	float lit = rise > 0.0 ? clamp(1.0 + shade * 0.8, 0.7, 1.3) : 1.0;
 	// The edges of the picture melt into the background, so a tilt shows no hard border.
 	float edge = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
 	ALBEDO = c.rgb * lit;
@@ -308,6 +312,11 @@ func height_units(uv: Vector2) -> float:
 
 
 # ------------------------------------------------------------------ unit models
+
+func _set_land_floor(value: float) -> void:
+	if main != null and main.get("map_view") != null:
+		main.map_view.land_zoom_floor = value
+
 
 func _layer(group: String) -> Node:
 	return get_tree().get_first_node_in_group(group)
