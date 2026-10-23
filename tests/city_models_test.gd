@@ -97,6 +97,11 @@ func _initialize() -> void:
 	for i in 3:
 		await process_frame
 	_check((mode._cities.entry_of(london.id).flag.material_override as StandardMaterial3D).albedo_color.is_equal_approx(gs.nations["GER"].color), "an occupied city shows the occupier's flag")
+	gs.occupation[london.province] = {"tag": "GER", "days": 1}
+	for i in 3:
+		await process_frame
+	_check((mode._cities.entry_of(london.id).smoke as MultiMeshInstance3D).visible, "a city whose province is being taken burns")
+	gs.occupation.erase(london.province)
 	var hit: Dictionary = mode.marker_at(mode._camera.unproject_position(entry.root.position + Vector3(0, float(entry.height) * 0.5 * entry.root.scale.y, 0)))
 	_check(not hit.is_empty() and hit.get("kind", "") == "city", "a click on a city model is a click on the city")
 	mode.cities_on = false

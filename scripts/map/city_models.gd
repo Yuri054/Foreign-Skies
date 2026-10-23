@@ -104,6 +104,7 @@ func update(map: Node, zoom: float) -> void:
 			entry.holder = holder
 			(entry.flag.material_override as StandardMaterial3D).albedo_color = colour
 		_fade(entry, opacity, colour)
+		_smoke(entry, opacity, GameState.occupation.has(city.province))
 
 
 ## Fades a city: solid it uses the shared opaque material; faint, its own see-through one, tinted toward
@@ -129,6 +130,77 @@ func _fade(entry: Dictionary, opacity: float, nation: Color) -> void:
 			mat.albedo_color.a = opacity
 		else:
 			mat.albedo_color.a = opacity
+
+
+## Smoke over a city: grey and thin from its chimneys; black and thick, from fires all over town, while an army
+## is taking its province. Only the cities solid enough to see have any. The puffs themselves rise in _process.
+func _smoke(entry: Dictionary, opacity: float, besieged: bool) -> void:
+	var puffs: MultiMeshInstance3D = entry.smoke
+	var stacks: PackedVector3Array = entry.stacks
+	var on := opacity >= 0.95 and (besieged or not stacks.is_empty())
+	puffs.visible = on
+	if not on:
+		return
+	if entry.smoking == besieged:
+		return
+	entry.smoking = besieged
+	var points := stacks
+	if besieged:
+		points = PackedVector3Array()
+		var r: float = float(entry.radius)
+		for i in 6:
+			var a := float(i) * 1.047 + 0.4
+			points.append(Vector3(cos(a), 0.0, sin(a)) * r * (0.2 + 0.1 * (i % 3)) + Vector3(0, 4.0, 0))
+	entry.sources = points
+	var per: int = 10 if besieged else 5
+	puffs.multimesh.instance_count = points.size() * per
+	entry.per = per
+	entry.dark = besieged
+
+
+## Rises the puffs of every city that has smoke: each is born at a source, climbs, widens and fades, and the
+## next is a little behind it.
+func _process(_delta: float) -> void:
+	var t := Time.get_ticks_msec() * 0.001
+	for entry: Dictionary in _entries.values():
+		var puffs: MultiMeshInstance3D = entry.smoke
+		if not puffs.visible or entry.smoking == null:
+			continue
+		var mm := puffs.multimesh
+		var sources: PackedVector3Array = entry.sources
+		var per: int = entry.per
+		var dark: bool = entry.dark
+		var life := 6.0
+		for s in sources.size():
+			for k in per:
+				var age := fposmod(t / life + float(k) / per + float(s) * 0.37, 1.0)
+				var size := (3.0 + 9.0 * age) * (1.5 if dark else 1.0)
+				var pos := sources[s] + Vector3(age * 6.0 + sin(t * 0.7 + s + k) * age * 2.0, age * (40.0 if dark else 28.0), age * 2.0)
+				mm.set_instance_transform(s * per + k, Transform3D(Basis.from_scale(Vector3(size, size, size)), pos))
+				var shade := 0.1 if dark else 0.78
+				mm.set_instance_color(s * per + k, Color(shade, shade, shade + 0.02, (0.75 if dark else 0.5) * (1.0 - age) * minf(1.0, age * 8.0)))
+
+
+func _make_smoke() -> MultiMeshInstance3D:
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1.0, 1.0)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.billboard_keep_scale = true
+	mat.vertex_color_use_as_albedo = true
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	quad.material = mat
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = quad
+	mm.instance_count = 0
+	var node := MultiMeshInstance3D.new()
+	node.multimesh = mm
+	node.visible = false
+	node.custom_aabb = AABB(Vector3(-120, -10, -120), Vector3(240, 200, 240))
+	return node
 
 
 func _make_entry(_city: Dictionary) -> Dictionary:
@@ -161,8 +233,10 @@ func _make_entry(_city: Dictionary) -> Dictionary:
 	flag_mat.billboard_keep_scale = true
 	flag.material_override = flag_mat
 	root.add_child(flag)
+	var smoke := _make_smoke()
+	root.add_child(smoke)
 	add_child(root)
-	return {"root": root, "body": body, "pole": pole, "flag": flag, "fading": fading, "opacity": -1.0, "tint": Color.WHITE,
+	return {"smoke": smoke, "sources": PackedVector3Array(), "per": 1, "dark": false, "stacks": PackedVector3Array(), "smoking": null, "radius": 20.0, "root": root, "body": body, "pole": pole, "flag": flag, "fading": fading, "opacity": -1.0, "tint": Color.WHITE,
 			"bucket": -1, "holder": "", "features": {}, "height": 10.0}
 
 
@@ -172,6 +246,9 @@ func _rebuild(entry: Dictionary, city: Dictionary, pop: int, bucket: int) -> voi
 	entry.body.mesh = built.mesh
 	entry.bucket = bucket
 	entry.features = features
+	entry.stacks = PackedVector3Array(built.stacks)
+	entry.radius = radius_for(pop)
+	entry.smoking = null
 	entry.height = built.height
 	var rise: float = built.height + 5.0
 	var foot := Vector2(radius_for(pop) * 0.55, -radius_for(pop) * 0.5)
