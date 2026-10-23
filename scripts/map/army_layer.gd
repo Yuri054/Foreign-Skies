@@ -274,6 +274,7 @@ func _draw_banners(px: float) -> void:
 			var count := 0
 			var biggest: Army = null
 			var comp := {}
+			var make_up := {}
 			var guess := false
 			for a: Army in here:
 				if a.tag != tag:
@@ -286,13 +287,16 @@ func _draw_banners(px: float) -> void:
 				if selected.has(a.id):
 					for type in a.composition():
 						comp[type] = comp.get(type, 0) + a.composition()[type]
+				if not guess:
+					for type in a.composition():
+						make_up[type] = make_up.get(type, 0) + a.composition()[type]
 				fighting = fighting or a.fighting
 				if biggest == null or a.men() > biggest.men():
 					biggest = a
 			var rect := Rect2(Vector2(centre.x - size.x * 0.5, top + i * (size.y + gap)), size)
 			if markers_only or _collecting:
 				markers.append({"province": id, "tag": tag, "men": men, "count": 1 if guess else count, "picked": picked,
-						"fighting": fighting, "guess": guess, "pos": rect.get_center()})
+						"fighting": fighting, "guess": guess, "pos": rect.get_center(), "comp": make_up})
 				continue
 			if guess:
 				_draw_banner(rect, px, GameState.nations[tag].color, "unknown", men, 1, false, fighting, true)

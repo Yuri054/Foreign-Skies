@@ -175,7 +175,10 @@ func _draw_group(g: Dictionary, px: float) -> void:
 	var fighting := false
 	var mission := ""
 	var mixed := false
+	var classes := {}
 	for f: Fleet in g.fleets:
+		for ship: Ship in f.ships:
+			classes[ship.type] = int(classes.get(ship.type, 0)) + 1
 		squadrons += f.ships.size()
 		men += Navy.men_aboard(GameState, f)
 		picked = picked or selected.has(f.id)
@@ -186,7 +189,7 @@ func _draw_group(g: Dictionary, px: float) -> void:
 			mixed = true
 	if markers_only or _collecting:
 		markers.append({"tag": g.tag, "squadrons": squadrons, "fleets": g.fleets.size(), "men": men, "picked": picked,
-				"fighting": fighting, "pos": rect.get_center()})
+				"fighting": fighting, "pos": rect.get_center(), "classes": classes})
 		return
 	draw_rect(rect, color)
 	var frame := Rect2(rect.position + Vector2(2, 2) * px, Vector2(rect.size.y * 1.25 - 4.0 * px, rect.size.y - 4.0 * px))

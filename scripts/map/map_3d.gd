@@ -67,6 +67,15 @@ var markers_on := true:
 		markers_on = value
 		_set_layers_to_markers(enabled and markers_on)
 var _marker_root: Node3D
+var _unit_mat: StandardMaterial3D
+## Whether armies and fleets stand as models of soldiers and ships once the map is close (else banners only).
+var units_models_on := true
+## The zoom at which the models start to come up, and at which they are whole.
+const UNIT_ZOOM := [0.9, 1.6]
+## Map pixels of the width of a formation, in model units: scales a model so that a formation is about this wide on the map.
+const UNIT_SCALE := 3.2
+## The same for a line of ships, which is much longer than a formation.
+const FLEET_SCALE := 1.1
 ## Whether the cities stand up as models of buildings (see CityModels).
 var cities_on := true:
 	set(value):
@@ -378,12 +387,12 @@ func marker_entries() -> Array:
 	if armies != null:
 		for m: Dictionary in armies.collect_markers():
 			var text := ("~" if m.guess else "") + "%d" % roundi(m.men / 1000.0) + (" ×%d" % m.count if m.count > 1 else "")
-			out.append({"kind": "army", "pos": m.pos, "tag": m.tag, "text": text, "men": m.men, "picked": m.picked, "fighting": m.fighting, "guess": m.guess})
+			out.append({"kind": "army", "pos": m.pos, "tag": m.tag, "text": text, "men": m.men, "picked": m.picked, "fighting": m.fighting, "guess": m.guess, "comp": m.get("comp", {})})
 	var fleets := _layer("fleet_layer")
 	if fleets != null:
 		for m: Dictionary in fleets.collect_markers():
 			var text := "%d" % m.squadrons + (" ×%d" % m.fleets if m.fleets > 1 else "")
-			out.append({"kind": "fleet", "pos": m.pos, "tag": m.tag, "text": text, "men": m.men, "picked": m.picked, "fighting": m.fighting, "guess": false})
+			out.append({"kind": "fleet", "pos": m.pos, "tag": m.tag, "text": text, "men": m.men, "picked": m.picked, "fighting": m.fighting, "guess": false, "classes": m.get("classes", {})})
 	return out
 
 
@@ -477,6 +486,11 @@ func _make_standee() -> Node3D:
 	flag_mat.render_priority = 1
 	flag.material_override = flag_mat
 	root.add_child(flag)
+	var model := MeshInstance3D.new()
+	model.name = "model"
+	model.material_override = _unit_material()
+	model.visible = false
+	root.add_child(model)
 	var label := Label3D.new()
 	label.name = "label"
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -489,6 +503,28 @@ func _make_standee() -> Node3D:
 	label.outline_modulate = Color(0, 0, 0, 0.9)
 	root.add_child(label)
 	return root
+
+
+## The lit, vertex-coloured material every unit model shares.
+func _unit_material() -> StandardMaterial3D:
+	if _unit_mat == null:
+		_unit_mat = StandardMaterial3D.new()
+		_unit_mat.vertex_color_use_as_albedo = true
+		_unit_mat.roughness = 0.9
+		_unit_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return _unit_mat
+
+
+## How far the models have come up as the map is brought close: 0 (only the banner) to 1 (the whole formation).
+static func model_growth(zoom: float) -> float:
+	var t := clampf((zoom - UNIT_ZOOM[0]) / (UNIT_ZOOM[1] - UNIT_ZOOM[0]), 0.0, 1.0)
+	return t * t * (3.0 - 2.0 * t)
+
+
+func _unit_mesh(entry: Dictionary, colour: Color) -> ArrayMesh:
+	if entry.kind == "fleet":
+		return UnitModels.fleet_mesh(UnitModels.fleet_line(entry.get("classes", {})), colour)
+	return UnitModels.army_mesh(UnitModels.army_counts(entry.get("comp", {}), entry.men), colour)
 
 
 func _set_standee(node: Node3D, entry: Dictionary) -> void:
@@ -506,7 +542,20 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 	hull.visible = fleet
 	(hull.material_override as StandardMaterial3D).albedo_color = colour
 	hull.position = Vector3(0, 0.03, 0)
-	var flag_y := height + 0.045 if not fleet else 0.14
+	var model: MeshInstance3D = node.get_node("model")
+	var cam2d: Camera2D = main.get("camera")
+	var growth := model_growth(cam2d.zoom.x) if cam2d != null and units_models_on else 0.0
+	model.visible = growth > 0.02
+	var lift := 0.0
+	if model.visible:
+		var mesh := _unit_mesh(entry, colour)
+		model.mesh = mesh
+		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
+		model.scale = Vector3.ONE * scale_by
+		lift = mesh.get_aabb().end.y * scale_by
+		pole.visible = false
+		hull.visible = false
+	var flag_y := (height + 0.045 if not fleet else 0.14) if not model.visible else lift + 0.05
 	var flag: MeshInstance3D = node.get_node("flag")
 	flag.position = Vector3(0.11 if not fleet else 0.0, flag_y, 0)
 	var flag_mat := flag.material_override as StandardMaterial3D
