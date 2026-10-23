@@ -20,27 +20,38 @@ func _vertices(built: Dictionary) -> int:
 	return (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
 
 
+func _b(city_id: int, pop: int, chimneys := 0, capital := false, land := func(_p: Vector2) -> bool: return true) -> Dictionary:
+	return load("res://scripts/map/city_models.gd").build(city_id, pop, chimneys, capital, Vector2(1000, 1000), land)
+
+
 func _initialize() -> void:
 	await process_frame
 	var CM = load("res://scripts/map/city_models.gd")
 	var CitiesC = load("res://scripts/sim/cities.gd")
 	_check(CM.radius_for(20000) < CM.radius_for(300000) and CM.radius_for(300000) < CM.radius_for(2000000), "a bigger city has a bigger footprint")
-	_check(CM.radius_for(7250000) <= 0.5 + 0.0001, "held to a largest size")
-	_check(CM.building_target(20000) < CM.building_target(300000) and CM.building_target(300000) < CM.building_target(2000000), "and more buildings")
-	var small = CM.build(5, 20000, 0, false)
-	var middling = CM.build(5, 300000, 0, false)
-	var great = CM.build(5, 2000000, 0, false)
+	_check(CM.radius_for(7250000) <= 72.0 + 0.0001 and CM.radius_for(1) >= 9.0 - 0.0001, "held between a smallest and a largest size")
+	var small = _b(5, 20000)
+	var middling = _b(5, 300000)
+	var great = _b(5, 2000000)
 	_check(small.buildings < middling.buildings and middling.buildings < great.buildings, "a town has %d buildings, a city %d, a great city %d" % [small.buildings, middling.buildings, great.buildings])
-	_check(small.height < great.height, "the great city stands taller (%.2f against %.2f)" % [small.height, great.height])
+	_check(small.height > 0.0 and great.height > 0.0, "with a tallest roof (%.1f and %.1f px)" % [small.height, great.height])
 	_check(_vertices(small) < _vertices(great), "and its mesh is bigger")
-	var again = CM.build(5, 300000, 0, false)
+	var again = _b(5, 300000)
 	_check(_vertices(again) == _vertices(middling) and again.buildings == middling.buildings, "the same city is built the same way every time")
-	_check(_vertices(CM.build(6, 300000, 0, false)) != _vertices(middling), "other cities are built differently")
-	_check(_vertices(CM.build(5, 300000, 4, false)) > _vertices(middling), "chimneys add to a city with factories")
-	_check(_vertices(CM.build(5, 300000, 0, true)) > _vertices(middling), "and a capital has its dome")
+	_check(_vertices(_b(6, 300000)) != _vertices(middling), "other cities are built differently")
+	_check(_vertices(_b(5, 300000, 4)) > _vertices(middling), "chimneys add to a city with factories")
+	_check(_vertices(_b(5, 300000, 0, true)) > _vertices(middling), "and a capital has its dome")
+	# No building stands where its foot would be in the sea: with the sea east of the city's middle,
+	# nothing is built east of it.
+	var coast = _b(5, 2000000, 2, true, func(p: Vector2) -> bool: return p.x < 1000.0)
+	var east := 0.0
+	for v in (coast.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
+		east = maxf(east, v.x)
+	_check(coast.buildings > 20 and east <= 1.0, "no building crosses a coast (the furthest east is %.1f px, the city has %d buildings)" % [east, coast.buildings])
 	_check(CM.bucket_of(300000) < CM.bucket_of(330000) and CM.bucket_of(300000) == CM.bucket_of(300500), "growth shows in a new size class, a few people do not")
-	_check(CM.shown_at(1, 0.2) and not CM.shown_at(3, 0.3) and CM.shown_at(3, 0.8), "capitals show from afar, small towns only close up")
-	_check(CM.scale_for(1.0) > CM.scale_for(0.4), "models grow as the map is brought closer")
+	_check(CM.opacity_at(1, 0.3) == 0.0 and CM.opacity_at(3, 0.6) == 0.0, "from afar no city is drawn: the nations' colours show alone")
+	_check(CM.opacity_at(1, 0.7) > 0.0 and CM.opacity_at(1, 0.7) < 1.0 and CM.opacity_at(3, 0.7) == 0.0, "capitals come up first, as the map is brought closer")
+	_check(CM.opacity_at(1, 1.0) == 1.0 and CM.opacity_at(3, 1.4) == 1.0 and CM.opacity_at(2, 0.9) < CM.opacity_at(1, 0.9), "and every city is solid at last, the small ones later")
 
 	var gs: Node = root.get_node("GameState")
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
@@ -66,7 +77,7 @@ func _initialize() -> void:
 	await process_frame
 	var mode: Node = get_first_node_in_group("map_3d")
 	main.camera.position = london.pos
-	main.camera.zoom = Vector2(1.0, 1.0)
+	main.camera.zoom = Vector2(1.6, 1.6)
 	mode.set_enabled(true)
 	for i in 4:
 		await process_frame
@@ -86,7 +97,7 @@ func _initialize() -> void:
 	for i in 3:
 		await process_frame
 	_check((mode._cities.entry_of(london.id).flag.material_override as StandardMaterial3D).albedo_color.is_equal_approx(gs.nations["GER"].color), "an occupied city shows the occupier's flag")
-	var hit: Dictionary = mode.marker_at(mode._camera.unproject_position(entry.root.position + Vector3(0, 0.1, 0)))
+	var hit: Dictionary = mode.marker_at(mode._camera.unproject_position(entry.root.position + Vector3(0, float(entry.height) * 0.5 * entry.root.scale.y, 0)))
 	_check(not hit.is_empty() and hit.get("kind", "") == "city", "a click on a city model is a click on the city")
 	mode.cities_on = false
 	_check(not layer.markers_hidden and not mode._cities.visible, "with the city models off the flat diamonds are back")

@@ -324,6 +324,11 @@ func rise_per_metre() -> float:
 	return minf(per_metre, RELIEF_MAX / RELIEF_TOP_M)
 
 
+## How many plane units a map pixel measures right now (it follows the zoom of the flat map).
+func units_per_px() -> float:
+	return PLANE_HEIGHT / maxf(_view_size.y, 1.0)
+
+
 ## How high the ground stands (plane units) at a point of the picture, 0 to 1 on each side.
 func height_units(uv: Vector2) -> float:
 	if not relief_on or _relief == null:
