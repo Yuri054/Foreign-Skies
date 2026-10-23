@@ -1,0 +1,1208 @@
+{
+	"_note": "The famous buildings of the cities (CityLandmarks). city name -> [{type, at: [east, south] as fractions of the city's radius from its middle, k: size against the usual, rot: degrees}]. Kinds are listed in CityLandmarks.build. A city not named here has only the church, cathedral or palace its size gives it.",
+	"London": [
+		{
+			"type": "parliament",
+			"at": [
+				0.4,
+				0.1
+			],
+			"k": 1.0,
+			"rot": 20
+		},
+		{
+			"type": "dome",
+			"at": [
+				-0.2,
+				-0.12
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "tower_bridge",
+			"at": [
+				0.5,
+				0.38
+			],
+			"k": 1.0,
+			"rot": 80
+		}
+	],
+	"Paris": [
+		{
+			"type": "eiffel",
+			"at": [
+				-0.38,
+				0.28
+			],
+			"k": 1.1,
+			"rot": 0
+		},
+		{
+			"type": "arc",
+			"at": [
+				-0.55,
+				-0.2
+			],
+			"k": 1.0,
+			"rot": 30
+		},
+		{
+			"type": "notre_dame",
+			"at": [
+				0.12,
+				0.04
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "gold_dome",
+			"at": [
+				0.1,
+				0.42
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Berlin": [
+		{
+			"type": "gate",
+			"at": [
+				0.0,
+				0.2
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "copper_dome",
+			"at": [
+				-0.38,
+				0.08
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "copper_dome",
+			"at": [
+				0.35,
+				-0.18
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Vienna": [
+		{
+			"type": "stephansdom",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "ferris_wheel",
+			"at": [
+				0.5,
+				-0.15
+			],
+			"k": 1.0,
+			"rot": 90
+		},
+		{
+			"type": "palace",
+			"at": [
+				-0.4,
+				0.25
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Saint Petersburg": [
+		{
+			"type": "spire_gold",
+			"at": [
+				-0.3,
+				0.0
+			],
+			"k": 1.1,
+			"rot": 0
+		},
+		{
+			"type": "gold_dome",
+			"at": [
+				0.25,
+				0.15
+			],
+			"k": 1.1,
+			"rot": 0
+		},
+		{
+			"type": "onions",
+			"at": [
+				0.1,
+				-0.4
+			],
+			"k": 0.8,
+			"rot": 0
+		},
+		{
+			"type": "winter_palace",
+			"at": [
+				-0.35,
+				-0.4
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Moscow": [
+		{
+			"type": "kremlin",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		},
+		{
+			"type": "onions",
+			"at": [
+				0.1,
+				0.52
+			],
+			"k": 0.8,
+			"rot": 0
+		},
+		{
+			"type": "gold_dome",
+			"at": [
+				-0.5,
+				0.3
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Constantinople": [
+		{
+			"type": "hagia_sophia",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "blue_mosque",
+			"at": [
+				-0.5,
+				0.3
+			],
+			"k": 1.0,
+			"rot": 20
+		},
+		{
+			"type": "round_tower",
+			"at": [
+				0.5,
+				-0.3
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Rome": [
+		{
+			"type": "st_peters",
+			"at": [
+				-0.45,
+				-0.1
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "colosseum",
+			"at": [
+				0.4,
+				0.2
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "monument",
+			"at": [
+				0.05,
+				-0.2
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Budapest": [
+		{
+			"type": "copper_dome",
+			"at": [
+				0.15,
+				-0.15
+			],
+			"k": 1.2,
+			"rot": 0
+		},
+		{
+			"type": "rock_castle",
+			"at": [
+				-0.4,
+				0.2
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Prague": [
+		{
+			"type": "castle",
+			"at": [
+				-0.3,
+				-0.2
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "notre_dame",
+			"at": [
+				-0.1,
+				-0.05
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Amsterdam": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "palace",
+			"at": [
+				0.4,
+				0.2
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Brussels": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "dome",
+			"at": [
+				-0.4,
+				0.3
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Copenhagen": [
+		{
+			"type": "spire_copper",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "palace",
+			"at": [
+				0.4,
+				0.2
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Stockholm": [
+		{
+			"type": "palace",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		},
+		{
+			"type": "spire_brick",
+			"at": [
+				-0.45,
+				0.3
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Christiania": [
+		{
+			"type": "palace",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Madrid": [
+		{
+			"type": "dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		},
+		{
+			"type": "palace",
+			"at": [
+				0.4,
+				-0.25
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Lisbon": [
+		{
+			"type": "rock_castle",
+			"at": [
+				-0.3,
+				-0.1
+			],
+			"k": 0.8,
+			"rot": 0
+		},
+		{
+			"type": "round_tower",
+			"at": [
+				0.5,
+				0.35
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Athens": [
+		{
+			"type": "acropolis",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Edinburgh": [
+		{
+			"type": "rock_castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Glasgow": [
+		{
+			"type": "notre_dame",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		},
+		{
+			"type": "town_hall",
+			"at": [
+				0.4,
+				0.25
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Liverpool": [
+		{
+			"type": "liver",
+			"at": [
+				0.1,
+				0.2
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Manchester": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Birmingham": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Dublin": [
+		{
+			"type": "copper_dome",
+			"at": [
+				0.1,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Belfast": [
+		{
+			"type": "dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Cardiff": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Milan": [
+		{
+			"type": "milan_cathedral",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Florence": [
+		{
+			"type": "duomo",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Venice": [
+		{
+			"type": "campanile",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Naples": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Turin": [
+		{
+			"type": "spire_copper",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.4,
+			"rot": 0
+		}
+	],
+	"Genoa": [
+		{
+			"type": "lighthouse",
+			"at": [
+				0.3,
+				0.3
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Palermo": [
+		{
+			"type": "red_dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Bologna": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.2,
+			"rot": 0
+		}
+	],
+	"Marseille": [
+		{
+			"type": "basilica",
+			"at": [
+				0.1,
+				-0.3
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Lyon": [
+		{
+			"type": "basilica",
+			"at": [
+				-0.3,
+				-0.1
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Barcelona": [
+		{
+			"type": "cologne",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.7,
+			"rot": 0
+		},
+		{
+			"type": "column",
+			"at": [
+				0.45,
+				0.4
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Valencia": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Seville": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.1,
+			"rot": 0
+		}
+	],
+	"Malaga": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.7,
+			"rot": 0
+		}
+	],
+	"Porto": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Hamburg": [
+		{
+			"type": "spire_copper",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.1,
+			"rot": 0
+		},
+		{
+			"type": "spire_brick",
+			"at": [
+				0.4,
+				0.2
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Cologne": [
+		{
+			"type": "cologne",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Munich": [
+		{
+			"type": "round_tower",
+			"at": [
+				-0.12,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		},
+		{
+			"type": "round_tower",
+			"at": [
+				0.12,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Dresden": [
+		{
+			"type": "dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Leipzig": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Frankfurt": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Nuremberg": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Stuttgart": [
+		{
+			"type": "palace",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Bremen": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Breslau": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Konigsberg": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Danzig": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.1,
+			"rot": 0
+		}
+	],
+	"Stettin": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Posen": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Magdeburg": [
+		{
+			"type": "notre_dame",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Hanover": [
+		{
+			"type": "dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Warsaw": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Krakow": [
+		{
+			"type": "rock_castle",
+			"at": [
+				0.0,
+				-0.1
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Lemberg": [
+		{
+			"type": "dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.7,
+			"rot": 0
+		}
+	],
+	"Vilna": [
+		{
+			"type": "notre_dame",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.7,
+			"rot": 0
+		}
+	],
+	"Riga": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.2,
+			"rot": 0
+		}
+	],
+	"Helsinki": [
+		{
+			"type": "copper_dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Kiev": [
+		{
+			"type": "onions",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Odessa": [
+		{
+			"type": "dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Kazan": [
+		{
+			"type": "kremlin",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.6,
+			"rot": 0
+		}
+	],
+	"Astrakhan": [
+		{
+			"type": "kremlin",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.5,
+			"rot": 0
+		}
+	],
+	"Bucharest": [
+		{
+			"type": "palace",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Sofia": [
+		{
+			"type": "gold_dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Belgrade": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Bern": [
+		{
+			"type": "copper_dome",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Luxembourg": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.5,
+			"rot": 0
+		}
+	],
+	"Salonika": [
+		{
+			"type": "white_tower",
+			"at": [
+				0.1,
+				0.1
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Trieste": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.7,
+			"rot": 0
+		}
+	],
+	"Graz": [
+		{
+			"type": "round_tower",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Toulouse": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Bordeaux": [
+		{
+			"type": "notre_dame",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Nantes": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Lille": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Portsmouth": [
+		{
+			"type": "round_tower",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Leeds": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.9,
+			"rot": 0
+		}
+	],
+	"Bradford": [
+		{
+			"type": "town_hall",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.8,
+			"rot": 0
+		}
+	],
+	"Bristol": [
+		{
+			"type": "spire_brick",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 1.0,
+			"rot": 0
+		}
+	],
+	"Nottingham": [
+		{
+			"type": "castle",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.7,
+			"rot": 0
+		}
+	],
+	"The Hague": [
+		{
+			"type": "palace",
+			"at": [
+				0.0,
+				0.0
+			],
+			"k": 0.7,
+			"rot": 0
+		}
+	]
+}

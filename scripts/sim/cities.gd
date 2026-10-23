@@ -20,3 +20,12 @@ static func population(gs: Node, city: Dictionary) -> int:
 static func chimneys(gs: Node, city: Dictionary) -> int:
 	var owned: Dictionary = gs.province_buildings[city.province]
 	return clampi((int(owned.get("factory", 0)) + int(owned.get("military_factory", 0))) / 3, 0, 6)
+
+
+## What the city shows besides its size: chimneys, the level of its port, whether there is a naval base, its
+## railway and its fortifications. Two cities with the same features are built the same way.
+static func features(gs: Node, city: Dictionary) -> Dictionary:
+	var owned: Dictionary = gs.province_buildings[city.province]
+	return {"name": city.name, "chimneys": chimneys(gs, city), "port": Navy.port_level(gs, city.province),
+			"naval": gs.naval_bases.get(city.province, 0) > 0, "rail": int(owned.get("railway", 0)),
+			"fort": int(owned.get("fortification", 0))}

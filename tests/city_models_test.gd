@@ -21,7 +21,7 @@ func _vertices(built: Dictionary) -> int:
 
 
 func _b(city_id: int, pop: int, chimneys := 0, capital := false, land := func(_p: Vector2) -> bool: return true) -> Dictionary:
-	return load("res://scripts/map/city_models.gd").build(city_id, pop, chimneys, capital, Vector2(1000, 1000), land)
+	return load("res://scripts/map/city_models.gd").build(city_id, pop, {"chimneys": chimneys}, capital, Vector2(1000, 1000), land)
 
 
 func _initialize() -> void:
@@ -40,7 +40,7 @@ func _initialize() -> void:
 	_check(_vertices(again) == _vertices(middling) and again.buildings == middling.buildings, "the same city is built the same way every time")
 	_check(_vertices(_b(6, 300000)) != _vertices(middling), "other cities are built differently")
 	_check(_vertices(_b(5, 300000, 4)) > _vertices(middling), "chimneys add to a city with factories")
-	_check(_vertices(_b(5, 300000, 0, true)) > _vertices(middling), "and a capital has its dome")
+	_check(_vertices(_b(5, 300000, 0, true)) != _vertices(middling), "and a capital has its palace")
 	# No building stands where its foot would be in the sea: with the sea east of the city's middle,
 	# nothing is built east of it.
 	var coast = _b(5, 2000000, 2, true, func(p: Vector2) -> bool: return p.x < 1000.0)
@@ -101,5 +101,38 @@ func _initialize() -> void:
 	_check(not hit.is_empty() and hit.get("kind", "") == "city", "a click on a city model is a click on the city")
 	mode.cities_on = false
 	_check(not layer.markers_hidden and not mode._cities.visible, "with the city models off the flat diamonds are back")
+	# landmarks, harbours, stations, walls
+	var LM = load("res://scripts/map/city_landmarks.gd")
+	var names := {}
+	for line in FileAccess.get_file_as_string("res://data/scenarios/july_1914/cities.tsv").split("\n"):
+		var cols := line.split("\t")
+		if cols.size() > 2:
+			names[cols[1]] = true
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/landmarks.json"))
+	var bad := 0
+	var kinds := {}
+	for city_name: String in data:
+		if city_name.begins_with("_"):
+			continue
+		if not names.has(city_name):
+			bad += 1
+		for spec: Dictionary in data[city_name]:
+			kinds[spec.type] = true
+	_check(bad == 0, "every landmark city is a city of the scenario")
+	for kind: String in kinds:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var h: float = LM.build(st, {"type": kind, "k": 1.0, "rot": 0.3}, Vector3(0, -4.0, 0))
+		_check(h > 5.0 and st.commit().get_surface_count() == 1, "landmark %s builds" % kind)
+	var plain = _b(5, 2000000)
+	var london_lm = load("res://scripts/map/city_models.gd").build(5, 2000000, {"name": "London"}, true, Vector2(1000, 1000), func(_p: Vector2) -> bool: return true)
+	_check(_vertices(london_lm) != _vertices(plain), "London has its landmarks")
+	var sea := func(p: Vector2) -> bool: return p.x < 1030.0
+	var CMc = load("res://scripts/map/city_models.gd")
+	var dry = CMc.build(5, 800000, {}, false, Vector2(1000, 1000), sea)
+	var port = CMc.build(5, 800000, {"port": 3, "naval": true, "rail": 4, "fort": 5}, false, Vector2(1000, 1000), sea)
+	_check(_vertices(port) > _vertices(dry), "port, railway and walls add to the model")
+	var aabb: AABB = port.mesh.get_aabb()
+	_check(aabb.position.x + aabb.size.x < 30.0 + 18.0, "and nothing but ships goes out to sea")
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
