@@ -386,13 +386,16 @@ func marker_entries() -> Array:
 	var armies := _layer("army_layer")
 	if armies != null:
 		for m: Dictionary in armies.collect_markers():
-			var text := ("~" if m.guess else "") + "%d" % roundi(m.men / 1000.0) + (" ×%d" % m.count if m.count > 1 else "")
-			out.append({"kind": "army", "pos": m.pos, "tag": m.tag, "text": text, "men": m.men, "picked": m.picked, "fighting": m.fighting, "guess": m.guess, "comp": m.get("comp", {})})
+			var entry := m.duplicate()
+			entry["kind"] = "army"
+			out.append(entry)
 	var fleets := _layer("fleet_layer")
 	if fleets != null:
 		for m: Dictionary in fleets.collect_markers():
-			var text := "%d" % m.squadrons + (" ×%d" % m.fleets if m.fleets > 1 else "")
-			out.append({"kind": "fleet", "pos": m.pos, "tag": m.tag, "text": text, "men": m.men, "picked": m.picked, "fighting": m.fighting, "guess": false, "classes": m.get("classes", {})})
+			var entry := m.duplicate()
+			entry["kind"] = "fleet"
+			entry["guess"] = false
+			out.append(entry)
 	return out
 
 
@@ -440,68 +443,30 @@ func _update_markers() -> void:
 
 func _make_standee() -> Node3D:
 	var root := Node3D.new()
-	var pole := MeshInstance3D.new()
-	pole.name = "pole"
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.014
-	cyl.bottom_radius = 0.014
-	cyl.height = 1.0
-	cyl.radial_segments = 6
-	pole.mesh = cyl
-	var pole_mat := StandardMaterial3D.new()
-	pole_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	pole_mat.albedo_color = Color(0.08, 0.08, 0.1)
-	pole.material_override = pole_mat
-	root.add_child(pole)
-	var hull := MeshInstance3D.new()
-	hull.name = "hull"
-	var box := BoxMesh.new()
-	box.size = Vector3(0.2, 0.04, 0.07)
-	hull.mesh = box
-	var hull_mat := StandardMaterial3D.new()
-	hull_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	hull.material_override = hull_mat
-	root.add_child(hull)
-	var ring := MeshInstance3D.new()
-	ring.name = "ring"
-	var quad_ring := QuadMesh.new()
-	quad_ring.size = Vector2(0.235, 0.14)
-	ring.mesh = quad_ring
-	var ring_mat := StandardMaterial3D.new()
-	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	ring_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	ring_mat.no_depth_test = true
-	ring_mat.render_priority = 0
-	ring.material_override = ring_mat
-	root.add_child(ring)
-	var flag := MeshInstance3D.new()
-	flag.name = "flag"
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.2, 0.11)
-	flag.mesh = quad
-	var flag_mat := StandardMaterial3D.new()
-	flag_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	flag_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	flag_mat.no_depth_test = true
-	flag_mat.render_priority = 1
-	flag.material_override = flag_mat
-	root.add_child(flag)
 	var model := MeshInstance3D.new()
 	model.name = "model"
 	model.material_override = _unit_material()
 	model.visible = false
 	root.add_child(model)
-	var label := Label3D.new()
-	label.name = "label"
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	label.pixel_size = 0.0035
-	label.font_size = 30
-	label.outline_size = 8
-	label.render_priority = 3
-	label.outline_render_priority = 2
-	label.outline_modulate = Color(0, 0, 0, 0.9)
-	root.add_child(label)
+	# The banner card: what the flat map draws for the same armies, painted once into a small picture
+	# (a layer that paints one card) and stood up as a sprite that always faces the camera.
+	var view := SubViewport.new()
+	view.name = "card_view"
+	view.size = Vector2i(ArmyLayer.CARD_SIZE)
+	view.transparent_bg = true
+	view.disable_3d = true
+	view.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	root.add_child(view)
+	var sprite := Sprite3D.new()
+	sprite.name = "card"
+	sprite.texture = view.get_texture()
+	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sprite.no_depth_test = true
+	sprite.shaded = false
+	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	sprite.render_priority = 2
+	sprite.transparent = true
+	root.add_child(sprite)
 	return root
 
 
@@ -530,21 +495,13 @@ func _unit_mesh(entry: Dictionary, colour: Color) -> ArrayMesh:
 func _set_standee(node: Node3D, entry: Dictionary) -> void:
 	var tag: String = entry.tag
 	var colour: Color = GameState.nations[tag].color
-	var height := standee_height(entry.kind, entry.men)
 	var fleet: bool = entry.kind == "fleet"
 	node.visible = true
 	node.position = entry.ground
-	var pole: MeshInstance3D = node.get_node("pole")
-	pole.visible = not fleet
-	pole.scale = Vector3(1, height, 1)
-	pole.position = Vector3(0, height * 0.5, 0)
-	var hull: MeshInstance3D = node.get_node("hull")
-	hull.visible = fleet
-	(hull.material_override as StandardMaterial3D).albedo_color = colour
-	hull.position = Vector3(0, 0.03, 0)
 	var model: MeshInstance3D = node.get_node("model")
 	var cam2d: Camera2D = main.get("camera")
-	var growth := model_growth(cam2d.zoom.x) if cam2d != null and units_models_on else 0.0
+	var zoom: float = cam2d.zoom.x if cam2d != null else 1.0
+	var growth := model_growth(zoom) if units_models_on else 0.0
 	model.visible = growth > 0.02
 	var lift := 0.0
 	if model.visible:
@@ -553,22 +510,46 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
 		model.scale = Vector3.ONE * scale_by
 		lift = mesh.get_aabb().end.y * scale_by
-		pole.visible = false
-		hull.visible = false
-	var flag_y := (height + 0.045 if not fleet else 0.14) if not model.visible else lift + 0.05
-	var flag: MeshInstance3D = node.get_node("flag")
-	flag.position = Vector3(0.11 if not fleet else 0.0, flag_y, 0)
-	var flag_mat := flag.material_override as StandardMaterial3D
-	flag_mat.albedo_color = Color(colour, 0.8 if entry.guess else 1.0)
-	flag_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if entry.guess else BaseMaterial3D.TRANSPARENCY_DISABLED
-	var ring: MeshInstance3D = node.get_node("ring")
-	ring.visible = true
-	ring.position = flag.position
-	(ring.material_override as StandardMaterial3D).albedo_color = SELECT_COLOR if entry.picked else (BATTLE_COLOR if entry.fighting else Color(0.02, 0.02, 0.03))
-	var label: Label3D = node.get_node("label")
-	label.text = entry.text
-	label.position = Vector3(0.11 if not fleet else 0.0, flag_y + 0.085, 0)
-	label.modulate = Color.WHITE if colour.get_luminance() < 0.55 else Color(1, 1, 0.9)
+	# the card, as big on the screen as the flat map's banner: a card pixel is what a screen pixel is
+	# worth in plane units, which is what a map pixel is worth over the zoom
+	var sprite: Sprite3D = node.get_node("card")
+	var per_pixel := units_per_px() / maxf(zoom, 0.05)
+	sprite.pixel_size = per_pixel
+	var banner: Rect2 = ArmyLayer.CARD_BANNER if not fleet else FleetLayer.CARD_BANNER
+	sprite.offset = Vector2(0.0, ArmyLayer.CARD_SIZE.y * 0.5 - banner.get_center().y)
+	var up := lift + banner.size.y * 0.5 * per_pixel + 0.01
+	sprite.position = Vector3(0, up, 0)
+	entry["anchor"] = entry.ground + Vector3(0, up, 0)
+	var key := _card_key(entry)
+	if node.get_meta("card_key", "") != key:
+		node.set_meta("card_key", key)
+		_paint_card(node, entry)
+
+
+func _card_key(entry: Dictionary) -> String:
+	var parts: Array = [entry.kind, entry.tag, roundi(entry.men / 100.0), entry.picked, entry.fighting, entry.guess, entry.get("name", ""),
+			entry.get("icon", ""), entry.get("count", 0), entry.get("squadrons", 0), entry.get("fleets", 0), entry.get("mission", ""),
+			entry.get("mixed", false), roundi(float(entry.get("aboard", 0.0)) / 1000.0), str(entry.get("comp", {})) if entry.get("expanded", false) else "",
+			str(entry.get("shown_comp", {}))]
+	return "|".join(PackedStringArray(parts.map(func(x: Variant) -> String: return str(x))))
+
+
+## Repaints a standee's card picture from its marker.
+func _paint_card(node: Node3D, entry: Dictionary) -> void:
+	var view: SubViewport = node.get_node("card_view")
+	var painter: Node2D = view.get_node_or_null("painter")
+	var fleet: bool = entry.kind == "fleet"
+	if painter != null and painter.get_meta("fleet", false) != fleet:
+		painter.free()
+		painter = null
+	if painter == null:
+		painter = (FleetLayer.new() if fleet else ArmyLayer.new())
+		painter.name = "painter"
+		painter.set("card_only", true)
+		painter.set_meta("fleet", fleet)
+		view.add_child(painter)
+	painter.call("set_card", entry)
+	view.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
 ## The model under a point of the screen, as its entry ({} if none): the click is then sent to the
@@ -586,8 +567,7 @@ func marker_at(screen: Vector2) -> Dictionary:
 	if not markers_on:
 		return best
 	for entry: Dictionary in _shown:
-		var base: Vector3 = entry.ground
-		var top := base + Vector3(0, standee_height(entry.kind, entry.men) * 0.7, 0)
+		var top: Vector3 = entry.get("anchor", entry.ground + Vector3(0, standee_height(entry.kind, entry.men) * 0.7, 0))
 		if _camera.is_position_behind(top):
 			continue
 		var d := _camera.unproject_position(top).distance_to(screen)

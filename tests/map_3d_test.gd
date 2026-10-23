@@ -110,7 +110,7 @@ func _initialize() -> void:
 			picked_entry = e
 			break
 	if not picked_entry.is_empty():
-		var top: Vector3 = picked_entry.ground + Vector3(0, M3.standee_height("army", picked_entry.men) * 0.7, 0)
+		var top: Vector3 = picked_entry.get("anchor", picked_entry.ground)
 		var hit: Dictionary = mode.marker_at(mode._camera.unproject_position(top))
 		_check(not hit.is_empty() and hit.pos == picked_entry.pos, "a click on a model is a click on the place it stands")
 	_check(M3.standee_height("army", 100000.0) > M3.standee_height("army", 1000.0), "bigger armies stand taller")

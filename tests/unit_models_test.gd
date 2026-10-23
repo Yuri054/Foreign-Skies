@@ -65,6 +65,11 @@ func _initialize() -> void:
 			if (node.get_node("model") as MeshInstance3D).visible and (node.get_node("model") as MeshInstance3D).mesh != null:
 				models += 1
 	_check(shown > 0 and models == shown, "close to the map every banner has a model (%d of %d)" % [models, shown])
+	var cards := 0
+	for node: Node3D in mode._standees:
+		if node.visible and str(node.get_meta("card_key", "")) != "" and (node.get_node("card") as Sprite3D).texture != null and node.get_node("card_view/painter").get("card_only"):
+			cards += 1
+	_check(cards == shown, "each has a card painted as the flat map paints its banner (%d)" % cards)
 	main.camera.zoom = Vector2(0.5, 0.5)
 	for i in 8:
 		await process_frame

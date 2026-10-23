@@ -29,6 +29,9 @@ var _collecting := false
 
 
 func _ready() -> void:
+	if card_only:
+		_zoom = 1.0
+		return
 	add_to_group("fleet_layer")
 	z_index = 4
 	GameState.fleets_changed.connect(queue_redraw)
@@ -43,6 +46,8 @@ func set_selection(ids: Array[int]) -> void:
 
 
 func _process(_delta: float) -> void:
+	if card_only:
+		return
 	var camera := get_viewport().get_camera_2d()
 	if camera and camera.zoom.x != _zoom:
 		_zoom = camera.zoom.x
@@ -158,6 +163,9 @@ func pick_battle_at(world_pos: Vector2) -> int:
 # ------------------------------------------------------------------ drawing
 
 func _draw() -> void:
+	if card_only:
+		_paint_card()
+		return
 	var px := 1.0 / maxf(_zoom, 0.05)
 	_draw_routes(px)
 	markers.clear()
@@ -189,16 +197,20 @@ func _draw_group(g: Dictionary, px: float) -> void:
 			mixed = true
 	if markers_only or _collecting:
 		markers.append({"tag": g.tag, "squadrons": squadrons, "fleets": g.fleets.size(), "men": men, "picked": picked,
-				"fighting": fighting, "pos": rect.get_center(), "classes": classes})
+				"fighting": fighting, "pos": rect.get_center(), "classes": classes, "mission": mission, "mixed": mixed, "aboard": men})
 		return
+	_draw_fleet_banner(rect, px, color, squadrons, g.fleets.size(), picked, fighting, mission, mixed, men)
+
+
+func _draw_fleet_banner(rect: Rect2, px: float, color: Color, squadrons: int, fleets: int, picked: bool, fighting: bool, mission: String, mixed: bool, men: float) -> void:
 	draw_rect(rect, color)
 	var frame := Rect2(rect.position + Vector2(2, 2) * px, Vector2(rect.size.y * 1.25 - 4.0 * px, rect.size.y - 4.0 * px))
 	draw_rect(frame, Color(1, 1, 1, 0.92))
 	_draw_ship(frame, px)
 	var text_color := Color.WHITE if color.get_luminance() < 0.55 else Color.BLACK
 	var label := "%d" % squadrons
-	if g.fleets.size() > 1:
-		label += " ×%d" % g.fleets.size()
+	if fleets > 1:
+		label += " ×%d" % fleets
 	var text_x := frame.end.x + 2.0 * px
 	MapText.draw(self, _font, Vector2(text_x, rect.end.y - 5.0 * px), label, HORIZONTAL_ALIGNMENT_CENTER,
 			rect.end.x - text_x - 1.0 * px, 11, text_color, px)
@@ -211,6 +223,25 @@ func _draw_group(g: Dictionary, px: float) -> void:
 	if fighting:
 		MapText.draw(self, _font, Vector2(rect.end.x + 2.0 * px, rect.position.y + 12.0 * px), "⚔", HORIZONTAL_ALIGNMENT_LEFT,
 				-1.0, 14, BATTLE_COLOR, px)
+
+
+## A card of one marker (see ArmyLayer.card_only).
+const CARD_SIZE := Vector2(170, 72)
+const CARD_BANNER := Rect2(Vector2(56, 16), BANNER)
+var card_only := false
+var card := {}
+
+
+func set_card(entry: Dictionary) -> void:
+	card = entry
+	queue_redraw()
+
+
+func _paint_card() -> void:
+	if card.is_empty():
+		return
+	_draw_fleet_banner(CARD_BANNER, 1.0, GameState.nations[card.tag].color, card.squadrons, card.fleets, card.picked, card.fighting,
+			card.get("mission", ""), card.get("mixed", false), card.get("aboard", 0.0))
 
 
 ## A small ship in side view.

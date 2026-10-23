@@ -1,3 +1,4 @@
+class_name ArmyLayer
 extends Node2D
 ## Draws armies as banners (a nation-coloured flag with a NATO-style symbol, men in
 ## thousands and a size mark), the player's fronts, the routes of marching armies with the
@@ -37,9 +38,16 @@ var markers_only := false:
 		queue_redraw()
 var markers: Array = []
 var _collecting := false
+## A layer that paints one banner card and nothing else (the 3D map puts the card above a model, as it is
+## drawn on the flat map): it joins no group and follows no camera. `card` is a marker entry.
+var card_only := false
+var card := {}
 
 
 func _ready() -> void:
+	if card_only:
+		_zoom = 1.0
+		return
 	add_to_group("army_layer")
 	z_index = 5
 	GameState.armies_changed.connect(queue_redraw)
@@ -101,9 +109,40 @@ func _draw_battle_icons(px: float) -> void:
 func collect_markers() -> Array:
 	markers.clear()
 	_collecting = true
-	_draw_banners(1.0 / maxf(_zoom, 0.05))
+	var px := 1.0 / maxf(_zoom, 0.05)
+	_draw_banners(px)
+	for entry in _expanded_layout(px):
+		var a: Army = entry.army
+		markers.append({"province": a.province, "tag": a.tag, "men": a.men(), "count": 1, "picked": selected.has(a.id),
+				"fighting": a.fighting, "guess": false, "pos": (entry.rect as Rect2).get_center(), "comp": a.composition(),
+				"shown_comp": {}, "icon": a.shown_icon(), "expanded": true, "name": a.display_name, "army": a.id})
 	_collecting = false
 	return markers
+
+
+## The size of a card (see `card_only`) and where its banner stands in it.
+const CARD_SIZE := Vector2(170, 72)
+const CARD_BANNER := Rect2(Vector2(54, 16), BANNER)
+
+
+func set_card(entry: Dictionary) -> void:
+	card = entry
+	queue_redraw()
+
+
+## Paints the card of one marker exactly as the flat map draws that banner.
+func _paint_card() -> void:
+	if card.is_empty():
+		return
+	var colour: Color = GameState.nations[card.tag].color
+	_draw_banner(CARD_BANNER, 1.0, colour, card.get("icon", "auto"), card.men, card.count, card.picked, card.fighting, card.guess)
+	var centre_x := CARD_BANNER.get_center().x
+	if card.get("expanded", false):
+		var name_text: String = card.name if card.name.length() <= 24 else card.name.substr(0, 23) + "…"
+		_pill(name_text, Vector2(centre_x, CARD_BANNER.end.y + 8.0), 1.0, Color(colour.lightened(0.45), 1.0), 9)
+		_draw_composition(card.comp, centre_x, CARD_BANNER.end.y + 16.0, 1.0)
+	elif not card.get("shown_comp", {}).is_empty():
+		_draw_composition(card.shown_comp, centre_x, CARD_BANNER.end.y + 3.0, 1.0)
 
 
 ## Id of the army whose fanned-out banner is under a map position (0 if none).
@@ -179,6 +218,8 @@ func set_selected_front(id: int) -> void:
 
 
 func _process(_delta: float) -> void:
+	if card_only:
+		return
 	var camera := get_viewport().get_camera_2d()
 	if camera and camera.zoom.x != _zoom:
 		_zoom = camera.zoom.x
@@ -207,6 +248,9 @@ func _update_preview() -> void:
 
 
 func _draw() -> void:
+	if card_only:
+		_paint_card()
+		return
 	var px := 1.0 / maxf(_zoom, 0.05)
 	_labels.clear()
 	markers.clear()
@@ -296,7 +340,8 @@ func _draw_banners(px: float) -> void:
 			var rect := Rect2(Vector2(centre.x - size.x * 0.5, top + i * (size.y + gap)), size)
 			if markers_only or _collecting:
 				markers.append({"province": id, "tag": tag, "men": men, "count": 1 if guess else count, "picked": picked,
-						"fighting": fighting, "guess": guess, "pos": rect.get_center(), "comp": make_up})
+						"fighting": fighting, "guess": guess, "pos": rect.get_center(), "comp": make_up, "shown_comp": comp,
+						"icon": "unknown" if guess else biggest.shown_icon()})
 				continue
 			if guess:
 				_draw_banner(rect, px, GameState.nations[tag].color, "unknown", men, 1, false, fighting, true)
