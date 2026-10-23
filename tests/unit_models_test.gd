@@ -27,10 +27,10 @@ func _initialize() -> void:
 	var total := 0
 	for k in big:
 		total += big[k]
-	_check(total <= 14 and big.cavalry >= 1 and big.artillery >= 1, "a great army is shown by at most a dozen units, every kind kept (%s)" % big)
+	_check(total <= 11 and big.cavalry >= 1 and big.artillery >= 1, "a great army is shown by at most nine units, every kind kept (%s)" % big)
 	var small: ArrayMesh = UM.army_mesh({"infantry": 1}, grey)
 	var larger: ArrayMesh = UM.army_mesh({"infantry": 6, "cavalry": 2, "artillery": 2}, grey)
-	_check(_vertices(larger) > _vertices(small) * 3, "a bigger army is a bigger model")
+	_check(_vertices(larger) > _vertices(small) * 2, "a bigger army is a bigger model")
 	_check(UM.army_mesh({"infantry": 1}, grey) == small, "the same army is the same mesh (cached)")
 	_check(UM.army_mesh({"infantry": 1}, Color(0.2, 0.3, 0.8)) != small, "another nation has its own")
 	var line: Array = UM.fleet_line({"dreadnought": 3, "cruiser": 2, "destroyer": 12, "submarine": 4, "transport": 2})

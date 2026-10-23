@@ -73,9 +73,9 @@ var units_models_on := true
 ## The zoom at which the models start to come up, and at which they are whole.
 const UNIT_ZOOM := [0.9, 1.6]
 ## Map pixels of the width of a formation, in model units: scales a model so that a formation is about this wide on the map.
-const UNIT_SCALE := 3.2
+const UNIT_SCALE := 7.0
 ## The same for a line of ships, which is much longer than a formation.
-const FLEET_SCALE := 1.1
+const FLEET_SCALE := 1.6
 ## Whether the cities stand up as models of buildings (see CityModels).
 var cities_on := true:
 	set(value):
