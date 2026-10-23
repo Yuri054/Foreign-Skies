@@ -104,19 +104,6 @@ func _initialize() -> void:
 		await process_frame
 	_check((mode._cities.entry_of(london.id).smoke as MultiMeshInstance3D).visible, "a city whose province is being taken burns")
 	gs.occupation.erase(london.province)
-	var rail_from: int = london.province
-	var rail_to: int = load("res://scripts/sim/military.gd").neighbors(rail_from)[0]
-	var before: int = mode._rails._mesh.mesh.get_surface_count() if mode._rails._mesh.mesh != null else 0
-	_check(before == 0, "no railway, no track")
-	gs.province_buildings[rail_from]["railway"] = 1
-	gs.province_buildings[rail_to]["railway"] = 1
-	gs.province_owner[rail_to] = gs.province_owner[rail_from]
-	gs.economy_updated.emit()
-	for i in 16:
-		await process_frame
-	_check(mode._rails._mesh.mesh != null and mode._rails._mesh.mesh.get_surface_count() == 1, "a railway between two provinces of one nation is drawn as track")
-	gs.province_buildings[rail_from].erase("railway")
-	gs.province_buildings[rail_to].erase("railway")
 	var hit: Dictionary = mode.marker_at(mode._camera.unproject_position(entry.root.position + Vector3(0, float(entry.height) * 0.5 * entry.root.scale.y, 0)))
 	_check(not hit.is_empty() and hit.get("kind", "") == "city", "a click on a city model is a click on the city")
 	mode.cities_on = false

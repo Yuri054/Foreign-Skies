@@ -92,11 +92,8 @@ var cities_on := true:
 		cities_on = value
 		if _cities != null:
 			_cities.visible = cities_on
-		if _rails != null:
-			_rails.visible = cities_on
 		_set_city_markers(enabled and cities_on)
 var _cities: CityModels
-var _rails: RailLines
 var _standees: Array = []
 var _shown: Array = []
 var _marker_frame := 0
@@ -217,7 +214,6 @@ func _leave() -> void:
 	_material = null
 	_marker_root = null
 	_cities = null
-	_rails = null
 	_standees.clear()
 	_shown.clear()
 	_tilting = false
@@ -299,9 +295,6 @@ void fragment() {
 	_cities = CityModels.new()
 	_cities.visible = cities_on
 	_scene.add_child(_cities)
-	_rails = RailLines.new()
-	_rails.visible = cities_on
-	_scene.add_child(_rails)
 	_marker_root = Node3D.new()
 	_scene.add_child(_marker_root)
 	_camera = Camera3D.new()
@@ -381,8 +374,6 @@ func _process(_delta: float) -> void:
 		if sig != _city_signature or _frame_count % 15 == 0:
 			_city_signature = sig
 			_cities.update(self, cam.zoom.x if cam != null else 0.5)
-			if _rails != null:
-				_rails.update(self)
 
 
 ## Plane units a metre of height rises while the picture shows `_view_size` map pixels: true to
@@ -467,29 +458,6 @@ static func standee_height(kind: String, men: float) -> float:
 	if kind == "fleet":
 		return 0.16
 	return 0.12 + 0.05 * log(1.0 + men / 1000.0) / log(10.0)
-
-
-## Where a map position falls on the plane, at sea level (whether or not the picture shows it).
-func plane_of(world: Vector2) -> Vector3:
-	var at := (_sub.get_canvas_transform() * world) / Vector2(_sub.size)
-	return Vector3((at.x - 0.5) * _plane_size.x, 0.0, (at.y - 0.5) * _plane_size.y)
-
-
-## The size of the plane the picture is laid on.
-func plane_extent() -> Vector2:
-	return _plane_size
-
-
-## The height of the ground at a map position, in metres (0 with the relief off).
-func metres_at(world: Vector2) -> float:
-	if not relief_on or _relief == null:
-		return 0.0
-	var at := world / Vector2(MapData.map_size)
-	if at.x < 0.0 or at.y < 0.0 or at.x > 1.0 or at.y > 1.0:
-		return 0.0
-	var px := Vector2i(clampi(int(at.x * _relief.get_width()), 0, _relief.get_width() - 1), clampi(int(at.y * _relief.get_height()), 0, _relief.get_height() - 1))
-	var g := _relief.get_pixelv(px).r
-	return g * g * RELIEF_TOP_M
 
 
 ## Where a point of the 3D scene falls on the screen (far off it if it is behind the camera).
