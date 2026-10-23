@@ -109,24 +109,29 @@ func update(map: Node, zoom: float) -> void:
 		if holder != entry.holder:
 			entry.holder = holder
 			(entry.flag.material_override as StandardMaterial3D).albedo_color = colour
-		_fade(entry, opacity, colour)
+		_fade(entry, opacity, colour, GameState.province_controller[city.province] != GameState.province_owner[city.province])
 		_smoke(entry, opacity, GameState.occupation.has(city.province))
 
 
 ## Fades a city: solid it uses the shared opaque material; faint, its own see-through one, tinted toward
 ## the colour of the nation that holds it, so it comes up out of the political colours.
-func _fade(entry: Dictionary, opacity: float, nation: Color) -> void:
+func _fade(entry: Dictionary, opacity: float, nation: Color, occupied := false) -> void:
 	var body: MeshInstance3D = entry.body
-	if opacity >= 0.985:
+	if opacity >= 0.985 and not occupied:
 		body.material_override = _material
 		entry.opacity = 1.0
+		entry.tint = Color.WHITE
 	else:
 		var fading: StandardMaterial3D = entry.fading
-		if not is_equal_approx(float(entry.opacity), opacity) or entry.tint != nation:
+		if not is_equal_approx(float(entry.opacity), opacity) or entry.tint != nation or entry.get("ruined", false) != occupied:
 			var tint := Color.WHITE.lerp(nation.lightened(0.2), (1.0 - opacity) * 0.6)
+			if occupied:
+				# A city in an enemy's hands: dulled and darkened, as after a siege.
+				tint = tint.lerp(Color(0.55, 0.5, 0.47), 0.55)
 			fading.albedo_color = Color(tint, opacity)
 			entry.opacity = opacity
 			entry.tint = nation
+			entry.ruined = occupied
 		body.material_override = fading
 	for part: String in ["pole", "flag"]:
 		var piece: MeshInstance3D = entry[part]

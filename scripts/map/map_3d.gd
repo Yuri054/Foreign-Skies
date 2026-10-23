@@ -69,6 +69,7 @@ var markers_on := true:
 var _marker_root: Node3D
 var _unit_mat: StandardMaterial3D
 var _battle_mat: ShaderMaterial
+var _sea_offsets := {}
 var _last_cam_pos := Vector2.ZERO
 var _last_cam_zoom := Vector2.ONE
 var _touched := true
@@ -559,6 +560,25 @@ func _make_standee() -> Node3D:
 	return root
 
 
+## Where the water is from a place on the coast, as a step in map pixels (zero if the place is in the water already).
+func _sea_offset(pos: Vector2) -> Vector2:
+	var key := Vector2i(pos.round())
+	if _sea_offsets.has(key):
+		return _sea_offsets[key]
+	var best := Vector2.ZERO
+	if CityModels.land_at(pos):
+		for r in [6.0, 12.0, 20.0, 30.0, 45.0]:
+			for i in 16:
+				var dir := Vector2.from_angle(TAU * i / 16.0)
+				if not CityModels.land_at(pos + dir * r):
+					best = dir * (r + 14.0)
+					break
+			if best != Vector2.ZERO:
+				break
+	_sea_offsets[key] = best
+	return best
+
+
 func _battle_material() -> ShaderMaterial:
 	if _battle_mat == null:
 		_battle_mat = CityModels.smoke_material(true)
@@ -608,6 +628,15 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 		var heading: Variant = entry.get("heading")
 		if heading != null:
 			model.rotation.y = -float(heading)      # a marching army faces the way it goes
+		model.position = Vector3.ZERO
+		if fleet:
+			# A port is on the coast: the ships lie off it, in the water, the line along the shore.
+			var off := _sea_offset(entry.pos)
+			if off != Vector2.ZERO:
+				var water: Variant = ground_point(entry.pos + off)
+				if water != null:
+					model.position = Vector3(water.x - entry.ground.x, water.y - entry.ground.y, water.z - entry.ground.z)
+				model.rotation.y = -(off.angle() + PI * 0.5)
 		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
 		model.scale = Vector3.ONE * scale_by
 		lift = mesh.get_aabb().end.y * scale_by

@@ -97,6 +97,8 @@ func _initialize() -> void:
 	for i in 16:
 		await process_frame
 	_check((mode._cities.entry_of(london.id).flag.material_override as StandardMaterial3D).albedo_color.is_equal_approx(gs.nations["GER"].color), "an occupied city shows the occupier's flag")
+	var held: Dictionary = mode._cities.entry_of(london.id)
+	_check(held.body.material_override == held.fading and held.get("ruined", false), "a city in an enemy's hands is dulled and darkened")
 	gs.occupation[london.province] = {"tag": "GER", "days": 1}
 	for i in 16:
 		await process_frame
