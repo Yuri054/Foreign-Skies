@@ -22,10 +22,8 @@ func _initialize() -> void:
 	m3.markers_on = false
 	var shots := [["cities_far", 0.35, Vector2(2700, 2900), 52.0], ["cities_wide", 0.75, Vector2(2700, 2900), 52.0], ["cities_mid", 1.3, Vector2(2500, 2700), 48.0]]
 	for city in gs.cities:
-		if city.name == "Berlin":
-			shots.append(["cities_berlin", 2.6, city.pos, 42.0])
-		if city.name == "London":
-			shots.append(["cities_london", 2.6, city.pos, 42.0])
+		if city.name in ["Berlin", "London", "Paris", "Rome", "Constantinople", "Moscow", "Cologne", "Hamburg"]:
+			shots.append(["cities_" + city.name.to_lower(), 3.0, city.pos, 40.0])
 	for s in shots:
 		cam.zoom = Vector2(s[1], s[1])
 		cam.position = s[2]
