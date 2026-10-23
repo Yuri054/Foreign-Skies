@@ -58,7 +58,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		keep_on_map()
 
 
+## The furthest the map may be brought back: the zoom at which the whole map just fits the view
+## (never above `min_zoom`, so a large window keeps its old limit).
+func far_zoom() -> float:
+	var map := Vector2(limit_right - limit_left, limit_bottom - limit_top)
+	if map.x <= 0.0 or map.y <= 0.0:
+		return min_zoom
+	var size := get_viewport_rect().size
+	return clampf(minf(size.x / map.x, size.y / map.y), 0.02, min_zoom)
+
+
 func _set_zoom(value: float) -> void:
-	var z := clampf(value, min_zoom, max_zoom)
+	var z := clampf(value, far_zoom(), max_zoom)
 	zoom = Vector2(z, z)
 	keep_on_map()

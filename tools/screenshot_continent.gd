@@ -27,7 +27,8 @@ func _initialize() -> void:
 	for s in shots:
 		m3.set_enabled(s[1])
 		cam.position = Vector2(3930, 2576)
-		cam.zoom = Vector2(0.2, 0.2) if not s[1] else Vector2(0.24, 0.24)
+		var fit: float = cam.far_zoom()
+		cam.zoom = Vector2(fit, fit)
 		if s[1]:
 			m3.tilt = s[2]
 			m3._apply_tilt()
