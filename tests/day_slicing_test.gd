@@ -1,0 +1,63 @@
+extends SceneTree
+## A day's step in the running game is done a stage a frame, and comes to the same as when it is done all at
+## once; a save, a month's end and the next day finish whatever is left first.
+
+var _failures := 0
+
+
+func _check(ok: bool, what: String) -> void:
+	if ok:
+		print("ok:   ", what)
+	else:
+		_failures += 1
+		print("FAIL: ", what)
+
+
+func _digest(gs: Node) -> String:
+	var parts: Array = [hash(gs.province_owner), hash(gs.province_controller), gs.armies.size(), gs.fleets.size()]
+	for tag in gs.nations:
+		var n = gs.nations[tag]
+		parts.append([tag, snappedf(float(n.budget.get("income", 0.0)), 0.001), n.manpower, snappedf(n.mobilization, 0.0001)])
+	return str(parts)
+
+
+func _run(gs: Node, clock: Node, sliced: bool, days: int) -> String:
+	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	gs.set_player("GER")
+	gs.ai_enabled = true
+	gs.autosave_enabled = false
+	for i in days:
+		if sliced:
+			gs.autosave_enabled = true
+		clock.advance_day()
+		if sliced:
+			gs.autosave_enabled = false     # (no autosave files from a test)
+			gs.finish_day()
+	return _digest(gs)
+
+
+func _initialize() -> void:
+	await process_frame
+	var gs: Node = root.get_node("GameState")
+	var clock: Node = root.get_node("Clock")
+	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	gs.autosave_enabled = true
+	clock.advance_day()
+	_check(not gs._day_stages.is_empty(), "in the running game a day is not all done at once")
+	await process_frame
+	var left: int = gs._day_stages.size()
+	_check(left < 5, "a stage follows each frame (%d left)" % left)
+	for i in 6:
+		await process_frame
+	_check(gs._day_stages.is_empty() and not gs.in_day_step, "and the day is finished")
+	clock.advance_day()
+	clock.advance_day()
+	_check(gs._day_stages.size() >= 4, "the next day finishes the last first, and starts anew")
+	gs.autosave_enabled = false
+	gs.finish_day()
+	gs.autosave_enabled = false
+	var whole := _run(gs, clock, false, 40)
+	var sliced := _run(gs, clock, true, 40)
+	_check(whole == sliced, "forty days one stage a frame come to the same as forty days at once")
+	print("FAILURES: ", _failures)
+	quit(_failures)

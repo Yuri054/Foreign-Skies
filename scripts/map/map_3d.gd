@@ -68,6 +68,14 @@ var markers_on := true:
 		_set_layers_to_markers(enabled and markers_on)
 var _marker_root: Node3D
 var _unit_mat: StandardMaterial3D
+var _last_cam_pos := Vector2.ZERO
+var _last_cam_zoom := Vector2.ONE
+var _touched := true
+var _frame_count := 0
+var _markers_dirty := true
+var _city_signature: Array = []
+var _marker_signature: Array = []
+var _entries_cache: Array = []
 ## Whether armies and fleets stand as models of soldiers and ships once the map is close (else banners only).
 var units_models_on := true
 ## The zoom at which the models start to come up, and at which they are whole.
@@ -134,13 +142,13 @@ static func pan_rotation_for(yaw_degrees: float) -> float:
 
 ## How far the camera stands from the plane's centre so that, looking straight down, the screen
 ## shows 1 / SCALE of the picture's height (one picture pixel to one screen pixel).
-static func camera_distance(plane_height: float) -> float:
-	return (plane_height / SCALE) / (2.0 * tan(deg_to_rad(FOV) / 2.0))
+static func camera_distance(plane_height: float, scale := SCALE) -> float:
+	return (plane_height / scale) / (2.0 * tan(deg_to_rad(FOV) / 2.0))
 
 
 ## The size of the off-screen picture for a window: SCALE times it, held to MAX_SIZE in the same shape.
-static func picture_size(window: Vector2i) -> Vector2i:
-	var size := Vector2(window) * SCALE
+static func picture_size(window: Vector2i, scale := SCALE) -> Vector2i:
+	var size := Vector2(window) * scale
 	var fit := minf(1.0, minf(float(MAX_SIZE.x) / size.x, float(MAX_SIZE.y) / size.y))
 	return Vector2i((size * fit).round())
 
@@ -148,9 +156,10 @@ static func picture_size(window: Vector2i) -> Vector2i:
 # ------------------------------------------------------------------ switching
 
 func _enter() -> void:
+	OS.low_processor_usage_mode = false     # the smoke and the sprites move by the clock of the shaders
 	var window := get_window()
 	_sub = SubViewport.new()
-	_sub.size = picture_size(window.size)
+	_sub.size = picture_size(window.size, picture_scale())
 	_sub.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_sub.handle_input_locally = true
 	_sub.disable_3d = true
@@ -169,6 +178,7 @@ func _enter() -> void:
 	_build_scene()
 	enabled = true
 	_set_layers_to_markers(markers_on)
+	_watch_layers(true)
 	_set_city_markers(cities_on)
 	_set_land_floor(LAND_ZOOM_FLOOR)
 	_apply_tilt()
@@ -176,6 +186,8 @@ func _enter() -> void:
 
 
 func _leave() -> void:
+	OS.low_processor_usage_mode = true
+	_watch_layers(false)
 	_set_layers_to_markers(false)
 	_set_city_markers(false)
 	_set_land_floor(0.0)
@@ -296,7 +308,7 @@ func _apply_tilt() -> void:
 		return
 	tilt = clampf(tilt, MIN_TILT, MAX_TILT)
 	yaw = wrapf(yaw, -180.0, 180.0)
-	var d := camera_distance(PLANE_HEIGHT)
+	var d := camera_distance(PLANE_HEIGHT, picture_scale())
 	var angle := deg_to_rad(tilt)
 	var turn := deg_to_rad(yaw)
 	var at := Vector3(0.0, sin(angle) * d, cos(angle) * d).rotated(Vector3.UP, turn)
@@ -307,9 +319,42 @@ func _apply_tilt() -> void:
 		flat_cam.set("pan_rotation", pan_rotation_for(yaw))
 
 
+## How many times the window the off-screen picture of the flat map is, by the quality chosen in the settings.
+func picture_scale() -> float:
+	return float(UiSettings.QUALITY_SCALES.get(UiSettings.quality_3d, SCALE))
+
+
+## Sets the quality and, if the 3D map is on, rebuilds the picture at its size.
+func apply_quality() -> void:
+	if enabled:
+		set_enabled(false)
+		set_enabled(true)
+
+
+## Whether the flat map's picture needs painting again this frame: every frame while the map is being moved,
+## zoomed or touched, and otherwise ten times a second, enough for what moves by itself (armies, smoke, the clock).
+func _picture_due() -> bool:
+	var cam2d: Camera2D = main.get("camera")
+	var moving := false
+	if cam2d != null:
+		moving = cam2d.position != _last_cam_pos or cam2d.zoom != _last_cam_zoom
+		_last_cam_pos = cam2d.position
+		_last_cam_zoom = cam2d.zoom
+	var due := moving or _touched or _frame_count % 6 == 0
+	_touched = false
+	return due
+
+
+func _input(event: InputEvent) -> void:
+	if enabled and (event is InputEventMouse or event is InputEventKey):
+		_touched = true
+
+
 func _process(_delta: float) -> void:
 	if not enabled or _sub == null or _material == null:
 		return
+	_frame_count += 1
+	_sub.render_target_update_mode = SubViewport.UPDATE_ONCE if _picture_due() else SubViewport.UPDATE_DISABLED
 	var inverse := _sub.get_canvas_transform().affine_inverse()
 	_view_origin = inverse * Vector2.ZERO
 	_view_size = inverse.basis_xform(Vector2(_sub.size))
@@ -317,11 +362,16 @@ func _process(_delta: float) -> void:
 	_material.set_shader_parameter("view_size", _view_size)
 	_material.set_shader_parameter("rise", rise_per_metre() if relief_on else 0.0)
 	_marker_frame += 1
-	if markers_on and _marker_frame % 3 == 0:
+	if markers_on:
 		_update_markers()
 	if cities_on and _cities != null:
-		var cam2d: Camera2D = main.get("camera")
-		_cities.update(self, cam2d.zoom.x if cam2d != null else 0.5)
+		# The models follow the ground as the camera moves; otherwise they need looking at only now and then
+		# (a city grows or burns by the day, not by the frame).
+		var cam: Camera2D = main.get("camera")
+		var sig := [cam.position, cam.zoom, picture_scale()] if cam != null else []
+		if sig != _city_signature or _frame_count % 15 == 0:
+			_city_signature = sig
+			_cities.update(self, cam.zoom.x if cam != null else 0.5)
 
 
 ## Plane units a metre of height rises while the picture shows `_view_size` map pixels: true to
@@ -416,10 +466,37 @@ func ground_point(world: Vector2) -> Variant:
 	return Vector3((at.x - 0.5) * _plane_size.x, height_units(at), (at.y - 0.5) * _plane_size.y)
 
 
+## The layers repaint when anything about their banners changes (armies, selection, zoom): then the list of
+## markers is worked out again, and not before.
+func _mark_markers_dirty() -> void:
+	_markers_dirty = true
+
+
+func _watch_layers(connect_them: bool) -> void:
+	for group in ["army_layer", "fleet_layer"]:
+		var layer := _layer(group)
+		if layer == null:
+			continue
+		if connect_them and not layer.draw.is_connected(_mark_markers_dirty):
+			layer.draw.connect(_mark_markers_dirty)
+		elif not connect_them and layer.draw.is_connected(_mark_markers_dirty):
+			layer.draw.disconnect(_mark_markers_dirty)
+	_markers_dirty = true
+
+
 func _update_markers() -> void:
 	if _marker_root == null or _camera == null:
 		return
-	var entries := marker_entries()
+	# Nothing to do while the layers have not changed and the picture has not moved.
+	var cam2d: Camera2D = main.get("camera")
+	var signature := [cam2d.position, cam2d.zoom, relief_on, units_models_on, _sub.size] if cam2d != null else []
+	if not _markers_dirty and signature == _marker_signature:
+		return
+	_marker_signature = signature
+	if _markers_dirty:
+		_entries_cache = marker_entries()
+		_markers_dirty = false
+	var entries := _entries_cache
 	_shown.clear()
 	for entry: Dictionary in entries:
 		var ground: Variant = ground_point(entry.pos)
@@ -507,6 +584,9 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 	if model.visible:
 		var mesh := _unit_mesh(entry, colour)
 		model.mesh = mesh
+		var heading: Variant = entry.get("heading")
+		if heading != null:
+			model.rotation.y = -float(heading)      # a marching army faces the way it goes
 		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
 		model.scale = Vector3.ONE * scale_by
 		lift = mesh.get_aabb().end.y * scale_by

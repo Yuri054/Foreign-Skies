@@ -87,18 +87,18 @@ func _initialize() -> void:
 	_check(not entry.is_empty() and entry.root.visible, "London stands on the map")
 	var bucket: int = entry.bucket
 	gs.province_population[london.province] = int(gs.province_pop_base[london.province] * 2.0)
-	for i in 3:
+	for i in 16:
 		await process_frame
 	_check(mode._cities.entry_of(london.id).bucket > bucket, "when its province has doubled the model has grown (class %d to %d)" % [bucket, mode._cities.entry_of(london.id).bucket])
 	var holder: String = gs.province_controller[london.province]
 	var flag_colour: Color = (entry.flag.material_override as StandardMaterial3D).albedo_color
 	_check(flag_colour.is_equal_approx(gs.nations[holder].color), "the flag is the holder's colour")
 	gs.set_controller(london.province, "GER")
-	for i in 3:
+	for i in 16:
 		await process_frame
 	_check((mode._cities.entry_of(london.id).flag.material_override as StandardMaterial3D).albedo_color.is_equal_approx(gs.nations["GER"].color), "an occupied city shows the occupier's flag")
 	gs.occupation[london.province] = {"tag": "GER", "days": 1}
-	for i in 3:
+	for i in 16:
 		await process_frame
 	_check((mode._cities.entry_of(london.id).smoke as MultiMeshInstance3D).visible, "a city whose province is being taken burns")
 	gs.occupation.erase(london.province)

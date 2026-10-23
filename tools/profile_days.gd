@@ -27,6 +27,7 @@ func _initialize() -> void:
 	var Dip = load("res://scripts/sim/diplomacy.gd")
 	var AIc = load("res://scripts/ai/ai.gd")
 	Mil.profile = true
+	AIc.profile = true
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
 	gs.set_player(player)
 	gs.ai_enabled = true
@@ -36,11 +37,17 @@ func _initialize() -> void:
 	var started := Time.get_ticks_usec()
 	for i in days:
 		clock.advance_day()
+		gs.in_day_step = true
 		_t("economy.step_day", func() -> void: Eco.step_day(gs))
 		_t("navy.step_day", func() -> void: Nav.step_day(gs))
 		_t("military.step_day", func() -> void: Mil.step_day(gs))
 		_t("diplomacy.step_day", func() -> void: Dip.step_day(gs))
+		_t("  dip.justifications", func() -> void: Dip._step_justifications(gs))
+		_t("  dip.alarms", func() -> void: Dip._step_alarms(gs))
+		_t("  dip.mobilization", func() -> void: Dip._step_mobilization(gs))
+		_t("  dip.join_calls", func() -> void: Dip._step_join_calls(gs))
 		_t("ai.step_day", func() -> void: AIc.step_day(gs))
+		gs.in_day_step = false
 		if gs.economy_dirty:
 			gs.economy_dirty = false
 			gs.budget_dirty = false
@@ -57,4 +64,7 @@ func _initialize() -> void:
 	print("  inside military.step_day:")
 	for k in Mil.timings:
 		print("    %-14s %6.1f ms a day, worst %6.1f ms" % [k, float(Mil.timings[k]) / days / 1000.0, float(Mil.worst[k]) / 1000.0])
+	print("  inside the AI:")
+	for k in AIc.timings:
+		print("    %-14s %6.1f ms a day" % [k, float(AIc.timings[k]) / days / 1000.0])
 	quit(0)

@@ -14,6 +14,7 @@ var _map_3d := CheckButton.new()
 var _relief := CheckButton.new()
 var _models := CheckButton.new()
 var _city_models := CheckButton.new()
+var _quality := OptionButton.new()
 var _land := OptionButton.new()
 var _updating := false
 ## Whether the window offers a way back to the main menu (the menu's own copy does not).
@@ -110,6 +111,23 @@ func _ready() -> void:
 	)
 	land_row.add_child(_land)
 	box.add_child(land_row)
+	var quality_row := HBoxContainer.new()
+	var quality_label := Label.new()
+	quality_label.text = "3D map quality"
+	quality_row.add_child(quality_label)
+	_quality.focus_mode = Control.FOCUS_NONE
+	_quality.tooltip_text = "How sharp the 3D map is. Lower is smoother on a slower graphics card."
+	for q in UiSettings.QUALITY_SCALES:
+		_quality.add_item(str(q).capitalize())
+	_quality.item_selected.connect(func(i: int) -> void:
+		if _updating:
+			return
+		UiSettings.set_quality_3d(UiSettings.QUALITY_SCALES.keys()[i])
+		for m in get_tree().get_nodes_in_group("map_3d"):
+			m.apply_quality()
+	)
+	quality_row.add_child(_quality)
+	box.add_child(quality_row)
 	_relief.text = "Terrain relief in 3D"
 	_relief.focus_mode = Control.FOCUS_NONE
 	_relief.tooltip_text = "Raises mountains and valleys on the 3D map from real elevation data, and lights them from the north west."
@@ -203,6 +221,7 @@ func _sync() -> void:
 		_models.button_pressed = m.markers_on
 		_city_models.button_pressed = m.cities_on
 	_land.select(maxi(0, UiSettings.LAND_STYLES.find(UiSettings.land_style)))
+	_quality.select(maxi(0, UiSettings.QUALITY_SCALES.keys().find(UiSettings.quality_3d)))
 	_slider.value = UiSettings.scale
 	_scale_label.text = "%d%%" % roundi(UiSettings.scale * 100.0)
 	for i in _army_view.item_count:

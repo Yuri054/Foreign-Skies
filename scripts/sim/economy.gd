@@ -425,6 +425,10 @@ static func build_cost(gs: Node, id: int, type: String) -> float:
 
 
 ## Rebuilds per-province output and every nation's budget from the current state.
+static var _output_cache: Dictionary = {}
+static var _output_owner := 0
+
+
 static func recompute(gs: Node) -> void:
 	var count: int = gs.province_owner.size()
 	for arr: PackedFloat32Array in [gs.province_gdp, gs.province_industry, gs.province_food, gs.province_pool]:
@@ -439,10 +443,27 @@ static func recompute(gs: Node) -> void:
 		sums[tag] = {}
 		for k in keys:
 			sums[tag][k] = 0.0
+	# A province's output follows from its people, buildings, deposits and its owner's modifiers, and those
+	# change seldom (people monthly, buildings now and then): what was worked out for the same inputs
+	# last time is used again, so a recompute costs the provinces that changed.
+	if _output_owner != gs.get_instance_id():
+		_output_cache.clear()
+		_output_owner = gs.get_instance_id()
+	var nation_inputs := {}
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		nation_inputs[tag] = [n.development, n.agri_yield, n.chem, n.programs, n.focus_fx, factory_output(n)]
 	for id in range(1, count):
 		var tag: String = gs.province_owner[id]
-		var o := province_output(gs.province_population[id], MapData.provinces[id].area * MapData.KM2_PER_PX,
-				gs.nations[tag], gs.province_buildings[id], gs.province_deposit[id], gs.province_civ_base[id])
+		var inputs := [gs.province_population[id], gs.province_buildings[id], gs.province_deposit[id], gs.province_civ_base[id], nation_inputs[tag]]
+		var cached: Variant = _output_cache.get(id)
+		var o: Dictionary
+		if cached != null and cached.inputs == inputs:
+			o = cached.out
+		else:
+			o = province_output(gs.province_population[id], MapData.provinces[id].area * MapData.KM2_PER_PX,
+					gs.nations[tag], gs.province_buildings[id], gs.province_deposit[id], gs.province_civ_base[id])
+			_output_cache[id] = {"inputs": inputs.duplicate(true), "out": o}
 		gs.province_gdp[id] = o.gdp
 		gs.province_industry[id] = o.industry
 		gs.province_food[id] = o.food
@@ -490,6 +511,15 @@ static func _budgets(gs: Node, force := true) -> void:
 		# Factories lost (to occupation or retooling) leave no line over-assigned, even for a day.
 		if not n.lines_auto:
 			Production._fit(n)
+
+
+## The economy has changed: recompute now, or, in the middle of the daily step, once at its end (see GameState.in_day_step).
+static func request(gs: Node) -> void:
+	if gs.in_day_step:
+		gs.economy_dirty = true
+	else:
+		recompute(gs)
+		gs.economy_updated.emit()
 
 
 ## Works out the flows and budgets again now, from the last province sums.

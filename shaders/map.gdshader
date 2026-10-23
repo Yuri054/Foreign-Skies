@@ -3,6 +3,8 @@ shader_type canvas_item;
 // so changing ownership only means rewriting one pixel of the `lookup` texture.
 
 uniform sampler2D provinces : filter_nearest, repeat_disable;
+uniform sampler2D provinces_half : filter_nearest, repeat_disable;    // the same at half size, for far zooms
+uniform sampler2D provinces_quarter : filter_nearest, repeat_disable; // and at quarter size
 uniform sampler2D lookup : filter_nearest, repeat_disable;  // color to paint each province
 uniform sampler2D owners : filter_nearest, repeat_disable;  // owner color, for borders
 uniform sampler2D marks : filter_nearest, repeat_disable;   // diplomacy: hatch colour, alpha > 0.5 = hatched
@@ -39,8 +41,15 @@ uniform float land_washed = 1.0;    // how much of the ground's colour (against 
 const int SEA = 0;
 const int BACKGROUND = -1;
 
-int id_at(vec2 uv) {
-	ivec3 c = ivec3(round(texture(provinces, uv).rgb * 255.0));
+// Which picture of the provinces to read: 0 full size, 1 half, 2 quarter, by how many map pixels a screen pixel covers.
+int lod_for(vec2 uv) {
+	float px = max(fwidth(uv.x) * map_size.x, fwidth(uv.y) * map_size.y);
+	return px >= 3.0 ? 2 : (px >= 1.6 ? 1 : 0);
+}
+
+int id_at(vec2 uv, int lod) {
+	vec3 raw = lod == 2 ? texture(provinces_quarter, uv).rgb : (lod == 1 ? texture(provinces_half, uv).rgb : texture(provinces, uv).rgb);
+	ivec3 c = ivec3(round(raw * 255.0));
 	if (c == ivec3(0)) {
 		return SEA;
 	}
@@ -86,7 +95,8 @@ vec3 base_color(int id, vec2 uv) {
 }
 
 void fragment() {
-	int id = id_at(UV);
+	int lod = lod_for(UV);
+	int id = id_at(UV, lod);
 	vec3 col = base_color(id, UV);
 	if (occupation_stripes && id > 0) {
 		vec3 owner_rgb = owner_color(id).rgb;
@@ -123,7 +133,7 @@ void fragment() {
 	}
 
 	// Border width stays ~constant on screen but never drops below one bitmap texel.
-	vec2 step_uv = max(fwidth(UV) * border_px, 1.0 / map_size);
+	vec2 step_uv = max(fwidth(UV) * border_px, float(1 << lod) / map_size);
 	vec2 offsets[4] = vec2[](vec2(step_uv.x, 0.0), vec2(-step_uv.x, 0.0), vec2(0.0, step_uv.y), vec2(0.0, -step_uv.y));
 	float province_edge = 0.0;
 	float owner_edge = 0.0;
@@ -131,7 +141,7 @@ void fragment() {
 	float bloc_edge = 0.0;
 	vec3 bloc_rgb = vec3(0.0);
 	for (int i = 0; i < 4; i++) {
-		int n = id_at(UV + offsets[i]);
+		int n = id_at(UV + offsets[i], lod);
 		if (n == id) {
 			continue;
 		}
@@ -167,7 +177,7 @@ void fragment() {
 			if (show_zones || zone == selected_zone) {
 				for (int i = 0; i < 4; i++) {
 					vec2 o = offsets[i] * 1.5;
-					if (id_at(UV + o) == SEA && zone_at(UV + o) != zone) {
+					if (id_at(UV + o, lod) == SEA && zone_at(UV + o) != zone) {
 						col = mix(col, vec3(1.0), 0.45);
 						break;
 					}

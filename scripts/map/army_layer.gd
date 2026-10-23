@@ -115,7 +115,7 @@ func collect_markers() -> Array:
 		var a: Army = entry.army
 		markers.append({"province": a.province, "tag": a.tag, "men": a.men(), "count": 1, "picked": selected.has(a.id),
 				"fighting": a.fighting, "guess": false, "pos": (entry.rect as Rect2).get_center(), "comp": a.composition(),
-				"shown_comp": {}, "icon": a.shown_icon(), "expanded": true, "name": a.display_name, "army": a.id})
+				"shown_comp": {}, "icon": a.shown_icon(), "heading": _heading_of(a, false), "expanded": true, "name": a.display_name, "army": a.id})
 	_collecting = false
 	return markers
 
@@ -341,7 +341,7 @@ func _draw_banners(px: float) -> void:
 			if markers_only or _collecting:
 				markers.append({"province": id, "tag": tag, "men": men, "count": 1 if guess else count, "picked": picked,
 						"fighting": fighting, "guess": guess, "pos": rect.get_center(), "comp": make_up, "shown_comp": comp,
-						"icon": "unknown" if guess else biggest.shown_icon()})
+						"icon": "unknown" if guess else biggest.shown_icon(), "heading": _heading_of(biggest, guess)})
 				continue
 			if guess:
 				_draw_banner(rect, px, GameState.nations[tag].color, "unknown", men, 1, false, fighting, true)
@@ -349,6 +349,22 @@ func _draw_banners(px: float) -> void:
 				_draw_banner(rect, px, GameState.nations[tag].color, biggest.shown_icon(), men, count, picked, fighting)
 			if not comp.is_empty():
 				_draw_composition(comp, rect.get_center().x, rect.end.y + 3.0 * px, px)
+
+
+## The way an army is marching, as an angle on the map (radians, 0 east, turning toward south), or null if it stands.
+func _heading_of(a: Army, guess: bool) -> Variant:
+	if guess or a == null:
+		return null
+	var from: Vector2 = MapData.provinces[a.province].center
+	if a.path.is_empty():
+		# Standing: it faces the enemy next door, if there is one.
+		for n: int in Military.neighbors(a.province):
+			var holder: String = GameState.province_controller[n]
+			if holder != a.tag and GameState.at_war(a.tag, holder):
+				return (MapData.provinces[n].center - from).angle()
+		return null
+	var to: Vector2 = MapData.provinces[a.path[0]].center
+	return (to - from).angle() if to != from else null
 
 
 ## The armies standing in the expanded province: the player's first, then by id.

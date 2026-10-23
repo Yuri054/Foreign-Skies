@@ -472,8 +472,7 @@ static func step_day(gs: Node) -> void:
 	settle_embarked(gs)
 	Blockade.step_day(gs)
 	if built:
-		Economy.recompute(gs)
-		gs.economy_updated.emit()
+		Economy.request(gs)
 	gs.fleets_changed.emit()
 
 

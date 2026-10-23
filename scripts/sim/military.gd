@@ -311,17 +311,19 @@ static var _aura: Dictionary = {}
 static var _aura_day := -1
 static var _aura_owner := 0
 static var _aura_version := -1
+static var _aura_control := -1
 
 
 ## The strength of the cities' aura (0 to 1) over a province for the nation that holds it: the
 ## strongest of the cities near enough that the nation owns and controls, itself and the ground
-## between. 0 for ground that is not the nation's own. Worked out once a day.
+## between. 0 for ground that is not the nation's own. Worked out again only when who owns or holds what changes.
 static func city_aura(gs: Node, tag: String, id: int) -> float:
-	if _aura_day != Clock.days_elapsed or _aura_owner != gs.get_instance_id() or _aura_version != gs.owner_version:
+	if _aura_day < 0 or _aura_owner != gs.get_instance_id() or _aura_version != gs.owner_version or _aura_control != gs.control_version:
 		_aura = _build_aura(gs)
 		_aura_day = Clock.days_elapsed
 		_aura_owner = gs.get_instance_id()
 		_aura_version = gs.owner_version
+		_aura_control = gs.control_version
 	return float(_aura.get(tag, {}).get(id, 0.0))
 
 
@@ -366,6 +368,25 @@ static func _build_aura(gs: Node) -> Dictionary:
 static func supply_cost(gs: Node, tag: String, from: int) -> float:
 	if gs.province_controller[from] == tag and home_connected(gs, tag, from):
 		return 0.0
+	# Asked again and again over a day (every army, every order), and the answer moves only when the day or
+	# who holds what does: kept until then.
+	var stamp := [Clock.days_elapsed, gs.control_version, gs.get_instance_id()]
+	if stamp != _supply_stamp:
+		_supply_cache.clear()
+		_supply_stamp = stamp
+	var key := "%s:%d" % [tag, from]
+	if _supply_cache.has(key):
+		return _supply_cache[key]
+	var cost := _supply_search(gs, tag, from)
+	_supply_cache[key] = cost
+	return cost
+
+
+static var _supply_cache: Dictionary = {}
+static var _supply_stamp: Array = []
+
+
+static func _supply_search(gs: Node, tag: String, from: int) -> float:
 	var limit: float = cfg.supply.range + float(cfg.cities.supply_range) * city_aura(gs, tag, from)
 	var dist := {from: 0.0}
 	var open := [from]
@@ -842,8 +863,7 @@ static func step_day(gs: Node) -> void:
 	_collapse_nations(gs)
 	refresh_men(gs)
 	if captured:
-		_timed("recompute", func() -> void: Economy.recompute(gs))
-		gs.economy_updated.emit()
+		_timed("recompute", func() -> void: Economy.request(gs))
 	gs.armies_changed.emit()
 
 
@@ -1288,6 +1308,7 @@ static func _collapse_nations(gs: Node) -> void:
 ## Returns true if any province changed hands.
 static func _upkeep_and_occupy(gs: Node) -> bool:
 	var armies: Array = gs.armies.values()
+	var t_a := Time.get_ticks_usec() if profile else 0
 	for a: Army in armies:
 		if a.embarked():
 			a.supplied = true
@@ -1331,6 +1352,8 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 	for a: Army in armies:
 		if a.units.is_empty():
 			gs.armies.erase(a.id)
+	_note("occupy.upkeep", t_a)
+	var t_b := Time.get_ticks_usec() if profile else 0
 
 	var captured := false
 	var at := _by_province(gs.armies.values())

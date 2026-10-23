@@ -78,15 +78,20 @@ func lose_equipment(ratio: float) -> void:
 ## Takes what it lacks from `stock` (category -> amount, reduced in place), at most `limit` of
 ## its full need per category (a share, 0..1; 1 means no limit in practice).
 func draw(stock: Dictionary, limit := 1.0) -> void:
+	var short := false
 	for cat in needs():
 		var lack := need(cat) - float(equip.get(cat, 0.0))
 		if lack <= 0.0:
 			continue
+		short = true
 		var take := minf(minf(lack, float(needs()[cat]) * limit), float(stock.get(cat, 0.0)))
 		if take > 0.0:
 			equip[cat] = float(equip.get(cat, 0.0)) + take
 			stock[cat] = float(stock[cat]) - take
-	refresh_factor()
+	if short:
+		refresh_factor()
+	else:
+		factor = 1.0      # nothing lacking: every coverage is 1, and so is the factor
 
 
 ## Fighting value: men in thousands times the type's attack, dulled by low morale and by

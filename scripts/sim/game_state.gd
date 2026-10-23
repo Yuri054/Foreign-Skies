@@ -211,6 +211,9 @@ var ai_budget_stamp: Dictionary = {}
 var ai_enabled := true
 ## Set by issue_quiet; the day's step recomputes the economy once if it is true.
 var economy_dirty := false
+## True while the daily step runs: what changes the economy during it (a province taken, a nation mobilized, a
+## ship launched) only marks it dirty, and the step recomputes once at its end instead of once for each.
+var in_day_step := false
 ## A change that moves the budgets but no province (a blockade): the budgets and flows are worked
 ## out again, the provinces are not.
 var budget_dirty := false
@@ -224,24 +227,63 @@ const AUTOSAVE_SLOTS := 3
 
 func _ready() -> void:
 	load_scenario(DEFAULT_SCENARIO)
-	Clock.day_ticked.connect(func() -> void:
-		Economy.step_day(self)
-		Focus.step_day(self)
-		Navy.step_day(self)
-		Military.step_day(self)
-		Diplomacy.step_day(self)
-		AI.step_day(self)
-		if economy_dirty:
-			economy_dirty = false
-			budget_dirty = false
-			Economy.recompute(self)
-			economy_updated.emit()
-		elif budget_dirty:
-			budget_dirty = false
-			Economy.refresh_now(self)
-			economy_updated.emit()
-	)
+	Clock.day_ticked.connect(_on_day_ticked)
 	Clock.month_ticked.connect(_on_month_ticked)
+
+
+## What a day is made of, in order: each is one stage, and the running game does one a frame (a day is some
+## forty milliseconds of work, and all of it in one frame is a visible stutter), while tests and the
+## tools run them all at once.
+func _day_stage_list() -> Array:
+	return [
+		func() -> void:
+			Economy.step_day(self)
+			Focus.step_day(self)
+			Navy.step_day(self),
+		func() -> void: Military.step_day(self),
+		func() -> void: Diplomacy.step_day(self),
+		func() -> void: AI.step_day(self),
+		func() -> void:
+			in_day_step = false
+			if economy_dirty:
+				economy_dirty = false
+				budget_dirty = false
+				Economy.recompute(self)
+				economy_updated.emit()
+			elif budget_dirty:
+				budget_dirty = false
+				Economy.refresh_now(self)
+				economy_updated.emit(),
+	]
+
+
+var _day_stages: Array = []
+
+
+func _on_day_ticked() -> void:
+	finish_day()
+	in_day_step = true
+	_day_stages = _day_stage_list()
+	if autosave_enabled:
+		_run_day_stage()        # the rest follow, a stage a frame (see _process)
+	else:
+		finish_day()
+
+
+func _run_day_stage() -> void:
+	var stage: Callable = _day_stages.pop_front()
+	stage.call()
+
+
+## Runs what is left of the day's step now (before the next day, a save, a month's end).
+func finish_day() -> void:
+	while not _day_stages.is_empty():
+		_run_day_stage()
+
+
+func _process(_delta: float) -> void:
+	if not _day_stages.is_empty():
+		_run_day_stage()
 
 
 ## Reads the scenario's list of major cities (none if it has no cities.tsv).
@@ -260,6 +302,8 @@ func _load_cities(dir: String) -> void:
 
 
 func load_scenario(dir: String) -> void:
+	_day_stages.clear()
+	in_day_step = false
 	Military.invalidate_aura()
 	Economy.load_config()
 	Military.load_config()
@@ -547,6 +591,7 @@ func _rebuild_nation_provinces() -> void:
 
 
 func _on_month_ticked() -> void:
+	finish_day()
 	Economy.step_month(self)
 	Diplomacy.step_month(self)
 	Standings.record(self)

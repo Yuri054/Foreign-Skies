@@ -16,6 +16,7 @@ var _dragging := false
 
 func _ready() -> void:
 	add_to_group("camera_focus")
+	get_viewport().size_changed.connect(keep_on_map)
 
 
 ## Centres the view on a map position.
@@ -30,12 +31,16 @@ func keep_on_map() -> void:
 	var half := get_viewport_rect().size / zoom / 2.0
 	var lo := Vector2(limit_left, limit_top) + half
 	var hi := Vector2(limit_right, limit_bottom) - half
-	position.x = (lo.x + hi.x) / 2.0 if lo.x > hi.x else clampf(position.x, lo.x, hi.x)
-	position.y = (lo.y + hi.y) / 2.0 if lo.y > hi.y else clampf(position.y, lo.y, hi.y)
+	var x := (lo.x + hi.x) / 2.0 if lo.x > hi.x else clampf(position.x, lo.x, hi.x)
+	var y := (lo.y + hi.y) / 2.0 if lo.y > hi.y else clampf(position.y, lo.y, hi.y)
+	if x != position.x or y != position.y:
+		position = Vector2(x, y)
 
 
 func _process(delta: float) -> void:
 	var dir := Input.get_vector("pan_left", "pan_right", "pan_up", "pan_down")
+	if dir == Vector2.ZERO:
+		return      # standing still: touch nothing, so the screen need not be drawn again
 	position += dir.rotated(pan_rotation) * pan_speed * delta / zoom.x
 	keep_on_map()
 

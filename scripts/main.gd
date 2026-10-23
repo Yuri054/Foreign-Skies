@@ -36,6 +36,9 @@ var province_panel: PanelContainer
 
 
 func _ready() -> void:
+	# The flat map is drawn only when something on the screen changes (a day passes, the mouse or the camera moves),
+	# not sixty times a second while it stands still: the map's shader is what the graphics card spends its time on.
+	OS.low_processor_usage_mode = true
 	UiSettings.apply_saved(get_window())
 	map_view.land_style = UiSettings.land_style
 	_theme_interface()

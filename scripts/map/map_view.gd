@@ -171,6 +171,13 @@ func _ready() -> void:
 	_material = ShaderMaterial.new()
 	_material.shader = load("res://shaders/map.gdshader")
 	_material.set_shader_parameter("provinces", texture)
+	# Zoomed out, a screen pixel covers several map pixels, and the full-size picture of the provinces (120 MB)
+	# is read all over, which is what slows the map on a modest graphics card: half and quarter size pictures
+	# of it (the nearest pixel of each block) serve for those zooms, and fit in the card's cache.
+	for step in [2, 4]:
+		var small := MapData.provinces_image.duplicate() as Image
+		small.resize(MapData.map_size.x / step, MapData.map_size.y / step, Image.INTERPOLATE_NEAREST)
+		_material.set_shader_parameter("provinces_half" if step == 2 else "provinces_quarter", ImageTexture.create_from_image(small))
 	_material.set_shader_parameter("lookup", _lookup_texture)
 	_material.set_shader_parameter("owners", _owner_texture)
 	_material.set_shader_parameter("marks", _marks_texture)

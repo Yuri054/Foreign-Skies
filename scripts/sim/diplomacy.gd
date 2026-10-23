@@ -1113,8 +1113,7 @@ static func step_day(gs: Node) -> void:
 	var changed := _step_mobilization(gs)
 	_step_join_calls(gs)
 	if changed:
-		Economy.recompute(gs)
-		gs.economy_updated.emit()
+		Economy.request(gs)
 
 
 ## A nation mobilizing past alarm_level alarms each land neighbour that is neither allied nor
