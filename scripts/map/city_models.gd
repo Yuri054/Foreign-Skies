@@ -117,9 +117,34 @@ func update(map: Node, zoom: float) -> void:
 		_label(entry, city, pop, opacity, zoom)
 		if opacity >= LABEL_OPACITY:
 			named[city.id] = true
+	_declutter(map, named)
 	var layer: Node = get_tree().get_first_node_in_group("city_layer") if is_inside_tree() else null
 	if layer != null and layer.get("skip_names") != named:
 		layer.set("skip_names", named)
+
+
+## Hides the name of a city that would land on one already written, the bigger city winning, as the flat map does.
+func _declutter(map: Node, named: Dictionary) -> void:
+	var shown: Array = []
+	for city: Dictionary in GameState.cities:
+		if not named.has(city.id):
+			continue
+		var entry: Dictionary = _entries[city.id]
+		var label: Label3D = entry.label
+		var at: Vector2 = map.screen_of(label.global_position)
+		var width := float(label.text.length()) * 7.2 + 6.0
+		shown.append({"label": label, "rank": int(city.rank), "pop": int(city.pop), "box": Rect2(at - Vector2(width * 0.5, 16.0), Vector2(width, 18.0))})
+	shown.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.rank < b.rank or (a.rank == b.rank and a.pop > b.pop))
+	var taken: Array[Rect2] = []
+	for item: Dictionary in shown:
+		var clear := true
+		for box in taken:
+			if box.intersects(item.box):
+				clear = false
+				break
+		(item.label as Label3D).visible = clear
+		if clear:
+			taken.append(item.box)
 
 
 ## The name of a city over its model (and, close up, its people), as big on the screen as the flat map's name

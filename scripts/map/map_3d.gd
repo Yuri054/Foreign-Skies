@@ -370,7 +370,7 @@ func _process(_delta: float) -> void:
 		# The models follow the ground as the camera moves; otherwise they need looking at only now and then
 		# (a city grows or burns by the day, not by the frame).
 		var cam: Camera2D = main.get("camera")
-		var sig := [cam.position, cam.zoom, picture_scale()] if cam != null else []
+		var sig := [cam.position, cam.zoom, picture_scale(), tilt, yaw] if cam != null else []
 		if sig != _city_signature or _frame_count % 15 == 0:
 			_city_signature = sig
 			_cities.update(self, cam.zoom.x if cam != null else 0.5)
@@ -458,6 +458,13 @@ static func standee_height(kind: String, men: float) -> float:
 	if kind == "fleet":
 		return 0.16
 	return 0.12 + 0.05 * log(1.0 + men / 1000.0) / log(10.0)
+
+
+## Where a point of the 3D scene falls on the screen (far off it if it is behind the camera).
+func screen_of(point: Vector3) -> Vector2:
+	if _camera == null or _camera.is_position_behind(point):
+		return Vector2(-100000, -100000)
+	return _camera.unproject_position(point)
 
 
 ## Where a map position is in the 3D scene (on the ground), or null off the picture.
