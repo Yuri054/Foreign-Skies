@@ -30,7 +30,7 @@ uniform float border_px = 1.0;
 
 // The painted land texture (data/map/land.jpg) blended into the land colours: how much (0 to 1) depends
 // on how far the camera is zoomed in, and on the map mode (land_on).
-uniform sampler2D land_texture : source_color, filter_linear_mipmap, repeat_disable;
+uniform sampler2D land_texture : filter_linear_mipmap, repeat_disable;
 uniform bool land_on = false;
 uniform float land_blend = 0.0;
 uniform float land_natural = 0.3;   // share of the ground's own colour in the blend; the rest is the nation's colour

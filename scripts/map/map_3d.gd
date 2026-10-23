@@ -36,7 +36,7 @@ const RELIEF_EXAGGERATION := 16.0
 const RELIEF_MAX := 1.0
 const KM_PER_PX := 0.6928
 ## The land texture shows as if the flat map were zoomed in this far, while the 3D map is on.
-const LAND_ZOOM_FLOOR := 0.9
+const LAND_ZOOM_FLOOR := 0.65
 const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
 ## Plane subdivisions: the ground is a grid of this many by this many squares.

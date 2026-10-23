@@ -48,9 +48,13 @@ const NAVAL_MODES := [Mode.SEA_CONTROL, Mode.BLOCKADE]
 ## The map modes that paint nations, and so show the land texture under their colours.
 const LAND_TEXTURE_MODES := [Mode.POLITICAL, Mode.DIPLOMACY, Mode.MILITARY]
 ## How much of the land texture shows (0 to 1) when zoomed far out and when zoomed right in.
-const LAND_BLEND_FAR := 0.2
+const LAND_BLEND_FAR := 0.3
 const LAND_BLEND_NEAR := 0.9
-const LAND_NATURAL_NEAR := 0.7
+## The land textures: the blend of the ground's own colour at the far and near ends of the zoom.
+const LAND_STYLES := {
+	"satellite": {"path": "res://data/map/land_satellite.jpg", "far": 0.2, "near": 0.9},
+	"painted": {"path": "res://data/map/land_painted.jpg", "far": 0.1, "near": 0.7},
+}
 const BLOCKADE_COLOR := Color(0.78, 0.12, 0.1)
 const CONTESTED_COLOR := Color(0.6, 0.1, 0.1)
 const ZONE_TEXTURE_WIDTH := 64
@@ -126,12 +130,12 @@ var viewpoint := ""
 var _pushed_mode := -1
 var _pushed_submode := ""
 var _material: ShaderMaterial
-## Whether the painted land shows under the nations' colours (see the Settings window).
-var land_texture_enabled := true:
+## Which land texture shows under the nations' colours: "satellite", "painted" or "off" (see the
+## Settings window).
+var land_style := "satellite":
 	set(value):
-		land_texture_enabled = value
-		if _material != null:
-			_material.set_shader_parameter("land_on", land_texture_enabled and mode in LAND_TEXTURE_MODES)
+		land_style = value if value == "off" or LAND_STYLES.has(value) else "satellite"
+		_apply_land_style()
 ## The 3D map asks for the land texture as if the camera were at least this close (it shows the
 ## ground from a slant, where the political colours alone look flat).
 var land_zoom_floor := 0.0:
@@ -139,6 +143,7 @@ var land_zoom_floor := 0.0:
 		land_zoom_floor = value
 		_land_zoom = -1.0
 var _land_zoom := -1.0
+var _land_textures := {}
 ## Military mode's figures, worked out once per repaint: men in each province, and the men-
 ## weighted equipment coverage of the armies there.
 var _men_at := {}
@@ -177,9 +182,7 @@ func _ready() -> void:
 	_material.set_shader_parameter("lookup_width", LOOKUP_WIDTH)
 	_material.set_shader_parameter("max_id", max_id)
 	_material.set_shader_parameter("map_size", Vector2(MapData.map_size))
-	var land: Texture2D = load("res://data/map/land.jpg")
-	if land != null:
-		_material.set_shader_parameter("land_texture", land)
+	land_style = UiSettings.land_style
 	material = _material
 
 	GameState.scenario_loaded.connect(repaint)
@@ -208,16 +211,31 @@ func _ready() -> void:
 ## The submodes of a mode as [id, label] pairs (empty if it has none).
 ## The land texture shows more the closer the camera is.
 static func land_blend_for(zoom: float) -> float:
-	var t := clampf((zoom - 0.3) / 1.0, 0.0, 1.0)
+	var t := clampf((zoom - 0.2) / 0.8, 0.0, 1.0)
 	t = t * t * (3.0 - 2.0 * t)
 	return lerpf(LAND_BLEND_FAR, LAND_BLEND_NEAR, t)
 
 
-## The share of the ground's own colour in the blend: little from afar, up to LAND_NATURAL_NEAR close up.
-static func land_natural_for(zoom: float) -> float:
-	var t := clampf((zoom - 0.4) / 1.2, 0.0, 1.0)
+## The share of the ground's own colour in the blend: little from afar, much close up.
+static func land_natural_for(zoom: float, style := "satellite") -> float:
+	var t := clampf((zoom - 0.25) / 0.85, 0.0, 1.0)
 	t = t * t * (3.0 - 2.0 * t)
-	return lerpf(0.1, LAND_NATURAL_NEAR, t)
+	var ends: Dictionary = LAND_STYLES.get(style, LAND_STYLES.satellite)
+	return lerpf(ends.far, ends.near, t)
+
+
+## Loads the chosen texture into the shader and switches the blend on or off.
+func _apply_land_style() -> void:
+	if _material == null:
+		return
+	if land_style != "off":
+		var texture: Texture2D = _land_textures.get(land_style)
+		if texture == null:
+			texture = load(LAND_STYLES[land_style].path)
+			_land_textures[land_style] = texture
+		_material.set_shader_parameter("land_texture", texture)
+	_material.set_shader_parameter("land_on", land_style != "off" and mode in LAND_TEXTURE_MODES)
+	_land_zoom = -1.0
 
 
 func _process(_delta: float) -> void:
@@ -226,7 +244,7 @@ func _process(_delta: float) -> void:
 		_land_zoom = camera.zoom.x
 		var zoom := maxf(_land_zoom, land_zoom_floor)
 		_material.set_shader_parameter("land_blend", land_blend_for(zoom))
-		_material.set_shader_parameter("land_natural", land_natural_for(zoom))
+		_material.set_shader_parameter("land_natural", land_natural_for(zoom, land_style))
 
 
 func submodes(for_mode: Mode = mode) -> Array:
@@ -259,7 +277,7 @@ func set_mode(new_mode: Mode, new_submode := "") -> void:
 		if options.filter(func(o: Array) -> bool: return o[0] == submode).is_empty():
 			submode = options[0][0]
 	_material.set_shader_parameter("mode", 1 if mode == Mode.PROVINCES else 0)
-	_material.set_shader_parameter("land_on", land_texture_enabled and mode in LAND_TEXTURE_MODES)
+	_material.set_shader_parameter("land_on", land_style != "off" and mode in LAND_TEXTURE_MODES)
 	_material.set_shader_parameter("occupation_stripes", mode == Mode.POLITICAL)
 	_material.set_shader_parameter("diplomacy", mode == Mode.DIPLOMACY)
 	_material.set_shader_parameter("zone_paint", mode in NAVAL_MODES)

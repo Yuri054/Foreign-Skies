@@ -20,8 +20,9 @@ func _initialize() -> void:
 	_check(MV.land_blend_for(0.2) < MV.land_blend_for(0.6) and MV.land_blend_for(0.6) < MV.land_blend_for(1.5), "the texture shows more the closer the camera is")
 	_check(is_equal_approx(MV.land_blend_for(0.1), MV.LAND_BLEND_FAR) and is_equal_approx(MV.land_blend_for(5.0), MV.LAND_BLEND_NEAR), "between a floor and a ceiling")
 	_check(MV.land_natural_for(0.3) < MV.land_natural_for(1.5), "and so does the ground's own colour")
-	var tex: Texture2D = load("res://data/map/land.jpg")
-	_check(tex != null and tex.get_width() >= 2000, "the land texture is there (%dx%d)" % [tex.get_width(), tex.get_height()])
+	for style in ["satellite", "painted"]:
+		var tex: Texture2D = load(MV.LAND_STYLES[style].path)
+		_check(tex != null and tex.get_width() >= 2000, "the %s texture is there (%dx%d)" % [style, tex.get_width(), tex.get_height()])
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -34,9 +35,12 @@ func _initialize() -> void:
 	view.set_mode(MV.Mode.INCOME)
 	_check(not mat.get_shader_parameter("land_on"), "but not under a data map")
 	view.set_mode(MV.Mode.POLITICAL)
-	view.land_texture_enabled = false
+	view.land_style = "off"
 	_check(not mat.get_shader_parameter("land_on"), "it can be switched off")
-	view.land_texture_enabled = true
+	view.land_style = "painted"
+	_check(mat.get_shader_parameter("land_on"), "and the painted texture chosen")
+	view.land_style = "satellite"
+	_check(mat.get_shader_parameter("land_on"), "and the satellite one")
 	main.camera.zoom = Vector2(0.3, 0.3)
 	await process_frame
 	await process_frame

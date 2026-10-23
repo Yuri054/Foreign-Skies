@@ -6,7 +6,7 @@ Fetches Terrarium elevation tiles (zoom 7; into cache_dir, default /tmp/terrariu
 repository), resamples them into the map's frame at half the bitmap's size and paints each pixel as
 farmland, forest, steppe, dry scrub, desert, boreal forest, bare rock or snow, from its height, slope,
 latitude and longitude, with noise to break up the bands, and a soft hill shading. Writes
-data/map/land.jpg. The map shader blends it with the political colours, more the closer you zoom.
+data/map/land_painted.jpg. The map shader blends it with the political colours, more the closer you zoom.
 """
 import math
 import sys
@@ -65,9 +65,8 @@ def mix(a, b, t):
     return a + (b - a) * t[..., None]
 
 
-def main():
-    cache = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/terrarium")
-    cache.mkdir(parents=True, exist_ok=True)
+def elevation_grid(cache):
+    """Heights in metres (0 below sea level) on the half-size map grid, with its longitudes and latitudes."""
     x0, x1 = int(tile_x(LON0)), int(tile_x(LON1))
     y0, y1 = int(tile_y(LAT1)), int(tile_y(LAT0))
     jobs = [(tx, ty) for ty in range(y0, y1 + 1) for tx in range(x0, x1 + 1)]
@@ -86,7 +85,27 @@ def main():
     rows = (np.array([tile_y(v) for v in lat1d]) - y0) * 256.0
     yy, xx = np.meshgrid(rows, cols, indexing="ij")
     h = ndimage.map_coordinates(mosaic, [yy, xx], order=1, mode="nearest").astype(np.float32)
-    del yy, xx, mosaic
+    return h, lon1d, lat1d
+
+
+def hill_light(h, strength=12.0, curve_gain=1.0):
+    """Light on the ground from the north west (1 = flat), valleys darkened a little."""
+    hs = ndimage.gaussian_filter(h, 1.2)
+    gy, gx = np.gradient(hs, SCALE * KM_PER_PX * 1000.0)
+    az, alt = math.radians(315.0), math.radians(42.0)
+    nx, ny = -gx * strength, -gy * strength
+    norm = np.sqrt(nx * nx + ny * ny + 1.0)
+    lx, ly, lz = math.cos(alt) * math.sin(az), math.cos(alt) * math.cos(az), math.sin(alt)
+    shade = (nx * lx + ny * ly + lz) / norm
+    curve = ndimage.gaussian_filter(h, 3.0) - ndimage.gaussian_filter(h, 8.0)
+    return 1.0 + (shade - lz) * 2.1 + curve_gain * np.clip(curve / 600.0, -0.25, 0.2), gx, gy
+
+
+def main():
+    cache = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/terrarium")
+    cache.mkdir(parents=True, exist_ok=True)
+    h, lon1d, lat1d = elevation_grid(cache)
+    ow, oh = h.shape[1], h.shape[0]
     h = np.maximum(h, 0.0)
     lon = np.broadcast_to(lon1d[None, :], (oh, ow)).astype(np.float32)
     lat = np.broadcast_to(lat1d[:, None], (oh, ow)).astype(np.float32)
@@ -141,20 +160,12 @@ def main():
     col = mix(col, high, smooth(h, 1900.0, 2700.0) * 0.7)
     col = mix(col, white, np.clip(snow, 0, 1))
 
-    # --- hill shading from the north west, and a little grain
-    az, alt = math.radians(315.0), math.radians(42.0)
-    nx, ny = -gx * 12.0, -gy * 12.0
-    norm = np.sqrt(nx * nx + ny * ny + 1.0)
-    # image rows run south, so the gradient in y is flipped for the light vector
-    lx, ly, lz = math.cos(alt) * math.sin(az), -math.cos(alt) * math.cos(az) * -1.0, math.sin(alt)
-    shade = (nx * lx + ny * ly + lz) / norm
-    flat = lz
-    curve = ndimage.gaussian_filter(h, 3.0) - ndimage.gaussian_filter(h, 8.0)     # valleys are negative
-    lit = np.clip(1.0 + (shade - flat) * 2.1 + np.clip(curve / 600.0, -0.25, 0.2), 0.5, 1.55)
+    lit, _, _ = hill_light(h)
+    lit = np.clip(lit, 0.5, 1.55)
     col = col * lit[..., None] * (1.0 + 0.035 * n_fine[..., None])
     out = (np.clip(col, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
-    Image.fromarray(out, "RGB").save(root / "data/map/land.jpg", quality=90, optimize=True)
-    print(f"wrote data/map/land.jpg {ow}x{oh}")
+    Image.fromarray(out, "RGB").save(root / "data/map/land_painted.jpg", quality=90, optimize=True)
+    print(f"wrote data/map/land_painted.jpg {ow}x{oh}")
 
 
 if __name__ == "__main__":

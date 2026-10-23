@@ -19,6 +19,9 @@ static var scale := 1.0
 ## Which armies the map draws: "all", "allies" (yours and your allies') or "own".
 const ARMY_VIEWS := {"all": "Everything I can see", "allies": "Mine and allies'", "own": "Mine only"}
 static var army_view := "all"
+## The land texture on the map: "satellite", "painted" or "off".
+static var land_style := "satellite"
+const LAND_STYLES := ["satellite", "painted", "off"]
 ## Whether the command panel at the bottom shows its cards (C shows or hides them). It starts
 ## closed: only its small button shows.
 static var command_open := false
@@ -33,6 +36,8 @@ static func apply_saved(window: Window) -> void:
 		scale = clampf(float(cfg.get_value("ui", "scale", 1.0)), MIN_SCALE, MAX_SCALE)
 		var view := str(cfg.get_value("map", "army_view", "all"))
 		army_view = view if ARMY_VIEWS.has(view) else "all"
+		var land := str(cfg.get_value("map", "land_style", "satellite"))
+		land_style = land if LAND_STYLES.has(land) else "satellite"
 		command_open = bool(cfg.get_value("ui", "command_open", false))
 		province_details = bool(cfg.get_value("ui", "province_details", false))
 	window.theme = UiTheme.build()
@@ -68,6 +73,17 @@ static func set_army_view(view: String) -> bool:
 
 
 ## Shows or folds away the province card's details and saves the choice.
+static func set_land_style(style: String) -> bool:
+	if not LAND_STYLES.has(style):
+		return false
+	land_style = style
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	cfg.set_value("map", "land_style", style)
+	cfg.save(path)
+	return true
+
+
 static func set_province_details(on: bool) -> void:
 	province_details = on
 	var cfg := ConfigFile.new()

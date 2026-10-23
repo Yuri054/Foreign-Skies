@@ -6,6 +6,7 @@ func _initialize() -> void:
 	load("res://scripts/ui/ui_settings.gd").path = "user://shot_land_settings.cfg"
 	var gs: Node = root.get_node("GameState")
 	var dir: String = OS.get_cmdline_user_args()[0]
+	var style: String = OS.get_cmdline_user_args()[1] if OS.get_cmdline_user_args().size() > 1 else "satellite"
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -14,6 +15,7 @@ func _initialize() -> void:
 	for p in get_nodes_in_group("nation_picker"):
 		p.queue_free()
 	await process_frame
+	main.map_view.land_style = style
 	gs.set_player("GER")
 	gs.ai_enabled = false
 	var cam: Camera2D = main.camera
@@ -23,7 +25,7 @@ func _initialize() -> void:
 		cam.position = s[2]
 		for i in 8:
 			await process_frame
-		root.get_texture().get_image().save_png("%s/%s.png" % [dir, s[0]])
+		root.get_texture().get_image().save_png("%s/%s_%s.png" % [dir, style, s[0]])
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)
 	cam.zoom = Vector2(0.5, 0.5)
@@ -32,5 +34,5 @@ func _initialize() -> void:
 	m3._apply_tilt()
 	for i in 10:
 		await process_frame
-	root.get_texture().get_image().save_png(dir + "/land_3d.png")
+	root.get_texture().get_image().save_png("%s/%s_3d.png" % [dir, style])
 	quit(0)

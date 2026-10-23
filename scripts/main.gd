@@ -37,6 +37,7 @@ var province_panel: PanelContainer
 
 func _ready() -> void:
 	UiSettings.apply_saved(get_window())
+	map_view.land_style = UiSettings.land_style
 	_theme_interface()
 	map_view.province_selected.connect(_on_province_selected)
 	map_view.province_ordered.connect(_on_right_click)

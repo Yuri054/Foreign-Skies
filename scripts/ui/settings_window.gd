@@ -13,7 +13,7 @@ var _army_view := OptionButton.new()
 var _map_3d := CheckButton.new()
 var _relief := CheckButton.new()
 var _models := CheckButton.new()
-var _land := CheckButton.new()
+var _land := OptionButton.new()
 var _updating := false
 ## Whether the window offers a way back to the main menu (the menu's own copy does not).
 var offer_quit_to_menu := true
@@ -92,15 +92,23 @@ func _ready() -> void:
 				m.set_enabled(on)
 	)
 	box.add_child(_map_3d)
-	_land.text = "Land texture"
+	var land_row := HBoxContainer.new()
+	var land_label := Label.new()
+	land_label.text = "Land texture"
+	land_row.add_child(land_label)
 	_land.focus_mode = Control.FOCUS_NONE
-	_land.tooltip_text = "Paints the land under the nations' colours with the ground's own colours and hills: little from afar, more as you zoom in."
-	_land.toggled.connect(func(on: bool) -> void:
-		if not _updating:
-			for v in get_tree().get_nodes_in_group("map_view"):
-				v.land_texture_enabled = on
+	_land.tooltip_text = "What the land looks like under the nations' colours: a satellite picture, a painted map of the ground, or nothing. It shows little from afar and more as you zoom in."
+	for style in UiSettings.LAND_STYLES:
+		_land.add_item(style.capitalize())
+	_land.item_selected.connect(func(i: int) -> void:
+		if _updating:
+			return
+		UiSettings.set_land_style(UiSettings.LAND_STYLES[i])
+		for v in get_tree().get_nodes_in_group("map_view"):
+			v.land_style = UiSettings.land_style
 	)
-	box.add_child(_land)
+	land_row.add_child(_land)
+	box.add_child(land_row)
 	_relief.text = "Terrain relief in 3D"
 	_relief.focus_mode = Control.FOCUS_NONE
 	_relief.tooltip_text = "Raises mountains and valleys on the 3D map from real elevation data, and lights them from the north west."
@@ -183,8 +191,7 @@ func _sync() -> void:
 		_map_3d.button_pressed = m.enabled
 		_relief.button_pressed = m.relief_on
 		_models.button_pressed = m.markers_on
-	for v in get_tree().get_nodes_in_group("map_view"):
-		_land.button_pressed = v.land_texture_enabled
+	_land.select(maxi(0, UiSettings.LAND_STYLES.find(UiSettings.land_style)))
 	_slider.value = UiSettings.scale
 	_scale_label.text = "%d%%" % roundi(UiSettings.scale * 100.0)
 	for i in _army_view.item_count:
