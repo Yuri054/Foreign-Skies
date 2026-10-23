@@ -1,3 +1,4 @@
+class_name CityLayer
 extends Node2D
 ## The major cities, as small markers with their names. Drawn at a constant size on the screen:
 ## capitals always, great cities once the map is a little closer and large ones closer still, and
@@ -8,16 +9,21 @@ const FONT_SIZE := 12
 ## The zoom at which each rank of city appears (the camera goes from 0.2 to 3).
 const MIN_ZOOM := {1: 0.0, 2: 0.3, 3: 0.65}
 const MARKER := 4.0
+## From this zoom a city's name is followed by its people (see Cities.population).
+const POP_ZOOM := 1.0
 const NAME_COLOR := Color(0.95, 0.91, 0.8)
 const CAPITAL_COLOR := Color(0.95, 0.78, 0.38)
 const INK := Color(0.04, 0.04, 0.05, 0.9)
-
-const ArmyLayer := preload("res://scripts/map/army_layer.gd")
 
 ## While true the diamonds are not drawn (the 3D map shows models of the cities); the names stay.
 var markers_hidden := false:
 	set(value):
 		markers_hidden = value
+		queue_redraw()
+## Cities whose name the 3D map writes over their model (id -> true): not written here as well.
+var skip_names := {}:
+	set(value):
+		skip_names = value
 		queue_redraw()
 var map_view: Sprite2D
 var camera: Camera2D
@@ -28,6 +34,10 @@ func _ready() -> void:
 	add_to_group("city_layer")
 	z_index = 3
 	GameState.scenario_loaded.connect(queue_redraw)
+	GameState.economy_updated.connect(func() -> void:
+		if camera != null and camera.zoom.x >= POP_ZOOM:
+			queue_redraw()
+	)
 
 
 func _process(_delta: float) -> void:
@@ -68,7 +78,12 @@ func _draw() -> void:
 		var at: Vector2 = c.pos
 		if not view.has_point(at):
 			continue
-		var width := MapText.size_of(font, c.name, FONT_SIZE, px).x
+		var label: String = c.name
+		if zoom >= POP_ZOOM:
+			label += "  " + people(Cities.population(GameState, c))
+		if skip_names.has(c.id):
+			continue
+		var width := MapText.size_of(font, label, FONT_SIZE, px).x
 		var blocked := _banner_box(c.province, px)
 		# The name goes to the right of the marker, or where it does not run into an army banner or
 		# another name: to the left, below, above. Its box and the text's start, in map units.
@@ -94,7 +109,7 @@ func _draw() -> void:
 				continue
 			taken.append(box)
 			_marker(at, c.rank == 1, px)
-			MapText.draw(self, font, at + spots[i][1], c.name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, FONT_SIZE, CAPITAL_COLOR if c.rank == 1 else NAME_COLOR, px, INK)
+			MapText.draw(self, font, at + spots[i][1], label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, FONT_SIZE, CAPITAL_COLOR if c.rank == 1 else NAME_COLOR, px, INK)
 			placed = true
 			break
 		if not placed and c.rank == 1:

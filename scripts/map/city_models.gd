@@ -31,6 +31,8 @@ var _material: StandardMaterial3D
 var _flag_mesh: QuadMesh
 ## How faint a city may be and still be drawn at all.
 const MIN_OPACITY := 0.03
+## From this opacity a city has its name over the model.
+const LABEL_OPACITY := 0.5
 
 
 var _smoke_grey: ShaderMaterial
@@ -84,6 +86,7 @@ static func land_at(px: Vector2) -> bool:
 ## and how many plane units a map pixel is.
 func update(map: Node, zoom: float) -> void:
 	var rebuilt := 0
+	var named := {}
 	var per_px: float = map.units_per_px()
 	for city: Dictionary in GameState.cities:
 		var entry: Variant = _entries.get(city.id)
@@ -111,6 +114,30 @@ func update(map: Node, zoom: float) -> void:
 			(entry.flag.material_override as StandardMaterial3D).albedo_color = colour
 		_fade(entry, opacity, colour, GameState.province_controller[city.province] != GameState.province_owner[city.province])
 		_smoke(entry, opacity, GameState.occupation.has(city.province))
+		_label(entry, city, pop, opacity, zoom)
+		if opacity >= LABEL_OPACITY:
+			named[city.id] = true
+	var layer: Node = get_tree().get_first_node_in_group("city_layer") if is_inside_tree() else null
+	if layer != null and layer.get("skip_names") != named:
+		layer.set("skip_names", named)
+
+
+## The name of a city over its model (and, close up, its people), as big on the screen as the flat map's name
+## would be: the flat one is left out for the cities that have this.
+func _label(entry: Dictionary, city: Dictionary, pop: int, opacity: float, zoom: float) -> void:
+	var label: Label3D = entry.label
+	label.visible = opacity >= LABEL_OPACITY
+	if not label.visible:
+		return
+	var text: String = city.name
+	if zoom >= CityLayer.POP_ZOOM:
+		text += "  " + CityLayer.people(pop)
+	if text != entry.label_text:
+		entry.label_text = text
+		label.text = text
+	label.modulate = (CityLayer.CAPITAL_COLOR if int(city.rank) == 1 else CityLayer.NAME_COLOR) * Color(1, 1, 1, clampf((opacity - LABEL_OPACITY) / (1.0 - LABEL_OPACITY), 0.0, 1.0))
+	label.pixel_size = 0.5 / maxf(zoom, 0.05)
+	label.position = Vector3(0, float(entry.height) + 10.0 + 14.0 * label.pixel_size, 0)
 
 
 ## Fades a city: solid it uses the shared opaque material; faint, its own see-through one, tinted toward
@@ -230,8 +257,19 @@ func _make_entry(_city: Dictionary) -> Dictionary:
 	root.add_child(flag)
 	var smoke := make_smoke()
 	root.add_child(smoke)
+	var label := Label3D.new()
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.fixed_size = false
+	label.font_size = 26
+	label.outline_size = 8
+	label.outline_modulate = Color(0.04, 0.04, 0.05, 0.9)
+	label.render_priority = 4
+	label.outline_render_priority = 3
+	label.shaded = false
+	root.add_child(label)
 	add_child(root)
-	return {"smoke": smoke, "sources": PackedVector3Array(), "per": 1, "dark": false, "stacks": PackedVector3Array(), "smoking": null, "radius": 20.0, "root": root, "body": body, "pole": pole, "flag": flag, "fading": fading, "opacity": -1.0, "tint": Color.WHITE,
+	return {"label": label, "label_text": "", "smoke": smoke, "sources": PackedVector3Array(), "per": 1, "dark": false, "stacks": PackedVector3Array(), "smoking": null, "radius": 20.0, "root": root, "body": body, "pole": pole, "flag": flag, "fading": fading, "opacity": -1.0, "tint": Color.WHITE,
 			"bucket": -1, "holder": "", "features": {}, "height": 10.0}
 
 

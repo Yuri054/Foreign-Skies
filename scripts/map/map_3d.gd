@@ -414,6 +414,8 @@ func _set_city_markers(on: bool) -> void:
 	var layer := _layer("city_layer")
 	if layer != null:
 		layer.set("markers_hidden", on)
+		if not on:
+			layer.set("skip_names", {})
 
 
 func _layer(group: String) -> Node:
