@@ -67,6 +67,14 @@ var markers_on := true:
 		markers_on = value
 		_set_layers_to_markers(enabled and markers_on)
 var _marker_root: Node3D
+## Whether the cities stand up as models of buildings (see CityModels).
+var cities_on := true:
+	set(value):
+		cities_on = value
+		if _cities != null:
+			_cities.visible = cities_on
+		_set_city_markers(enabled and cities_on)
+var _cities: CityModels
 var _standees: Array = []
 var _shown: Array = []
 var _marker_frame := 0
@@ -152,6 +160,7 @@ func _enter() -> void:
 	_build_scene()
 	enabled = true
 	_set_layers_to_markers(markers_on)
+	_set_city_markers(cities_on)
 	_set_land_floor(LAND_ZOOM_FLOOR)
 	_apply_tilt()
 	get_tree().call_group("event_feed", "say", "3D map on. Page Up and Page Down tilt it, [ and ] turn it, V goes back to the flat map.", Fmt.DIM)
@@ -159,6 +168,7 @@ func _enter() -> void:
 
 func _leave() -> void:
 	_set_layers_to_markers(false)
+	_set_city_markers(false)
 	_set_land_floor(0.0)
 	enabled = false
 	for entry in _moved:
@@ -180,6 +190,7 @@ func _leave() -> void:
 	_camera = null
 	_material = null
 	_marker_root = null
+	_cities = null
 	_standees.clear()
 	_shown.clear()
 	_tilting = false
@@ -194,9 +205,17 @@ func _build_scene() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = SEA
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.82, 0.86, 0.95)
+	env.ambient_light_energy = 0.75
 	var world := WorldEnvironment.new()
 	world.environment = env
 	_scene.add_child(world)
+	var sun := DirectionalLight3D.new()
+	sun.light_color = Color(1.0, 0.95, 0.84)
+	sun.light_energy = 0.9
+	sun.rotation_degrees = Vector3(-52.0, -135.0, 0.0)
+	_scene.add_child(sun)
 	var mesh := PlaneMesh.new()
 	mesh.size = _plane_size
 	mesh.subdivide_width = GRID.x
@@ -250,6 +269,9 @@ void fragment() {
 	plane.mesh = mesh
 	plane.material_override = _material
 	_scene.add_child(plane)
+	_cities = CityModels.new()
+	_cities.visible = cities_on
+	_scene.add_child(_cities)
 	_marker_root = Node3D.new()
 	_scene.add_child(_marker_root)
 	_camera = Camera3D.new()
@@ -288,6 +310,9 @@ func _process(_delta: float) -> void:
 	_marker_frame += 1
 	if markers_on and _marker_frame % 3 == 0:
 		_update_markers()
+	if cities_on and _cities != null:
+		var cam2d: Camera2D = main.get("camera")
+		_cities.update(self, cam2d.zoom.x if cam2d != null else 0.5)
 
 
 ## Plane units a metre of height rises while the picture shows `_view_size` map pixels: true to
@@ -316,6 +341,13 @@ func height_units(uv: Vector2) -> float:
 func _set_land_floor(value: float) -> void:
 	if main != null and main.get("map_view") != null:
 		main.map_view.land_zoom_floor = value
+
+
+## The flat diamonds of the cities give way to their models (the names stay).
+func _set_city_markers(on: bool) -> void:
+	var layer := _layer("city_layer")
+	if layer != null:
+		layer.set("markers_hidden", on)
 
 
 func _layer(group: String) -> Node:
@@ -488,10 +520,17 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 ## The model under a point of the screen, as its entry ({} if none): the click is then sent to the
 ## place the model stands, so a model is picked as its banner would be.
 func marker_at(screen: Vector2) -> Dictionary:
-	if _camera == null or not markers_on:
+	if _camera == null:
 		return {}
 	var best := {}
 	var best_d := 26.0
+	if cities_on and _cities != null:
+		var found := _cities.city_at(self, screen)
+		if not found.is_empty():
+			best = found
+			best_d = 12.0
+	if not markers_on:
+		return best
 	for entry: Dictionary in _shown:
 		var base: Vector3 = entry.ground
 		var top := base + Vector3(0, standee_height(entry.kind, entry.men) * 0.7, 0)

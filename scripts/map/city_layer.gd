@@ -14,12 +14,18 @@ const INK := Color(0.04, 0.04, 0.05, 0.9)
 
 const ArmyLayer := preload("res://scripts/map/army_layer.gd")
 
+## While true the diamonds are not drawn (the 3D map shows models of the cities); the names stay.
+var markers_hidden := false:
+	set(value):
+		markers_hidden = value
+		queue_redraw()
 var map_view: Sprite2D
 var camera: Camera2D
 var _last := Transform2D()
 
 
 func _ready() -> void:
+	add_to_group("city_layer")
 	z_index = 3
 	GameState.scenario_loaded.connect(queue_redraw)
 
@@ -107,6 +113,8 @@ func _banner_box(province: int, px: float) -> Rect2:
 
 ## A diamond for a city, a star-like double diamond for a capital.
 func _marker(at: Vector2, capital: bool, px: float) -> void:
+	if markers_hidden:
+		return
 	var r := (MARKER + (1.5 if capital else 0.0)) * px
 	var diamond := PackedVector2Array([at + Vector2(0, -r), at + Vector2(r, 0), at + Vector2(0, r), at + Vector2(-r, 0)])
 	draw_colored_polygon(diamond, CAPITAL_COLOR if capital else NAME_COLOR)

@@ -65,6 +65,9 @@ var province_owner: PackedStringArray = []
 var owner_version := 0
 var province_controller: PackedStringArray = []
 var province_population := PackedInt32Array()
+## What each province's people numbered when the scenario began (read again on every load; never saved):
+## the cities grow and shrink with the ratio (see Cities).
+var province_pop_base := PackedInt32Array()
 ## The part of a person each province's growth has not yet added (see Population).
 var province_pop_frac := PackedFloat32Array()
 ## Province output before nation-wide modifiers; filled by Economy.recompute.
@@ -303,6 +306,7 @@ func load_scenario(dir: String) -> void:
 		province_controller[id] = MapData.provinces[id].owner
 	for row in MapData.read_table(dir + "provinces.tsv"):
 		province_population[int(row.id)] = int(row.population)
+	province_pop_base = province_population.duplicate()
 
 	nations.clear()
 	for tag in MapData.nations:
