@@ -33,6 +33,9 @@ func _initialize() -> void:
 		if f.port > 0:
 			sea = root.get_node("MapData").provinces[f.port].center
 			break
+	for a in gs.armies.values():
+		a.fighting = true
+	gs.armies_changed.emit()
 	var shots := [["fleet_near", 2.4, sea, 42.0], ["fleet_close", 3.6, sea, 36.0], ["units_far", 0.6, spot, 48.0], ["units_mid", 1.1, spot, 46.0], ["units_near", 2.2, spot, 40.0], ["units_close", 3.4, spot, 36.0]]
 	for s in shots:
 		cam.zoom = Vector2(s[1], s[1])

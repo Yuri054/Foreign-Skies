@@ -6,18 +6,21 @@ render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
 
 uniform bool dark = false;
 uniform float life = 6.0;
+uniform float scale_mul = 1.0;   // size of the puffs
+uniform float rise_mul = 1.0;    // how high they climb
+uniform float strength = 1.0;    // how thick
 
 varying float alpha;
 
 void vertex() {
 	float age = fract(TIME / life + INSTANCE_CUSTOM.x);
-	float size = (3.0 + 9.0 * age) * (dark ? 1.5 : 1.0);
-	vec3 drift = vec3(age * 6.0 + sin(TIME * 0.7 + INSTANCE_CUSTOM.y) * age * 2.0, age * (dark ? 40.0 : 28.0), age * 2.0);
+	float size = (3.0 + 9.0 * age) * (dark ? 1.5 : 1.0) * scale_mul;
+	vec3 drift = vec3(age * 6.0 + sin(TIME * 0.7 + INSTANCE_CUSTOM.y) * age * 2.0, age * (dark ? 40.0 : 28.0) * rise_mul, age * 2.0);
 	vec4 centre = MODEL_MATRIX * vec4(drift, 1.0);
 	float unit = length(MODEL_MATRIX[0].xyz);
 	vec4 eye = VIEW_MATRIX * centre + vec4(VERTEX.xy * size * unit, 0.0, 0.0);
 	POSITION = PROJECTION_MATRIX * eye;
-	alpha = (dark ? 0.75 : 0.5) * (1.0 - age) * min(1.0, age * 8.0);
+	alpha = (dark ? 0.75 : 0.5) * strength * (1.0 - age) * min(1.0, age * 8.0);
 }
 
 void fragment() {

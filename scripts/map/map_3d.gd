@@ -68,6 +68,7 @@ var markers_on := true:
 		_set_layers_to_markers(enabled and markers_on)
 var _marker_root: Node3D
 var _unit_mat: StandardMaterial3D
+var _battle_mat: ShaderMaterial
 var _last_cam_pos := Vector2.ZERO
 var _last_cam_zoom := Vector2.ONE
 var _touched := true
@@ -527,6 +528,17 @@ func _make_standee() -> Node3D:
 	root.add_child(model)
 	# The banner card: what the flat map draws for the same armies, painted once into a small picture
 	# (a layer that paints one card) and stood up as a sprite that always faces the camera.
+	# Where the men are fighting, smoke rises from the group (the same puffs as a burning city's).
+	var battle := CityModels.make_smoke()
+	battle.name = "battle"
+	battle.material_override = _battle_material()
+	var puffs := battle.multimesh
+	puffs.instance_count = 24
+	for i in 24:
+		var at := Vector3(cos(i * 2.4) * 9.0, 2.0, sin(i * 2.4) * 9.0)
+		puffs.set_instance_transform(i, Transform3D(Basis.IDENTITY, at))
+		puffs.set_instance_custom_data(i, Color(float(i % 4) / 4.0 + float(i / 4) * 0.37, float(i), 0.0, 0.0))
+	root.add_child(battle)
 	var view := SubViewport.new()
 	view.name = "card_view"
 	view.size = Vector2i(ArmyLayer.CARD_SIZE)
@@ -545,6 +557,15 @@ func _make_standee() -> Node3D:
 	sprite.transparent = true
 	root.add_child(sprite)
 	return root
+
+
+func _battle_material() -> ShaderMaterial:
+	if _battle_mat == null:
+		_battle_mat = CityModels.smoke_material(true)
+		_battle_mat.set_shader_parameter("scale_mul", 0.45)
+		_battle_mat.set_shader_parameter("rise_mul", 0.5)
+		_battle_mat.set_shader_parameter("strength", 0.9)
+	return _battle_mat
 
 
 ## The lit, vertex-coloured material every unit model shares.
@@ -590,6 +611,9 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
 		model.scale = Vector3.ONE * scale_by
 		lift = mesh.get_aabb().end.y * scale_by
+	var battle: MultiMeshInstance3D = node.get_node("battle")
+	battle.visible = bool(entry.fighting) and model.visible
+	battle.scale = Vector3.ONE * units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
 	# the card, as big on the screen as the flat map's banner: a card pixel is what a screen pixel is
 	# worth in plane units, which is what a map pixel is worth over the zoom
 	var sprite: Sprite3D = node.get_node("card")

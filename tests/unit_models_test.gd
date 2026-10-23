@@ -70,6 +70,16 @@ func _initialize() -> void:
 		if node.visible and str(node.get_meta("card_key", "")) != "" and (node.get_node("card") as Sprite3D).texture != null and node.get_node("card_view/painter").get("card_only"):
 			cards += 1
 	_check(cards == shown, "each has a card painted as the flat map paints its banner (%d)" % cards)
+	army.fighting = true
+	gs.armies_changed.emit()
+	for i in 8:
+		await process_frame
+	var burning := 0
+	for node: Node3D in mode._standees:
+		if node.visible and (node.get_node("battle") as MeshInstance3D if false else node.get_node("battle")).visible:
+			burning += 1
+	_check(burning > 0, "where men are fighting, smoke rises from their model")
+	army.fighting = false
 	main.camera.zoom = Vector2(0.5, 0.5)
 	for i in 8:
 		await process_frame

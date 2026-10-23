@@ -38,8 +38,8 @@ var _smoke_dark: ShaderMaterial
 
 
 func _init() -> void:
-	_smoke_grey = _smoke_material(false)
-	_smoke_dark = _smoke_material(true)
+	_smoke_grey = smoke_material(false)
+	_smoke_dark = smoke_material(true)
 	_material = StandardMaterial3D.new()
 	_material.vertex_color_use_as_albedo = true
 	_material.roughness = 0.95
@@ -170,14 +170,14 @@ func _smoke(entry: Dictionary, opacity: float, besieged: bool) -> void:
 	puffs.material_override = _smoke_dark if besieged else _smoke_grey
 
 
-func _smoke_material(dark: bool) -> ShaderMaterial:
+static func smoke_material(dark: bool) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/smoke.gdshader")
 	mat.set_shader_parameter("dark", dark)
 	return mat
 
 
-func _make_smoke() -> MultiMeshInstance3D:
+static func make_smoke() -> MultiMeshInstance3D:
 	var quad := QuadMesh.new()
 	quad.size = Vector2(1.0, 1.0)
 	var mm := MultiMesh.new()
@@ -223,7 +223,7 @@ func _make_entry(_city: Dictionary) -> Dictionary:
 	flag_mat.billboard_keep_scale = true
 	flag.material_override = flag_mat
 	root.add_child(flag)
-	var smoke := _make_smoke()
+	var smoke := make_smoke()
 	root.add_child(smoke)
 	add_child(root)
 	return {"smoke": smoke, "sources": PackedVector3Array(), "per": 1, "dark": false, "stacks": PackedVector3Array(), "smoking": null, "radius": 20.0, "root": root, "body": body, "pole": pole, "flag": flag, "fading": fading, "opacity": -1.0, "tint": Color.WHITE,
