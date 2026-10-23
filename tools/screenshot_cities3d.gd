@@ -20,6 +20,11 @@ func _initialize() -> void:
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)
 	m3.markers_on = false
+	if OS.get_cmdline_user_args().size() > 1 and OS.get_cmdline_user_args()[1] == "rails":
+		for id in range(1, gs.province_buildings.size()):
+			if gs.province_owner[id] == "GER" or gs.province_owner[id] == "AUS":
+				gs.province_buildings[id]["railway"] = 2
+		gs.economy_updated.emit()
 	var shots := [["cities_far", 0.35, Vector2(2700, 2900), 52.0], ["cities_wide", 0.75, Vector2(2700, 2900), 52.0], ["cities_mid", 1.3, Vector2(2500, 2700), 48.0]]
 	for city in gs.cities:
 		if city.name in ["Berlin", "London", "Paris", "Rome", "Constantinople", "Moscow", "Cologne", "Hamburg"]:
