@@ -61,7 +61,7 @@ func _test_open_and_colours() -> void:
 	_check(map_view.mode == MapView.Mode.CONSTRUCTION and map_view.submode == "factory", "the map shows where a civilian factory can be built")
 	_check(panel.picked() == "factory" and panel._rows["factory"].button_pressed, "the first building is picked and lit")
 	var eco_panel: Node = get_first_node_in_group("economy_panel")
-	_check(eco_panel._tabs.get_tab_count() == 3 and eco_panel._tabs.get_tab_title(2) == "Production", "the Economy window has no Buildings tab, only Overview, Resources and Production")
+	_check(eco_panel._tabs.get_tab_count() == 3 and eco_panel._tabs.get_tab_title(2) == "People", "the Economy window has no Buildings tab, only Money, Industry and People")
 
 	var free := 0
 	var full := 0
@@ -74,15 +74,11 @@ func _test_open_and_colours() -> void:
 	_check(free > 0 and map_view.construction_color(free, "factory") in [MapView.CONSTRUCT_BUILD, MapView.CONSTRUCT_BOTH], "a province with room is green (or teal if it has some)")
 	_check(map_view.construction_color(foreign, "factory") == MapView.CONSTRUCT_OTHER, "foreign land is dark")
 	var cap: int = _ger().capital
-	gs.province_slots[cap] = Eco.slots_used(gs, cap)
+	gs.province_buildings[cap]["factory"] = Eco.cfg.buildings.factory.max_level
 	gs.economy_updated.emit()
 	var c: Color = map_view.construction_color(cap, "factory")
-	_check(c != MapView.CONSTRUCT_BUILD and c != MapView.CONSTRUCT_BOTH, "a province with no free slot is no longer green")
-	var with_factory := 0
-	for id in _ger().provinces:
-		if gs.province_buildings[id].get("factory", 0) > 0:
-			with_factory = id
-			break
+	_check(c != MapView.CONSTRUCT_BUILD and c != MapView.CONSTRUCT_BOTH, "a province built to the full is no longer green")
+	var with_factory := cap
 	_check(map_view.construction_color(with_factory, "factory") in [MapView.CONSTRUCT_BOTH, MapView.CONSTRUCT_HAVE] or with_factory == cap, "a province with factories is blue or teal")
 	panel._rows["port"].pressed.emit()
 	await process_frame
@@ -104,8 +100,6 @@ func _test_clicks() -> void:
 	await process_frame
 	var ger = _ger()
 	ger.treasury = 5000.0
-	ger.stock.iron = 1e6
-	ger.stock.coal = 1e6
 	var id := 0
 	for p in ger.provinces:
 		if p != ger.capital and Eco.build_problem(gs, "GER", p, "factory").is_empty():
@@ -118,10 +112,10 @@ func _test_clicks() -> void:
 	_check(panel._status.text.contains("IC"), "and says what it cost: " + panel._status.text)
 	# A province that cannot take it.
 	var blocked: int = ger.capital
-	gs.province_slots[blocked] = Eco.slots_used(gs, blocked)
+	gs.province_buildings[blocked]["factory"] = Eco.cfg.buildings.factory.max_level
 	jobs = ger.construction.size()
 	map_view.select(blocked)
-	_check(ger.construction.size() == jobs and panel._status.text.contains("slot"), "a click where it cannot be built builds nothing and says why: " + panel._status.text)
+	_check(ger.construction.size() == jobs and panel._status.text.contains("built"), "a click where it cannot be built builds nothing and says why: " + panel._status.text)
 	var foreign: int = gs.nations["FRA"].provinces[0]
 	map_view.select(foreign)
 	_check(ger.construction.size() == jobs, "foreign land cannot be built on")
@@ -139,18 +133,7 @@ func _test_clicks() -> void:
 
 func _test_retool_and_hover() -> void:
 	var ger = _ger()
-	panel._rows["military_factory"].pressed.emit()
-	var id := 0
-	for p in ger.provinces:
-		if gs.province_buildings[p].get("factory", 0) >= 1:
-			id = p
-			break
-	var civ: int = gs.province_buildings[id].get("factory", 0)
-	_check(panel.act_on(id, true), "Ctrl+click retools a civilian factory")
-	_check(gs.province_buildings[id].get("factory", 0) == civ - 1, "the civilian factory stops working")
-	_check(panel._status.text.contains("Retooling"), "and the panel says so")
-	panel._rows["port"].pressed.emit()
-	_check(not panel.act_on(id, true) and panel._status.text.contains("factories"), "only factories can be retooled")
+	var id: int = ger.provinces[0]
 	panel._rows["railway"].pressed.emit()
 	panel._on_province_hovered(id)
 	_check(panel._status.text.contains(MapData_name(id)), "hovering names the province: " + panel._status.text)

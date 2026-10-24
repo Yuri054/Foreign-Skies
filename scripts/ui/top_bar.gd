@@ -167,8 +167,8 @@ func _ready() -> void:
 func _points_tip(n: Nation) -> String:
 	var parts := Diplomacy.point_income_parts(GameState, n.tag)
 	var costs: Dictionary = Diplomacy.cfg.points.costs
-	return "Diplomacy points: %d of %d.\nEarns %+.1f a month (base %.1f, prestige %+.1f, output %+.1f, program %+.1f).\nMore from the Diplomatic service program.\nSpent on declaring war, proposing and cancelling treaties, improving relations (%d) and gifts: an alliance %d, a guarantee %d, a pact %d, passage %d, a gift %d." % [
-			roundi(n.diplomacy_points), int(Diplomacy.cfg.points.max), parts.total, parts.base, parts.prestige, parts.output, parts.program,
+	return "Diplomacy points: %d of %d.\nEarns %+.1f a month (base %.1f, prestige %+.1f, output %+.1f, national focus %+.1f).\nMore from national foci that raise it.\nSpent on declaring war, proposing and cancelling treaties, improving relations (%d) and gifts: an alliance %d, a guarantee %d, a pact %d, passage %d, a gift %d." % [
+			roundi(n.diplomacy_points), int(Diplomacy.cfg.points.max), parts.total, parts.base, parts.prestige, parts.output, parts.focus,
 			int(costs.improve_relations), int(costs.propose.alliance), int(costs.propose.guarantee), int(costs.propose.nap), int(costs.propose.passage), int(costs.gift)]
 
 

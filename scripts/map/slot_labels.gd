@@ -65,7 +65,7 @@ static func deposits_of(gs: Node, id: int) -> Array[String]:
 	var found: Array[String] = []
 	var amounts: Dictionary = gs.province_deposit[id]
 	for r in Economy.resource_ids():
-		if amounts.get(r, 0.0) >= Economy.cfg.min_deposit:
+		if amounts.get(r, 0.0) >= Economy.cfg.materials.min_deposit:
 			found.append(r)
 	found.sort_custom(func(a: String, b: String) -> bool: return amounts[a] > amounts[b])
 	return found

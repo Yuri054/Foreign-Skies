@@ -424,7 +424,7 @@ static func _set_points(gs: Node, tag: String, value: float) -> void:
 	gs.diplomacy_points_changed.emit(tag, v)
 
 
-## What a nation earns each month, and where it comes from: {base, prestige, output, program, total}.
+## What a nation earns each month, and where it comes from: {base, prestige, output, focus, total}.
 static func point_income_parts(gs: Node, tag: String) -> Dictionary:
 	var inc: Dictionary = cfg.points.income
 	var n: Nation = gs.nations[tag]
@@ -434,9 +434,9 @@ static func point_income_parts(gs: Node, tag: String) -> Dictionary:
 	var rank := Standings.rank_of(gs, tag, "gdp")
 	if rank > 0 and rank <= int(inc.top_output_count):
 		output = inc.top_output_bonus
-	var program: float = n.focus_fx.get("diplomacy", 0.0)
-	return {"base": base, "prestige": prestige, "output": output, "program": program,
-			"total": maxf(base + prestige + output + program, float(inc.min))}
+	var focus: float = n.focus_fx.get("diplomacy", 0.0)
+	return {"base": base, "prestige": prestige, "output": output, "focus": focus,
+			"total": maxf(base + prestige + output + focus, float(inc.min))}
 
 
 static func point_income(gs: Node, tag: String) -> float:

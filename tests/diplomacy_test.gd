@@ -15,7 +15,6 @@ var ProposeTreatyC
 var GiftC
 var BuyC
 var ImproveC
-var ProgramC
 var Eco
 var clock: Node
 
@@ -42,7 +41,6 @@ func _initialize() -> void:
 	GiftC = load("res://scripts/sim/gift.gd")
 	BuyC = load("res://scripts/sim/buy_points.gd")
 	ImproveC = load("res://scripts/sim/improve_relations.gd")
-	ProgramC = load("res://scripts/sim/set_program.gd")
 	Eco = load("res://scripts/sim/economy.gd")
 
 	_test_blocs()
@@ -425,7 +423,6 @@ func _test_crisis() -> void:
 	for i in 12:
 		D.step_day(gs)
 	_check(is_equal_approx(gs.nations["FRA"].mobilization, 0.5) and is_equal_approx(gs.nations["GER"].mobilization, 0.5), "a nation at war is raised to the war floor")
-	gs.nations["FRA"].economy_law = "war_economy"
 	gs.nations["FRA"].mobilization = 0.8
 	D.step_day(gs)
 	_check(gs.nations["FRA"].mobilization == 0.8, "but never lowered by it")
@@ -535,13 +532,13 @@ func _test_points() -> void:
 func _test_income_sources() -> void:
 	_fresh()
 	var base: float = D.point_income(gs, "FRA")
-	_check(gs.issue(ProgramC.new("FRA", "diplomatic_service", true)), "the Diplomatic service program can be switched on")
+	gs.nations["FRA"].focus_fx["diplomacy"] = 1.5
 	var parts: Dictionary = D.point_income_parts(gs, "FRA")
-	_check(is_equal_approx(parts.program, 1.5) and is_equal_approx(parts.total, base + 1.5), "and adds 1.5 a month (%.1f to %.1f)" % [base, parts.total])
-	gs.issue(ProgramC.new("FRA", "diplomatic_service", false))
-	_check(is_equal_approx(D.point_income(gs, "FRA"), base), "switched off, it adds nothing")
+	_check(is_equal_approx(parts.focus, 1.5) and is_equal_approx(parts.total, base + 1.5), "a national focus that raises it adds 1.5 a month (%.1f to %.1f)" % [base, parts.total])
+	gs.nations["FRA"].focus_fx.erase("diplomacy")
+	_check(is_equal_approx(D.point_income(gs, "FRA"), base), "without it, it adds nothing")
 
-	_check(not Eco.cfg.buildings.has("foreign_ministry") and not D.point_income_parts(gs, "FRA").has("ministry"), "there is no Foreign ministry any more: points come from the program, prestige and output")
+	_check(not Eco.cfg.buildings.has("foreign_ministry") and not D.point_income_parts(gs, "FRA").has("ministry"), "there is no Foreign ministry any more: points come from the focus, prestige and output")
 
 	# Prestige: fades, and comes from treaties.
 	gs.nations["FRA"].prestige = 100.0

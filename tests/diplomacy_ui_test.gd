@@ -479,13 +479,5 @@ func _test_points_ui() -> void:
 
 	# Income sources in the top bar and the Economy window.
 	var tip: String = bar._chips["points"].tooltip_text
-	_check(tip.contains("program") and not tip.contains("ministry") and tip.contains("improving relations (10)"), "the top bar's tooltip lists the income sources and prices")
-	eco.toggle()
-	await process_frame
-	await process_frame
-	_check(eco._program_boxes.has("diplomatic_service") and eco._program_boxes["diplomatic_service"].text.contains("Diplomatic service"), "the Economy window lists the Diplomatic service program")
-	_check(eco._program_boxes["diplomatic_service"].tooltip_text.contains("diplomacy points"), "which says what it does (%s)" % eco._program_boxes["diplomatic_service"].tooltip_text)
-	eco._program_boxes["diplomatic_service"].toggled.emit(true)
-	await process_frame
-	_check(gs.nations["FRA"].programs.has("diplomatic_service") and bar._points_gain.text == "+%.1f" % Diplomacy_income("FRA"), "switching it on raises the income shown in the top bar (%s)" % bar._points_gain.text)
+	_check(tip.contains("national focus") and not tip.contains("ministry") and tip.contains("improving relations (10)"), "the top bar's tooltip lists the income sources and prices")
 	eco.close_window()

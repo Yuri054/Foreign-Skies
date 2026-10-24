@@ -477,7 +477,7 @@ func _value(id: int) -> float:
 	match mode:
 		Mode.RESOURCES:
 			var amount: float = GameState.province_deposit[id].get(submode, 0.0)
-			return amount if amount >= Economy.cfg.min_deposit else 0.0
+			return amount if amount >= Economy.cfg.materials.min_deposit else 0.0
 		Mode.INCOME:
 			# Tax the province yields each month.
 			return Fmt.monthly(GameState.province_gdp[id]) * GameState.nations[GameState.province_owner[id]].tax_rate
@@ -578,7 +578,7 @@ func _scale(value: float) -> float:
 	if _max_value <= 0.0:
 		return 0.0
 	if mode == Mode.RESOURCES:
-		var floor_value: float = Economy.cfg.min_deposit
+		var floor_value: float = Economy.cfg.materials.min_deposit
 		return clampf(log(maxf(value, floor_value) / floor_value) / maxf(log(_max_value / floor_value), 0.001), 0.0, 1.0)
 	return clampf(sqrt(value / _max_value), 0.0, 1.0)
 

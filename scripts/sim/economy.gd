@@ -243,13 +243,26 @@ static func recompute(gs: Node) -> void:
 			sums[holder].gdp += o.gdp * Military.cfg.occupation.income_share
 	gs.economy_sums = sums
 	if gs.materials_k <= 0.0:
-		calibrate_materials(gs)
+		calibrate(gs)
 	_budgets(gs)
 
 
-## Sets the kt of raw materials a year one GBP million of industrial output needs so that the world just
-## balances (all deposits against all industry) at the start of a scenario; read again on every load.
-static func calibrate_materials(gs: Node) -> void:
+## Calibrates a scenario at its start: the kt of raw materials a year one GBP million of industrial
+## output needs, so that the world just balances (all deposits against all industry), and each nation's
+## civil spending, so that its budget just balances. Read again on every load.
+static func calibrate(gs: Node) -> void:
+	_calibrate_materials(gs)
+	for tag in gs.nations:
+		gs.nations[tag].civil_mult = 1.0
+	_budgets(gs)
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		var civil: float = n.budget.civil
+		if civil > 0.0:
+			n.civil_mult = clampf((n.budget.net + civil) / civil, 0.1, 4.0)
+
+
+static func _calibrate_materials(gs: Node) -> void:
 	var own := 0.0
 	var industry := 0.0
 	for id in range(1, gs.province_owner.size()):
@@ -327,8 +340,8 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 	var revenue_per_gdp := n.tax_rate * tax_drag
 	var revenue: float = gdp * revenue_per_gdp * tax_mult + trade + float(mats.income)
 
-	var civil: float = raw.gdp * cfg.default_tax_rate * cfg.civil_share
-	var army: float = n.total_men() * cfg.soldier_upkeep / 1e6
+	var civil: float = raw.gdp * cfg.default_tax_rate * cfg.civil_share * n.civil_mult
+	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep)) * cfg.soldier_upkeep / 1e6
 	var naval: float = n.naval_budget
 	# The whole economy buys the food; the treasury only carries its share (subsidies, duties).
 	var food_imports: float = food_imported * cfg.food_import_cost * cfg.food_state_share / 1e6
