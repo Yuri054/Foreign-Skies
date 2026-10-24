@@ -136,10 +136,6 @@ func _sane() -> bool:
 		if n.manpower < 0:
 			printerr("  %s manpower is negative" % tag)
 			ok = false
-		for r in n.stock:
-			if is_nan(n.stock[r]) or n.stock[r] < -0.001:
-				printerr("  %s stock of %s is %s" % [tag, r, n.stock[r]])
-				ok = false
 	for id in range(1, gs.province_owner.size()):
 		if not gs.nations.has(gs.province_owner[id]) or not gs.nations.has(gs.province_controller[id]):
 			printerr("  province %d has no owner" % id)

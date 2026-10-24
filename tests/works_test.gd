@@ -67,14 +67,14 @@ func _test_railway() -> void:
 	built["railway"] = 5
 	var five: float = Mil.hop_cost(gs, "FRA", id)
 	_check(is_equal_approx(one, Mil.cfg.supply.railway_hop_cost) and five < one, "each level makes a hop cheaper (%.2f, %.2f)" % [one, five])
-	var coal: Dictionary = fra.budget.resources.coal
-	var was: float = coal.shortage
-	coal.shortage = 0.4
-	_check(Mil.hop_cost(gs, "FRA", id) == 1.0 and not Mil.railway_ok(gs, "FRA"), "with no coal the railways stop helping supply")
+	var mats: Dictionary = fra.budget.materials
+	var was: float = mats.ratio
+	mats.ratio = 0.3
+	_check(Mil.hop_cost(gs, "FRA", id) == 1.0 and not Mil.railway_ok(gs, "FRA"), "with too few raw materials the railways stop helping supply")
 	var neighbor: int = Mil.neighbors(id)[0]
 	var days_dry: float = Mil.move_days(gs, "FRA", 15.0, neighbor, id)
-	coal.shortage = 0.0
+	mats.ratio = 1.0
 	var days_wet: float = Mil.move_days(gs, "FRA", 15.0, neighbor, id)
 	_check(gs.province_controller[id] != "FRA" or days_wet <= days_dry, "or movement (%.0f days against %.0f)" % [days_dry, days_wet])
-	coal.shortage = was
+	mats.ratio = was
 	built.erase("railway")

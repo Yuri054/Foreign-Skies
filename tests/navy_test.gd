@@ -77,7 +77,7 @@ func _test_data() -> void:
 	var bad := 0
 	for t in Nav.type_ids():
 		var d: Dictionary = Nav.cfg.types[t]
-		for k in ["name", "attack", "speed", "range_days", "detection", "upkeep", "cost", "build_days", "min_port", "materials", "capacity"]:
+		for k in ["name", "attack", "speed", "range_days", "detection", "upkeep", "cost", "build_days", "min_port", "capacity"]:
 			if not d.has(k):
 				bad += 1
 	_check(bad == 0, "every ship type has every field")
@@ -176,11 +176,9 @@ func _test_building() -> void:
 	_check(Nav.build_problem(gs, "GER", 394, "dreadnought", 1) == "", "Germany can build a battle squadron at Wilhelmshaven")
 	var plan: Dictionary = Nav.ship_plan(gs, "GER", "dreadnought", 1)
 	var treasury: float = n.treasury
-	var iron: float = n.stock.iron
 	_check(gs.issue(RaiseC.new("GER", 394, "dreadnought", 1)), "the order is accepted")
-	_check(n.shipbuilding.size() == 1 and absf(treasury - n.treasury - plan.total) < 0.001 and plan.gold == 0.0, "it costs no gold, only imported materials (%.1fM)" % plan.total)
+	_check(n.shipbuilding.size() == 1 and absf(treasury - n.treasury - plan.total) < 0.001 and plan.gold > 0.0, "it costs money up front (%.1fM)" % plan.total)
 	_check(absf(n.shipbuilding[0].points_total - 10000.0) < 0.001, "the hull costs 10,000 IC")
-	_check(absf(iron - n.stock.iron - plan.from_stock.iron) < 0.001, "materials come out of the stockpile")
 	_check(Nav.build_problem(gs, "GER", 394, "dreadnought", 6) == "The yard is full", "a port builds only so many at once")
 	var seas = _fleet("GER", "High Seas Fleet")
 	var before: int = seas.ships.size()
@@ -201,17 +199,13 @@ func _test_building() -> void:
 	_check(Nav.build_problem(gs, "XXX", 330, "destroyer", 1) != "", "an unknown nation builds nothing")
 	var poor = gs.nations["DEN"]
 	poor.treasury = 0.0
-	poor.stock.iron = 0.0
-	poor.stock.wood = 0.0
-	_check(Nav.build_problem(gs, "DEN", 91, "cruiser", 1).begins_with("Not enough money") or Nav.build_problem(gs, "DEN", 91, "cruiser", 1) == "Needs a level 2 port", "no money for imported materials, no ships")
+	_check(Nav.build_problem(gs, "DEN", 91, "cruiser", 1).begins_with("Not enough money") or Nav.build_problem(gs, "DEN", 91, "cruiser", 1) == "Needs a level 2 port", "no money, no ships")
 	_check(not gs.issue(RaiseC.new("DEN", 91, "cruiser", 1)), "and the order is refused")
 	var g = gs.nations["FRA"]
 	g.treasury = 100.0
-	g.stock.iron = 0.0
 	g.blockade = 0.8
-	_check(Nav.build_problem(gs, "FRA", 247, "dreadnought", 1).begins_with("Blockade"), "a blockaded nation cannot buy the iron for a squadron")
+	_check(Nav.build_problem(gs, "FRA", 247, "dreadnought", 1) == "", "a blockade does not stop a squadron: it takes money and IC, and no materials")
 	g.blockade = 0.0
-	_check(Nav.build_problem(gs, "FRA", 247, "dreadnought", 1) == "", "but can once the blockade lifts (it buys at a markup)")
 	n.treasury = 100.0
 	gs.issue(RaiseC.new("GER", 394, "destroyer", 1))
 	n.shipbuilding[0].points_left = 0.001

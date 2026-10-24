@@ -78,9 +78,8 @@ func _initialize() -> void:
 
 func _windows() -> Dictionary:
 	return {
-		"economy": get_first_node_in_group("economy_panel"),
-		"military": get_first_node_in_group("military_panel"),
-		"diplomacy": get_first_node_in_group("diplomacy_panel"),
+		"nation screen": get_first_node_in_group("nation_screen"),
+		"rankings": get_first_node_in_group("rankings_window"),
 		"country panel": get_first_node_in_group("nation_stats"),
 		"peace screen": get_first_node_in_group("peace_screen"),
 		"join prompt": get_first_node_in_group("join_prompt"),
@@ -94,7 +93,13 @@ func _test_all_are_windows() -> void:
 		var w: Node = windows[name]
 		_check(w != null and w.has_method("setup_window") and w.has_method("toggle_minimized"), "the %s is a floating window" % name)
 	_check(windows["join prompt"].closable == false, "the join prompt cannot be closed until it is answered")
-	_check(windows["economy"].closable and windows["military"].closable, "the other menus can")
+	_check(windows["nation screen"].closable and windows["rankings"].closable, "the other menus can")
+	var pages := 0
+	for group in ["economy_panel", "construction_panel", "military_panel", "navy_panel", "diplomacy_panel", "focus_panel"]:
+		var page: Node = get_first_node_in_group(group)
+		if page != null and page.host == windows["nation screen"]:
+			pages += 1
+	_check(pages == 6, "and the economy, build, military, navy, diplomacy and focus menus are pages of the nation screen (%d)" % pages)
 
 
 func _bar_center(w: Node) -> Vector2:
@@ -103,13 +108,13 @@ func _bar_center(w: Node) -> Vector2:
 
 
 func _test_move_and_resize() -> void:
-	var eco: Node = get_first_node_in_group("economy_panel")
+	var eco: Node = get_first_node_in_group("nation_screen")
 	eco.toggle()
 	await process_frame
 	await process_frame
 	var view: Vector2 = root.get_visible_rect().size
-	_check(eco.visible and eco.get_global_rect().end.x <= view.x + 1.0 and eco.get_global_rect().position.y >= 30.0, "the economy window opens on screen below the top bar")
-	_check(eco._title_label.text == "Economy", "with its title in the bar")
+	_check(eco.visible and eco.get_global_rect().end.x <= view.x + 1.0 and eco.get_global_rect().position.y >= 30.0, "the nation screen opens on screen below the top bar")
+	_check(eco._title_label.text.begins_with("France"), "with the nation in the title bar (%s)" % eco._title_label.text)
 
 	var before: Vector2 = eco.position
 	await _drag(_bar_center(eco), _bar_center(eco) + Vector2(-220, 90))
@@ -138,15 +143,15 @@ func _test_move_and_resize() -> void:
 
 
 func _test_minimize_and_close() -> void:
-	var mil: Node = get_first_node_in_group("military_panel")
+	var mil: Node = get_first_node_in_group("nation_screen")
 	mil.toggle()
 	await process_frame
 	await process_frame
 	var full_height: float = mil.size.y
-	_check(full_height > 150.0, "the military window opens at a useful height (%d)" % full_height)
+	_check(full_height > 150.0, "the nation screen opens at a useful height (%d)" % full_height)
 	await _click(mil._min_button.get_global_rect().get_center())
 	_check(mil.minimized and mil.size.y < 60.0, "the minimize button folds it to its title bar (%d high)" % mil.size.y)
-	_check(not mil._holder.visible and mil._title_label.text == "Military", "the content is hidden, the title stays")
+	_check(not mil._holder.visible and mil._title_label.text.begins_with("France"), "the content is hidden, the title stays")
 	var bar_before: Vector2 = mil.position
 	await _drag(_bar_center(mil), _bar_center(mil) + Vector2(-100, 40))
 	_check(mil.position.distance_to(bar_before + Vector2(-100, 40)) < 3.0, "a minimized window can still be moved")
@@ -174,15 +179,18 @@ func _double_click() -> InputEvent:
 
 
 func _test_front_and_limits() -> void:
-	var eco: Node = get_first_node_in_group("economy_panel")
-	var mil: Node = get_first_node_in_group("military_panel")
-	var dip: Node = get_first_node_in_group("diplomacy_panel")
-	eco.toggle()
+	var eco: Node = get_first_node_in_group("nation_screen")
+	var mil: Node = get_first_node_in_group("nation_stats")
+	var dip: Node = get_first_node_in_group("rankings_window")
+	if not eco.visible:
+		eco.toggle()
+	mil.toggle()
 	dip.toggle()
 	await process_frame
 	var parent := eco.get_parent()
 	_check(dip.get_index() > eco.get_index() and dip.get_index() > mil.get_index(), "the window opened last is in front")
 	# Park the economy window where nothing else covers its title bar, then click it.
+	eco.size = Vector2(560, 380)
 	eco.position = Vector2(20, 120)
 	dip.position = Vector2(700, 120)
 	mil.position = Vector2(700, 420)
@@ -217,7 +225,7 @@ func _test_front_and_limits() -> void:
 
 
 func _test_corners() -> void:
-	var win: Node = get_first_node_in_group("diplomacy_panel")
+	var win: Node = get_first_node_in_group("rankings_window")
 	win.toggle()
 	await process_frame
 	win.position = Vector2(300, 140)
