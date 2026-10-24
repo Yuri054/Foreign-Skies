@@ -59,7 +59,7 @@ func _fit() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_box.reset_size()
-	fit_window(_box.get_combined_minimum_size().y + 24.0)
+	fit_window(_box.get_combined_minimum_size().y + 12.0)
 
 
 func _option_block(d: Dictionary, index: int) -> Control:
@@ -77,13 +77,12 @@ func _option_block(d: Dictionary, index: int) -> Control:
 	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	about.modulate = Fmt.DIM
 	block.add_child(about)
+	# What the answer would do is for the mouse to ask: over the button or its description.
 	var lines := Pressure.effect_lines(GameState, option, d.roles)
-	if not lines.is_empty():
-		var fx := Label.new()
-		fx.text = "  ·  ".join(lines)
-		fx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		fx.modulate = Fmt.WARN
-		block.add_child(fx)
+	var tip := "\n".join(lines) if not lines.is_empty() else "No lasting effects."
+	button.tooltip_text = tip
+	about.tooltip_text = tip
+	about.mouse_filter = Control.MOUSE_FILTER_PASS
 	return block
 
 

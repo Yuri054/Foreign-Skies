@@ -36,6 +36,8 @@ func _initialize() -> void:
 		await process_frame
 	_check(prompt.visible and prompt._decision.event == "boxer", "the Boxer Rising comes up")
 	_check(prompt._options.get_child_count() == 2 and prompt._title.text == "The Boxer Rising", "with its two answers")
+	var first_button: Button = prompt._options.get_child(0).get_child(0)
+	_check(first_button.tooltip_text.contains("Tension +3") and first_button.tooltip_text.contains("Treasury"), "what an answer does is its tooltip (%s)" % first_button.tooltip_text.replace("\n", " / "))
 	var bar: Node = get_first_node_in_group("top_bar")
 	_check(bar != null and bar._tension.text == str(roundi(gs.tension)) and bar._chips["tension"].tooltip_text.contains("tension"), "the top bar shows tension")
 	prompt._answer(0)
