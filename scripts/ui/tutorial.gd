@@ -42,6 +42,9 @@ func _ready() -> void:
 	steps = load_steps()
 
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	var card_style := UiTheme.frame()
+	card_style.bg_color = Color(UiTheme.SLATE_DEEP, 0.97)
+	_card.add_theme_stylebox_override("panel", card_style)
 	_card.anchor_left = 1.0
 	_card.anchor_right = 1.0
 	_card.offset_left = -390.0

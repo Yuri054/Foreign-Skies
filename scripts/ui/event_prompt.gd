@@ -28,6 +28,7 @@ func _ready() -> void:
 	for c: Control in [_date, _title, _text, HSeparator.new(), _options]:
 		_box.add_child(c)
 	GameState.event_posted.connect(func(_d: Dictionary) -> void: _show_next())
+	GameState.event_resolved.connect(func(_d: Dictionary, _o: int) -> void: _show_next())
 	GameState.player_changed.connect(func(_t: String) -> void: visible = false)
 	GameState.scenario_loaded.connect(func() -> void: visible = false)
 	_show_next()

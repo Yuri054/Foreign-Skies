@@ -35,6 +35,8 @@ func _ready() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(center)
 	var panel := PanelContainer.new()
+	# This layer sits outside the interface layer, which hands out the theme, so the panel takes the window's own.
+	panel.theme = get_window().theme
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.custom_minimum_size = Vector2(300, 0)
