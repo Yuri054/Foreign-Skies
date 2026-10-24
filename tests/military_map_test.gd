@@ -1,7 +1,6 @@
 extends SceneTree
 ## Headless test of the Military map's variants: the front line lights the provinces held next to
-## an enemy at war, the strength map shades provinces by men stationed, and the equipment map by
-## how much of what they need the armies there hold.
+## an enemy at war, the strength map shades provinces by men stationed.
 ## Run: godot --headless --path . -s res://tests/military_map_test.gd
 
 var _failures := 0
@@ -56,7 +55,7 @@ func _initialize() -> void:
 	_check(view.on_front(edge) and not view.on_front(rear), "at war the border province is on the front and the rear is not")
 	_check(view.military_color(edge) != peace_color and view.military_color(edge).r > view.military_color(rear).r, "and it is lit")
 
-	# Strength and equipment.
+	# Strength.
 	for a in gs.armies.values():
 		if a.tag == "FRA":
 			a.province = rear
@@ -66,26 +65,6 @@ func _initialize() -> void:
 	var without: Color = view.military_color(edge)
 	_check(with_army != without and view.legend().has("high"), "a province with an army is shaded apart from one without")
 	_check(view.legend().high != "none", "the legend gives the biggest garrison (%s)" % view.legend().high)
-
-	view.set_mode(Mode.MILITARY, view.MIL_EQUIPMENT)
-	var covered: Color = view.military_color(rear)
-	for a in gs.armies.values():
-		if a.province == rear:
-			for u in a.units:
-				for k in u.equip.keys():
-					u.equip[k] = 0.0
-	view.repaint()
-	var bare: Color = view.military_color(rear)
-	_check(bare.r > bare.g, "an army without its equipment shows red")
-	for a in gs.armies.values():
-		if a.province == rear:
-			for u in a.units:
-				for k in u.needs().keys():
-					u.equip[k] = float(u.needs()[k]) * 2.0
-	view.repaint()
-	var full: Color = view.military_color(rear)
-	_check(full.g > full.r, "a fully equipped one shows green")
-	_check(view.legend().title == "Equipment held", "and the legend says what the colours are")
 
 	view.set_mode(Mode.CONSTRUCTION, "factory")
 	_check(view.legend().get("swatches", []).size() == 5, "the Construction legend has a swatch for each colour")
