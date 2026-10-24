@@ -1,5 +1,5 @@
 {
-	"_note": "Historical pressure (scripts/sim/pressure.gd). Each event fires at the first month on or after `date` while its conditions hold, and is dropped once `until` has passed. The player is asked if they are an actor (a, or b with b_options; a `mirror` event reads the same from either side); otherwise the event is news and `ai_option` (or b_ai_option) is applied. Effects: tension, relation [a,b,d], treasury [a,m], prestige [a,n], war_support [a,n], points [a,n], manpower [a,fraction], mobilize [a,d], grievance [holder,target,n], treaty [kind,a,b,terms,note], war [a,b,(calls)]. ending: the set end of the game, 1 January 1919; always_player puts it to the player whoever they are; {summary} is Pressure.summary. Effect menu: [true] asks the interface to go back to the main menu.",
+	"_note": "Historical pressure (scripts/sim/pressure.gd). Each event fires at the first month on or after `date` while its conditions hold, and is dropped once `until` has passed. The player is asked if they are an actor (a, or b with b_options; a `mirror` event reads the same from either side); otherwise the event is news and `ai_option` (or b_ai_option) is applied. Effects: tension, relation [a,b,d], treasury [a,m], prestige [a,n], war_support [a,n], points [a,n], manpower [a,fraction], mobilize [a,d], grievance [holder,target,n], treaty [kind,a,b,terms,note], war [a,b,(calls)].",
 	"tension": {
 		"_note": "Tension (Pressure.parts): base + arms (growth of the great powers' men under arms since the start, times arms_weight, at most arms_max) + mobilization (each great power's level above mobilization_from, times weight, at most max) + wars (war_each for every war a great power fights, at most war_max) + rivalry (the average dislike between the great powers times rivalry_weight) + the lingering force of events, which fades impulse_decay a month. From aggression_from the AI grows bolder, up to aggression_gain more aggression at 100. From harden_above the great powers' quarrels worsen harden_per_month a month. ai_war_gate: below this tension the AI starts no war of its own choosing (a war it was provoked into, or its allies' wars, are not held back). impulse_max caps what events can add. bloc_weight: added when the great powers stand in two alliance circles of at least two each.",
 		"base": 8,
@@ -2291,34 +2291,6 @@
 					"SRB"
 				]
 			}
-		},
-		{
-			"id": "ending",
-			"title": "The end of 1918",
-			"text": "The year is out, and with it the age this game follows. {summary}",
-			"date": [
-				1919,
-				1
-			],
-			"actors": {},
-			"always_player": true,
-			"options": [
-				{
-					"label": "Keep playing",
-					"text": "Carry on past the set ending as a sandbox; nothing more will be asked.",
-					"effects": []
-				},
-				{
-					"label": "Return to the main menu",
-					"text": "End the game here. Save first if you want to keep it.",
-					"effects": [
-						{
-							"menu": true
-						}
-					]
-				}
-			],
-			"ai_option": 0
 		}
 	]
 }

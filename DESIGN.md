@@ -37,7 +37,7 @@ Relations between every pair; treaties (alliance, guarantee, non-aggression, pas
 - In a `pressure_ai` scenario the AI starts no war of its own choosing below tension 30, and above that grows bolder with it; above 50 the great powers' quarrels worsen each month.
 - **Events**: 33, from the Boxer Rising (1900) to the Liman von Sanders mission (1913) and Sarajevo (1914), plus a conference the player can call and an "on the brink" notice. Each fires on its date while its conditions hold. If it concerns the player, time stops and each answer is a button with its effects; otherwise the AI's choice is made and it is news. Effects: tension, relations, treasury, prestige, war support, diplomacy points, manpower, mobilization, grievance, treaties, wars. Events dated before a scenario's start are history already.
 - **Public stands**: from the Overview any nation may spend diplomacy points on an appeal for calm (tension down) or to rattle the sabre (tension up, prestige and war support), once every half year.
-- **The set ending**: on 1 January 1919 time stops and the same event window shows a short account of how things stand (whether the great powers fought, what the player holds, the largest economies) with two answers: keep playing as a sandbox, or return to the main menu. There is no separate ending screen.
+- **No ending**: the game is an open sandbox. Nothing stops the clock; a general war, a peace or a long quiet are all just where the years lead.
 - Nothing is guaranteed: left alone, the 1900 world drifts to a general war in 1914; a player who cools things down or hardens them changes that.
 
 ### AI (`scripts/ai/`, `data/ai.json`)

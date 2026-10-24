@@ -35,7 +35,6 @@ func _initialize() -> void:
 	_test_b_player()
 	_test_appeals()
 	_test_union_and_works()
-	_test_ending()
 	_test_save()
 	_test_years()
 	print("FAILURES: ", _failures)
@@ -160,34 +159,6 @@ func _test_union_and_works() -> void:
 	_check(gs.nations["FRA"].peacetime_army > army, "an AI nation's peacetime army grows with its people and output (%d to %d)" % [army, gs.nations["FRA"].peacetime_army])
 	_advance_to(1905, 8)
 	_check(not D.are_allied(gs, "SWE", "NOR") and gs.events_fired.has("norway_union"), "the union ends in 1905")
-
-
-func _test_ending() -> void:
-	_start("res://data/scenarios/jan_1900/", "FRA")
-	var asked := [false]
-	gs.menu_requested.connect(func() -> void: asked[0] = true)
-	var AnswerC = load("res://scripts/sim/answer_event.gd")
-	while clock.year < 1919 and not gs.events_fired.has("ending"):
-		clock.advance_day()
-		for d in gs.pending_events.duplicate():
-			if d.event != "ending":
-				gs.issue(AnswerC.new(d.id, 0))
-	_check(clock.year == 1919 and gs.events_fired.has("ending"), "the game has a set ending: 1 January 1919")
-	var ending: Dictionary = {}
-	for d in gs.pending_events:
-		if d.event == "ending":
-			ending = d
-	_check(not ending.is_empty() and ending.text.contains("France holds") and ending.options.size() == 2, "it is put to the player with a summary (%s)" % str(ending.get("text", "")).left(80))
-	gs.issue(AnswerC.new(ending.id, 1))
-	_check(asked[0], "choosing the main menu asks the interface to go there")
-	# Keep playing: nothing more is asked.
-	_start("res://data/scenarios/jan_1900/", "FRA")
-	while clock.year < 1919:
-		clock.advance_day()
-		for d in gs.pending_events.duplicate():
-			gs.issue(AnswerC.new(d.id, 0))
-	_advance_to(1921, 1)
-	_check(gs.pending_events.is_empty(), "keeping on after the ending asks nothing more")
 
 
 func _test_save() -> void:
