@@ -31,7 +31,7 @@
 		{
 			"id": "build",
 			"title": "Build something",
-			"text": "Open the Construction panel (B), pick a building, and click a green province on the map to build it there. It costs industrial capacity (IC), not money, and takes at least a few weeks; your civilian factories set how much IC you have each day. It shows in the queue at the bottom right.",
+			"text": "Open the Construction panel (B), pick a building, and click a green province on the map to build it there. It costs industrial capacity (IC), not money, and takes at least a few weeks; your industry sets how much IC you have each day. It shows in the queue at the bottom right.",
 			"highlight": {
 				"button": "Build"
 			},
@@ -51,14 +51,14 @@
 			}
 		},
 		{
-			"id": "equip",
-			"title": "Equip your army",
-			"text": "Units need arms and guns, and the guns need shells; without them they fight worse. Open the Economy window (E), its Production tab, and move a factory between the Arms, Artillery and Shells lines with the plus and minus buttons. Items cost industrial capacity, iron, coal and nitrates, not money. Your economy law, on the Overview tab, trades civilian output for military output once you are at war.",
+			"id": "taxes",
+			"title": "Set the taxes",
+			"text": "Open the Economy window (E). Its Money tab shows what comes in and what goes out each month; move the tax rate. More tax fills the treasury but slows growth and wears down the people's support.",
 			"highlight": {
 				"button": "Economy"
 			},
 			"done": {
-				"command": "SetProductionLine"
+				"command": "SetEconomyPolicy"
 			}
 		},
 		{

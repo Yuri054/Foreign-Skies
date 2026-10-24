@@ -52,16 +52,10 @@ static func entries(gs: Node, building: String) -> Array[Dictionary]:
 		return out
 	for id: int in nation.provinces:
 		var entry := {"id": id, "deposits": deposits_of(gs, id), "factories": gs.province_buildings[id].get("factory", 0)}
-		if def.get("slot", false):
-			var used := Economy.slots_used(gs, id)
-			var cap := Economy.slots_of(gs, id)
-			entry.text = "%d/%d" % [used, cap]
-			entry.full = used >= cap
-		else:
-			var level: int = gs.province_buildings[id].get(building, 0)
-			var most: int = def.get("max_level", 1)
-			entry.text = "%d/%d" % [level, most]
-			entry.full = level >= most
+		var level: int = gs.province_buildings[id].get(building, 0)
+		var most: int = def.get("max_level", 1)
+		entry.text = "%d/%d" % [level, most]
+		entry.full = level >= most
 		out.append(entry)
 	return out
 

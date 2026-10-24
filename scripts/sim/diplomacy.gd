@@ -434,10 +434,7 @@ static func point_income_parts(gs: Node, tag: String) -> Dictionary:
 	var rank := Standings.rank_of(gs, tag, "gdp")
 	if rank > 0 and rank <= int(inc.top_output_count):
 		output = inc.top_output_bonus
-	var program := 0.0
-	for id: String in n.programs:
-		program += Economy.cfg.programs[id].effects.get("diplomacy", 0.0)
-	program += n.focus_fx.get("diplomacy", 0.0)
+	var program: float = n.focus_fx.get("diplomacy", 0.0)
 	return {"base": base, "prestige": prestige, "output": output, "program": program,
 			"total": maxf(base + prestige + output + program, float(inc.min))}
 
@@ -1194,9 +1191,9 @@ static func _step_mobilization(gs: Node) -> bool:
 				n.mobilization = minf(target, n.mobilization + c.ai_step_up)
 			elif n.mobilization > target and not at_war:
 				n.mobilization = maxf(target, n.mobilization - c.ai_step_down)
-		# The economy law's range: down to its ceiling at once, up to its floor a step a day.
+		# The range the nation may mobilize in (peace or war): down to its ceiling at once, up to its floor a step a day.
 		var cap := Economy.mobilization_cap(gs, n)
-		var least := Economy.mobilization_range(n).x
+		var least := Economy.mobilization_range(gs, n).x
 		if n.mobilization > cap:
 			n.mobilization = cap
 		elif n.mobilization < least:

@@ -689,9 +689,6 @@ func _refresh_list() -> void:
 			text += " · no supply"
 		elif not a.path.is_empty():
 			text += " · marching"
-		var kit := Military.army_coverage(a)
-		if kit < 0.95:
-			text += " · %d%% equipped" % roundi(kit * 100.0)
 		if rebuild:
 			_list.add_item(text)
 		else:
@@ -750,13 +747,6 @@ func _refresh_detail() -> void:
 		"%s on %s%s" % [MapData.provinces[a.province].name, Military.terrain_of(a.province).name.to_lower(),
 				"" if a.supplied else " — OUT OF SUPPLY"],
 	]
-	var kit: PackedStringArray = []
-	for cat in Military.equipment_ids():
-		var share := Military.army_coverage_of(a, cat)
-		if share < 1.0 or a.units.any(func(u: Unit) -> bool: return u.need(cat) > 0.0):
-			kit.append("%s %d%%" % [Military.cfg.equipment.categories[cat].name.to_lower(), roundi(share * 100.0)])
-	if not kit.is_empty():
-		lines.append("Equipment: " + ", ".join(kit))
 	if a.embarked() and GameState.fleets.has(a.fleet_id):
 		var ship: Fleet = GameState.fleets[a.fleet_id]
 		lines.append("Aboard %s, %s." % [ship.display_name, "in port" if ship.is_in_port() else "at sea in the " + MapData.sea_zones[ship.zone].name])
@@ -1300,18 +1290,8 @@ func _refresh_recruit() -> void:
 	var problem := RaiseUnits.problem(GameState, GameState.player_tag, _province, type, count) if _province > 0 else "Select a province first."
 	_raise.disabled = not problem.is_empty()
 	var cost := "£%.1fM, %s recruits, %d days" % [def.cost * count, Fmt.people(def.size * count), def.train_days]
-	var kit: PackedStringArray = []
-	var short := false
-	var n := GameState.get_player()
-	for cat in def.get("needs", {}):
-		var need: float = float(def.needs[cat]) * count
-		var held: float = n.equipment.get(cat, 0.0) if n != null else 0.0
-		short = short or held < need
-		kit.append("%s %s of %s in store" % [Military.cfg.equipment.categories[cat].name.to_lower(), Fmt.thousands(roundi(need)), Fmt.thousands(roundi(held))])
-	if not kit.is_empty():
-		cost += "; needs " + ", ".join(kit)
 	_raise_label.text = cost if problem.is_empty() else "%s (%s)" % [problem, cost]
-	_raise_label.modulate = Fmt.WARN if short else Fmt.DIM
+	_raise_label.modulate = Fmt.DIM
 
 
 func _on_raise() -> void:

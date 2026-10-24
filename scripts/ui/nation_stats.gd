@@ -222,12 +222,6 @@ func _refresh() -> void:
 	_row(military, "Manpower pool", Fmt.people(b.get("manpower_pool", 0.0)))
 	_row(military, "Mobilization", "%d%%" % roundi(n.mobilization * 100.0))
 	_row(military, "Army upkeep", "£%.1fM a month" % Fmt.monthly(b.get("army", 0.0)))
-	var kit: PackedStringArray = []
-	for cat in Military.equipment_ids():
-		kit.append("%s %s" % [Military.cfg.equipment.categories[cat].name.to_lower(), Fmt.thousands(roundi(n.equipment.get(cat, 0.0)))])
-	_row(military, "Equipment in store", ", ".join(kit))
-	_row(military, "Military factories", "%d" % int(b.get("military_factories", 0)))
-	_row(military, "Economy law", Economy.law_of(n).name)
 	if n.naval_budget > 0.0:
 		_row(military, "Navy upkeep", "£%.1fM a month" % Fmt.monthly(n.naval_budget))
 	if n.blockade > 0.005:
@@ -248,20 +242,14 @@ func _refresh() -> void:
 		_row(politics, "Guarantees", guarantees)
 	_row(politics, "At war with", _wars_text(tag, at_war), "", Fmt.BAD if not at_war.is_empty() else Color.WHITE)
 
-	var resources := _section("Food and raw materials, a month")
+	var resources := _section("Food and raw materials")
 	if not b.is_empty():
 		var food_balance: float = b.food_production - b.food_need
 		var food_short: bool = b.food_shortage > 0.0
 		_row(resources, "Food", "SHORT" if food_short else (("+" if food_balance >= 0.0 else "-") + Fmt.people(absf(food_balance))), "",
 				Fmt.BAD if food_short else (Fmt.GOOD if food_balance >= 0.0 else Fmt.WARN))
-		for r in Economy.resource_ids():
-			var info: Dictionary = b.resources[r]
-			var text := Fmt.kt(Fmt.monthly(info.balance), true)
-			var color := Fmt.GOOD if info.balance >= 0.0 else Fmt.WARN
-			if info.shortage > 0.0:
-				text = "SHORT"
-				color = Fmt.BAD
-			_row(resources, Economy.cfg.resources[r].name, "%s  (stock %s)" % [text, Fmt.kt(info.stock)], "", color)
+		var mats: Dictionary = b.materials
+		_row(resources, "Raw materials", "%d%% of the need" % roundi(mats.ratio * 100.0), "", Fmt.GOOD if mats.ratio >= 0.999 else (Fmt.WARN if mats.ratio >= 0.7 else Fmt.BAD))
 	_refresh_actions(tag)
 
 

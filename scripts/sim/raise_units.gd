@@ -1,9 +1,7 @@
 class_name RaiseUnits
 extends Command
 ## Starts training units in a province the nation owns and holds. Recruits and money are paid
-## up front, and the equipment the units need is taken from the national store then (what the
-## store cannot give, the units go without); the units join an army standing there (or form a
-## new one) when training ends.
+## up front; the units join an army standing there (or form a new one) when training ends.
 
 var tag: String
 var province: int
@@ -43,10 +41,7 @@ func execute(gs: Node) -> bool:
 	n.manpower -= def.size * count
 	n.treasury -= def.cost * count
 	for i in count:
-		var kit := Unit.new(unit_type)
-		kit.equip.clear()
-		kit.draw(n.equipment)
-		n.recruiting.append({"type": unit_type, "province": province, "days_left": def.train_days, "equip": kit.equip})
+		n.recruiting.append({"type": unit_type, "province": province, "days_left": def.train_days})
 	Military.refresh_men(gs)
 	gs.armies_changed.emit()
 	return true

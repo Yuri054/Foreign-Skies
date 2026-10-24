@@ -90,7 +90,6 @@ static func monthly_changes(gs: Node, tag: String) -> Dictionary:
 	var debt: float = maxf(-n.treasury, 0.0) / maxf(n.budget.get("revenue", 1.0), 1.0)
 	return {
 		"the war itself": -c.weariness,
-		"the economy law": -Economy.law_of(n).weariness,
 		"heavy taxes": -Economy.cfg.tax_strain.war_weariness * strain,
 		"men lost": -c.casualty_weight * lost,
 		"blockade": -c.blockade_weight * n.blockade,

@@ -330,24 +330,12 @@ static func _drown(gs: Node, a: Army, frac: float, what: String) -> void:
 
 # ------------------------------------------------------------------ shipbuilding
 
-## What building `count` squadrons of a type would cost, shaped like Economy.build_plan: gold,
-## materials from the stockpile and the shortfall bought at a markup (impossible under blockade).
-static func ship_plan(gs: Node, tag: String, type: String, count: int) -> Dictionary:
+## What building `count` squadrons of a type would cost, shaped like Economy.build_plan: money up front
+## and the hull's industry points (IC) from the nation's construction pool each day.
+static func ship_plan(_gs: Node, _tag: String, type: String, count: int) -> Dictionary:
 	var def: Dictionary = cfg.types[type]
-	var n: Nation = gs.nations[tag]
-	var plan := {"gold": 0.0, "ic": float(def.ic) * count, "materials": {}, "from_stock": {}, "buy": {}, "purchase": 0.0, "total": 0.0, "blocked": ""}
-	for r in def.materials:
-		var need: float = def.materials[r] * count
-		var use := minf(need, n.stock.get(r, 0.0))
-		plan.materials[r] = need
-		plan.from_stock[r] = use
-		plan.buy[r] = need - use
-		if need - use > 0.0:
-			if n.blockade >= 0.5:
-				plan.blocked = "Blockade stops %s imports" % Economy.cfg.resources[r].name.to_lower()
-			plan.purchase += (need - use) * Economy.cfg.resources[r].price / 1000.0 * Economy.cfg.import_markup
-	plan.total = plan.gold + plan.purchase
-	return plan
+	var gold: float = float(def.cost) * count
+	return {"gold": gold, "ic": float(def.ic) * count, "total": gold, "blocked": ""}
 
 
 ## Squadrons being built in a province for a nation.

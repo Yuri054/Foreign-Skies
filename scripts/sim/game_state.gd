@@ -76,10 +76,9 @@ var province_pop_frac := PackedFloat32Array()
 var economy_sums: Dictionary = {}
 var province_gdp := PackedFloat32Array()       # GBP millions per year
 var province_industry := PackedFloat32Array()  # GBP millions per year
-## Building slots of each province, and the civilian factories it began with (the output the
-## economy was calibrated on; see Economy.deploy_factories).
-var province_slots := PackedInt32Array()
-var province_civ_base := PackedInt32Array()
+## Kt of raw materials a year one GBP million of industrial output needs (see Economy.calibrate_materials);
+## worked out from the scenario at its start, not saved.
+var materials_k := 0.0
 var province_food := PackedFloat32Array()      # people the land can feed
 var province_pool := PackedFloat32Array()      # recruitable men
 ## Indexed by province id: resource id -> potential output in thousand tonnes per year.
@@ -356,18 +355,9 @@ func load_scenario(dir: String) -> void:
 	for tag in MapData.nations:
 		nations[tag] = Nation.new(tag, MapData.nations[tag], scenario.nations.get(tag, {}))
 	_rebuild_nation_provinces()
-	Economy.deploy_factories(self)
+	materials_k = 0.0
 	Military.deploy_starting(self)
-	Military.init_equipment(self)
 	Navy.deploy_starting(self, dir)
-	Economy.recompute(self)
-	for tag in nations:
-		Production.auto_assign(nations[tag])
-	# Start with half a full reserve of everything the nation can keep a stockpile of.
-	for tag in nations:
-		for r in Economy.resource_ids():
-			if Economy.cfg.resources[r].stockpile:
-				nations[tag].stock[r] = 0.5 * nations[tag].budget.resources[r].cap
 	Economy.recompute(self)
 
 	var d: Array = scenario.start_date

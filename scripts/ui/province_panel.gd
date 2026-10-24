@@ -188,8 +188,6 @@ func show_province(id: int) -> void:
 	if GameState.province_controller[id] != owner_tag:
 		_note("Occupied by %s" % GameState.nations[GameState.province_controller[id]].display_name, Fmt.BAD)
 
-	var used := Economy.slots_used(GameState, id)
-	var slots := Economy.slots_of(GameState, id)
 	# What matters at a glance stays on the card.
 	var aura := Military.city_aura(GameState, owner_tag, id)
 	var towns: Array = GameState.cities_by_province.get(id, [])
@@ -203,7 +201,6 @@ func show_province(id: int) -> void:
 	_table([
 		["People", Fmt.thousands(population)],
 		["Output", "£%.1fM a month" % Fmt.monthly(GameState.province_gdp[id])],
-		["Slots", "%d of %d used" % [used, slots], Fmt.WARN if used >= slots else Color.WHITE],
 	], _box)
 	# The rest is under Details.
 	_section("Economy")
@@ -214,12 +211,11 @@ func show_province(id: int) -> void:
 		["Infrastructure", "%.1f" % Economy.infrastructure(GameState, id)],
 	])
 
-	var made := Economy.province_output(population, p.area * MapData.KM2_PER_PX, owner_nation,
-			GameState.province_buildings[id], GameState.province_deposit[id], GameState.province_civ_base[id])
 	var deposits: Array = []
 	for r in Economy.resource_ids():
-		if GameState.province_deposit[id].get(r, 0.0) >= Economy.cfg.min_deposit:
-			deposits.append([Economy.cfg.resources[r].name, "%s a month" % Fmt.kt(Fmt.monthly(made[r]))])
+		var deposit: float = GameState.province_deposit[id].get(r, 0.0)
+		if deposit >= Economy.cfg.materials.min_deposit:
+			deposits.append([Economy.cfg.resources[r].name, "%s a month" % Fmt.kt(Fmt.monthly(deposit * Economy.cfg.materials.extraction_base))])
 	if not deposits.is_empty():
 		_section("Deposits")
 		_table(deposits)

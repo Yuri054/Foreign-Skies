@@ -22,10 +22,6 @@
 			"ic": 10000,
 			"build_days": 720,
 			"min_port": 3,
-			"materials": {
-				"iron": 120,
-				"wood": 8
-			},
 			"color": "#3d4f73",
 			"capacity": 0,
 			"hull": 3.0,
@@ -43,10 +39,6 @@
 			"ic": 4000,
 			"build_days": 420,
 			"min_port": 2,
-			"materials": {
-				"iron": 40,
-				"wood": 4
-			},
 			"color": "#4a6a8a",
 			"capacity": 0,
 			"hull": 1.5,
@@ -64,10 +56,6 @@
 			"ic": 1500,
 			"build_days": 200,
 			"min_port": 1,
-			"materials": {
-				"iron": 8,
-				"wood": 1
-			},
 			"color": "#6a8aa8",
 			"capacity": 0,
 			"hull": 1.0,
@@ -85,10 +73,6 @@
 			"ic": 1200,
 			"build_days": 240,
 			"min_port": 1,
-			"materials": {
-				"iron": 6,
-				"wood": 1
-			},
 			"color": "#33404f",
 			"capacity": 0,
 			"hull": 0.8,
@@ -106,10 +90,6 @@
 			"ic": 1000,
 			"build_days": 150,
 			"min_port": 1,
-			"materials": {
-				"iron": 20,
-				"wood": 5
-			},
 			"color": "#8a7a4a",
 			"capacity": 40000,
 			"hull": 1.0,

@@ -48,8 +48,7 @@ func power() -> float:
 	var total := 0.0
 	for s in ships:
 		total += s.power()
-	var nation: Nation = GameState.nations.get(tag)
-	return total * (Military.readiness_power(nation.navy_ready) if nation != null else 1.0)
+	return total
 
 
 ## Mean morale, weighted by strength.

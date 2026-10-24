@@ -1,8 +1,8 @@
 class_name RaiseShips
 extends Command
-## Starts building squadrons in a port the nation owns and holds. Materials are paid up
-## front (from the stockpile, any shortfall is bought at a markup); the hull itself costs IC from
-## the nation's construction pool each day. The ships join a fleet in the port when launched.
+## Starts building squadrons in a port the nation owns and holds. The money is paid up front; the
+## hull itself costs IC from the nation's construction pool each day. The ships join a fleet in
+## the port when launched.
 
 var tag: String
 var province: int
@@ -23,8 +23,6 @@ func execute(gs: Node) -> bool:
 	var n: Nation = gs.nations[tag]
 	var plan := Navy.ship_plan(gs, tag, ship_type, count)
 	n.treasury -= plan.total
-	for r in plan.from_stock:
-		n.stock[r] -= plan.from_stock[r]
 	var days: int = Navy.cfg.types[ship_type].build_days
 	for i in count:
 		var ic: float = Navy.cfg.types[ship_type].ic

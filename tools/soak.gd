@@ -77,21 +77,9 @@ func _check_state() -> void:
 			_bad("%s manpower %d" % [tag, n.manpower])
 		if n.weariness < 0.0 or n.weariness > 1.0 or not is_finite(n.weariness):
 			_bad("%s weariness %s" % [tag, str(n.weariness)])
-		for cat in n.equipment:
-			if not (is_finite(n.equipment[cat]) and n.equipment[cat] >= -0.001):
-				_bad("%s equipment %s = %s" % [tag, cat, str(n.equipment[cat])])
-		for r in n.stock:
-			if not (is_finite(n.stock[r]) and n.stock[r] >= -0.001):
-				_bad("%s stock %s = %s" % [tag, r, str(n.stock[r])])
 		for k in n.budget:
 			if n.budget[k] is float and not is_finite(n.budget[k]):
 				_bad("%s budget %s = %s" % [tag, k, str(n.budget[k])])
-		if n.budget.has("resources"):
-			for r in n.budget.resources:
-				for k in n.budget.resources[r]:
-					var v = n.budget.resources[r][k]
-					if v is float and not is_finite(v):
-						_bad("%s resource %s.%s = %s" % [tag, r, k, str(v)])
 		for id in n.provinces:
 			if id < 1 or id >= count or gs.province_owner[id] != tag:
 				_bad("%s lists province %d it does not own" % [tag, id])
@@ -101,13 +89,6 @@ func _check_state() -> void:
 				_bad("%s builds in foreign province %d" % [tag, job.province])
 			if job.points_left < -0.001 or job.points_left > job.points_total + 0.001:
 				_bad("%s job points %s of %s" % [tag, str(job.points_left), str(job.points_total)])
-		var assigned := 0
-		for line in n.production_lines:
-			if line.factories < 0:
-				_bad("%s line with %d factories" % [tag, line.factories])
-			assigned += line.factories
-		if assigned > _k("production").total_factories(n):
-			_bad("%s assigns %d of %d factories" % [tag, assigned, _k("production").total_factories(n)])
 	for id in gs.armies:
 		var a = gs.armies[id]
 		if not gs.nations.has(a.tag):
@@ -139,7 +120,7 @@ func _state_hash() -> int:
 	var h := 17
 	for tag in gs.nations:
 		var n = gs.nations[tag]
-		h = hash([h, tag, snappedf(n.treasury, 0.001), n.manpower, n.provinces.size(), n.construction.size(), n.production_lines.size(), snappedf(n.war_support, 0.001), n.economy_law])
+		h = hash([h, tag, snappedf(n.treasury, 0.001), n.manpower, n.provinces.size(), n.construction.size(), snappedf(n.war_support, 0.001)])
 	for id in range(1, gs.province_owner.size()):
 		h = hash([h, gs.province_owner[id], gs.province_controller[id]])
 	var ids: Array = gs.armies.keys()
@@ -201,12 +182,12 @@ func _fuzz() -> void:
 	for i in count:
 		var tag := _tag()
 		var cmd = null
-		match rng.randi() % 16:
+		match rng.randi() % 10:
 			0:
-				var types := ["factory", "military_factory", "port", "railway", "trench", "fortification", "haber_bosch", "naval_dockyard", "bogus"]
+				var types := ["factory", "port", "railway", "trench", "fortification", "bogus"]
 				cmd = _k("construct_building").new(tag, _province(tag), types[rng.randi() % types.size()])
 			1:
-				var types2 := ["factory", "military_factory", "trench", "fortification", "railway"]
+				var types2 := ["factory", "trench", "fortification", "railway"]
 				cmd = _k("mass_construct_building").new(tag, types2[rng.randi() % types2.size()], rng.randi_range(0, 30), rng.randf_range(0.0, 60000.0))
 			2:
 				cmd = _k("move_army").new(tag, _army_id(tag), _province(tag) if rng.randf() < 0.5 else _province())
@@ -214,37 +195,21 @@ func _fuzz() -> void:
 				var kinds := ["infantry", "cavalry", "artillery", "bogus"]
 				cmd = _k("raise_units").new(tag, _province(tag), kinds[rng.randi() % kinds.size()], rng.randi_range(0, 4))
 			4:
-				var cats := ["arms", "artillery", "shells", "bogus"]
-				var n = gs.nations.get(tag)
-				var line := 0
-				if n != null and not n.production_lines.is_empty() and rng.randf() < 0.8:
-					line = n.production_lines[rng.randi() % n.production_lines.size()].id
-				cmd = _k("set_production_line").new(tag, line, cats[rng.randi() % cats.size()], rng.randi_range(-1, 8))
-			5:
-				cmd = _k("set_production_auto").new(tag, rng.randf() < 0.5)
-			6:
-				var laws: Array = _k("economy").law_ids() + ["bogus"]
-				cmd = _k("set_economy_law").new(tag, laws[rng.randi() % laws.size()])
-			7:
 				var pol := ["tax_rate", "mobilization", "bogus"]
 				cmd = _k("set_economy_policy").new(tag, pol[rng.randi() % pol.size()], rng.randf_range(-0.2, 1.4))
-			8:
-				cmd = _k("convert_factory").new(tag, _province(tag), "military_factory" if rng.randf() < 0.5 else "factory")
-			9:
+			5:
 				cmd = _k("declare_war").new(tag, _tag())
-			10:
+			6:
 				cmd = _k("propose_peace").new(tag, _tag(), "demand" if rng.randf() < 0.5 else "offer", [])
-			11:
-				var progs := ["agri_subsidies", "education", "industrial_subsidies", "bogus"]
-				cmd = _k("set_program").new(tag, progs[rng.randi() % progs.size()], rng.randf() < 0.5)
-			12:
+			7:
 				cmd = _k("split_army").new(tag, _army_id(tag), [0] as Array[int])
-			13:
+			8:
 				cmd = _k("buy_points").new(tag)
-			14:
-				cmd = _k("gift").new(tag, _tag(), rng.randf_range(-5.0, 20.0))
-			15:
-				var ids: Array[int] = [_army_id(tag), _army_id(tag)]
-				cmd = _k("merge_armies").new(tag, ids)
+			9:
+				if rng.randf() < 0.5:
+					cmd = _k("gift").new(tag, _tag(), rng.randf_range(-5.0, 20.0))
+				else:
+					var ids: Array[int] = [_army_id(tag), _army_id(tag)]
+					cmd = _k("merge_armies").new(tag, ids)
 		if cmd != null:
 			gs.issue(cmd)

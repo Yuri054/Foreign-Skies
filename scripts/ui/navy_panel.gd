@@ -575,13 +575,7 @@ func _refresh_yard() -> void:
 		_yard_info.text = "Select one of your coastal provinces on the map to build ships there."
 	var problem := Navy.build_problem(GameState, tag, _province, type, count) if ok_province else "Select a coastal province of yours."
 	var def: Dictionary = Navy.cfg.types[type]
-	var mats: PackedStringArray = []
-	for r in def.materials:
-		mats.append("%s %s" % [Fmt.kt(def.materials[r] * count), Economy.cfg.resources[r].name.to_lower()])
-	var cost := "%s IC, at least %d days, needs a level %d port, %s" % [Fmt.thousands(roundi(def.ic * count)), def.build_days, def.min_port, ", ".join(mats)]
-	if ok_province and problem.is_empty() or (ok_province and problem.begins_with("Not enough money")):
-		var bought: float = Navy.ship_plan(GameState, tag, type, count).purchase
-		cost = "%s IC, at least %d days%s" % [Fmt.thousands(roundi(def.ic * count)), def.build_days, ", £%.1fM of imported materials" % bought if bought > 0.0 else ""]
+	var cost := "£%.1fM, %s IC, at least %d days, needs a level %d port" % [def.cost * count, Fmt.thousands(roundi(def.ic * count)), def.build_days, def.min_port]
 	_build.disabled = not problem.is_empty()
 	_build_label.text = cost if problem.is_empty() else "%s (%s)" % [problem, cost]
 	_build_label.modulate = Color.WHITE if problem.is_empty() else Fmt.WARN

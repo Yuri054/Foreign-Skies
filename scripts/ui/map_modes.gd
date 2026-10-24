@@ -84,12 +84,11 @@ func _build_groups() -> void:
 		{"label": "Economy", "tip": "Tax income, coal, iron and timber deposits, and buildings.", "items": economy},
 		{"label": "Population", "tip": "People living in each province.",
 				"items": [{"label": "Population", "mode": MapView.Mode.POPULATION, "sub": "", "tip": ""}]},
-		{"label": "Military", "tip": "Who holds the ground, where the fronts are, how many men stand where and how well they are equipped, and who holds the sea.",
+		{"label": "Military", "tip": "Who holds the ground, where the fronts are, how many men stand where, and who holds the sea.",
 				"items": [
 					{"label": "Control", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_CONTROL, "tip": "Who holds each province: occupied provinces are painted solid in the occupier's colour."},
 					{"label": "Front line", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_FRONT, "tip": "Provinces held next to an enemy at war are lit red; the rear is dimmed."},
 					{"label": "Strength", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_STRENGTH, "tip": "Men stationed in each province, of every nation."},
-					{"label": "Equipment", "mode": MapView.Mode.MILITARY, "sub": MapView.MIL_EQUIPMENT, "tip": "How much of the equipment they need the armies in each province hold: red none, green all."},
 					{"label": "Sea control", "mode": MapView.Mode.SEA_CONTROL, "sub": "", "tip": "Sea zones tinted by the nation whose warships hold them; dark red where enemy fleets contest them."},
 					{"label": "Blockade", "mode": MapView.Mode.BLOCKADE, "sub": "", "tip": "Nations shaded by how much of their trade is cut off; their ports hatched; sea zones tinted by who holds them."},
 				]},

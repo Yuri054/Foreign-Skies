@@ -44,8 +44,6 @@ var agri_yield := 1.0
 var tax_rate := 0.10
 ## 0 = peacetime army only, 1 = the whole manpower pool is called up.
 var mobilization := 0.0
-## Enabled national programs: program id -> true.
-var programs: Dictionary = {}
 ## Buildings under construction, in the order they are served: {province, type, points_total,
 ## points_left, rate, given, days_total, days_left} (see Economy.new_job). construction_used is
 ## how many of the day's construction points they took.
@@ -61,16 +59,6 @@ var blockade_applied := 0.0
 ## A level (0..1) that overrides the navy, for tests and scenarios that must not depend on the
 ## fleets; negative means the navy decides.
 var blockade_pinned := -1.0
-## The economy law in force (see Economy.law_of) and the day it last changed.
-var economy_law := "civilian"
-var law_changed_day := -1000
-## How well the army and the navy are funded (1 = the usual upkeep; the economy law sets the
-## most, Economy.funding_cap) and how ready they are: readiness drifts toward the funding a
-## little each day (Military.step_readiness) and is what the forces fight with.
-var army_funding := 1.0
-var navy_funding := 1.0
-var army_ready := 1.0
-var navy_ready := 1.0
 ## Soldiers in service at mobilization 0.
 var peacetime_army := 0
 ## Yearly naval cost, GBP millions: the shore establishment plus the upkeep of the ships (set
@@ -89,26 +77,8 @@ var manpower := 0
 var men_in_units := 0
 ## Units in training: {type, province, days_left}.
 var recruiting: Array[Dictionary] = []
-## Resource id -> multiplier on this nation's industrial and household demand for it
-## (calibrated so the 1913 trade pattern is about right).
-var intensity: Dictionary = {}
-## Equipment in store, not yet issued to a unit: category id -> amount (see "equipment" in
-## data/military.json).
-var equipment: Dictionary = {}
-## Equipment production lines (see Production): {id, category, factories, days, made, limit}.
-## While lines_auto is set the factories are shared out by the rules in Production.
-var production_lines: Array[Dictionary] = []
-var lines_auto := true
-## GBP millions spent on equipment in all (the lines pay out of the treasury each day).
-var equipment_spent := 0.0
-var next_line_id := 1
-## Stockpile of each resource that keeps one (coal and chemicals), in thousand tonnes: resource id
-## -> amount. The others are flows (see Flows).
-var stock: Dictionary = {}
-## How much of its chemicals industry the nation has (a multiplier on what its industry makes).
-var chem := 0.5
-## Draft animals the army needs, kt a year (kept up to date by Military.refresh_men).
-var animal_need := 0.0
+## Multiplier on what this nation's industry needs in raw materials (1 unless the scenario says otherwise).
+var materials_need_mult := 1.0
 ## National focus (see Focus): the one being worked on, {id, days_left, days_total} or {}; the
 ## ones finished; and the summed lasting effects of those (gdp, industry, food, trade, growth,
 ## diplomacy, construction).
@@ -136,17 +106,11 @@ func _init(p_tag: String, static_data: Dictionary, scenario_data: Dictionary) ->
 	agri_yield = scenario_data.get("agri_yield", 1.0)
 	tax_rate = scenario_data.get("tax_rate", Economy.cfg.default_tax_rate)
 	mobilization = scenario_data.get("mobilization", 0.0)
-	economy_law = scenario_data.get("economy_law", "civilian")
 	pop_growth = float(scenario_data.get("pop_growth", 0.01))
 	peacetime_army = int(scenario_data.get("peacetime_army", 0))
 	naval_budget = scenario_data.get("naval_budget", 0.0)
 	manpower = peacetime_army
-	intensity = scenario_data.get("intensity", {})
-	chem = float(scenario_data.get("chemicals", 0.5))
-	for r in Economy.resource_ids():
-		stock[r] = 0.0
-	for cat in Military.equipment_ids():
-		equipment[cat] = 0.0
+	materials_need_mult = float(scenario_data.get("materials_need_mult", 1.0))
 
 
 ## Everyone in service: the reserve plus the men in armies and training.

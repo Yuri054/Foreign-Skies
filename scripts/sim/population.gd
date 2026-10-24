@@ -24,9 +24,6 @@ static func _add(gs: Node, id: int, delta: float) -> float:
 	if now + whole < floor_pop:
 		whole = int(floor_pop) - now
 	gs.province_population[id] = now + whole
-	# A province with more people has room for more factories, and does not lose it again.
-	if id < gs.province_slots.size():
-		gs.province_slots[id] = maxi(gs.province_slots[id], ceili(float(now + whole) / float(Economy.cfg.factories.slot_pop)))
 	gs.province_pop_frac[id] = total - whole if now + whole > floor_pop else 0.0
 	return float(whole)
 

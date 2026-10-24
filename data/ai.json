@@ -123,7 +123,7 @@
 		}
 	},
 	"budget": {
-		"_note": "AIBudget, once a month. Taxes: up by tax_step (to tax_max, or tax_max_war at war) when the nation is in debt and cannot repay it in repay_months, or runs a deficit its treasury cannot carry for cushion_months; down toward the default when it is in surplus with more than rich_months of expenses in the bank. Programs: all dropped, one a month, when the treasury is under program_floor and the budget in deficit; the programs in program_order taken up, one a month, when the budget keeps program_margin after their cost and the treasury is twice program_floor. Buildings: one a month, at most max_construction at a time, only when net is at least build_min_net; among the candidates richest provinces, the capital and ground behind the fronts, the one with the best yearly return per pound (min_return; food counts food_value, a foreign ministry diplomacy_value while points are short, a railway near a front front_railway_bonus of the province's output, the capital times capital_multiplier), leaving build_floor in the treasury (double at war). Points: in a crisis, a batch is bought when the stock is under buy_below and buy_floor stays in the treasury.",
+		"_note": "AIBudget, once a month. Taxes: up by tax_step (to tax_max, or tax_max_war at war) when the nation is in debt and cannot repay it in repay_months, or runs a deficit its treasury cannot carry for cushion_months; down toward the default when it is in surplus with more than rich_months of expenses in the bank. Buildings: one a month, at most max_construction at a time, only when net is at least build_min_net; among the candidates richest provinces, the capital and ground behind the fronts, the one with the best yearly return per pound (min_return; food counts food_value, a railway near a front front_railway_bonus of the province's output, the capital times capital_multiplier), leaving build_floor in the treasury (double at war). Points: in a crisis, a batch is bought when the stock is under buy_below and buy_floor stays in the treasury.",
 		"enabled": true,
 		"tax_step": 0.02,
 		"tax_max": 0.25,
@@ -131,39 +131,17 @@
 		"repay_months": 18,
 		"cushion_months": 6,
 		"rich_months": 12,
-		"program_floor": 10,
-		"program_margin": 1.0,
-		"program_order": [
-			"diplomatic_service",
-			"education"
-		],
 		"max_construction": 2,
 		"build_min_net": 0.0,
 		"build_floor": 10,
 		"candidates": 8,
 		"min_return": 0.05,
 		"food_value": 0.5,
-		"diplomacy_value": 3.0,
 		"front_railway_bonus": 0.05,
 		"front_works_bonus": 0.08,
 		"capital_multiplier": 1.5,
-		"slot_value": 0.5,
 		"buy_below": 30,
 		"buy_floor": 10
-	},
-	"production": {
-		"_note": "AIProduction, once a month, after the budget. Lines: the military factories are shared by the automatic split bent toward the equipment the army lacks most by deficit_weight (nothing changes while nothing is lacking). Law: total_mobilization at war when the worst deficit is at least total_deficit and war support at least total_min_support; war_economy at war from war_deficit; early_mobilization at any war or from the mobilization level early_mobilization; otherwise civilian. Funding: at war a nation funds its army and navy at war_funding (as far as its law allows) while its treasury holds funding_months of expenses, else at the usual. Factories: AIBudget counts a military factory as worth factory_value times the worst deficit a year (times war_factor at war).",
-		"enabled": true,
-		"deficit_weight": 0.6,
-		"early_mobilization": 0.2,
-		"war_deficit": 0.25,
-		"total_deficit": 0.6,
-		"total_min_support": 40,
-		"factory_value": 20.0,
-		"war_factor": 1.5,
-		"nitrate_value": 2.0,
-		"war_funding": 1.2,
-		"funding_months": 3
 	},
 	"diplomacy": {
 		"_note": "AIDiplomacy. join: value = kind[kind] + w_ally_relation * opinion of the ally + w_enemy_relation * dislike of the enemies + w_border * share of enemies at its border + w_odds * (own side's share of power - 0.5) * 2 + w_support * war support above 50 - w_debt * debt (in months of revenue, at most 1) + w_decline * what declining costs; it joins at threshold. war: desire = w_hostile * dislike + w_grievance * grievance + w_plan if it has a plan against the target + w_cb if it has a casus belli; it never declares on a nation it made peace with in the last truce_days, nor without a motive of at least min_motive (desire without the casus belli); it declares when desire * (0.5 + aggression) reaches declare_threshold and the odds (its side's power over the target's side, with allies and guarantors) reach its required odds times odds_margin. With no casus belli it also needs a plan, aggression of at least unjustified_min_aggression, odds of unjustified_odds, and room under the cap (unjustified_share_max in this file). treaties: once a month it may propose the treaty of greatest value at least propose_threshold (alliance: w_need * how much stronger a hostile neighbour is + w_bloc + w_relation; guarantee: w_menace * the menace to the guaranteed + w_bloc + w_relation; nap: w_need + w_relation; passage: w_passage when an enemy lies beyond a neutral) and improve relations with a friend (within improve_window of the alliance bar) or a strong neighbour (improve_threshold), always keeping points_reserve diplomacy points. rival_relation: a neighbour below it is a rival.",

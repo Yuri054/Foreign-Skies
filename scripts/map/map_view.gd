@@ -84,15 +84,12 @@ const CONSTRUCT_BOTH := Color(0.2, 0.7, 0.7)
 const CONSTRUCT_HAVE := Color(0.25, 0.45, 0.82)
 const ALL_BUILDINGS := "all"
 ## Military mode (the variant is the submode): who holds the ground, where the front is, how many
-## men stand in each province, and how well they are equipped.
+## men stand in each province.
 const MIL_CONTROL := "control"
 const MIL_FRONT := "front"
 const MIL_STRENGTH := "strength"
-const MIL_EQUIPMENT := "equipment"
 const FRONT_HOT := Color(0.86, 0.2, 0.16)
 const STRENGTH_COLOR := Color(0.85, 0.35, 0.2)
-const EQUIP_LOW := Color(0.85, 0.2, 0.16)
-const EQUIP_HIGH := Color(0.3, 0.75, 0.35)
 const LOOKUP_WIDTH := 256
 
 var mode: Mode = Mode.POLITICAL
@@ -144,10 +141,8 @@ var land_zoom_floor := 0.0:
 		_land_zoom = -1.0
 var _land_zoom := -1.0
 var _land_textures := {}
-## Military mode's figures, worked out once per repaint: men in each province, and the men-
-## weighted equipment coverage of the armies there.
+## Military mode's figures, worked out once per repaint: men in each province.
 var _men_at := {}
-var _coverage_at := {}
 ## Largest value of the current mode, for the legend and the color scale.
 var _max_value := 0.0
 
@@ -268,7 +263,7 @@ func submodes(for_mode: Mode = mode) -> Array:
 			for type in Economy.building_ids():
 				list.append([type, Economy.cfg.buildings[type].name])
 		Mode.MILITARY:
-			list = [[MIL_CONTROL, "Control"], [MIL_FRONT, "Front line"], [MIL_STRENGTH, "Strength"], [MIL_EQUIPMENT, "Equipment"]]
+			list = [[MIL_CONTROL, "Control"], [MIL_FRONT, "Front line"], [MIL_STRENGTH, "Strength"]]
 	return list
 
 
@@ -525,12 +520,9 @@ func _paint_color(id: int, value: float) -> Color:
 	return NO_DATA_COLOR.lerp(_mode_color(), 0.25 + 0.75 * _scale(value))
 
 
-## Men and equipment coverage of the armies standing in each province (embarked ones are at sea).
+## Men of the armies standing in each province (embarked ones are at sea).
 func _count_forces() -> void:
 	_men_at.clear()
-	_coverage_at.clear()
-	var covered := {}
-	var known := {}
 	for a: Army in GameState.armies.values():
 		if a.embarked():
 			continue
@@ -539,11 +531,6 @@ func _count_forces() -> void:
 			continue
 		var men := Intel.men_seen(GameState, a)
 		_men_at[a.province] = _men_at.get(a.province, 0.0) + men
-		if level == Intel.EXACT:
-			covered[a.province] = covered.get(a.province, 0.0) + Military.army_coverage(a) * men
-			known[a.province] = known.get(a.province, 0.0) + men
-	for id: int in covered:
-		_coverage_at[id] = covered[id] / maxf(known[id], 1.0)
 	_max_value = 0.0
 	for id: int in _men_at:
 		_max_value = maxf(_max_value, _men_at[id])
@@ -568,10 +555,6 @@ func military_color(id: int) -> Color:
 		MIL_STRENGTH:
 			var men: float = _men_at.get(id, 0.0)
 			return NO_DATA_COLOR.darkened(0.45) if men <= 0.0 else NO_DATA_COLOR.lerp(STRENGTH_COLOR, 0.25 + 0.75 * _scale(men))
-		MIL_EQUIPMENT:
-			if not _coverage_at.has(id):
-				return NO_DATA_COLOR.darkened(0.45)
-			return EQUIP_LOW.lerp(EQUIP_HIGH, clampf(_coverage_at[id], 0.0, 1.0))
 	return held
 
 
@@ -630,8 +613,6 @@ func legend() -> Dictionary:
 			MIL_STRENGTH:
 				return {"title": "Men stationed", "low": "none", "high": Fmt.people(_max_value) if _max_value > 0.0 else "none",
 						"from": NO_DATA_COLOR.lerp(STRENGTH_COLOR, 0.25), "to": STRENGTH_COLOR}
-			MIL_EQUIPMENT:
-				return {"title": "Equipment held", "low": "0%", "high": "100%", "from": EQUIP_LOW, "to": EQUIP_HIGH}
 		return {}
 	if mode != Mode.RESOURCES and not MODE_COLORS.has(mode):
 		return {}
