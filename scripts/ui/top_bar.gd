@@ -57,13 +57,15 @@ func _ready() -> void:
 	# The figures.
 	var money := HBoxContainer.new()
 	money.add_theme_constant_override("separation", 6)
+	money.add_child(Icons.rect("coin"))
 	money.add_child(_treasury)
 	money.add_child(_net)
 	_chips["treasury"] = _chip(money)
-	_chips["population"] = _chip(_population)
-	_chips["manpower"] = _chip(_manpower)
+	_chips["population"] = _chip(_with_icon("people", _population))
+	_chips["manpower"] = _chip(_with_icon("soldier", _manpower))
 	var points_box := HBoxContainer.new()
 	points_box.add_theme_constant_override("separation", 5)
+	points_box.add_child(Icons.rect("scroll"))
 	points_box.add_child(_points)
 	points_box.add_child(_points_gain)
 	_chips["points"] = _chip(points_box)
@@ -156,6 +158,14 @@ func _points_tip(n: Nation) -> String:
 
 
 ## A small dark box around a figure.
+func _with_icon(icon_name: String, label: Label) -> Control:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 5)
+	box.add_child(Icons.rect(icon_name))
+	box.add_child(label)
+	return box
+
+
 func _chip(content: Control) -> PanelContainer:
 	var chip := PanelContainer.new()
 	var style := StyleBoxFlat.new()
@@ -208,9 +218,9 @@ func _refresh() -> void:
 		var net: float = n.budget.get("net", 0.0) / 12.0
 		_net.text = "%+.1f" % net
 		_net.modulate = Fmt.GOOD if net >= 0.0 else Fmt.BAD
-		_population.text = "Pop %.1fM" % (n.population / 1_000_000.0)
-		_manpower.text = "Manpower %dk" % roundi(n.manpower / 1000.0)
-		_points.text = "Diplomacy %d" % roundi(n.diplomacy_points)
+		_population.text = "%.1fM" % (n.population / 1_000_000.0)
+		_manpower.text = "%dk" % roundi(n.manpower / 1000.0)
+		_points.text = "%d" % roundi(n.diplomacy_points)
 		var income := Diplomacy.point_income(GameState, n.tag)
 		_points_gain.text = "+%.1f" % income
 		_points_gain.modulate = Fmt.GOOD

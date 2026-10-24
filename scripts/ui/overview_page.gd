@@ -64,6 +64,13 @@ func _grid() -> GridContainer:
 	return g
 
 
+const ICONS := {
+	"Treasury": "coin", "Population": "people", "Net a month": "coin", "Under arms": "soldier", "Income": "tax", "Reserve": "soldier",
+	"Spending": "coin", "Mobilization": "soldier", "Tax rate": "tax", "War support": "shield", "Industry": "factory",
+	"Prestige": "star", "Raw materials": "iron", "Diplomacy points": "scroll",
+}
+
+
 func _pair(g: GridContainer, name_text: String, value: String, color := Color.WHITE, tip := "") -> void:
 	var a := Label.new()
 	a.text = name_text
@@ -78,7 +85,15 @@ func _pair(g: GridContainer, name_text: String, value: String, color := Color.WH
 		b.tooltip_text = tip
 		a.mouse_filter = Control.MOUSE_FILTER_PASS
 		b.mouse_filter = Control.MOUSE_FILTER_PASS
-	g.add_child(a)
+	if ICONS.has(name_text):
+		var box := HBoxContainer.new()
+		box.add_theme_constant_override("separation", 5)
+		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.add_child(Icons.rect(ICONS[name_text], tip))
+		box.add_child(a)
+		g.add_child(box)
+	else:
+		g.add_child(a)
 	g.add_child(b)
 
 

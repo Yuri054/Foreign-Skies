@@ -60,6 +60,9 @@ func _fit_to_view() -> void:
 
 ## Adds a page as the next tab. `key` is the letter that opens it; the page is a FloatingWindow (embedded
 ## here) or a plain control with a `toggle` that calls `toggle_page`.
+const TAB_ICONS := {"Overview": "chart", "Economy": "coin", "Build": "hammer", "Military": "soldier", "Navy": "anchor", "Diplomacy": "scroll", "Focus": "star"}
+
+
 func add_page(title: String, key: String, page: Control) -> void:
 	_stack.add_child(page)
 	if page is FloatingWindow:
@@ -69,6 +72,7 @@ func add_page(title: String, key: String, page: Control) -> void:
 	page.visible = false
 	var button := Button.new()
 	button.text = title
+	button.icon = Icons.get_icon(TAB_ICONS.get(title, ""), 16)
 	button.toggle_mode = true
 	button.button_group = _group
 	button.focus_mode = Control.FOCUS_NONE

@@ -81,12 +81,12 @@ func _test_panel() -> void:
 	_check(gs.nations["FRA"].diplomacy_points == 50.0, "every nation starts with 50 diplomacy points")
 	_check(panel._points.text.begins_with("Diplomacy points: 50 (+") and panel._points.text.ends_with("a month)"), "the diplomacy panel shows them with the monthly income (%s)" % panel._points.text)
 	var bar: Node = main.get_node("UI/TopBar")
-	_check(bar._points.text == "Diplomacy 50", "and so does the top bar (%s)" % bar._points.text)
+	_check(bar._points.text == "50", "and so does the top bar (%s)" % bar._points.text)
 	gs.nations["FRA"].diplomacy_points = 73.0
 	gs.economy_updated.emit()
 	panel._refresh()
 	await process_frame
-	_check(bar._points.text == "Diplomacy 73" and panel._points.text.begins_with("Diplomacy points: 73"), "both follow the number")
+	_check(bar._points.text == "73" and panel._points.text.begins_with("Diplomacy points: 73"), "both follow the number")
 	gs.nations["FRA"].diplomacy_points = 50.0
 	gs.economy_updated.emit()
 	var ger := 0
@@ -435,7 +435,7 @@ func _test_points_ui() -> void:
 	await process_frame
 	await process_frame
 	_check(gs.nations["FRA"].diplomacy_points == 60.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 3.0), "buying gives ten points for £3M")
-	_check(panel._buy.text == "Buy 10 points (£3.8M)" and bar._points.text == "Diplomacy 60", "the price rises, and the top bar follows (%s)" % panel._buy.text)
+	_check(panel._buy.text == "Buy 10 points (£3.8M)" and bar._points.text == "60", "the price rises, and the top bar follows (%s)" % panel._buy.text)
 	gs.nations["FRA"].diplomacy_points = 200.0
 	panel._refresh()
 	_check(panel._buy.disabled and panel._buy.tooltip_text.contains("full"), "a full stock switches the button off")

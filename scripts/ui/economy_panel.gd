@@ -128,11 +128,29 @@ func _build_people() -> Control:
 
 # ---------------------------------------------------------------- small widgets
 
-func _heading(text: String) -> Label:
+## The icon for a row or heading label, by its text.
+const ICONS := {
+	"Money": "coin", "Industry": "factory", "People": "people", "Construction": "hammer", "Raw materials": "iron",
+	"Taxes": "tax", "Trade": "scales", "Exports": "scales", "Total income": "coin", "Net per month": "coin",
+	"Civil": "flag", "Military": "soldier", "Imports": "anchor", "Interest": "coin", "Total spending": "coin",
+	"Points a day": "hammer", "In use": "hammer", "Projects": "hammer", "Industrial output": "factory", "Workers left": "people",
+	"Own deposits": "coal", "Industry needs": "factory", "Imported": "anchor", "Sold abroad": "scales", "Supplied": "iron",
+	"Population": "people", "Under arms": "soldier", "Reserve": "soldier", "Most that may be called up": "soldier",
+	"Food": "wheat", "War support": "shield", "War weariness": "shield",
+}
+
+
+func _heading(text: String) -> Control:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_color_override("font_color", Color(0.75, 0.82, 0.95))
-	return l
+	if not ICONS.has(text):
+		return l
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 5)
+	box.add_child(Icons.rect(ICONS[text]))
+	box.add_child(l)
+	return box
 
 
 func _clear(box: Control) -> void:
@@ -162,6 +180,14 @@ func _cell(g: GridContainer, text: String, column := -1, color := Color.WHITE, t
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	else:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if column == 0 and ICONS.has(text):
+		var box := HBoxContainer.new()
+		box.add_theme_constant_override("separation", 5)
+		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.add_child(Icons.rect(ICONS[text], tip))
+		box.add_child(l)
+		g.add_child(box)
+		return l
 	g.add_child(l)
 	return l
 
