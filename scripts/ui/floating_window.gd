@@ -144,7 +144,8 @@ func setup_window(p_title: String, p_closable := true, window_size := Vector2(42
 	get_viewport().size_changed.connect(_clamp_to_view)
 	visibility_changed.connect(func() -> void:
 		if visible:
-			move_to_front()
+			if host == null:
+				move_to_front.call_deferred()
 			_clamp_to_view.call_deferred()
 	)
 
