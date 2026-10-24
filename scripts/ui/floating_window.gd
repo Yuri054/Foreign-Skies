@@ -37,6 +37,9 @@ var closable := true:
 		_close_button.tooltip_text = "Close" if value else "This must be answered first"
 var min_window_width := 240.0
 
+## The NationScreen this window is a page of, if any: it then has no frame of its own (see embed).
+var host: Node = null
+
 var _title_label := Label.new()
 var _min_button := Button.new()
 var _close_button := Button.new()
@@ -146,10 +149,36 @@ func setup_window(p_title: String, p_closable := true, window_size := Vector2(42
 	)
 
 
+## Makes this window a page of a NationScreen: the title bar, the frame, the grip and the dragging go,
+## and it fills the space the screen gives it. Whether it is open is then `visible` as before, but the
+## screen shows one page at a time.
+func embed(p_host: Node) -> void:
+	host = p_host
+	_bar.visible = false
+	_grip_row.visible = false
+	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	_holder.add_theme_constant_override("margin_left", 0)
+	_holder.add_theme_constant_override("margin_right", 0)
+	_holder.add_theme_constant_override("margin_top", 0)
+	_holder.add_theme_constant_override("margin_bottom", 0)
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+
+## Opens or closes the window: a page of a screen opens the screen on it (or closes the screen if the page
+## is showing); a window of its own shows or hides.
+func toggle_window() -> void:
+	if host != null:
+		host.toggle_page(self)
+	else:
+		visible = not visible
+
+
 ## Fits the height to the content (the height of what the window holds, without the
 ## frame) unless the player has resized the window or it is minimized.
 func fit_window(content_height: float) -> void:
-	if user_sized or minimized or not is_inside_tree():
+	if host != null or user_sized or minimized or not is_inside_tree():
 		return
 	var view := get_viewport_rect().size
 	var room := maxf(view.y - position.y - BOTTOM_CLEARANCE, 160.0)
@@ -161,6 +190,9 @@ func fit_window(content_height: float) -> void:
 
 func close_window() -> void:
 	if not closable:
+		return
+	if host != null:
+		host.close_screen()
 		return
 	visible = false
 	closed.emit()
@@ -190,7 +222,7 @@ func set_minimized(value: bool) -> void:
 
 
 func _clamp_to_view() -> void:
-	if not is_inside_tree():
+	if host != null or not is_inside_tree():
 		return
 	var view := get_viewport_rect().size
 	position.x = clampf(position.x, 40.0 - size.x, maxf(view.x - 40.0, 0.0))
@@ -276,7 +308,7 @@ func _topmost_at(point: Vector2) -> bool:
 
 
 func _input(event: InputEvent) -> void:
-	if not visible:
+	if not visible or host != null:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if not event.pressed:

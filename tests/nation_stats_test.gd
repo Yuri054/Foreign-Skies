@@ -55,17 +55,13 @@ func _initialize() -> void:
 	var win: Node = get_first_node_in_group("nation_stats")
 	_check(win != null and win.has_method("setup_window"), "the nation stats window exists and is a window")
 	_check(not win.visible, "and starts closed")
-	_key(win, KEY_N)
+	win.toggle()
 	await process_frame
-	_check(win.visible, "N opens it")
-	_key(win, KEY_N, true)
-	_check(win.visible, "Ctrl and N does not close it")
-	var bar: Node = main.get_node("UI/TopBar")
-	_check(bar._nation_button.button_pressed and bar._nation_button.text == "Nation", "the top bar's Nation button is lit")
+	_check(win.visible, "toggle opens it (a right click on the map does too)")
 
 	_check(win.shown_tag() == "FRA" and win._name.text == "France" and win._flag.tag == "FRA", "it shows the player's nation, with its flag")
 	var text: String = _text(win)
-	for needle in ["your nation", "Capital", "Paris", "Population", "Output a month", "Net per month", "Treasury", "Under arms", "Mobilization", "War support", "Diplomacy points", "Alliances", "Russian Empire", "At war with", "nobody", "Coal"]:
+	for needle in ["your nation", "Capital", "Paris", "Population", "Output a month", "Net per month", "Treasury", "Under arms", "Mobilization", "War support", "Diplomacy points", "Alliances", "Russian Empire", "At war with", "nobody", "Raw materials"]:
 		_check(text.contains(needle), "it lists %s" % needle)
 	_check(text.contains("#") and text.contains(" of 22"), "and ranks the figures that can be compared")
 	_check(not text.contains("Opinion of you"), "there is no opinion of yourself")
@@ -114,7 +110,7 @@ func _initialize() -> void:
 	await process_frame
 	_check(win.shown_tag() == "GBR" and win._name.text == "United Kingdom", "changing the player's nation brings the window back to the player")
 	win.close_window()
-	_check(not win.visible and not bar._nation_button.button_pressed, "the X closes it and unlights the button")
+	_check(not win.visible, "the X closes it")
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_settings.cfg"))
 	print("FAILURES: ", _failures)

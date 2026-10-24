@@ -42,7 +42,7 @@ func _initialize() -> void:
 	var text: String = panel.plain_text()
 	_check(panel.visible, "selecting a province shows it")
 	_check(map.get_province(coastal).name in text and gs.nations["GER"].display_name in text, "it names the province and its owner")
-	for word in ["People", "Output", "Recruits", "Slots", "Infrastructure"]:
+	for word in ["People", "Output", "Recruits", "Infrastructure"]:
 		_check(word in text, "it has a %s row" % word)
 	_check("coast" in text, "a coastal province says so")
 

@@ -92,7 +92,7 @@ func _scrolled(content: Control, tab_name: String) -> ScrollContainer:
 
 
 func toggle() -> void:
-	visible = not visible
+	toggle_window()
 	if visible:
 		_refresh()
 

@@ -1,10 +1,10 @@
-extends VBoxContainer
+extends FloatingWindow
 ## Navy overview of the player's nation: the fleets with orders (mission, merge, split, back to
 ## port), the shipyard of the selected province (build squadrons), and the state of the sea:
 ## upkeep, strength against enemies, who holds which zone and who is blockaded. Clicking a fleet
 ## banner selects its fleets (dragging a box selects every fleet inside it); a right click on
 ## water sends the selected fleets there, and a right click on a port brings them in.
-## It is a tab of the Military window; N opens it.
+## It is a tab of the Nation screen; Y opens it.
 
 const TABS := ["Fleets", "Shipyard", "Sea"]
 
@@ -67,6 +67,7 @@ func _ready() -> void:
 		_fit_height.call_deferred())
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(_tabs)
+	setup_window("Navy", true, Vector2(500, 0), 1)
 	GameState.fleets_changed.connect(_refresh)
 	GameState.economy_updated.connect(_refresh)
 	GameState.player_changed.connect(func(_t: String) -> void:
@@ -207,11 +208,10 @@ func _build_sea_tab() -> void:
 
 # ------------------------------------------------------------------ selection and orders
 
-## Opens the Military window on this tab, or closes it if it is already showing it.
+## Opens the Nation screen on this tab, or closes it if it is already showing it.
 func toggle() -> void:
-	var shown := is_visible_in_tree()
-	get_tree().call_group("military_panel", "show_tab", name, not shown)
-	if not shown:
+	toggle_window()
+	if visible:
 		_refresh()
 
 
@@ -419,13 +419,8 @@ func _refresh() -> void:
 
 
 func _fit_height() -> void:
-	get_tree().call_group("military_panel", "_fit_height")
-
-
-## Height of what the current tab holds, for the Military window to fit itself to.
-func content_height() -> float:
 	var boxes: Array[Control] = [_fleet_box, _yard_box, _sea_box]
-	return boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y + 34.0
+	fit_window(boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y + 34.0)
 
 
 static func _where(f: Fleet) -> String:
@@ -651,7 +646,7 @@ func _refresh_sea() -> void:
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_N and not event.ctrl_pressed and not event.alt_pressed:
+		if event.keycode == KEY_Y and not event.ctrl_pressed and not event.alt_pressed:
 			toggle()
 		elif event.keycode == KEY_ESCAPE and not _selected.is_empty():
 			clear_selection()

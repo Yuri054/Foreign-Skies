@@ -60,12 +60,12 @@ func _initialize() -> void:
 	var layer: Node = get_first_node_in_group("fleet_layer")
 	var military: Node = get_first_node_in_group("military_panel")
 	_check(panel != null and layer != null, "the Navy panel and the fleet layer exist")
-	var window: Node = military
-	_check(panel.get_parent().get_parent() == window._tabs or panel.get_parent() == window._tabs, "the Navy panel is a tab of the Military window")
-	panel._unhandled_key_input(_key(KEY_N))
+	var window: Node = get_first_node_in_group("nation_screen")
+	_check(panel.host == window and not military._tabs.get_children().has(panel), "the Navy panel is a tab of the Nation screen, not of the Military window")
+	panel._unhandled_key_input(_key(KEY_Y))
 	await process_frame
-	_check(window.visible and panel.is_visible_in_tree(), "N opens the Military window on the Navy tab")
-	panel._unhandled_key_input(_key(KEY_N))
+	_check(window.visible and panel.is_visible_in_tree(), "Y opens the Nation screen on the Navy tab")
+	panel._unhandled_key_input(_key(KEY_Y))
 	_check(not window.visible, "and closes it again")
 	panel.toggle()
 	await process_frame

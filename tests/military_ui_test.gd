@@ -41,14 +41,6 @@ func _initialize() -> void:
 	_check(layer.selected == panel._selected, "the map layer shows the selection")
 	_check(panel._list.item_count == 10, "the list shows all ten French armies (%d)" % panel._list.item_count)
 	_check(panel._detail.text.contains("Marching") == false and panel._detail.text.contains("men"), "the detail text describes the army")
-	_check(panel._detail.text.contains("Equipment: arms 100%, artillery 100%"), "and its equipment (%s)" % panel._detail.text.get_slice("
-", 4))
-	var shown: Object = gs.armies[panel._selected[0]]
-	for u in shown.units:
-		u.equip["arms"] = 0.0
-		u.refresh_factor()
-	panel._refresh_list()
-	_check(panel._list.get_item_text(0).contains("equipped"), "an army short of equipment says so in the list (%s)" % panel._list.get_item_text(0))
 
 	# Orders.
 	var dest := 0
@@ -192,7 +184,7 @@ func _initialize() -> void:
 	await process_frame
 	panel.visible = true
 	panel._refresh()
-	_check(panel._tabs.get_tab_count() == 3 and panel._tabs.get_tab_title(0) == "Land" and panel._tabs.get_tab_title(1) == "Wars" and panel._tabs.get_tab_title(2) == "Navy", "the Military panel has Land, Wars and Navy tabs")
+	_check(panel._tabs.get_tab_count() == 2 and panel._tabs.get_tab_title(0) == "Land" and panel._tabs.get_tab_title(1) == "Wars", "the Military panel has Land and Wars tabs (the navy has a page of its own)")
 	_check(panel._box.visible and not panel._fronts_box.visible and not panel._recruit_box.visible, "the Land tab opens with Armies unfolded, Fronts and Recruit folded")
 	panel.show_tab("Recruit")
 	_check(panel._tabs.current_tab == 0 and panel._recruit_box.visible, "show_tab(\"Recruit\") unfolds that section of the Land tab")

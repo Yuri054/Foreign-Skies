@@ -1,7 +1,6 @@
 extends SceneTree
-## Headless test of what the interface now shows about resources and war support: where each
-## resource goes and what a shortage costs, what the equipment lines draw, and what war support
-## is doing and what moves it.
+## Headless test of what the interface shows about raw materials and war support: where the
+## materials come from and what a shortage costs, and what war support is doing and what moves it.
 ## Run: godot --headless --path . -s res://tests/visibility_test.gd
 
 var _failures := 0
@@ -45,22 +44,17 @@ func _initialize() -> void:
 
 
 func _test_budget() -> void:
-	var Prod = load("res://scripts/sim/production.gd")
 	var ger = gs.nations["GER"]
-	for r in ["coal", "iron", "wood"]:
-		var info: Dictionary = ger.budget.resources[r]
-		var parts: float = info.from_industry + info.from_homes + info.from_buildings + info.from_lines + info.from_works + info.from_army
-		_check(absf(parts - info.demand) < 0.01, "%s: industry, homes and buildings make up the demand (%.0f of %.0f)" % [r, parts, info.demand])
-	var kit: Dictionary = Prod.planned_materials(ger)
-	_check(kit.get("iron", 0.0) > 0.0 and kit.get("coal", 0.0) > 0.0, "the equipment lines draw iron and coal (%s)" % str(kit))
-	ger.stock.iron = 0.0
-	ger.intensity["iron"] = 80.0
+	var mats: Dictionary = ger.budget.materials
+	_check(absf(mats.own + mats.imported - mats.need) < 0.01 or mats.own > mats.need, "own deposits and imports meet the need (%.0f + %.0f of %.0f)" % [mats.own, mats.imported, mats.need])
+	ger.blockade_pinned = 1.0
 	ger.blockade = 1.0
 	load("res://scripts/sim/economy.gd").recompute(gs)
-	var iron: Dictionary = ger.budget.resources.iron
-	_check(iron.shortage > 0.0 and iron.cost_industry > 0.0, "a shortage says what it costs (industry %.2f, output %.2f)" % [iron.cost_industry, iron.cost_gdp])
+	var cut: Dictionary = ger.budget.materials
+	_check(cut.imported == 0.0 and cut.ratio <= mats.ratio, "a blockade stops the imports (%d%% of the need)" % roundi(cut.ratio * 100.0))
+	ger.blockade_pinned = -1.0
 	ger.blockade = 0.0
-	ger.intensity["iron"] = 1.0
+	load("res://scripts/sim/economy.gd").recompute(gs)
 
 
 func _test_support() -> void:
@@ -90,8 +84,7 @@ func _test_panels() -> void:
 	eco._tabs.current_tab = 1
 	await process_frame
 	await process_frame
-	_check(_find_text(eco._resources, "Where it goes"), "the Resources tab says where each resource goes")
-	_check(_find_text(eco._resources, "Equipment"), "with a column for the equipment lines")
+	_check(_find_text(eco._industry, "Raw materials") and _find_text(eco._industry, "Own deposits"), "the Industry tab says where the raw materials come from")
 	var ger = gs.nations["GER"]
 	ger.war_support = 20.0
 	gs.set_war("GER", "FRA", true)

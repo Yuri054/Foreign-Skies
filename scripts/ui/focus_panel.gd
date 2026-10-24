@@ -74,7 +74,7 @@ func _on_day() -> void:
 
 
 func toggle() -> void:
-	visible = not visible
+	toggle_window()
 	if visible:
 		_refresh()
 

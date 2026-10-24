@@ -111,7 +111,7 @@ func connect_map() -> void:
 
 
 func toggle() -> void:
-	visible = not visible
+	toggle_window()
 
 
 func _on_visibility_changed() -> void:

@@ -658,7 +658,3 @@ func _say(text: String, color: Color) -> void:
 	_status.text = text
 	_status.modulate = color
 
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_N and not event.ctrl_pressed:
-		toggle()

@@ -52,12 +52,13 @@ func _ger() -> Object:
 func _test_open_and_colours() -> void:
 	_check(panel != null and panel.has_method("setup_window") and not panel.visible, "the Construction panel exists and starts closed")
 	var bar: Node = main.get_node("UI/TopBar")
-	_check(bar._window_buttons.has("construction_panel"), "the top bar has a button for it")
-	bar._window_buttons["construction_panel"].pressed.emit()
+	var screen: Node = get_first_node_in_group("nation_screen")
+	_check(bar._nation_button != null and panel.host == screen, "the top bar has one Nation button, and the Build panel is a tab of its screen")
+	panel.toggle()
 	await process_frame
-	_check(panel.visible, "the top bar button opens it")
+	_check(panel.visible and screen.visible, "B opens the screen on the Build tab")
 	var legend_zone := Rect2(0, root.get_visible_rect().size.y - 140.0, 620, 140)
-	_check(not panel.get_global_rect().intersects(legend_zone), "and it stays clear of the map legend and palette at the bottom left")
+	_check(not screen.get_global_rect().intersects(legend_zone), "and the screen stays clear of the map legend and palette at the bottom left (%s, view %s)" % [str(screen.get_global_rect()), str(root.get_visible_rect().size)])
 	_check(map_view.mode == MapView.Mode.CONSTRUCTION and map_view.submode == "factory", "the map shows where a civilian factory can be built")
 	_check(panel.picked() == "factory" and panel._rows["factory"].button_pressed, "the first building is picked and lit")
 	var eco_panel: Node = get_first_node_in_group("economy_panel")

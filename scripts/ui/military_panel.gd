@@ -1,13 +1,12 @@
 extends FloatingWindow
 
-const NavyPanel := preload("res://scripts/ui/navy_panel.gd")
 
 ## Military overview of the player's nation: mobilization, manpower, the list of armies with
 ## orders (merge, split, map symbol), fronts, recruiting, and a switch to put nations at war
 ## for testing until diplomacy exists. Clicking a province selects the player's armies
 ## standing there (dragging a box selects every army inside it); a right click on another
 ## province sends the selected armies to it. A front is a line of provinces drawn on the map
-## with armies assigned to it: they spread along the line and hold it. Toggle with M. Its Navy tab (N) holds the fleets, shipyard and sea state.
+## with armies assigned to it: they spread along the line and hold it. Toggle with M. The fleets, shipyard and sea state are the Navy tab of the Nation screen (Y).
 
 var _slider := HSlider.new()
 var _slider_label := Label.new()
@@ -65,7 +64,6 @@ var _release_button := Button.new()
 var _delete_button := Button.new()
 var _draw_row := VBoxContainer.new()
 var _front_name := LineEdit.new()
-var _navy := NavyPanel.new()
 
 ## Ids of the selected armies; the list mirrors it.
 var _selected: Array[int] = []
@@ -94,7 +92,6 @@ func _ready() -> void:
 	_wars_scroll.name = "Wars"
 	_tabs.add_child(_scroll)
 	_tabs.add_child(_wars_scroll)
-	_tabs.add_child(_navy)
 	_tabs.focus_mode = Control.FOCUS_NONE
 	_tabs.tab_changed.connect(func(_i: int) -> void: _fit_height.call_deferred())
 	for sc: ScrollContainer in [_scroll, _wars_scroll]:
@@ -367,7 +364,7 @@ func _ready() -> void:
 
 
 func toggle() -> void:
-	visible = not visible
+	toggle_window()
 	if visible:
 		_refresh()
 
@@ -659,8 +656,6 @@ func _fit_height() -> void:
 		return
 	var wanted: float
 	match _tabs.get_current_tab_control():
-		_navy:
-			wanted = _navy.content_height()
 		_wars_scroll:
 			wanted = _wars_box.get_combined_minimum_size().y
 		_:

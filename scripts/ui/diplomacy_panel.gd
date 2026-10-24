@@ -270,7 +270,7 @@ func _heading(text: String) -> Label:
 
 
 func toggle() -> void:
-	visible = not visible
+	toggle_window()
 	if visible:
 		_refresh()
 

@@ -9,13 +9,6 @@ extends PanelContainer
 const SPEEDS := 5
 const CHIP_COLOR := Color(0.07, 0.085, 0.11, 1.0)
 ## Window buttons: group of the window, label, key.
-const WINDOWS := [
-	["economy_panel", "Economy", "E"],
-	["construction_panel", "Build", "B"],
-	["military_panel", "Military", "M"],
-	["diplomacy_panel", "Diplomacy", "F"],
-	["focus_panel", "Focus", "O"],
-]
 
 var _flag := FlagIcon.new()
 var _nation := Label.new()
@@ -29,7 +22,6 @@ var _chips: Dictionary = {}
 var _date := Label.new()
 var _pause := Button.new()
 var _speed_buttons: Array[Button] = []
-var _window_buttons: Dictionary = {}
 var _row := HBoxContainer.new()
 var _settings_button := Button.new()
 var _nation_button := Button.new()
@@ -87,16 +79,13 @@ func _ready() -> void:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.add_child(spacer)
 
-	# Windows.
-	for w: Array in WINDOWS:
-		var b := Button.new()
-		b.text = w[1]
-		b.toggle_mode = true
-		b.focus_mode = Control.FOCUS_NONE
-		b.tooltip_text = "%s window (%s)" % [w[1], w[2]]
-		b.pressed.connect(func() -> void: get_tree().call_group(w[0], "toggle"))
-		_row.add_child(b)
-		_window_buttons[w[0]] = b
+	# The nation screen: every part of running the nation is a tab of it.
+	_nation_button.text = "Nation"
+	_nation_button.toggle_mode = true
+	_nation_button.focus_mode = Control.FOCUS_NONE
+	_nation_button.tooltip_text = "The nation: overview, economy, build, military, navy, diplomacy, focus (N; E B M Y F O open a tab)"
+	_nation_button.pressed.connect(func() -> void: get_tree().call_group("nation_screen", "toggle"))
+	_row.add_child(_nation_button)
 	_row.add_child(VSeparator.new())
 
 	# Time.
@@ -127,12 +116,6 @@ func _ready() -> void:
 
 	# The nation stats button and the settings button, a gear, at the far right.
 	_row.add_child(VSeparator.new())
-	_nation_button.text = "Nation"
-	_nation_button.toggle_mode = true
-	_nation_button.focus_mode = Control.FOCUS_NONE
-	_nation_button.tooltip_text = "Nation stats window (N)"
-	_nation_button.pressed.connect(func() -> void: get_tree().call_group("nation_stats", "toggle"))
-	_row.add_child(_nation_button)
 	_rankings_button.text = "Rankings"
 	_rankings_button.toggle_mode = true
 	_rankings_button.focus_mode = Control.FOCUS_NONE
@@ -203,19 +186,13 @@ func _draw_gear() -> void:
 ## Lights each window's button while the window is open. The windows are made after this bar,
 ## so this runs once everything exists.
 func _bind_windows() -> void:
-	for w: Array in WINDOWS:
-		var node := get_tree().get_first_node_in_group(w[0])
-		if node == null:
-			continue
-		var button: Button = _window_buttons[w[0]]
-		node.visibility_changed.connect(func() -> void: button.set_pressed_no_signal(node.visible))
-		button.set_pressed_no_signal(node.visible)
+	var screen := get_tree().get_first_node_in_group("nation_screen")
+	if screen != null:
+		screen.visibility_changed.connect(func() -> void: _nation_button.set_pressed_no_signal(screen.visible))
+		_nation_button.set_pressed_no_signal(screen.visible)
 	var ranks := get_tree().get_first_node_in_group("rankings_window")
 	if ranks != null:
 		ranks.visibility_changed.connect(func() -> void: _rankings_button.set_pressed_no_signal(ranks.visible))
-	var stats := get_tree().get_first_node_in_group("nation_stats")
-	if stats != null:
-		stats.visibility_changed.connect(func() -> void: _nation_button.set_pressed_no_signal(stats.visible))
 	var settings := get_tree().get_first_node_in_group("settings_window")
 	if settings != null:
 		settings.visibility_changed.connect(func() -> void: _settings_button.set_pressed_no_signal(settings.visible))
@@ -278,12 +255,8 @@ func _apply_level(level: int) -> void:
 	_net.visible = level < 5
 	_chips["treasury"].visible = level < 6
 	_flag.get_parent().visible = level < 5
-	_window_buttons["focus_panel"].visible = level < 4
 	_nation_button.text = "N" if level >= 3 else "Nation"
 	_rankings_button.text = "R" if level >= 2 else "Rankings"
-	for w: Array in WINDOWS:
-		var b: Button = _window_buttons[w[0]]
-		b.text = w[2] if level >= (2 if w[0] == "focus_panel" else 3) else w[1]
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

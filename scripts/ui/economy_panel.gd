@@ -42,7 +42,7 @@ func _ready() -> void:
 
 
 func toggle() -> void:
-	visible = not visible
+	toggle_window()
 	if visible:
 		_refresh()
 		_fit_tab.call_deferred()
@@ -347,3 +347,8 @@ func _refresh_people(n: Nation) -> void:
 	_cell(g, "%d" % roundi(n.war_support), 1)
 	_cell(g, "War weariness", 0, Color.WHITE, "A share of the workers lost to long wars; it eases in peace.")
 	_cell(g, "%d%%" % roundi(n.weariness * 100.0), 1)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E and not event.ctrl_pressed:
+		toggle()
