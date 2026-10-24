@@ -31,6 +31,8 @@ signal nation_collapsed(tag: String, men: int)
 signal treaty_changed(treaty: Treaty, added: bool)
 signal relations_changed(a: String, b: String)
 ## The player must answer a join decision (see Diplomacy.offer_joins); time is held until then.
+## An event asked to go back to the main menu (the set ending).
+signal menu_requested
 signal event_posted(decision: Dictionary)
 signal event_resolved(decision: Dictionary, option: int)
 ## A line for the news feed from the historical pressure (level 0 plain, 1 a warning).
@@ -165,7 +167,11 @@ var tension_bonus := 0.0
 var pressure_ai := false
 ## The month the scenario began (year * 12 + month): events dated before it are already history.
 var pressure_start := 0
+## Provinces each nation held when the scenario began (for the closing summary).
+var start_provinces: Dictionary = {}
 var events_fired: Dictionary = {}
+## Nation tag -> day before which it may not take another public stand (Pressure.appeal).
+var appeal_ready: Dictionary = {}
 var pending_events: Array[Dictionary] = []
 var next_event_uid := 1
 var chronicle: Array[Dictionary] = []
@@ -371,6 +377,10 @@ func load_scenario(dir: String) -> void:
 	var by_name := {}
 	for id in range(1, count):
 		by_name[MapData.provinces[id].name] = id
+	# The works a scenario's big cities already have (tools/make_start_buildings.py).
+	for pname: String in scenario.get("buildings", {}):
+		for type: String in scenario.buildings[pname]:
+			province_buildings[by_name[pname]][type] = int(scenario.buildings[pname][type])
 	for pname: String in scenario.get("owner_changes", {}):
 		var pid: int = by_name[pname]
 		province_owner[pid] = scenario.owner_changes[pname]

@@ -1,24 +1,12 @@
 extends FloatingWindow
-## Navy overview of the player's nation: the fleets with orders (mission, merge, split, back to
-## port), the shipyard of the selected province (build squadrons), and the state of the sea:
-## upkeep, strength against enemies, who holds which zone and who is blockaded. Clicking a fleet
-## banner selects its fleets (dragging a box selects every fleet inside it); a right click on
-## water sends the selected fleets there, and a right click on a port brings them in.
-## It is a tab of the Nation screen; Y opens it.
+## The navy page of the Nation screen (Y): the shipyard of the selected province (build squadrons) and the
+## state of the sea: upkeep, strength against enemies, who holds which zone and who is blockaded. Orders to
+## the fleets themselves (missions, merge, split, back to port) are the command panel's (C). It also keeps the
+## selection: clicking a fleet banner selects its fleets (dragging a box selects every fleet inside it); a right
+## click on water sends the selected fleets there, and a right click on a port brings them in.
 
 
 var _page := ScrollContainer.new()
-var _fleet_box := VBoxContainer.new()
-var _list := ItemList.new()
-var _detail := Label.new()
-var _mission := OptionButton.new()
-var _merge := Button.new()
-var _split_type := OptionButton.new()
-var _split_count := SpinBox.new()
-var _split := Button.new()
-var _home := Button.new()
-var _show := Button.new()
-var _deselect := Button.new()
 
 var _yard_box := VBoxContainer.new()
 var _yard_title := Label.new()
@@ -38,16 +26,12 @@ var _sea_zones_listed: Array[int] = []
 
 ## Ids of the selected fleets; the list mirrors it.
 var _selected: Array[int] = []
-var _listed: Array[int] = []
 var _province := 0
-var _updating := false
-var _split_sig := "?"
 
 
 func _ready() -> void:
 	add_to_group("navy_panel")
 	name = "Navy"
-	_build_fleets_tab()
 	_build_yard_tab()
 	_build_sea_tab()
 	_page.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -56,7 +40,7 @@ func _ready() -> void:
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 6)
 	_page.add_child(column)
-	for part: Array in [["Fleets", _fleet_box], ["Shipyard", _yard_box], ["Sea", _sea_box]]:
+	for part: Array in [["Shipyard", _yard_box], ["Sea", _sea_box]]:
 		var heading := Label.new()
 		heading.text = part[0]
 		heading.add_theme_color_override("font_color", Color(0.75, 0.82, 0.95))
@@ -85,58 +69,6 @@ func _row(label: String, control: Control) -> HBoxContainer:
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(control)
 	return row
-
-
-func _build_fleets_tab() -> void:
-	_fleet_box.add_theme_constant_override("separation", 4)
-	_fleet_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list.select_mode = ItemList.SELECT_MULTI
-	_list.custom_minimum_size = Vector2(0, 120)
-	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_list.multi_selected.connect(func(_i: int, _s: bool) -> void: _read_selection())
-	_list.item_selected.connect(func(_i: int) -> void: _read_selection())
-	_fleet_box.add_child(_list)
-	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail.custom_minimum_size = Vector2(300, 0)
-	_fleet_box.add_child(_detail)
-
-	for key in Navy.cfg.missions:
-		_mission.add_item(Navy.cfg.missions[key])
-		_mission.set_item_metadata(_mission.item_count - 1, key)
-	_mission.tooltip_text = "Standing orders: stationed, on patrol, blockading, escorting or raiding. They guide the AI's fleets and mark yours on the map."
-	_mission.item_selected.connect(_on_mission)
-	_fleet_box.add_child(_row("Orders", _mission))
-
-	var buttons := HBoxContainer.new()
-	_merge.text = "Merge"
-	_merge.tooltip_text = "Combine the selected fleets that lie together."
-	_merge.pressed.connect(_on_merge)
-	_home.text = "To port"
-	_home.tooltip_text = "Send the selected fleets to the nearest port you may use."
-	_home.pressed.connect(_on_home)
-	_show.text = "Show"
-	_show.tooltip_text = "Centre the map on the selected fleet."
-	_show.pressed.connect(_on_show)
-	_deselect.text = "Deselect"
-	_deselect.pressed.connect(clear_selection)
-	for b: Button in [_merge, _home, _show, _deselect]:
-		b.focus_mode = Control.FOCUS_NONE
-		buttons.add_child(b)
-	_fleet_box.add_child(buttons)
-
-	var split_row := HBoxContainer.new()
-	_split_type.focus_mode = Control.FOCUS_NONE
-	_split_count.min_value = 1
-	_split_count.max_value = 1
-	_split_count.value = 1
-	_split.text = "Split off"
-	_split.tooltip_text = "Detach that many squadrons of the type into a new fleet."
-	_split.focus_mode = Control.FOCUS_NONE
-	_split.pressed.connect(_on_split)
-	split_row.add_child(_split_type)
-	split_row.add_child(_split_count)
-	split_row.add_child(_split)
-	_fleet_box.add_child(split_row)
 
 
 func _build_yard_tab() -> void:
@@ -320,28 +252,9 @@ func order_port(province: int) -> bool:
 	return true
 
 
-func _read_selection() -> void:
-	if _updating:
-		return
-	_selected.clear()
-	for i in _list.get_selected_items():
-		_selected.append(_listed[i])
-	if not _selected.is_empty():
-		get_tree().call_group("military_panel", "clear_selection")
-	_sync_selection()
-	_refresh_detail()
-
-
 func _sync_selection() -> void:
 	get_tree().call_group("fleet_layer", "set_selection", _selected.duplicate())
 	get_tree().call_group("command_panel", "set_fleet_selection", _selected.duplicate())
-	_updating = true
-	for i in _listed.size():
-		if _selected.has(_listed[i]):
-			_list.select(i, false)
-		else:
-			_list.deselect(i)
-	_updating = false
 
 
 func _selected_fleets() -> Array[Fleet]:
@@ -352,56 +265,12 @@ func _selected_fleets() -> Array[Fleet]:
 	return out
 
 
-func _on_mission(index: int) -> void:
-	if _updating:
-		return
-	for f in _selected_fleets():
-		GameState.issue(SetFleetMission.new(GameState.player_tag, f.id, _mission.get_item_metadata(index)))
-	_refresh()
-
-
-func _on_merge() -> void:
-	var ids: Array[int] = _selected.duplicate()
-	if GameState.issue(MergeFleets.new(GameState.player_tag, ids)):
-		_selected = [ids[0]]
-		_sync_selection()
-		_refresh()
-
-
-func _on_split() -> void:
-	var fleets := _selected_fleets()
-	if fleets.size() != 1:
-		return
-	var type: String = _split_type.get_item_metadata(_split_type.selected)
-	var picked := SplitFleet.indices_of_type(fleets[0], type, int(_split_count.value))
-	var cmd := SplitFleet.new(GameState.player_tag, fleets[0].id, picked)
-	if GameState.issue(cmd):
-		_selected = [cmd.new_fleet_id]
-		_sync_selection()
-		_refresh()
-
-
-func _on_home() -> void:
-	for f in _selected_fleets():
-		var p := Navy.nearest_port(GameState, f)
-		if p > 0 and p != f.port:
-			GameState.issue(MoveFleet.new(GameState.player_tag, f.id, 0, p))
-	_refresh()
-
-
-func _on_show() -> void:
-	var fleets := _selected_fleets()
-	if not fleets.is_empty():
-		get_tree().call_group("camera_focus", "focus_on", FleetLayer.position_of(fleets[0]))
-
-
 # ------------------------------------------------------------------ refreshing
 
 func _refresh() -> void:
 	if not is_visible_in_tree() or GameState.get_player() == null:
 		return
-	_refresh_list()
-	_refresh_detail()
+	_selected = _selected.filter(func(id: int) -> bool: return GameState.fleets.has(id))
 	_refresh_yard()
 	_refresh_sea()
 	_fit_height.call_deferred()
@@ -411,125 +280,11 @@ func _fit_height() -> void:
 	fit_window(_page.get_child(0).get_combined_minimum_size().y + 34.0)
 
 
-static func _where(f: Fleet) -> String:
-	if f.port > 0:
-		return MapData.provinces[f.port].name
-	return "the " + MapData.sea_zones[f.zone].name
-
-
-func _refresh_list() -> void:
-	var mine := Navy.fleets_of(GameState, GameState.player_tag)
-	var ids: Array[int] = []
-	for f in mine:
-		ids.append(f.id)
-	_selected = _selected.filter(func(id: int) -> bool: return ids.has(id))
-	var rebuild := ids != _listed
-	if rebuild:
-		_list.clear()
-		_listed = ids
-	for i in mine.size():
-		var f := mine[i]
-		var text := "%s · %s · %d sq." % [f.display_name, _where(f), f.ships.size()]
-		if f.fighting:
-			text += " · FIGHTING"
-		elif f.retreating:
-			text += " · retreating"
-		elif f.is_moving():
-			text += " · sailing"
-		if rebuild:
-			_list.add_item(text)
-		else:
-			_list.set_item_text(i, text)
-		_list.set_item_custom_fg_color(i, Fmt.BAD if f.fighting else Color.WHITE)
-	if rebuild:
-		_sync_selection()
-
-
-func _refresh_detail() -> void:
-	var fleets := _selected_fleets()
-	_mission.disabled = fleets.is_empty()
-	_deselect.disabled = fleets.is_empty()
-	_home.disabled = fleets.is_empty()
-	_show.disabled = fleets.is_empty()
-	var same_place := fleets.size() >= 2 and fleets.all(func(x: Fleet) -> bool: return x.port == fleets[0].port and x.zone == fleets[0].zone)
-	_merge.disabled = not same_place
-	_refresh_split_picker(fleets[0] if fleets.size() == 1 else null)
-	if fleets.is_empty():
-		_detail.text = "No fleet selected. Click a fleet on the map, or in the list."
-		return
-	_updating = true
-	for i in _mission.item_count:
-		if _mission.get_item_metadata(i) == fleets[0].mission:
-			_mission.select(i)
-	_updating = false
-	if fleets.size() > 1:
-		var ships := 0
-		var power := 0.0
-		for f in fleets:
-			ships += f.ships.size()
-			power += f.power()
-		_detail.text = "%d fleets, %d squadrons, fighting power %.0f." % [fleets.size(), ships, power]
-		return
-	var f := fleets[0]
-	var counts: PackedStringArray = []
-	for type in f.composition():
-		counts.append("%d %s" % [f.composition()[type], Navy.cfg.types[type].name.to_lower()])
-	var strength := 0.0
-	for s in f.ships:
-		strength += s.strength
-	var lines: PackedStringArray = [
-		f.display_name,
-		", ".join(counts),
-		"Strength %d%% · morale %d%% · fighting power %.0f · speed %d km/day" % [
-				roundi(strength / maxf(f.ships.size(), 1) * 100.0), roundi(f.morale() * 100.0), f.power(), roundi(f.speed())],
-	]
-	if f.is_in_port():
-		lines.append("In %s (level %d yard)." % [MapData.provinces[f.port].name, Navy.port_level(GameState, f.port)])
-	else:
-		lines.append("At sea in the %s, %d days out of port%s." % [MapData.sea_zones[f.zone].name, f.days_out,
-				"" if f.days_out <= 0 or f.days_out <= _shortest_range(f) else " — beyond its range, wearing down"])
-	if f.is_moving():
-		var target := ""
-		if f.dest_port > 0:
-			target = MapData.provinces[f.dest_port].name
-		elif not f.path.is_empty():
-			target = "the " + MapData.sea_zones[f.path.back()].name
-		lines.append("Sailing%s." % ((" to " + target) if target != "" else ""))
-	if f.landing > 0:
-		lines.append("Landing at %s." % MapData.provinces[f.landing].name)
-	var aboard := Navy.armies_aboard(GameState, f)
-	if f.capacity() > 0:
-		lines.append("Carries %s of %s men." % [Fmt.people(Navy.men_aboard(GameState, f)), Fmt.people(f.capacity())])
-	for a in aboard:
-		lines.append("  aboard: %s (%s)" % [a.display_name, Fmt.people(a.men())])
-	_detail.text = "\n".join(lines)
-
-
 static func _shortest_range(f: Fleet) -> int:
 	var shortest := 9999
 	for s in f.ships:
 		shortest = mini(shortest, s.def().range_days)
 	return shortest
-
-
-func _refresh_split_picker(f: Fleet) -> void:
-	var sig := "none"
-	if f != null:
-		sig = "%d:%s" % [f.id, str(f.composition())]
-	if sig == _split_sig:
-		_split.disabled = f == null or f.ships.size() < 2
-		return
-	_split_sig = sig
-	_split_type.clear()
-	if f != null:
-		for type in f.composition():
-			_split_type.add_item("%s (%d)" % [Navy.cfg.types[type].name, f.composition()[type]])
-			_split_type.set_item_metadata(_split_type.item_count - 1, type)
-		_split_type.select(0)
-		_split_count.max_value = maxi(f.ships.size() - 1, 1)
-		_split_count.value = 1
-	_split.disabled = f == null or f.ships.size() < 2
-	_split_type.disabled = f == null
 
 
 func _refresh_yard() -> void:

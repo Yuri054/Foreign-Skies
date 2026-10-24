@@ -126,7 +126,15 @@ func _table(rows: Array, into: Control = null) -> void:
 		var name := Label.new()
 		name.text = r[0]
 		name.modulate = Fmt.DIM
-		grid.add_child(name)
+		if r.size() > 3:
+			# A row may bring an icon: the deposits, which are told apart by it.
+			var named := HBoxContainer.new()
+			named.add_theme_constant_override("separation", 4)
+			named.add_child(Icons.rect(r[3], "", 14))
+			named.add_child(name)
+			grid.add_child(named)
+		else:
+			grid.add_child(name)
 		var value := Label.new()
 		value.text = r[1]
 		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -215,7 +223,7 @@ func show_province(id: int) -> void:
 	for r in Economy.resource_ids():
 		var deposit: float = GameState.province_deposit[id].get(r, 0.0)
 		if deposit >= Economy.cfg.materials.min_deposit:
-			deposits.append([Economy.cfg.resources[r].name, "%s a month" % Fmt.kt(Fmt.monthly(deposit * Economy.cfg.materials.extraction_base))])
+			deposits.append([Economy.cfg.resources[r].name, "%s a month" % Fmt.kt(Fmt.monthly(deposit * Economy.cfg.materials.extraction_base)), Color.WHITE, r])
 	if not deposits.is_empty():
 		_section("Deposits")
 		_table(deposits)

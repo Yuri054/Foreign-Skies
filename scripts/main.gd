@@ -148,6 +148,7 @@ func _ready() -> void:
 	# First in the tree, so it sees an Esc after every panel that uses one.
 	var pause := PauseMenu.new()
 	add_child(pause)
+	GameState.menu_requested.connect(pause.to_main_menu)
 	move_child(pause, 0)
 
 	# A loaded game goes on as the nation that was saved; a new one asks which to play.

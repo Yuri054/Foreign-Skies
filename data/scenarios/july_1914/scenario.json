@@ -244,37 +244,37 @@
 	"deployment": {
 		"FRA": [
 			{
-				"name": "1\u00e8re Arm\u00e9e (Nancy)",
+				"name": "1ère Armée (Nancy)",
 				"at": "Meurthe-et-Moselle",
 				"weight": 4
 			},
 			{
-				"name": "2e Arm\u00e9e (\u00c9pinal)",
+				"name": "2e Armée (Épinal)",
 				"at": "Vosges",
 				"weight": 3
 			},
 			{
-				"name": "3e Arm\u00e9e (Verdun)",
+				"name": "3e Armée (Verdun)",
 				"at": "Meuse",
 				"weight": 2
 			},
 			{
-				"name": "4e Arm\u00e9e (Sedan)",
+				"name": "4e Armée (Sedan)",
 				"at": "Ardennes",
 				"weight": 2
 			},
 			{
-				"name": "5e Arm\u00e9e (Laon)",
+				"name": "5e Armée (Laon)",
 				"at": "Aisne",
 				"weight": 2
 			},
 			{
-				"name": "Arm\u00e9e du Nord (Lille)",
+				"name": "Armée du Nord (Lille)",
 				"at": "Nord",
 				"weight": 1
 			},
 			{
-				"name": "Arm\u00e9e des Alpes",
+				"name": "Armée des Alpes",
 				"at": "Savoie",
 				"weight": 1
 			},
@@ -285,11 +285,11 @@
 			},
 			{
 				"name": "Corps colonial",
-				"at": "Bouches-du-Rh\u00f4ne",
+				"at": "Bouches-du-Rhône",
 				"weight": 1
 			},
 			{
-				"name": "Arm\u00e9e de Belfort",
+				"name": "Armée de Belfort",
 				"at": "Doubs",
 				"weight": 1
 			}
@@ -351,8 +351,8 @@
 				"weight": 2
 			},
 			{
-				"name": "W\u00fcrttemberg Corps",
-				"at": "Baden-W\u00fcrttemberg 1",
+				"name": "Württemberg Corps",
+				"at": "Baden-Württemberg 1",
 				"weight": 1
 			},
 			{
@@ -395,7 +395,7 @@
 				"weight": 2
 			},
 			{
-				"name": "Li\u00e8ge Fortress",
+				"name": "Liège Fortress",
 				"at": "Liege",
 				"weight": 1
 			},
@@ -471,34 +471,34 @@
 		],
 		"ESP": [
 			{
-				"name": "Ej\u00e9rcito del Centro",
+				"name": "Ejército del Centro",
 				"at": "Madrid",
 				"weight": 2
 			},
 			{
-				"name": "Capitan\u00eda de Catalu\u00f1a",
+				"name": "Capitanía de Cataluña",
 				"at": "Barcelona",
 				"weight": 1
 			},
 			{
-				"name": "Capitan\u00eda de Andaluc\u00eda",
+				"name": "Capitanía de Andalucía",
 				"at": "Sevilla 1",
 				"weight": 1
 			},
 			{
-				"name": "Capitan\u00eda de Castilla",
+				"name": "Capitanía de Castilla",
 				"at": "Valladolid",
 				"weight": 1
 			}
 		],
 		"POR": [
 			{
-				"name": "Ex\u00e9rcito de Lisboa",
+				"name": "Exército de Lisboa",
 				"at": "Lisboa",
 				"weight": 2
 			},
 			{
-				"name": "Ex\u00e9rcito do Porto",
+				"name": "Exército do Porto",
 				"at": "Porto",
 				"weight": 1
 			}
@@ -515,13 +515,13 @@
 				"weight": 1
 			},
 			{
-				"name": "Armee (Z\u00fcrich)",
-				"at": "Z\u00fcrich",
+				"name": "Armee (Zürich)",
+				"at": "Zürich",
 				"weight": 1
 			},
 			{
 				"name": "Gebirgstruppen",
-				"at": "Graub\u00fcnden",
+				"at": "Graubünden",
 				"weight": 1
 			}
 		],
@@ -572,7 +572,7 @@
 			},
 			{
 				"name": "Galicia Corps",
-				"at": "\u017dilinsk\u00fd",
+				"at": "Žilinský",
 				"weight": 2
 			},
 			{
@@ -680,8 +680,8 @@
 				"weight": 3
 			},
 			{
-				"name": "Morava Army (Ni\u0161)",
-				"at": "Ni\u0161avski",
+				"name": "Morava Army (Niš)",
+				"at": "Nišavski",
 				"weight": 2
 			},
 			{
@@ -696,7 +696,7 @@
 			},
 			{
 				"name": "Kosovo Corps",
-				"at": "Pri\u0161tina",
+				"at": "Priština",
 				"weight": 1
 			}
 		],
@@ -803,7 +803,7 @@
 		"ALB": [
 			{
 				"name": "Gendarmerie (Tirana)",
-				"at": "Tiran\u00eb",
+				"at": "Tiranë",
 				"weight": 1
 			}
 		],
@@ -1243,7 +1243,7 @@
 			"kind": "border_claim",
 			"provinces": [
 				"Trento",
-				"Nova Gori\u0161ka",
+				"Nova Goriška",
 				"Istarska"
 			],
 			"note": "Italia irredenta"
@@ -1254,7 +1254,7 @@
 			"provinces": [
 				"Sarajevo-romanija",
 				"Central Bosnia",
-				"Ju\u017eno-Backi"
+				"Južno-Backi"
 			],
 			"note": "Bosnia and Vojvodina"
 		},
@@ -1287,5 +1287,372 @@
 			"AUH",
 			"SRB"
 		]
-	]
+	],
+	"buildings": {
+		"London": {
+			"factory": 3,
+			"railway": 3
+		},
+		"Paris": {
+			"factory": 3,
+			"railway": 3
+		},
+		"Saint Petersburg": {
+			"factory": 3,
+			"railway": 3
+		},
+		"Berlin": {
+			"factory": 3,
+			"railway": 3
+		},
+		"Wien": {
+			"factory": 3,
+			"railway": 3
+		},
+		"Moscow": {
+			"factory": 3,
+			"railway": 3
+		},
+		"Constantinople": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Glasgow": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Hamburg": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Budapest": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Masovian": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Birmingham": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Liverpool": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Napoli": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Brussels": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Manchester": {
+			"factory": 2,
+			"railway": 2
+		},
+		"Bayern 5": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Prague": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Odessa": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Nordrhein-Westfalen 4": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Barcelona": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Milano": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Madrid": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Sachsen 2": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Roma": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Noord-Holland": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Hovedstaden": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Sachsen 1": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Bouches-du-Rhône": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Rhône": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Riga": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Kiev (city)": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Lower Silesian 1": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Zuid-Holland": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Łódź 1": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Derbyshire": {
+			"factory": 1,
+			"railway": 2
+		},
+		"North Yorkshire 2": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Nordrhein-Westfalen 2": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Hessen 3": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Lisboa": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Turin": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Edinburgh": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Dublin": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Belfast": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Somerset": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Bayern 4": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Stockholm City": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Palermo": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Bucuresti": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Niedersachsen 4": {
+			"factory": 1,
+			"railway": 2
+		},
+		"Baden-Württemberg 1": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Sachsen-Anhalt 1": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Genova": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Gironde": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Nottinghamshire": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Bremen": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Kharkiv": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Konigsberg 2": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Christiania": {
+			"factory": 1,
+			"railway": 1
+		},
+		"West Pomeranian 3": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Hampshire": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Saratov 1": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Nova Goriška": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Firenze": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Valencia": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Nord": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Lemberg": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Yekaterinoslav": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Tatarstan": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Porto": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Vilniaus": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Uusimaa": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Cardiff": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Krakow": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Bologna": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Loire-Atlantique": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Vastra Gotaland 1": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Pomeranian 2": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Attica": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Málaga": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Greater Poland 2": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Venezia": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Kentriki Makedonia 2": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Steiermark": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Alpes-Maritimes": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Haute-Garonne": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Astrakhan": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Sevilla 2": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Samara": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Sofia": {
+			"railway": 1
+		},
+		"Bern": {
+			"railway": 1
+		},
+		"Belgrade": {
+			"railway": 1
+		}
+	}
 }

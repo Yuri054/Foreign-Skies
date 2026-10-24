@@ -46,7 +46,7 @@ def copy_scaled_cities():
         for row in rd:
             prov = by_id.get(row["province"])
             o = owner_of(prov) if prov else "X"
-            row["pop"] = str(round(int(row["pop"]) * pop.get(o, .88) * .97, -3))
+            row["pop"] = str(int(round(int(row["pop"]) * pop.get(o, .88) * .97, -3)))
             g.write("\t".join(row[k] for k in rd.fieldnames) + "\n")
 copy_scaled_cities()
 open(DST + "resources.tsv", "w").write(open(SRC + "resources.tsv").read())
@@ -104,6 +104,7 @@ out = {
     "alliances": [
         {"a": "FRA", "b": "RUS", "note": "Franco-Russian Alliance, 1894"},
         {"a": "GER", "b": "AUH", "note": "Dual Alliance, 1879"},
+        {"a": "SWE", "b": "NOR", "note": "Union under one king"},
         {"a": "ITA", "b": "GER", "terms": {"defensive_only": True}, "note": "Triple Alliance, 1882"},
         {"a": "ITA", "b": "AUH", "terms": {"defensive_only": True}, "note": "Triple Alliance, 1882"},
         {"a": "GBR", "b": "POR", "terms": {"defensive_only": True}, "note": "Anglo-Portuguese Alliance, 1373"},
@@ -139,4 +140,6 @@ dep["OTT"] += [{"name": "Army of Macedonia (Salonika)", "at": "Kentriki Makedoni
                {"name": "Scutari Corps", "at": "Shkodër", "weight": 1},
                {"name": "Kosovo Corps", "at": "Priština", "weight": 1}]
 json.dump(out, open(DST + "scenario.json", "w"), indent="\t", ensure_ascii=False)
+import subprocess
+subprocess.run(["python3", "tools/make_start_buildings.py", DST], check=True)
 print("owner changes:", len(owner_changes))

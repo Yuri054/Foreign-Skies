@@ -26,6 +26,7 @@ static func load_config() -> void:
 ## Starts a scenario: no events fired, tension at what the world's armies and quarrels make it.
 static func load_scenario(gs: Node) -> void:
 	gs.events_fired.clear()
+	gs.appeal_ready.clear()
 	gs.pending_events.clear()
 	gs.chronicle.clear()
 	gs.tension_history.clear()
@@ -34,6 +35,9 @@ static func load_scenario(gs: Node) -> void:
 	gs.tension_impulse = float(gs.scenario.get("start_tension", 0.0))
 	gs.next_event_uid = 1
 	gs.tension_arms_base = maxf(_great_men(gs), 1.0)
+	gs.start_provinces.clear()
+	for tag: String in gs.nations:
+		gs.start_provinces[tag] = gs.nations[tag].provinces.size()
 	_update(gs)
 	gs.tension_history.append(gs.tension)
 
@@ -199,7 +203,7 @@ static func _post(gs: Node, e: Dictionary, roles: Dictionary) -> void:
 	var me: String = gs.player_tag
 	var mirrored: bool = e.get("mirror", false) and roles.get("b", "") == me
 	var seen := _swapped(roles) if mirrored else roles
-	var player_is_a: bool = seen.get("a", "") == me
+	var player_is_a: bool = seen.get("a", "") == me or e.get("always_player", false)
 	var player_is_b: bool = seen.get("b", "") == me and e.has("b_options")
 	if player_is_a or player_is_b:
 		var view := seen if player_is_a else _swapped(roles)
@@ -237,6 +241,8 @@ static func _record(gs: Node, title: String, text: String, level: int) -> void:
 
 
 static func _fill(gs: Node, text: String, roles: Dictionary) -> String:
+	if text.contains("{summary}"):
+		text = text.replace("{summary}", summary(gs))
 	for role: String in roles:
 		text = text.replace("{%s}" % role, gs.nations[roles[role]].display_name)
 	return text
@@ -261,7 +267,10 @@ static func answer(gs: Node, decision_id: int, option: int) -> bool:
 		if e.has("b_options") and e.has("b_ai_option") and not d.as_b:
 			for fx: Dictionary in e.b_options[_pick(gs, e.b_ai_option)].effects:
 				_apply(gs, fx, _swapped(d.roles))
-		_record(gs, d.title, "%s %s." % [gs.nations[gs.player_tag].display_name, chosen.label.to_lower()], 1)
+		if e.get("always_player", false):
+			_record(gs, d.title, chosen.label + ".", 1)
+		else:
+			_record(gs, d.title, "%s %s." % [gs.nations[gs.player_tag].display_name, chosen.label.to_lower()], 1)
 		_update(gs)
 		gs.event_resolved.emit(d, option)
 		return true
@@ -291,6 +300,14 @@ static func _apply(gs: Node, fx: Dictionary, roles: Dictionary) -> void:
 		var t: Array = fx.treaty
 		if _both(gs, roles, t[1], t[2]):
 			Diplomacy.add_treaty(gs, t[0], roles[t[1]], roles[t[2]], -1, t[3].duplicate(), t[4])
+	elif fx.has("menu"):
+		gs.menu_requested.emit()
+	elif fx.has("end_treaty"):
+		var e: Array = fx.end_treaty
+		if _both(gs, roles, e[1], e[2]):
+			var held := Diplomacy.find_treaty(gs, e[0], roles.get(e[1], e[1]), roles.get(e[2], e[2]))
+			if held != null:
+				Diplomacy.end_treaty(gs, held)
 	elif fx.has("war"):
 		var w: Array = fx.war
 		var a := _tag(roles, w[0])
@@ -339,6 +356,8 @@ static func effect_lines(gs: Node, option: Dictionary, roles: Dictionary) -> Pac
 		elif fx.has("treaty"):
 			var t: Array = fx.treaty
 			out.append("%s: %s" % [t[4] if str(t[4]) != "" else "Treaty", _other_name(gs, roles, t[1], t[2])])
+		elif fx.has("end_treaty"):
+			out.append("The union ends" if fx.end_treaty[0] == "alliance" else "The treaty ends")
 		elif fx.has("war"):
 			out.append("War with %s" % _other_name(gs, roles, fx.war[0], fx.war[1]))
 		elif fx.has("grievance"):
@@ -376,3 +395,56 @@ static func tip(gs: Node) -> String:
 		if p[key] >= 0.5:
 			lines.append("%s  +%d" % [names[key], roundi(p[key])])
 	return "\n".join(lines)
+
+
+# --- Public stands ---------------------------------------------------------------------------
+
+## Why a nation cannot take this stand now, or "".
+static func appeal_block(gs: Node, tag: String, kind: String) -> String:
+	var def: Dictionary = cfg.appeals.get(kind, {})
+	if def.is_empty() or not gs.nations.has(tag):
+		return "No such appeal."
+	if Clock.days_elapsed < int(gs.appeal_ready.get(tag, 0)):
+		return "Not again until %s." % Clock.date_after(int(gs.appeal_ready[tag]) - Clock.days_elapsed)
+	if not Diplomacy.can_afford(gs, tag, float(def.cost)):
+		return "Needs %d diplomacy points." % int(def.cost)
+	return ""
+
+
+## The nation takes the stand: points spent, tension moved, prestige and war support gained.
+static func appeal(gs: Node, tag: String, kind: String) -> bool:
+	if appeal_block(gs, tag, kind) != "":
+		return false
+	var def: Dictionary = cfg.appeals[kind]
+	Diplomacy.spend(gs, tag, float(def.cost))
+	gs.tension_impulse = clampf(gs.tension_impulse + float(def.tension), 0.0, float(cfg.impulse_max))
+	_apply_to(gs, "prestige", gs.nations[tag], float(def.prestige))
+	if float(def.war_support) != 0.0:
+		_apply_to(gs, "war_support", gs.nations[tag], float(def.war_support))
+	gs.appeal_ready[tag] = Clock.days_elapsed + int(cfg.appeals.wait_days)
+	_record(gs, def.label, "%s: %s" % [gs.nations[tag].display_name, str(def.tip).to_lower().trim_suffix(".")], 0)
+	_update(gs)
+	return true
+
+
+## How the world stands, for the set ending: the great war, the player's nation, the big economies.
+static func summary(gs: Node) -> String:
+	var great_wars := 0
+	var all_wars: Array = gs.war_history.duplicate()
+	all_wars.append_array(gs.wars.values())
+	for w: War in all_wars:
+		if w.a in GREAT and w.b in GREAT:
+			great_wars += 1
+	var lines: PackedStringArray = []
+	lines.append("Europe's great powers fought each other in %d wars." % great_wars if great_wars > 0 else "The great powers never came to blows.")
+	lines.append("%d wars in all were fought in these years; tension stands at %d." % [all_wars.size(), roundi(gs.tension)])
+	var me: Nation = gs.get_player()
+	if me != null:
+		var then: int = gs.start_provinces.get(me.tag, me.provinces.size())
+		lines.append("%s holds %d provinces (it began with %d), is #%d in output and has %.1fM people." % [
+				me.display_name, me.provinces.size(), then, Standings.rank_of(gs, me.tag, "gdp"), me.population / 1e6])
+	var top: PackedStringArray = []
+	for r: Dictionary in Standings.ranking(gs, "gdp").slice(0, 3):
+		top.append(gs.nations[r.tag].display_name)
+	lines.append("The largest economies: %s." % ", ".join(top))
+	return " ".join(lines)

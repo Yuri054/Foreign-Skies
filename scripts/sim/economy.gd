@@ -501,6 +501,9 @@ static func step_month(gs: Node) -> void:
 
 		var growth: float = (cfg.baseline_growth + modifiers({}, n.focus_fx).growth - cfg.tax_strain.growth_penalty * tax_strain(n)) / 12.0
 		n.development *= 1.0 + growth
+		# The peacetime army of an AI nation grows with its people and its output (the player sets their own).
+		if tag != gs.player_tag and gs.wars_of(tag).is_empty():
+			n.peacetime_army = int(n.peacetime_army * (1.0 + (growth + n.pop_growth / 12.0) * float(cfg.army_growth_share)))
 
 		# The cap covers everyone in service; what is not under arms is the reserve.
 		var cap := maxi(0, int(b.manpower_max) - n.men_in_units)

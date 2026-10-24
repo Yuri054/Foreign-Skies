@@ -31,6 +31,7 @@
 	},
 	"civil_share": 0.5,
 	"baseline_growth": 0.01,
+	"army_growth_share": 0.8,
 	"manpower_share": 0.12,
 	"soldier_upkeep": 70.0,
 	"mobilization_output_penalty": 0.35,

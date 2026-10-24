@@ -159,6 +159,24 @@ func _refresh() -> void:
 	bar.custom_minimum_size = Vector2(0, 8)
 	bar.tooltip_text = tension.tooltip_text
 	_box.add_child(bar)
+	var stands := HBoxContainer.new()
+	stands.add_theme_constant_override("separation", 6)
+	for kind: String in ["calm", "rattle"]:
+		var def: Dictionary = Pressure.cfg.appeals[kind]
+		var button := Button.new()
+		button.text = "%s (%d)" % [def.label, int(def.cost)]
+		button.focus_mode = Control.FOCUS_NONE
+		var block := Pressure.appeal_block(GameState, n.tag, kind)
+		button.disabled = block != ""
+		button.tooltip_text = "%s\nCosts %d diplomacy points; the same nation may do either again after %d days.\nTension %+d, prestige %+d%s" % [def.tip, int(def.cost), int(Pressure.cfg.appeals.wait_days), int(def.tension), int(def.prestige), (", war support %+d" % int(def.war_support)) if int(def.war_support) != 0 else ""]
+		if block != "":
+			button.tooltip_text = block + "\n" + button.tooltip_text
+		button.pressed.connect(func() -> void:
+			GameState.issue(Appeal.new(n.tag, kind))
+			_refresh()
+		)
+		stands.add_child(button)
+	_box.add_child(stands)
 	for item: Dictionary in GameState.chronicle.slice(0, 4):
 		var line := _line("%s  %s" % [item.date, item.title], Fmt.DIM)
 		line.tooltip_text = item.text
