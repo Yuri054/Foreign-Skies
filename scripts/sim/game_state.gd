@@ -392,6 +392,7 @@ func load_scenario(dir: String) -> void:
 	materials_k = 0.0
 	Military.deploy_starting(self)
 	Navy.deploy_starting(self, dir)
+	Economy.absorb_works(self)
 	Economy.recompute(self)
 
 	var d: Array = scenario.start_date

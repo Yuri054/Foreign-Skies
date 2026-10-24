@@ -195,6 +195,23 @@ static var _output_cache: Dictionary = {}
 static var _output_owner := 0
 
 
+## A scenario's starting works are already in the figures it was fitted to: each nation's development is eased so
+## that they do not add output on top (they change what is built and how the cities look, not what the nation earns).
+static func absorb_works(gs: Node) -> void:
+	for tag in gs.nations:
+		var n: Nation = gs.nations[tag]
+		var base := 0.0
+		var gain := 0.0
+		for id in n.provinces:
+			var area: float = MapData.provinces[id].area * MapData.KM2_PER_PX
+			var plain: float = province_output(gs.province_population[id], area, n, {}, {}).gdp
+			base += plain
+			if not gs.province_buildings[id].is_empty():
+				gain += province_output(gs.province_population[id], area, n, gs.province_buildings[id], {}).gdp - plain
+		if base > 0.0 and gain > 0.0:
+			n.development /= 1.0 + gain / base
+
+
 ## Rebuilds per-province output and every nation's budget from the current state.
 static func recompute(gs: Node) -> void:
 	var count: int = gs.province_owner.size()

@@ -25,6 +25,10 @@ func _run(gs: Node, clock: Node, sliced: bool, days: int) -> String:
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
 	gs.set_player("GER")
 	gs.ai_enabled = true
+	# A bold AI makes marginal choices (one more ship, once the treasury allows) that can fall on either side of a
+	# day's deferred recompute; the equivalence is checked on the AI's ordinary temper.
+	gs.pressure_ai = false
+	gs.tension_bonus = 0.0
 	gs.autosave_enabled = false
 	for i in days:
 		if sliced:

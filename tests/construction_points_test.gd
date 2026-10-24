@@ -50,7 +50,8 @@ func _fresh() -> void:
 
 func _free_province(tag: String, skip := [], type := "factory") -> int:
 	for id in gs.nations[tag].provinces:
-		if id not in skip and Eco.build_problem(gs, tag, id, type).is_empty():
+		# One with none of the type yet, whatever works the big cities begin with.
+		if id not in skip and gs.province_buildings[id].get(type, 0) == 0 and Eco.build_problem(gs, tag, id, type).is_empty():
 			return id
 	return 0
 

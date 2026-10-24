@@ -152,8 +152,8 @@ func _initialize() -> void:
 	_check(ger.budget.trade > trade0 and ger.budget.revenue > rev0, "a port and a railway add trade income and revenue")
 	var stats: Dictionary = Eco.building_stats(gs, "GER")
 	_check(stats.port.levels == stats0.port.levels + 1 and stats.port.trade > stats0.port.trade, "port stats report its trade")
-	_check(stats.railway.levels == 1 and stats.railway.income > 0.0, "railway stats report income")
-	_check(stats.factory.levels == 1 and stats.factory.industry > 0.0 and stats.factory.gdp > 0.0, "factory stats report industry and output")
+	_check(stats.railway.levels >= 1 and stats.railway.income > 0.0, "railway stats report income")
+	_check(stats.factory.levels >= 1 and stats.factory.industry > 0.0 and stats.factory.gdp > 0.0, "factory stats report industry and output")
 	_check(not stats.has("military_factory") and not stats.has("haber_bosch") and not stats.has("naval_dockyard"), "the removed buildings are gone")
 	ger.blockade = 1.0
 	Eco.recompute(gs)
@@ -245,7 +245,8 @@ func _initialize() -> void:
 	_check(cmd.built.size() == 10 and fra3.construction.size() == q0 + 10, "built in exactly the previewed number of provinces")
 	_check(fra3.treasury == cash3 and is_equal_approx(pv.spent, cmd.spent), "preview cost matches the real cost, and no money is spent")
 	_check(gs.command_log.back().type == "MassConstructBuilding" and gs.command_log.back().provinces.size() == 10, "logged as one command")
-	var cap_ic: float = Eco.cfg.buildings.factory.ic * 2.5
+	# Room for the two best candidates (the big cities, whose works are already built up) and not a third.
+	var cap_ic: float = Eco.level_cost(gs, cands[0], "factory") + Eco.level_cost(gs, cands[1], "factory") + 0.5 * Eco.level_cost(gs, cands[2], "factory")
 	var capped = Mass.new("FRA", "factory", 1000, cap_ic)
 	gs.issue(capped)
 	_check(capped.stopped_by == "spend" and capped.built.size() == 2 and capped.spent <= cap_ic, "spend cap respected (%.0f IC of %.0f)" % [capped.spent, cap_ic])
