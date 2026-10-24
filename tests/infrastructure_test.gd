@@ -1,7 +1,7 @@
 extends SceneTree
-## Headless test of infrastructure: railway levels (and half the best neighbour's) add building
-## slots, factories can use them, the Construction map mode writes slots used out of slots on the
-## provinces, and the AI sees a railway as worth building where the slots are full.
+## Headless test of infrastructure: a province's railway level plus half the best of its neighbours' (of the
+## same nation), the numbers the build map writes on a province (level out of the most), and a railway
+## that shortens the march and the supply line.
 ## Run: godot --headless --path . -s res://tests/infrastructure_test.gd
 
 var _failures := 0
@@ -26,11 +26,10 @@ func _initialize() -> void:
 	Labels = load("res://scripts/map/slot_labels.gd")
 	Mil = load("res://scripts/sim/military.gd")
 	_fresh()
-	_test_slots()
+	_test_level()
 	_test_network()
-	_test_build()
 	_test_labels()
-	_test_ai()
+	_test_march()
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
 
@@ -51,16 +50,12 @@ func _province_with_neighbour(tag: String) -> Array:
 	return [0, 0]
 
 
-func _test_slots() -> void:
-	var pair := _province_with_neighbour("FRA")
-	var id: int = pair[0]
+func _test_level() -> void:
+	var id: int = _province_with_neighbour("FRA")[0]
 	_check(Eco.infrastructure(gs, id) == 0.0, "nothing has a railway at the start")
-	var base: int = Eco.slots_of(gs, id)
 	gs.province_buildings[id]["railway"] = 2
-	_check(Eco.infrastructure(gs, id) >= 2.0, "a railway is infrastructure (%.1f)" % Eco.infrastructure(gs, id))
-	_check(Eco.slots_of(gs, id) == base + int(Eco.infrastructure(gs, id)), "and every point of it is a slot (%d to %d)" % [base, Eco.slots_of(gs, id)])
+	_check(is_equal_approx(Eco.infrastructure(gs, id), 2.0), "a railway is infrastructure (%.1f)" % Eco.infrastructure(gs, id))
 	gs.province_buildings[id].erase("railway")
-	_check(Eco.slots_of(gs, id) == base, "without it the slots are as they were")
 
 
 func _test_network() -> void:
@@ -81,42 +76,29 @@ func _test_network() -> void:
 	_check(Eco.infrastructure(gs, a) == 0.0, "but a foreign neighbour's does not")
 
 
-func _test_build() -> void:
-	_fresh()
-	var fra = gs.nations["FRA"]
-	fra.treasury = 10000.0
-	fra.stock.iron = 1e7
-	fra.stock.wood = 1e7
-	fra.stock.coal = 1e7
-	var id: int = fra.provinces[0]
-	# Fill the province.
-	while Eco.slots_used(gs, id) < Eco.slots_of(gs, id):
-		gs.province_buildings[id]["factory"] = gs.province_buildings[id].get("factory", 0) + 1
-	_check(Eco.build_problem(gs, "FRA", id, "factory") == "No free slot", "a full province has no slot for a factory")
-	gs.province_buildings[id]["railway"] = 1
-	_check(Eco.build_problem(gs, "FRA", id, "factory") == "", "a railway there makes room")
-
-
 func _test_labels() -> void:
 	_fresh()
-	var entries: Array = Labels.entries(gs, "factory")
 	var fra = gs.nations["FRA"]
+	var entries: Array = Labels.entries(gs, "railway")
 	_check(entries.size() == fra.provinces.size(), "every province of the player is written on (%d)" % entries.size())
 	var e: Dictionary = entries[0]
-	_check(e.text == "%d/%d" % [Eco.slots_used(gs, e.id), Eco.slots_of(gs, e.id)], "with slots used out of slots (%s)" % e.text)
-	var rail: Array = Labels.entries(gs, "railway")
-	_check(rail[0].text == "0/5" and not rail[0].full, "a railway shows its level out of the most (%s)" % rail[0].text)
+	_check(e.text == "0/5" and not e.full, "a railway shows its level out of the most (%s)" % e.text)
+	gs.province_buildings[e.id]["railway"] = 5
+	var again: Dictionary = {}
+	for x in Labels.entries(gs, "railway"):
+		if x.id == e.id:
+			again = x
+	_check(again.text == "5/5" and again.full, "and a full one is marked (%s)" % again.text)
 	_check(Labels.entries(gs, "").is_empty(), "nothing is written for no building")
 
 
-func _test_ai() -> void:
+func _test_march() -> void:
 	_fresh()
-	var AIB = load("res://scripts/ai/ai_budget.gd")
-	var fra = gs.nations["FRA"]
-	var id: int = fra.provinces[0]
-	var plan: Dictionary = Eco.build_plan(gs, id, "railway")
-	var open_value: float = AIB.build_return(gs, "FRA", id, "railway", plan)
-	while Eco.slots_used(gs, id) < Eco.slots_of(gs, id):
-		gs.province_buildings[id]["factory"] = gs.province_buildings[id].get("factory", 0) + 1
-	var full_value: float = AIB.build_return(gs, "FRA", id, "railway", plan)
-	_check(full_value > open_value, "the AI values a railway more where the slots are full (%.3f against %.3f)" % [full_value, open_value])
+	var pair := _province_with_neighbour("FRA")
+	var a: int = pair[0]
+	var b: int = pair[1]
+	var plain: float = Mil.move_days(gs, "FRA", 15.0, a, b)
+	gs.province_buildings[b]["railway"] = 5
+	var by_rail: float = Mil.move_days(gs, "FRA", 15.0, a, b)
+	_check(by_rail <= plain, "a railway into a province does not slow the march (%.0f days from %.0f)" % [by_rail, plain])
+	_check(Mil.hop_cost(gs, "FRA", b) < 1.0, "and makes a supply hop through it cheaper (%.2f)" % Mil.hop_cost(gs, "FRA", b))

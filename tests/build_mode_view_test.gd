@@ -38,9 +38,10 @@ func _initialize() -> void:
 	_check(army_layer.modulate.a == 1.0 and fleet_layer.modulate.a == 1.0, "armies and fleets are solid at first")
 	view.set_mode(Mode.CONSTRUCTION, "factory")
 	_check(army_layer.modulate.a < 0.5 and fleet_layer.modulate.a < 0.5, "they fade back in the Construction mode")
-	_check(labels.z_index > army_layer.z_index and labels.z_index > fleet_layer.z_index, "and the slot numbers are drawn above them")
+	_check(labels.z_index > army_layer.z_index and labels.z_index > fleet_layer.z_index, "and the level numbers are drawn above them")
 	var gs: Node = root.get_node("GameState")
 	var SlotLabels = load("res://scripts/map/slot_labels.gd")
+	gs.province_buildings[gs.nations[gs.player_tag].provinces[0]]["factory"] = 1
 	var rows: Array = SlotLabels.entries(gs, "factory")
 	var with_factory: Dictionary = {}
 	var with_deposit: Dictionary = {}
@@ -49,7 +50,7 @@ func _initialize() -> void:
 			with_factory = e
 		if not e.deposits.is_empty() and with_deposit.is_empty():
 			with_deposit = e
-	_check(not with_factory.is_empty() and with_factory.factories == gs.province_buildings[with_factory.id].get("factory", 0), "each entry counts the civilian factories on its province")
+	_check(not with_factory.is_empty() and with_factory.factories == gs.province_buildings[with_factory.id].get("factory", 0), "each entry counts the factories on its province")
 	_check(not with_deposit.is_empty() and with_deposit.deposits[0] in ["coal", "iron", "wood"], "and lists the resources it yields (%s)" % str(with_deposit.get("deposits")))
 	gs.province_buildings[with_factory.id]["factory"] = with_factory.factories + 2
 	var after: Dictionary = {}

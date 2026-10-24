@@ -57,7 +57,7 @@ func _initialize() -> void:
 	var labels: PackedStringArray = []
 	for c in palette._strip.get_children():
 		labels.append(c.text)
-	_check(labels == PackedStringArray(["Tax income", "Coal", "Iron / Steel", "Nitrates", "Draft animals", "Chemicals", "Timber", "Buildings"]), "with its variants as chips (%s)" % ", ".join(labels))
+	_check(labels == PackedStringArray(["Tax income", "Coal", "Iron / Steel", "Timber", "Buildings"]), "with its variants as chips (%s)" % ", ".join(labels))
 	_check(palette._strip_title.text == "Economy ›", "and the kind named beside them")
 	palette._chips[1].pressed.emit()
 	await process_frame
@@ -73,7 +73,7 @@ func _initialize() -> void:
 	_check(view.mode == Mode.RESOURCES and view.submode == "coal", "going back to Economy remembers the coal you left it on")
 
 	# Buildings and their kinds.
-	palette._chips[7].pressed.emit()
+	palette._chips[4].pressed.emit()
 	await process_frame
 	_check(view.mode == Mode.BUILDINGS and palette._sub_picker.visible and palette._sub_picker.item_count >= 5, "Buildings brings up a list of building kinds (%d)" % palette._sub_picker.item_count)
 	palette._sub_picker.select(2)
@@ -114,14 +114,14 @@ func _initialize() -> void:
 	var chips: PackedStringArray = []
 	for c in palette._strip.get_children():
 		chips.append(c.text)
-	_check(chips == PackedStringArray(["Control", "Front line", "Strength", "Equipment", "Sea control", "Blockade"]), "with six variants (%s)" % ", ".join(chips))
-	for sub in [view.MIL_FRONT, view.MIL_STRENGTH, view.MIL_EQUIPMENT]:
-		palette.pick_item(4, [view.MIL_CONTROL, view.MIL_FRONT, view.MIL_STRENGTH, view.MIL_EQUIPMENT].find(sub))
+	_check(chips == PackedStringArray(["Control", "Front line", "Strength", "Sea control", "Blockade"]), "with five variants (%s)" % ", ".join(chips))
+	for sub in [view.MIL_FRONT, view.MIL_STRENGTH]:
+		palette.pick_item(4, [view.MIL_CONTROL, view.MIL_FRONT, view.MIL_STRENGTH].find(sub))
 		await process_frame
 		_check(view.mode == Mode.MILITARY and view.submode == sub and palette._legend_panel.visible, "the %s variant has a legend" % sub)
-	palette.pick_item(4, 4)
+	palette.pick_item(4, 3)
 	_check(view.mode == Mode.SEA_CONTROL and palette._buttons[4].button_pressed, "Sea control lives under Military")
-	palette.pick_item(4, 5)
+	palette.pick_item(4, 4)
 	_check(view.mode == Mode.BLOCKADE and not view.legend().is_empty() and palette._buttons[4].button_pressed, "so does Blockade, with a legend")
 	palette.pick_item(4, 0)
 	_check(view.legend().is_empty(), "the control variant needs no legend")
