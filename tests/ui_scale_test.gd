@@ -50,7 +50,7 @@ func _initialize() -> void:
 	var bar: Node = main.get_node("UI/TopBar")
 	var clock_visible: bool = bar._date.is_visible_in_tree() and bar._speed_buttons[4].is_visible_in_tree()
 	_check(clock_visible and bar.get_global_rect().end.x <= scaled.x + 1.0, "the top bar still fits, with its clock")
-	_check(not bar._chips["population"].visible, "by dropping the least important figures")
+	_check(not bar._chips["points"].visible, "by dropping the least important figures")
 
 	var cfg := ConfigFile.new()
 	_check(cfg.load(Settings.path) == OK and float(cfg.get_value("ui", "scale", 0.0)) == 2.0, "the choice is saved to the settings file")
