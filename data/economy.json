@@ -30,7 +30,7 @@
 		"war_weariness": 1.0
 	},
 	"civil_share": 0.5,
-	"baseline_growth": 0.015,
+	"baseline_growth": 0.01,
 	"manpower_share": 0.12,
 	"soldier_upkeep": 70.0,
 	"mobilization_output_penalty": 0.35,
@@ -107,8 +107,8 @@
 			"ic_growth": 0.4,
 			"min_days": 120,
 			"effects": {
-				"industry": 0.1,
-				"gdp": 0.03
+				"industry": 0.06,
+				"gdp": 0.015
 			}
 		},
 		"railway": {
@@ -118,8 +118,8 @@
 			"ic_growth": 0.0,
 			"min_days": 45,
 			"effects": {
-				"gdp": 0.06,
-				"food": 0.05
+				"gdp": 0.03,
+				"food": 0.03
 			}
 		},
 		"port": {
@@ -130,8 +130,8 @@
 			"min_days": 60,
 			"requires": "coastal",
 			"effects": {
-				"gdp": 0.05,
-				"trade": 0.06
+				"gdp": 0.02,
+				"trade": 0.012
 			}
 		},
 		"trench": {

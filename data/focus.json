@@ -272,7 +272,7 @@
 						"industrial_drive"
 					],
 					"effects": {
-						"trade": 0.1,
+						"trade": 0.012,
 						"gdp": 0.02
 					},
 					"ai": 1.0
@@ -694,7 +694,7 @@
 						"administrative_reform"
 					],
 					"effects": {
-						"trade": 0.1
+						"trade": 0.012
 					},
 					"ai": 1.0
 				}
@@ -826,7 +826,7 @@
 						"administrative_reform"
 					],
 					"effects": {
-						"trade": 0.08
+						"trade": 0.01
 					},
 					"ai": 1.0
 				}

@@ -11,7 +11,7 @@
 		"war_each": 10,
 		"war_max": 30,
 		"rivalry_weight": 60,
-		"impulse_decay": 0.05,
+		"impulse_decay": 0.035,
 		"aggression_from": 30,
 		"aggression_gain": 0.3,
 		"harden_above": 50,
@@ -1433,7 +1433,7 @@
 				}
 			],
 			"ai_option": {
-				"tension_min": 45,
+				"tension_min": 40,
 				"yes": 0,
 				"no": 1
 			},
