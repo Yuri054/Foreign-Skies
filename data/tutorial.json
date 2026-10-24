@@ -31,9 +31,9 @@
 		{
 			"id": "build",
 			"title": "Build something",
-			"text": "Open the Construction panel (B), pick a building, and click a green province on the map to build it there. It costs industrial capacity (IC), not money, and takes at least a few weeks; your industry sets how much IC you have each day. It shows in the queue at the bottom right.",
+			"text": "Open the Nation screen on its Build tab (B), pick a building, and click a green province on the map to build it there. It costs industrial capacity (IC), not money, and takes at least a few weeks; your industry sets how much IC you have each day. It shows in the queue at the bottom right.",
 			"highlight": {
-				"button": "Build"
+				"button": "Nation"
 			},
 			"done": {
 				"command": "ConstructBuilding"
@@ -42,9 +42,9 @@
 		{
 			"id": "raise",
 			"title": "Raise an army",
-			"text": "Open the Military window (M), pick one of your provinces and train a unit. Units cost money and recruits, and form an army where they were raised.",
+			"text": "Open the Military tab of the Nation screen (M), pick one of your provinces and train a unit. Units cost money and recruits, and form an army where they were raised.",
 			"highlight": {
-				"button": "Military"
+				"button": "Nation"
 			},
 			"done": {
 				"command": "RaiseUnits"
@@ -53,9 +53,9 @@
 		{
 			"id": "taxes",
 			"title": "Set the taxes",
-			"text": "Open the Economy window (E). Its Money tab shows what comes in and what goes out each month; move the tax rate. More tax fills the treasury but slows growth and wears down the people's support.",
+			"text": "Open the Economy tab of the Nation screen (E). Its Money tab shows what comes in and what goes out each month; move the tax rate. More tax fills the treasury but slows growth and wears down the people's support.",
 			"highlight": {
-				"button": "Economy"
+				"button": "Nation"
 			},
 			"done": {
 				"command": "SetEconomyPolicy"
@@ -83,9 +83,9 @@
 		{
 			"id": "relations",
 			"title": "Improve relations",
-			"text": "Open the Diplomacy window (F), choose a nation and improve relations with it. Diplomatic effort costs diplomacy points, shown in the top bar.",
+			"text": "Open the Diplomacy tab of the Nation screen (F), choose a nation and improve relations with it. Diplomatic effort costs diplomacy points, shown in the top bar.",
 			"highlight": {
-				"button": "Diplomacy"
+				"button": "Nation"
 			},
 			"done": {
 				"command": "ImproveRelations"
@@ -94,9 +94,9 @@
 		{
 			"id": "focus",
 			"title": "Choose a national focus",
-			"text": "Open the Focus window (O) and start a focus: a few weeks' national effort that makes the economy grow, the army larger, or earns prestige and claims. One at a time; the tree shows what each needs.",
+			"text": "Open the Focus tab of the Nation screen (O) and start a focus: a few weeks' national effort that makes the economy grow, the army larger, or earns prestige and claims. One at a time; the tree shows what each needs.",
 			"highlight": {
-				"button": "Focus"
+				"button": "Nation"
 			},
 			"done": {
 				"command": "SetFocus"
@@ -116,7 +116,7 @@
 		{
 			"id": "fleet",
 			"title": "Send a fleet",
-			"text": "Open the Navy panel (N), select a fleet, then right-click a patch of sea to send it there. Fleets stationed in the right waters can cut an enemy's trade. New ships are built at your ports and cost industrial capacity and iron and wood, drawn from the same daily IC as buildings.",
+			"text": "Open the Navy tab of the Nation screen (Y), select a fleet, then right-click a patch of sea to send it there. Fleets stationed in the right waters can cut an enemy's trade. New ships are built at your ports and cost money and industrial capacity, drawn from the same daily IC as buildings.",
 			"highlight": {
 				"group": "navy_panel"
 			},

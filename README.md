@@ -26,7 +26,7 @@ Saves and settings are written to Godot's user folder (`user://saves/`, `user://
 | Space, `-` `+` | Pause, change speed (five speeds) |
 | 1 to 6 | Map modes (political, diplomacy, economy, population, military with its sea control and blockade variants, terrain) |
 | C | Show or hide the command panel (armies and fleets as cards along the bottom) |
-| E, B, M, F, N, O | Economy (with its Production tab), Construction, Military, Diplomacy, Navy and National focus windows; R opens the Rankings |
+| N | The Nation screen, on its Overview. Its tabs have their own letters: E Economy, B Build, M Military, Y Navy, F Diplomacy, O Focus (a letter opens the screen on that tab and, pressed again, closes it); R opens the Rankings; a right click on a province shows that country |
 | V | Switch the 3D map on or off. Page Up and Page Down tilt it, `[` and `]` turn it, Home resets; Settings has switches for the terrain relief and for unit models |
 | F5, Shift+F5, F6 | Quick save, quick load, save and load window |
 | F10, Ctrl and `+` `-` | Settings, UI scale |
