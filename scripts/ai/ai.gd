@@ -86,7 +86,11 @@ static func is_ai(gs: Node, tag: String) -> bool:
 
 ## The nation's temperament: the default, with the scenario's overrides.
 static func temperament(gs: Node, tag: String) -> Dictionary:
-	return gs.ai_traits.get(tag, cfg.temperament.default)
+	var t: Dictionary = gs.ai_traits.get(tag, cfg.temperament.default)
+	if gs.tension_bonus <= 0.0:
+		return t
+	# Tension makes every nation bolder and less careful (see Pressure).
+	return {"aggression": clampf(float(t.aggression) + gs.tension_bonus, 0.0, 1.0), "caution": clampf(float(t.caution) - gs.tension_bonus * 0.5, 0.0, 1.0)}
 
 
 ## The day (0 to think_days - 1) on which a nation thinks: its place in tag order, so the

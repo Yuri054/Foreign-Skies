@@ -35,6 +35,7 @@ func _ready() -> void:
 	GameState.nation_collapsed.connect(func(tag: String, men: int) -> void:
 		say("%s holds no land: its armies (%s men) disband." % [_name(tag), Fmt.people(men)], Fmt.WARN)
 	)
+	GameState.news_posted.connect(func(text: String, level: int) -> void: say(text, Fmt.WARN if level > 0 else Color.WHITE))
 	_connect_diplomacy()
 	_connect_navy()
 	GameState.war_changed.connect(func(a: String, b: String, at_war: bool) -> void:

@@ -26,8 +26,8 @@ Removed or folded: the economy laws, programs and policies, production lines and
 | R1 | Economy core (sim) | The new model replaces the old one in `scripts/sim`; the data file is rewritten; commands and saves updated; the suite passes with obsolete tests removed or rewritten |
 | R2 | AI | The AI budgets, builds and raises forces with the new model and still plays a war and a peace (history checks pass) |
 | R3 | Nation screen | One tabbed window (Overview, Economy, Military, Navy, Diplomacy, Focus) replaces the separate windows; the top bar is slim; hotkeys are listed and consistent; flows from map to window are short |
-| R4 | Historical pressure | A tension system and a calendar of crises and events for 1900 to 1914 (Moroccan and Balkan crises, naval race, alliance shifts); events offer choices that move relations, tension, money and manpower |
-| R5 | Scenarios | A `1900` scenario (borders, alliances, populations, armies and fleets as of 1900) beside `1914`; a scenario choice on the menu; both load and play to a war |
+| R4 (done) | Historical pressure | A tension system and a calendar of crises and events for 1900 to 1914 (Moroccan and Balkan crises, naval race, alliance shifts); events offer choices that move relations, tension, money and manpower |
+| R5 (done) | Scenarios | A `1900` scenario (borders, alliances, populations, armies and fleets as of 1900) beside `1914`; a scenario choice on the menu; both load and play to a war |
 | R6 | Finish | Tutorial rewritten for the new screens; balance pass (a ten-year AI run ends in a plausible world); README and DESIGN rewritten; the old plan notes removed |
 
 R1 first, because everything else reads it. R3 can follow R1 even while R2 is in progress. R4 and R5 are independent of each other once R1 is done.

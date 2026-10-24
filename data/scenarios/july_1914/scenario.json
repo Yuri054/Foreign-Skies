@@ -8,6 +8,7 @@
 	],
 	"default_player": "FRA",
 	"playable": true,
+	"start_tension": 45,
 	"_note": "Economic and military figures are rough estimates (GBP millions) meant to be refined. development, agri_yield and intensity are calibrated so default revenue, food self-sufficiency and 1913 coal, iron and timber consumption match estimates.",
 	"nations": {
 		"GBR": {

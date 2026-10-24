@@ -31,6 +31,10 @@ signal nation_collapsed(tag: String, men: int)
 signal treaty_changed(treaty: Treaty, added: bool)
 signal relations_changed(a: String, b: String)
 ## The player must answer a join decision (see Diplomacy.offer_joins); time is held until then.
+signal event_posted(decision: Dictionary)
+signal event_resolved(decision: Dictionary, option: int)
+## A line for the news feed from the historical pressure (level 0 plain, 1 a warning).
+signal news_posted(text: String, level: int)
 signal join_requested(decision: Dictionary)
 ## A join decision was settled, by the player or the AI.
 signal join_resolved(decision: Dictionary, joined: bool)
@@ -150,6 +154,22 @@ var war_groups: Dictionary = {}
 ## Join decisions waiting for the player, oldest first.
 var pending_joins: Array[Dictionary] = []
 var next_decision_id := 1
+## Historical pressure (see Pressure): Europe's tension 0 to 100, the part of it that comes from events,
+## the great powers' men under arms when the scenario began, the aggression it adds to the AI, the events
+## that have come up (id -> month index), those waiting for the player, and what has happened lately.
+var tension := 0.0
+var tension_impulse := 0.0
+var tension_arms_base := 1.0
+var tension_bonus := 0.0
+## Whether tension steers the AI (the scenario says so; 1914 begins with its crisis already under way).
+var pressure_ai := false
+## The month the scenario began (year * 12 + month): events dated before it are already history.
+var pressure_start := 0
+var events_fired: Dictionary = {}
+var pending_events: Array[Dictionary] = []
+var next_event_uid := 1
+var chronicle: Array[Dictionary] = []
+var tension_history: Array[float] = []
 ## Peace offers waiting for the player's answer, oldest first.
 var pending_offers: Array[Dictionary] = []
 var next_offer_id := 1
@@ -310,6 +330,7 @@ func load_scenario(dir: String) -> void:
 	Diplomacy.load_config()
 	Focus.load_config()
 	AI.load_config()
+	Pressure.load_config()
 	command_log.clear()
 	wars.clear()
 	war_history.clear()
@@ -372,6 +393,7 @@ func load_scenario(dir: String) -> void:
 	Clock.paused = true
 	Diplomacy.load_scenario(self)
 	AI.load_scenario(self)
+	Pressure.load_scenario(self)
 	economy_dirty = false
 	budget_dirty = false
 	standings_history.clear()
@@ -431,7 +453,7 @@ func finish_load() -> void:
 
 ## Whether the player owes an answer (a join decision or a peace offer) before time may run.
 func has_pending() -> bool:
-	return not pending_joins.is_empty() or not pending_offers.is_empty()
+	return not pending_joins.is_empty() or not pending_offers.is_empty() or not pending_events.is_empty()
 
 
 func set_player(tag: String) -> void:
@@ -591,6 +613,7 @@ func _on_month_ticked() -> void:
 	finish_day()
 	Economy.step_month(self)
 	Diplomacy.step_month(self)
+	Pressure.step_month(self)
 	Standings.record(self)
 	economy_updated.emit()
 	if autosave_enabled:

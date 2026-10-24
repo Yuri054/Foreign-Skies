@@ -1,0 +1,1530 @@
+{
+	"_note": "Historical pressure (scripts/sim/pressure.gd). Each event fires at the first month on or after `date` while its conditions hold, and is dropped once `until` has passed. The player is asked if they are an actor (a, or b with b_options; a `mirror` event reads the same from either side); otherwise the event is news and `ai_option` (or b_ai_option) is applied. Effects: tension, relation [a,b,d], treasury [a,m], prestige [a,n], war_support [a,n], points [a,n], manpower [a,fraction], mobilize [a,d], grievance [holder,target,n], treaty [kind,a,b,terms,note], war [a,b,(calls)].",
+	"tension": {
+		"_note": "Tension (Pressure.parts): base + arms (growth of the great powers' men under arms since the start, times arms_weight, at most arms_max) + mobilization (each great power's level above mobilization_from, times weight, at most max) + wars (war_each for every war a great power fights, at most war_max) + rivalry (the average dislike between the great powers times rivalry_weight) + the lingering force of events, which fades impulse_decay a month. From aggression_from the AI grows bolder, up to aggression_gain more aggression at 100. From harden_above the great powers' quarrels worsen harden_per_month a month. ai_war_gate: below this tension the AI starts no war of its own choosing (a war it was provoked into, or its allies' wars, are not held back). impulse_max caps what events can add. bloc_weight: added when the great powers stand in two alliance circles of at least two each.",
+		"base": 8,
+		"arms_weight": 40,
+		"arms_max": 15,
+		"mobilization_from": 0.35,
+		"mobilization_weight": 40,
+		"mobilization_max": 18,
+		"war_each": 10,
+		"war_max": 30,
+		"rivalry_weight": 60,
+		"impulse_decay": 0.05,
+		"aggression_from": 30,
+		"aggression_gain": 0.3,
+		"harden_above": 50,
+		"harden_per_month": 0.5,
+		"impulse_max": 40,
+		"ai_war_gate": 30,
+		"bloc_weight": 8
+	},
+	"events": [
+		{
+			"id": "boxer",
+			"title": "The Boxer Rising",
+			"text": "The foreign legations in Peking are besieged. The powers are gathering an expedition, and {a}'s Kaiser wants his share of the glory.",
+			"date": [
+				1900,
+				6
+			],
+			"actors": {
+				"a": "GER",
+				"b": "RUS"
+			},
+			"options": [
+				{
+					"label": "Send an expedition",
+					"text": "Troops and ships go east. It is costly, but the flag is seen.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-4
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								4
+							]
+						},
+						{
+							"tension": 3
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								5
+							]
+						}
+					]
+				},
+				{
+					"label": "Stay out",
+					"text": "Let the others bear the cost.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1900,
+				12
+			]
+		},
+		{
+			"id": "splendid_isolation",
+			"title": "The end of splendid isolation",
+			"text": "Britain stands alone in a world of alliances. The Boer War has shown how few friends it has.",
+			"date": [
+				1901,
+				9
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "GER",
+				"c": "FRA"
+			},
+			"options": [
+				{
+					"label": "Seek an understanding with Germany",
+					"text": "A friendly hand across the North Sea.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-5
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				},
+				{
+					"label": "Keep to isolation",
+					"text": "Britain needs no friends.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				},
+				{
+					"label": "Turn to France",
+					"text": "Settle the old colonial quarrels.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								10
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				}
+			],
+			"ai_option": 2,
+			"until": [
+				1902,
+				6
+			]
+		},
+		{
+			"id": "boer_peace",
+			"title": "The Boer War ends",
+			"text": "The long, costly war in South Africa is over at last, and the army has been shown up badly.",
+			"date": [
+				1902,
+				5
+			],
+			"actors": {
+				"a": "GBR"
+			},
+			"options": [
+				{
+					"label": "Accept the peace",
+					"text": "The treasury and the army's name pay for it.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-6
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-5
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1902,
+				12
+			]
+		},
+		{
+			"id": "russo_japanese",
+			"title": "War in the Far East",
+			"text": "Russia is at war with Japan over Manchuria and Korea, and it is going badly for the Tsar's armies.",
+			"date": [
+				1904,
+				2
+			],
+			"actors": {
+				"a": "RUS"
+			},
+			"options": [
+				{
+					"label": "The war goes badly",
+					"text": "Money, men and prestige drain away in the East.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-15
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-5
+							]
+						},
+						{
+							"manpower": [
+								"a",
+								-0.05
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-10
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1904,
+				12
+			]
+		},
+		{
+			"id": "entente_cordiale",
+			"title": "Entente Cordiale",
+			"text": "France and Britain, old rivals, are ready to settle their quarrels in Egypt and Morocco and to stand together against whatever comes.",
+			"date": [
+				1904,
+				4
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "FRA"
+			},
+			"options": [
+				{
+					"label": "Sign the entente",
+					"text": "A friendship between the two powers, binding enough to matter.",
+					"effects": [
+						{
+							"treaty": [
+								"alliance",
+								"a",
+								"b",
+								{
+									"entente": true
+								},
+								"Entente Cordiale"
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								25
+							]
+						},
+						{
+							"tension": 4
+						}
+					]
+				},
+				{
+					"label": "Decline",
+					"text": "Keep both hands free.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1905,
+				6
+			],
+			"condition": {
+				"relation_above": [
+					"GBR",
+					"FRA",
+					-25
+				]
+			}
+		},
+		{
+			"id": "morocco_1",
+			"title": "The Tangier visit",
+			"text": "The Kaiser has landed at Tangier and declared for Moroccan independence. France sees a challenge to its place in Morocco.",
+			"date": [
+				1905,
+				3
+			],
+			"actors": {
+				"a": "GER",
+				"b": "FRA",
+				"c": "GBR"
+			},
+			"options": [
+				{
+					"label": "Press the challenge",
+					"text": "Germany will be heard in Morocco.",
+					"effects": [
+						{
+							"tension": 10
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-15
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								3
+							]
+						}
+					]
+				},
+				{
+					"label": "Let it pass",
+					"text": "Do not push France to a point of no return.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"b_options": [
+				{
+					"label": "Call for a conference",
+					"text": "Let the powers settle it.",
+					"effects": [
+						{
+							"tension": 2
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								5
+							]
+						}
+					]
+				},
+				{
+					"label": "Stand firm and call up reserves",
+					"text": "France will not bend.",
+					"effects": [
+						{
+							"tension": 8
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"mobilize": [
+								"a",
+								0.15
+							]
+						}
+					]
+				},
+				{
+					"label": "Give way to Germany",
+					"text": "Peace is worth a concession.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-5
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						},
+						{
+							"tension": -3
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"b_ai_option": 0,
+			"until": [
+				1905,
+				12
+			]
+		},
+		{
+			"id": "algeciras",
+			"title": "The Algeciras Conference",
+			"text": "The powers meet to settle Morocco. Germany finds that only Austria stands beside it.",
+			"date": [
+				1906,
+				1
+			],
+			"actors": {
+				"a": "GER",
+				"b": "FRA",
+				"c": "GBR"
+			},
+			"options": [
+				{
+					"label": "Germany is isolated",
+					"text": "The conference goes France's way.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-3
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-5
+							]
+						},
+						{
+							"relation": [
+								"b",
+								"c",
+								5
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"requires_event": "morocco_1",
+			"until": [
+				1906,
+				12
+			]
+		},
+		{
+			"id": "dreadnought",
+			"title": "HMS Dreadnought",
+			"text": "Britain has launched a battleship that makes every other battleship obsolete. The naval race is on.",
+			"date": [
+				1906,
+				2
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Build a dreadnought programme",
+					"text": "Keep the lead at sea, whatever it costs.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-8
+							]
+						},
+						{
+							"tension": 5
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								3
+							]
+						}
+					]
+				},
+				{
+					"label": "Hold back",
+					"text": "Spend the money elsewhere.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				}
+			],
+			"b_options": [
+				{
+					"label": "Pass a new Naval Law",
+					"text": "Match them ship for ship.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-8
+							]
+						},
+						{
+							"tension": 6
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								3
+							]
+						}
+					]
+				},
+				{
+					"label": "Do not race",
+					"text": "Germany's future is on land.",
+					"effects": [
+						{
+							"tension": -2
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"b_ai_option": 0,
+			"until": [
+				1907,
+				6
+			]
+		},
+		{
+			"id": "hague_2",
+			"title": "The Second Hague Conference",
+			"text": "The Tsar has called the powers to The Hague to speak of arms limits and arbitration.",
+			"date": [
+				1907,
+				6
+			],
+			"actors": {
+				"a": "RUS",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Press for disarmament",
+					"text": "A moral lead, and a little less tension.",
+					"effects": [
+						{
+							"tension": -4
+						},
+						{
+							"prestige": [
+								"a",
+								3
+							]
+						}
+					]
+				},
+				{
+					"label": "Send a token delegation",
+					"text": "Say yes, and do nothing.",
+					"effects": []
+				}
+			],
+			"ai_option": 1,
+			"until": [
+				1907,
+				12
+			]
+		},
+		{
+			"id": "anglo_russian",
+			"title": "The Anglo-Russian Convention",
+			"text": "Britain and Russia are ready to settle Persia, Afghanistan and Tibet, and with that, to stand near each other in Europe.",
+			"date": [
+				1907,
+				8
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "RUS"
+			},
+			"options": [
+				{
+					"label": "Sign the convention",
+					"text": "With France, the three form a Triple Entente.",
+					"effects": [
+						{
+							"treaty": [
+								"alliance",
+								"a",
+								"b",
+								{
+									"entente": true
+								},
+								"Anglo-Russian Convention"
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								25
+							]
+						},
+						{
+							"tension": 5
+						}
+					]
+				},
+				{
+					"label": "Decline",
+					"text": "Keep free of continental quarrels.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1908,
+				12
+			],
+			"condition": {
+				"relation_above": [
+					"GBR",
+					"RUS",
+					-45
+				]
+			}
+		},
+		{
+			"id": "young_turks",
+			"title": "The Young Turk Revolution",
+			"text": "Officers in Salonika have forced the Sultan to restore the constitution. The Ottoman state is stirring, and its neighbours are watching.",
+			"date": [
+				1908,
+				7
+			],
+			"actors": {
+				"a": "OTT"
+			},
+			"options": [
+				{
+					"label": "A new government",
+					"text": "Reform, and a weaker hold on the provinces.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								5
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1908,
+				12
+			]
+		},
+		{
+			"id": "bosnia",
+			"title": "The Bosnian annexation",
+			"text": "Austria-Hungary has annexed Bosnia and Herzegovina, which it has run since 1878. Serbia is outraged and looks to Russia.",
+			"date": [
+				1908,
+				10
+			],
+			"actors": {
+				"a": "AUH",
+				"b": "SRB",
+				"c": "RUS"
+			},
+			"options": [
+				{
+					"label": "Annex the provinces",
+					"text": "The map changes on paper; the anger is real.",
+					"effects": [
+						{
+							"tension": 10
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-25
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-15
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								4
+							]
+						},
+						{
+							"grievance": [
+								"b",
+								"a",
+								20
+							]
+						}
+					]
+				},
+				{
+					"label": "Postpone",
+					"text": "Do not provoke the Slavs and Russia.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				}
+			],
+			"b_options": [
+				{
+					"label": "Protest and appeal to Russia",
+					"text": "Serbia will not be ignored.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								10
+							]
+						},
+						{
+							"tension": 4
+						},
+						{
+							"mobilize": [
+								"a",
+								0.1
+							]
+						}
+					]
+				},
+				{
+					"label": "Accept it",
+					"text": "Serbia cannot fight Austria alone.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-3
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"b_ai_option": 0,
+			"until": [
+				1909,
+				3
+			]
+		},
+		{
+			"id": "bosnia_2",
+			"title": "The ultimatum to Russia",
+			"text": "Germany is asked to say whether it stands behind its ally in the Balkans.",
+			"date": [
+				1909,
+				3
+			],
+			"actors": {
+				"a": "GER",
+				"b": "RUS",
+				"c": "AUH"
+			},
+			"options": [
+				{
+					"label": "Back Austria without reserve",
+					"text": "Russia must yield, and remember it.",
+					"effects": [
+						{
+							"tension": 6
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-15
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								15
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						}
+					]
+				},
+				{
+					"label": "Counsel moderation",
+					"text": "Germany does not want a war over Bosnia.",
+					"effects": [
+						{
+							"tension": -3
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"requires_event": "bosnia",
+			"until": [
+				1909,
+				9
+			]
+		},
+		{
+			"id": "racconigi",
+			"title": "The Racconigi agreement",
+			"text": "Italy and Russia agree to a pact over the Balkans, at Austria's expense. Italy's loyalty to the Triple Alliance wears thin.",
+			"date": [
+				1909,
+				10
+			],
+			"actors": {
+				"a": "ITA",
+				"b": "RUS"
+			},
+			"options": [
+				{
+					"label": "Sign",
+					"text": "Italy keeps a foot in each camp.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								15
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Decline",
+					"text": "Loyal to Vienna and Berlin.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1910,
+				6
+			]
+		},
+		{
+			"id": "agadir",
+			"title": "The Panther at Agadir",
+			"text": "Germany has sent a gunboat to the Moroccan port of Agadir. France and Britain are alarmed.",
+			"date": [
+				1911,
+				7
+			],
+			"actors": {
+				"a": "GER",
+				"b": "FRA",
+				"c": "GBR"
+			},
+			"options": [
+				{
+					"label": "Show the flag at Agadir",
+					"text": "Demand compensation in the Congo.",
+					"effects": [
+						{
+							"tension": 12
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-12
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-12
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						}
+					]
+				},
+				{
+					"label": "Negotiate quietly",
+					"text": "Take what can be had without a crisis.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								5
+							]
+						},
+						{
+							"tension": -2
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"b_options": [
+				{
+					"label": "Appeal to Britain",
+					"text": "Britain's voice is worth a fleet.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								10
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				},
+				{
+					"label": "Negotiate",
+					"text": "Give a little to be rid of it.",
+					"effects": [
+						{
+							"tension": -2
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				},
+				{
+					"label": "Mobilize",
+					"text": "Show them France will fight.",
+					"effects": [
+						{
+							"tension": 10
+						},
+						{
+							"mobilize": [
+								"a",
+								0.2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"b_ai_option": 0,
+			"until": [
+				1911,
+				12
+			]
+		},
+		{
+			"id": "italo_turkish",
+			"title": "The war for Tripoli",
+			"text": "Italy has attacked the Ottoman Empire for Tripoli and the Dodecanese. The Ottomans can do little to stop it.",
+			"date": [
+				1911,
+				9
+			],
+			"actors": {
+				"a": "ITA",
+				"b": "OTT"
+			},
+			"options": [
+				{
+					"label": "Seize Tripoli",
+					"text": "Glory and a colony, at a price.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								3
+							]
+						},
+						{
+							"treasury": [
+								"b",
+								-3
+							]
+						},
+						{
+							"prestige": [
+								"b",
+								-4
+							]
+						},
+						{
+							"tension": 4
+						}
+					]
+				},
+				{
+					"label": "Refrain",
+					"text": "Keep the peace.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1912,
+				3
+			]
+		},
+		{
+			"id": "balkan_league",
+			"title": "The Balkan League",
+			"text": "Serbia, Bulgaria, Greece and Montenegro are talking of an alliance against the Ottomans.",
+			"date": [
+				1912,
+				3
+			],
+			"actors": {
+				"a": "SRB",
+				"b": "BUL"
+			},
+			"options": [
+				{
+					"label": "Join the league",
+					"text": "The four small kingdoms bind themselves together.",
+					"effects": [
+						{
+							"treaty": [
+								"alliance",
+								"a",
+								"b",
+								{},
+								"Balkan League"
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								30
+							]
+						},
+						{
+							"tension": 5
+						}
+					]
+				},
+				{
+					"label": "Stay apart",
+					"text": "Keep out of it.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1912,
+				9
+			],
+			"condition": {
+				"relation_above": [
+					"SRB",
+					"BUL",
+					-45
+				]
+			}
+		},
+		{
+			"id": "balkan_war",
+			"title": "The First Balkan War",
+			"text": "The Balkan League declares war on the Ottoman Empire. Within weeks the Ottoman armies in Europe are reeling.",
+			"date": [
+				1912,
+				10
+			],
+			"actors": {
+				"a": "BUL",
+				"b": "OTT"
+			},
+			"options": [
+				{
+					"label": "Declare war",
+					"text": "The league marches.",
+					"effects": [
+						{
+							"war": [
+								"a",
+								"b"
+							]
+						},
+						{
+							"war": [
+								"SRB",
+								"b"
+							]
+						},
+						{
+							"war": [
+								"GRE",
+								"b"
+							]
+						},
+						{
+							"war": [
+								"MNE",
+								"b"
+							]
+						},
+						{
+							"tension": 8
+						}
+					]
+				},
+				{
+					"label": "Hold back",
+					"text": "Not yet.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"requires_event": "balkan_league",
+			"until": [
+				1913,
+				3
+			],
+			"condition": {
+				"peace": [
+					"BUL",
+					"OTT"
+				]
+			}
+		},
+		{
+			"id": "naval_talks",
+			"title": "The Haldane mission",
+			"text": "Britain offers to talk about the naval race with Germany. An agreement could ease the tension.",
+			"date": [
+				1912,
+				2
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Seek an agreement",
+					"text": "Slow the race by talking.",
+					"effects": [
+						{
+							"tension": -6
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						}
+					]
+				},
+				{
+					"label": "Refuse",
+					"text": "The fleet will be as large as the Navy Laws say.",
+					"effects": [
+						{
+							"tension": 2
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"mirror": true,
+			"until": [
+				1912,
+				9
+			],
+			"condition": {
+				"tension_min": 25
+			}
+		},
+		{
+			"id": "sarajevo",
+			"title": "Shots at Sarajevo",
+			"text": "The heir to the Austro-Hungarian throne has been shot in Sarajevo by a Bosnian Serb. Vienna wants to make Serbia pay.",
+			"date": [
+				1914,
+				6
+			],
+			"actors": {
+				"a": "AUH",
+				"b": "SRB",
+				"c": "GER"
+			},
+			"options": [
+				{
+					"label": "Send an ultimatum to Serbia",
+					"text": "Demands no independent state could accept. The alliances start to move.",
+					"effects": [
+						{
+							"tension": 15
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-30
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								10
+							]
+						},
+						{
+							"war": [
+								"a",
+								"b",
+								"calls"
+							]
+						}
+					]
+				},
+				{
+					"label": "Seek a settlement",
+					"text": "Hold the army back and talk.",
+					"effects": [
+						{
+							"tension": -5
+						},
+						{
+							"prestige": [
+								"a",
+								-3
+							]
+						}
+					]
+				}
+			],
+			"b_options": [
+				{
+					"label": "Accept part of the demands",
+					"text": "Humiliating, but it may keep the peace.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-8
+							]
+						},
+						{
+							"tension": -8
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						}
+					]
+				},
+				{
+					"label": "Reject the ultimatum",
+					"text": "Serbia will not be a vassal.",
+					"effects": [
+						{
+							"tension": 10
+						},
+						{
+							"war_support": [
+								"a",
+								10
+							]
+						},
+						{
+							"war": [
+								"b",
+								"a",
+								"calls"
+							]
+						}
+					]
+				}
+			],
+			"ai_option": {
+				"tension_min": 45,
+				"yes": 0,
+				"no": 1
+			},
+			"until": [
+				1914,
+				12
+			],
+			"condition": {
+				"tension_min": 30,
+				"peace": [
+					"AUH",
+					"SRB"
+				]
+			}
+		},
+		{
+			"id": "concert",
+			"title": "A conference of the powers",
+			"text": "Europe is arming faster than anyone can say why. The powers look to you to call them together.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {
+				"a": "$player"
+			},
+			"options": [
+				{
+					"label": "Call a conference",
+					"text": "A show of good faith and a little less tension.",
+					"effects": [
+						{
+							"tension": -12
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"treasury": [
+								"a",
+								-1
+							]
+						}
+					]
+				},
+				{
+					"label": "Press on",
+					"text": "Let the others worry.",
+					"effects": [
+						{
+							"tension": 3
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"repeat_months": 10,
+			"condition": {
+				"tension_min": 55,
+				"player_great_power": true,
+				"pressure_ai": true
+			}
+		},
+		{
+			"id": "brink",
+			"title": "Europe on the brink",
+			"text": "The armies are ready, the alliances are drawn, and every capital is waiting for someone else to blink.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {},
+			"options": [
+				{
+					"label": "The powers wait",
+					"text": "Nothing is settled, and nothing is safe.",
+					"effects": [
+						{
+							"tension": 0
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"repeat_months": 6,
+			"condition": {
+				"tension_min": 80
+			}
+		}
+	]
+}

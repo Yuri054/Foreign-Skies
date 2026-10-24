@@ -2,7 +2,7 @@ class_name Icons
 extends RefCounted
 ## Small icons for the interface, drawn from SVG text so the game needs no image files: `Icons.get_icon("coin")`
 ## is a texture sized for a line of text. Names: coin, tax, factory, people, soldier, wheat, coal, iron, wood,
-## star, scroll, shield, anchor, hammer, flag, scales, chart, cannon.
+## star, flame, scroll, shield, anchor, hammer, flag, scales, chart, cannon.
 
 const SIZE := 18
 
@@ -24,6 +24,7 @@ const _SHAPES := {
 	"flag": '<path d="M5 22V3" stroke="#6a5a48" stroke-width="2" stroke-linecap="round"/><path d="M5 4h14l-3 4.500 3 4.500H5z" fill="#c05a4c" stroke="#6a2c24" stroke-width="1.400" stroke-linejoin="round"/>',
 	"scales": '<path d="M12 3v17M7 21h10M4 7h16" stroke="#c8c0a0" stroke-width="1.800" stroke-linecap="round"/><path d="M4 7l-2.5 6a3.500 3 0 0 0 5 0zM20 7l-2.5 6a3.500 3 0 0 0 5 0z" fill="#c8c0a0" stroke="#6b6450" stroke-width="1.100" stroke-linejoin="round"/>',
 	"chart": '<path d="M3 21h18M3 3v18" stroke="#8aa0bc" stroke-width="1.800"/><rect x="6" y="12" width="3.500" height="8" fill="#6c86b0"/><rect x="11" y="7" width="3.500" height="13" fill="#7ba06c"/><rect x="16" y="10" width="3.500" height="10" fill="#c8a45a"/>',
+	"flame": '<path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 3 3 4 1-3 1-6 1-9z" fill="#e07a30" stroke="#8a3a10" stroke-width="1.500" stroke-linejoin="round"/><path d="M12 22a3 3 0 0 1-3-3c0-2 3-3 3-6 2 2 3 4 3 6a3 3 0 0 1-3 3z" fill="#f2c24a"/>',
 	"cannon": '<path d="M3 11l11-3 3 5-11 3z" fill="#5c6068" stroke="#26292e" stroke-width="1.500" stroke-linejoin="round"/><circle cx="8" cy="18" r="3.500" fill="#8a5e32" stroke="#4a3018" stroke-width="1.400"/><path d="M19 7l2-1M19.500 11l2 .5M18 4l1 -1.500" stroke="#e0b43c" stroke-width="1.500" stroke-linecap="round"/>',
 }
 

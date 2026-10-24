@@ -8,6 +8,7 @@
 	],
 	"default_player": "GER",
 	"playable": true,
+	"pressure_ai": true,
 	"owner_changes": {
 		"Berat": "OTT",
 		"Dibër": "OTT",

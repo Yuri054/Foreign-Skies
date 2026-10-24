@@ -158,7 +158,7 @@ static func war_desire(gs: Node, tag: String, target: String, justified: bool) -
 	var w: Dictionary = cfg().war
 	var hostile := clampf(-Diplomacy.relation(gs, tag, target) / 100.0, 0.0, 1.0)
 	var grievance := Diplomacy.grievance(gs, tag, target) / 100.0
-	var desire := float(w.w_hostile) * hostile + float(w.w_grievance) * grievance
+	var desire: float = float(w.w_hostile) * hostile + float(w.w_grievance) * grievance + float(w.get("w_tension", 0.0)) * gs.tension / 100.0 * hostile
 	if has_plan(gs, tag, target):
 		desire += float(w.w_plan)
 	if justified:
@@ -177,6 +177,9 @@ static func war_option(gs: Node, tag: String, target: String) -> Dictionary:
 	var cb: String = options[0]
 	var justified := cb != "none"
 	var provoked := Diplomacy.grievance(gs, tag, target) >= float(Diplomacy.cfg.war.provocation.retaliation_threshold) and justified
+	# In a calm Europe the AI starts no wars of its own choosing (see Pressure).
+	if not provoked and not Pressure.ai_may_declare(gs):
+		return {}
 	# An AI goes to war only when its country is mobilized, or it has been provoked past bearing.
 	if n.mobilization < float(Diplomacy.cfg.crisis.min_mobilization) and not provoked:
 		return {}

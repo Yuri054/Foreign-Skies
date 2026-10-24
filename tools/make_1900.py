@@ -91,6 +91,7 @@ out = {
     "start_date": [1900, 1, 1],
     "default_player": "GER",
     "playable": True,
+    "pressure_ai": True,
     "owner_changes": owner_changes,
     "nations": nations,
     "_deployment_note": sc["_deployment_note"],

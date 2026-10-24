@@ -16,6 +16,7 @@ var _treasury := Label.new()
 var _net := Label.new()
 var _population := Label.new()
 var _manpower := Label.new()
+var _tension := Label.new()
 var _points := Label.new()
 var _points_gain := Label.new()
 var _chips: Dictionary = {}
@@ -29,6 +30,7 @@ var _rankings_button := Button.new()
 
 
 func _ready() -> void:
+	add_to_group("top_bar")
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	var style := StyleBoxFlat.new()
@@ -69,7 +71,8 @@ func _ready() -> void:
 	points_box.add_child(_points)
 	points_box.add_child(_points_gain)
 	_chips["points"] = _chip(points_box)
-	for key in ["treasury", "population", "manpower", "points"]:
+	_chips["tension"] = _chip(_with_icon("flame", _tension))
+	for key in ["treasury", "population", "manpower", "points", "tension"]:
 		_row.add_child(_chips[key])
 	_chips["treasury"].tooltip_text = "Treasury (GBP millions), and what it gains or loses each month."
 	_chips["population"].tooltip_text = "People living in your provinces."
@@ -136,6 +139,7 @@ func _ready() -> void:
 	Clock.pause_changed.connect(func(_p: bool) -> void: _refresh())
 	Clock.speed_changed.connect(func(_s: int) -> void: _refresh())
 	GameState.economy_updated.connect(_refresh)
+	GameState.news_posted.connect(func(_t: String, _l: int) -> void: _refresh())
 	GameState.diplomacy_points_changed.connect(func(_t: String, _v: float) -> void: _refresh())
 	GameState.player_changed.connect(func(_t: String) -> void: _refresh())
 	GameState.scenario_loaded.connect(_refresh)
@@ -225,6 +229,9 @@ func _refresh() -> void:
 		_points_gain.text = "+%.1f" % income
 		_points_gain.modulate = Fmt.GOOD
 		_chips["points"].tooltip_text = _points_tip(n)
+		_tension.text = "%d" % roundi(GameState.tension)
+		_tension.modulate = Fmt.BAD if GameState.tension >= 70.0 else (Fmt.WARN if GameState.tension >= 45.0 else Color.WHITE)
+		_chips["tension"].tooltip_text = Pressure.tip(GameState)
 	else:
 		_flag.tag = ""
 		_nation.text = "No nation"
@@ -232,6 +239,7 @@ func _refresh() -> void:
 		_net.text = ""
 		_population.text = ""
 		_manpower.text = ""
+		_tension.text = ""
 		_points.text = ""
 		_points_gain.text = ""
 	_date.text = Clock.date_string()
@@ -261,6 +269,7 @@ func _apply_level(level: int) -> void:
 	_chips["population"].visible = level < 1
 	_chips["manpower"].visible = level < 2
 	_chips["points"].visible = level < 4
+	_chips["tension"].visible = level < 5
 	_nation.visible = level < 4
 	_net.visible = level < 5
 	_chips["treasury"].visible = level < 6

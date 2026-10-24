@@ -67,7 +67,7 @@ func _grid() -> GridContainer:
 const ICONS := {
 	"Treasury": "coin", "Population": "people", "Net a month": "coin", "Under arms": "soldier", "Income": "tax", "Reserve": "soldier",
 	"Spending": "coin", "Mobilization": "soldier", "Tax rate": "tax", "War support": "shield", "Industry": "factory",
-	"Prestige": "star", "Raw materials": "iron", "Diplomacy points": "scroll",
+	"Prestige": "star", "Tension": "flame", "Raw materials": "iron", "Diplomacy points": "scroll",
 }
 
 
@@ -160,6 +160,25 @@ func _refresh() -> void:
 	_pair(g, "Prestige", "%d" % roundi(n.prestige))
 	_pair(g, "Raw materials", "%d%% of the need" % roundi(b.materials.ratio * 100.0), Fmt.GOOD if b.materials.ratio >= 0.999 else Fmt.WARN)
 	_pair(g, "Diplomacy points", "%d  (+%.1f a month)" % [roundi(n.diplomacy_points), Diplomacy.point_income(GameState, n.tag)])
+
+	_box.add_child(HSeparator.new())
+	_box.add_child(_heading("Europe"))
+	var tension := _line("Tension %d of 100" % roundi(GameState.tension), Fmt.BAD if GameState.tension >= 70.0 else (Fmt.WARN if GameState.tension >= 45.0 else Color.WHITE))
+	tension.tooltip_text = Pressure.tip(GameState)
+	tension.mouse_filter = Control.MOUSE_FILTER_PASS
+	_box.add_child(tension)
+	var bar := ProgressBar.new()
+	bar.max_value = 100.0
+	bar.value = GameState.tension
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 8)
+	bar.tooltip_text = tension.tooltip_text
+	_box.add_child(bar)
+	for item: Dictionary in GameState.chronicle.slice(0, 4):
+		var line := _line("%s  %s" % [item.date, item.title], Fmt.DIM)
+		line.tooltip_text = item.text
+		line.mouse_filter = Control.MOUSE_FILTER_PASS
+		_box.add_child(line)
 
 	_box.add_child(HSeparator.new())
 	_box.add_child(_heading("War and peace"))

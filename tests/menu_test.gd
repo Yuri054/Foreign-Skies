@@ -78,6 +78,7 @@ func _initialize() -> void:
 	var pause: Node = get_first_node_in_group("pause_menu")
 	_check(pause != null, "the map has a pause menu")
 	gs.pending_joins.clear()
+	gs.pending_events.clear()
 	gs.pending_offers.clear()
 	Clock.paused = false
 	_esc()
