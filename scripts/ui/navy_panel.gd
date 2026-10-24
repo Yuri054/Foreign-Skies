@@ -6,10 +6,8 @@ extends FloatingWindow
 ## water sends the selected fleets there, and a right click on a port brings them in.
 ## It is a tab of the Nation screen; Y opens it.
 
-const TABS := ["Fleets", "Shipyard", "Sea"]
 
-var _tabs := TabContainer.new()
-var _fleet_scroll := ScrollContainer.new()
+var _page := ScrollContainer.new()
 var _fleet_box := VBoxContainer.new()
 var _list := ItemList.new()
 var _detail := Label.new()
@@ -22,7 +20,6 @@ var _home := Button.new()
 var _show := Button.new()
 var _deselect := Button.new()
 
-var _yard_scroll := ScrollContainer.new()
 var _yard_box := VBoxContainer.new()
 var _yard_title := Label.new()
 var _yard_info := Label.new()
@@ -34,7 +31,6 @@ var _yard_list := ItemList.new()
 var _yards: Array[int] = []
 var _queue_label := Label.new()
 
-var _sea_scroll := ScrollContainer.new()
 var _sea_box := VBoxContainer.new()
 var _sea_summary := Label.new()
 var _sea_list := ItemList.new()
@@ -54,19 +50,19 @@ func _ready() -> void:
 	_build_fleets_tab()
 	_build_yard_tab()
 	_build_sea_tab()
-	_fleet_scroll.name = TABS[0]
-	_yard_scroll.name = TABS[1]
-	_sea_scroll.name = TABS[2]
-	for sc: ScrollContainer in [_fleet_scroll, _yard_scroll, _sea_scroll]:
-		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		sc.custom_minimum_size = Vector2(340, 100)
-		_tabs.add_child(sc)
-	_tabs.focus_mode = Control.FOCUS_NONE
-	_tabs.tab_changed.connect(func(_i: int) -> void:
-		_refresh()
-		_fit_height.call_deferred())
-	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(_tabs)
+	_page.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_page.custom_minimum_size = Vector2(340, 100)
+	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override("separation", 6)
+	_page.add_child(column)
+	for part: Array in [["Fleets", _fleet_box], ["Shipyard", _yard_box], ["Sea", _sea_box]]:
+		var heading := Label.new()
+		heading.text = part[0]
+		heading.add_theme_color_override("font_color", Color(0.75, 0.82, 0.95))
+		column.add_child(heading)
+		column.add_child(part[1])
+	add_child(_page)
 	setup_window("Navy", true, Vector2(500, 0), 1)
 	GameState.fleets_changed.connect(_refresh)
 	GameState.economy_updated.connect(_refresh)
@@ -94,7 +90,6 @@ func _row(label: String, control: Control) -> HBoxContainer:
 func _build_fleets_tab() -> void:
 	_fleet_box.add_theme_constant_override("separation", 4)
 	_fleet_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_fleet_scroll.add_child(_fleet_box)
 	_list.select_mode = ItemList.SELECT_MULTI
 	_list.custom_minimum_size = Vector2(0, 120)
 	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -147,7 +142,6 @@ func _build_fleets_tab() -> void:
 func _build_yard_tab() -> void:
 	_yard_box.add_theme_constant_override("separation", 4)
 	_yard_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_yard_scroll.add_child(_yard_box)
 	_yard_title.add_theme_font_size_override("font_size", 15)
 	_yard_box.add_child(_yard_title)
 	_yard_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -190,7 +184,6 @@ func _build_yard_tab() -> void:
 func _build_sea_tab() -> void:
 	_sea_box.add_theme_constant_override("separation", 4)
 	_sea_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_sea_scroll.add_child(_sea_box)
 	_sea_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_sea_summary.custom_minimum_size = Vector2(300, 0)
 	_sea_box.add_child(_sea_summary)
@@ -407,20 +400,15 @@ func _on_show() -> void:
 func _refresh() -> void:
 	if not is_visible_in_tree() or GameState.get_player() == null:
 		return
-	match _tabs.current_tab:
-		0:
-			_refresh_list()
-			_refresh_detail()
-		1:
-			_refresh_yard()
-		2:
-			_refresh_sea()
+	_refresh_list()
+	_refresh_detail()
+	_refresh_yard()
+	_refresh_sea()
 	_fit_height.call_deferred()
 
 
 func _fit_height() -> void:
-	var boxes: Array[Control] = [_fleet_box, _yard_box, _sea_box]
-	fit_window(boxes[clampi(_tabs.current_tab, 0, boxes.size() - 1)].get_combined_minimum_size().y + 34.0)
+	fit_window(_page.get_child(0).get_combined_minimum_size().y + 34.0)
 
 
 static func _where(f: Fleet) -> String:

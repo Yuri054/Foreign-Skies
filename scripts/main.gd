@@ -116,11 +116,11 @@ func _ready() -> void:
 	screen.add_page("Navy", "Y", NavyPanel.new())
 	screen.add_page("Diplomacy", "F", DiplomacyPanel.new())
 	screen.add_page("Focus", "O", FocusPanel.new())
+	screen.add_page("Rankings", "R", RankingsWindow.new())
 	ui.add_child(CommandPanel.new())
 	var nation_stats := NationStats.new()
 	nation_stats.closed.connect(_end_peek)
 	ui.add_child(nation_stats)
-	ui.add_child(RankingsWindow.new())
 	ui.add_child(SettingsWindow.new())
 	ui.add_child(SaveWindow.new())
 	GameState.autosave_enabled = true
@@ -153,6 +153,7 @@ func _ready() -> void:
 	# A loaded game goes on as the nation that was saved; a new one asks which to play.
 	if Scenarios.resume:
 		Scenarios.resume = false
+		_focus_on(GameState.player_tag)
 		return
 	var picker := NationPicker.new()
 	picker.map_view = map_view
@@ -188,8 +189,8 @@ var _peek_submode := ""
 
 
 ## A right click on a province, as in the Paradox games: with armies selected it is an order.
-## Otherwise it picks the nation that owns the land: the country panel on the left opens on it
-## (your own nation too) and the map goes to the Diplomacy mode seen from that nation. Right-
+## Otherwise it picks the nation that owns the land: your own opens the Nation screen; another one opens the
+## country panel on the left on it and the map goes to the Diplomacy mode seen from that nation. Right-
 ## clicking the same nation again, or closing the panel, puts the map back as it was. Holding
 ## Shift picks the nation for the panel only, leaving the map mode alone.
 func _on_right_click(id: int) -> void:
@@ -201,6 +202,10 @@ func _on_right_click(id: int) -> void:
 	var panel := get_tree().get_first_node_in_group("military_panel")
 	if panel != null and panel.has_selection() and not shift:
 		get_tree().call_group("military_panel", "order_move", id)
+		return
+	if tag == GameState.player_tag and not shift:
+		# Your own nation is the Nation screen's business; the country panel is for looking at the others.
+		get_tree().call_group("nation_screen", "open_page", "Overview")
 		return
 	var stats := get_tree().get_first_node_in_group("nation_stats")
 	if shift:

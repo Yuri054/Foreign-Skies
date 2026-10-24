@@ -11,15 +11,9 @@ var _scale_held := false
 var _note := Label.new()
 var _army_view := OptionButton.new()
 var _map_3d := CheckButton.new()
-var _relief := CheckButton.new()
-var _models := CheckButton.new()
-var _unit_look := CheckButton.new()
-var _city_models := CheckButton.new()
 var _quality := OptionButton.new()
 var _land := OptionButton.new()
 var _updating := false
-## Whether the window offers a way back to the main menu (the menu's own copy does not).
-var offer_quit_to_menu := true
 
 
 func _ready() -> void:
@@ -129,42 +123,6 @@ func _ready() -> void:
 	)
 	quality_row.add_child(_quality)
 	box.add_child(quality_row)
-	_relief.text = "Terrain relief in 3D"
-	_relief.focus_mode = Control.FOCUS_NONE
-	_relief.tooltip_text = "Raises mountains and valleys on the 3D map from real elevation data, and lights them from the north west."
-	_relief.toggled.connect(func(on: bool) -> void:
-		if not _updating:
-			for m in get_tree().get_nodes_in_group("map_3d"):
-				m.relief_on = on
-	)
-	box.add_child(_relief)
-	_models.text = "Unit models in 3D"
-	_models.focus_mode = Control.FOCUS_NONE
-	_models.tooltip_text = "Armies and fleets stand up on the 3D map as small flagged poles and ships, not flat banners."
-	_models.toggled.connect(func(on: bool) -> void:
-		if not _updating:
-			for m in get_tree().get_nodes_in_group("map_3d"):
-				m.markers_on = on
-	)
-	box.add_child(_models)
-	_unit_look.text = "Soldiers and ships up close"
-	_unit_look.focus_mode = Control.FOCUS_NONE
-	_unit_look.tooltip_text = "Bring each unit up as a model of a soldier, a horseman, a gun or a ship as you zoom in; off, only the banners show."
-	_unit_look.toggled.connect(func(on: bool) -> void:
-		if not _updating:
-			for m in get_tree().get_nodes_in_group("map_3d"):
-				m.units_models_on = on
-	)
-	box.add_child(_unit_look)
-	_city_models.text = "City models in 3D"
-	_city_models.focus_mode = Control.FOCUS_NONE
-	_city_models.tooltip_text = "Cities stand up on the 3D map as models of houses, spires and chimneys: the more people, the bigger the city."
-	_city_models.toggled.connect(func(on: bool) -> void:
-		if not _updating:
-			for m in get_tree().get_nodes_in_group("map_3d"):
-				m.cities_on = on
-	)
-	box.add_child(_city_models)
 
 	var sound := Label.new()
 	sound.text = "Sound"
@@ -172,20 +130,6 @@ func _ready() -> void:
 	for bus: String in Audio.BUSES:
 		box.add_child(_audio_row(bus))
 
-	var saves := Button.new()
-	saves.text = "Save and load… (F6)"
-	saves.focus_mode = Control.FOCUS_NONE
-	saves.pressed.connect(func() -> void: get_tree().call_group("save_window", "toggle"))
-	box.add_child(saves)
-	if offer_quit_to_menu:
-		var quit := Button.new()
-		quit.text = "Quit to menu"
-		quit.focus_mode = Control.FOCUS_NONE
-		quit.pressed.connect(func() -> void:
-			GameState.autosave_enabled = false
-			get_tree().change_scene_to_file.call_deferred("res://scenes/menu.tscn")
-		)
-		box.add_child(quit)
 	setup_window("Settings", true, Vector2(300, 360), 3, true)
 	fit_window(box.get_combined_minimum_size().y + 4.0)
 	_sync()
@@ -227,10 +171,6 @@ func _sync() -> void:
 	_updating = true
 	for m in get_tree().get_nodes_in_group("map_3d"):
 		_map_3d.button_pressed = m.enabled
-		_relief.button_pressed = m.relief_on
-		_models.button_pressed = m.markers_on
-		_unit_look.button_pressed = m.units_models_on
-		_city_models.button_pressed = m.cities_on
 	_land.select(maxi(0, UiSettings.LAND_STYLES.find(UiSettings.land_style)))
 	_quality.select(maxi(0, UiSettings.QUALITY_SCALES.keys().find(UiSettings.quality_3d)))
 	_slider.value = UiSettings.scale

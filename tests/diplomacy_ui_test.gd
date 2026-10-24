@@ -187,7 +187,7 @@ func _test_peace_screen() -> void:
 	var screen: Node = get_first_node_in_group("peace_screen")
 	var mil: Node = get_first_node_in_group("military_panel")
 	mil.toggle()
-	mil._tabs.current_tab = 1
+	mil.show_tab("Wars")
 	mil._refresh_wars()
 	await process_frame
 	_check(mil._peace_button.visible, "the Wars tab offers peace talks for the player's war")
@@ -309,11 +309,14 @@ func _test_nation_menu() -> void:
 	await process_frame
 	_check(panel.shown_tag() == "RUS" and panel._name.text == "Russian Empire", "right-clicking Russia changes the panel to Russia")
 	_check(panel._cancel_box.get_child_count() >= 1, "with a button to cancel the alliance with France")
-	# Your own nation: figures, no actions.
+	# Your own nation is the Nation screen's business, not the country panel's.
+	var nation_screen: Node = get_first_node_in_group("nation_screen")
+	nation_screen.close_screen()
 	main.map_view.province_ordered.emit(fra)
 	await process_frame
 	await process_frame
-	_check(panel.shown_tag() == "FRA" and not panel._actions_box.visible, "right-clicking your own land shows your own nation, without actions")
+	_check(nation_screen.visible and panel.shown_tag() == "RUS", "right-clicking your own land opens the Nation screen and leaves the country panel alone")
+	nation_screen.close_screen()
 	panel.close_window()
 	_check(not panel.visible, "the X closes it")
 	panel.show_nation("ITA")

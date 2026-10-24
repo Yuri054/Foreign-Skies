@@ -105,27 +105,18 @@ func _key(win: Node, code: int) -> void:
 
 func _test_window() -> void:
 	var win: Node = get_first_node_in_group("rankings_window")
-	var bar: Node = main.get_node("UI/TopBar")
 	_check(win != null and win.has_method("setup_window"), "the rankings window exists and is a window")
 	_key(win, KEY_R)
 	await process_frame
 	await process_frame
-	_check(win.visible and bar._rankings_button.button_pressed, "R opens it and lights the top bar button")
-	_check(win._tabs.get_tab_count() == 3 and win._tabs.get_tab_title(0) == "Chart" and win._tabs.get_tab_title(1) == "Table" and win._tabs.get_tab_title(2) == "Trend", "it has a chart, a table and a trend")
-
-	# Chart.
-	_check(win._chart_rows.get_child_count() == 22, "the chart has a row for each nation (%d)" % win._chart_rows.get_child_count())
+	var screen: Node = get_first_node_in_group("nation_screen")
+	_check(win.visible and win.host == screen and screen.current_page() == win, "R opens it as a page of the Nation screen")
+	_check(win._table.get_child_count() > 0 and win._trend != null, "it has a table and a trend on one page")
 	_check(win._summary.text.contains("Population") and win._summary.text.contains("you are #") and win._summary.text.contains("Russian Empire leads"), "the summary says where you stand and who leads (%s)" % win._summary.text)
-	var first_row: Node = win._chart_rows.get_child(0)
-	var names: PackedStringArray = []
-	for c in first_row.get_child(0).get_children():
-		if c is Label:
-			names.append(c.text)
-	_check("Russian Empire" in names, "the top row is Russia")
 	win.show_metric("army")
 	await process_frame
 	await process_frame
-	_check(win._summary.text.contains("Army:") and win._picker.get_item_text(win._picker.selected) == "Army", "choosing another figure re-ranks the chart")
+	_check(win._summary.text.contains("Army:") and win._picker.get_item_text(win._picker.selected) == "Army", "choosing another figure re-ranks")
 	var stats: Node = get_first_node_in_group("nation_stats")
 	stats.close_window()
 	win._show_nation("ITA")
@@ -133,7 +124,6 @@ func _test_window() -> void:
 	stats.close_window()
 
 	# Table.
-	win._tabs.current_tab = 1
 	await process_frame
 	await process_frame
 	_check(win._table.get_child_count() == (2 + win.TABLE_COLUMNS.size()) * 23, "the table has a heading row and a row per nation (%d cells)" % win._table.get_child_count())
@@ -146,7 +136,6 @@ func _test_window() -> void:
 	_check(sorted_heading.text.contains("▾"), "and marks the column")
 
 	# Trend.
-	win._tabs.current_tab = 2
 	await process_frame
 	await process_frame
 	_check(win._trend.message != "", "the trend asks for a little time to pass at first (%s)" % win._trend.message)
@@ -163,4 +152,4 @@ func _test_window() -> void:
 	_check(bold == 1, "and your own nation in bold")
 	_check(win._trend.series[0].points.size() == 4 and win._trend.x_labels[0] == "28 July 1914", "from the first day (%s)" % win._trend.x_labels[1])
 	win.close_window()
-	_check(not win.visible and not bar._rankings_button.button_pressed, "the X closes it")
+	_check(not win.visible and not screen.visible, "the X closes the screen")

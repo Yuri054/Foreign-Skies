@@ -71,13 +71,11 @@ func _initialize() -> void:
 	await process_frame
 	_check(not panel.visible and view.mode == Mode.DIPLOMACY and view.diplomacy_viewpoint() == "FRA", "from the Diplomacy mode it comes back to your own point of view")
 
-	# Your own nation works the same way.
+	# Your own nation is the Nation screen's business: the map and the country panel are left alone.
 	view.set_mode(Mode.TERRAIN)
+	var screen: Node = get_first_node_in_group("nation_screen")
 	view.province_ordered.emit(gs.nations["FRA"].provinces[0])
 	await process_frame
-	_check(panel.visible and panel.shown_tag() == "FRA" and view.mode == Mode.DIPLOMACY, "your own land opens your panel in the Diplomacy mode")
-	view.province_ordered.emit(gs.nations["FRA"].provinces[0])
-	await process_frame
-	_check(not panel.visible and view.mode == Mode.TERRAIN, "and a second click closes it")
+	_check(screen.visible and not panel.visible and view.mode == Mode.TERRAIN, "your own land opens the Nation screen and changes nothing on the map")
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

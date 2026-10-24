@@ -443,7 +443,16 @@ func _army_title(armies: Array[Army]) -> String:
 		return "%s · %s" % [line.display_name, _line_status(line)]
 	if armies.size() == 1:
 		var a := armies[0]
-		return "%s · %s men · morale %d%% · %s" % [a.display_name, Fmt.people(men), roundi(a.morale() * 100.0), MapData.provinces[a.province].name]
+		var status := ""
+		if a.fighting:
+			status = " · FIGHTING"
+		elif a.embarked():
+			status = " · aboard"
+		elif not a.supplied:
+			status = " · OUT OF SUPPLY"
+		elif not a.path.is_empty():
+			status = " · marching"
+		return "%s · %s men · morale %d%% · %s%s" % [a.display_name, Fmt.people(men), roundi(a.morale() * 100.0), MapData.provinces[a.province].name, status]
 	return "%d armies · %s men · morale %d%%" % [armies.size(), Fmt.people(men), roundi(morale / maxf(men, 1.0) * 100.0)]
 
 

@@ -1,41 +1,28 @@
 extends FloatingWindow
 
 
-## Military overview of the player's nation: mobilization, manpower, the list of armies with
-## orders (merge, split, map symbol), fronts, recruiting, and a switch to put nations at war
-## for testing until diplomacy exists. Clicking a province selects the player's armies
-## standing there (dragging a box selects every army inside it); a right click on another
-## province sends the selected armies to it. A front is a line of provinces drawn on the map
-## with armies assigned to it: they spread along the line and hold it. Toggle with M. The fleets, shipyard and sea state are the Navy tab of the Nation screen (Y).
+## The military page of the Nation screen: mobilization and manpower at a glance, then folding sections for
+## fronts, recruiting and wars. Orders to the armies themselves (merge, split, symbol, board) are the command
+## panel's (C). It also keeps the selection: clicking a province selects the player's armies standing there
+## (dragging a box selects every army inside it); a right click on another province sends them there. A front is a
+## line of provinces drawn on the map with armies assigned to it: they spread along the line and hold it.
+## Toggle with M. The fleets, shipyard and sea state are the Navy page (Y).
 
 var _slider_label := Label.new()
 var _mob_note := Label.new()
 var _rows: Dictionary = {}
-var _list := ItemList.new()
-var _detail := Label.new()
-var _icon_picker := OptionButton.new()
-var _merge := Button.new()
-var _split := Button.new()
-var _split_type := OptionButton.new()
-var _split_count := SpinBox.new()
-var _split_by_type := Button.new()
-var _split_sig := "?"
 var _type_picker := OptionButton.new()
 var _count := SpinBox.new()
 var _raise := Button.new()
 var _raise_label := Label.new()
-var _war_picker := OptionButton.new()
-var _war_button := Button.new()
 var _scroll := ScrollContainer.new()
 var _box := VBoxContainer.new()
-var _tabs := TabContainer.new()
 var _fronts_box := VBoxContainer.new()
 var _recruit_box := VBoxContainer.new()
-## The Land tab stacks three folding sections: armies, fronts and recruiting. Each has a header
+## The page stacks three folding sections: fronts, recruiting and wars. Each has a header
 ## button and the section's content box, keyed by name.
 var _sections: Dictionary = {}
 var _section_heads: Dictionary = {}
-var _wars_scroll := ScrollContainer.new()
 var _wars_box := VBoxContainer.new()
 var _wars_list := ItemList.new()
 var _war_summary := Label.new()
@@ -54,9 +41,6 @@ var _fronts_list := ItemList.new()
 var _front_detail := Label.new()
 var _face_button := Button.new()
 var _draw_button := Button.new()
-var _deselect := Button.new()
-var _board := Button.new()
-var _land := Button.new()
 var _face_row := VBoxContainer.new()
 var _assign_button := Button.new()
 var _release_button := Button.new()
@@ -66,7 +50,6 @@ var _front_name := LineEdit.new()
 
 ## Ids of the selected armies; the list mirrors it.
 var _selected: Array[int] = []
-var _listed: Array[int] = []
 var _province := 0
 var _updating := false
 ## Fronts: ids in list order, the chosen one, and the line being drawn (if any).
@@ -86,31 +69,22 @@ func _ready() -> void:
 
 	# The content scrolls when it is taller than the space above the map mode bar.
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.name = "Land"
-	_wars_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_wars_scroll.name = "Wars"
-	_tabs.add_child(_scroll)
-	_tabs.add_child(_wars_scroll)
-	_tabs.focus_mode = Control.FOCUS_NONE
-	_tabs.tab_changed.connect(func(_i: int) -> void: _fit_height.call_deferred())
-	for sc: ScrollContainer in [_scroll, _wars_scroll]:
-		sc.custom_minimum_size = Vector2(320, 100)
-	for b: VBoxContainer in [_fronts_box, _recruit_box]:
+	_scroll.custom_minimum_size = Vector2(320, 100)
+	for b: VBoxContainer in [_fronts_box, _recruit_box, _wars_box]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_constant_override("separation", 4)
-	add_child(_tabs)
+	add_child(_scroll)
 	setup_window("Military", true, Vector2(500, 0), 1)
 	_box.add_theme_constant_override("separation", 4)
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var land := VBoxContainer.new()
-	land.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	land.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	land.add_theme_constant_override("separation", 4)
-	_scroll.add_child(land)
-	_add_section(land, "Armies", _box, true)
-	_add_section(land, "Fronts", _fronts_box, false)
-	_add_section(land, "Recruit", _recruit_box, false)
+	var page := VBoxContainer.new()
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 4)
+	_scroll.add_child(page)
+	page.add_child(_box)
+	_add_section(page, "Fronts", _fronts_box, false)
+	_add_section(page, "Recruit", _recruit_box, false)
+	_add_section(page, "Wars", _wars_box, false)
 	get_viewport().size_changed.connect(_fit_height)
 	var box := _box
 	var fronts_box := _fronts_box
@@ -148,78 +122,6 @@ func _ready() -> void:
 	box.add_child(figures)
 	box.add_child(HSeparator.new())
 
-	_list.select_mode = ItemList.SELECT_MULTI
-	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_list.custom_minimum_size = Vector2(0, 96)
-	_list.focus_mode = Control.FOCUS_NONE
-	_list.allow_reselect = true
-	_list.multi_selected.connect(func(_i: int, _s: bool) -> void: _read_selection())
-	_list.item_activated.connect(func(i: int) -> void: _jump_to(_listed[i]))
-	box.add_child(_list)
-
-	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail.custom_minimum_size = Vector2(320, 0)
-	_detail.modulate = Fmt.DIM
-	box.add_child(_detail)
-
-	var icon_row := HBoxContainer.new()
-	var icon_label := Label.new()
-	icon_label.text = "Map symbol"
-	icon_label.custom_minimum_size = Vector2(100, 0)
-	_icon_picker.focus_mode = Control.FOCUS_NONE
-	_icon_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for key in Military.cfg.icons:
-		_icon_picker.add_item(Military.cfg.icons[key])
-		_icon_picker.set_item_metadata(_icon_picker.item_count - 1, key)
-	_icon_picker.item_selected.connect(_on_icon_picked)
-	icon_row.add_child(icon_label)
-	icon_row.add_child(_icon_picker)
-	box.add_child(icon_row)
-
-	var orders := HBoxContainer.new()
-	_merge.text = "Merge"
-	_merge.tooltip_text = "Combine the selected armies standing in one province."
-	_merge.pressed.connect(_on_merge)
-	_split.text = "Split in half"
-	_split.tooltip_text = "Detach every second unit of the selected army into a new army."
-	_split.pressed.connect(_on_split)
-	_deselect.text = "Deselect"
-	_deselect.tooltip_text = "Clear the selection (Esc, or click empty ground)."
-	_deselect.pressed.connect(clear_selection)
-	for b in [_merge, _split, _deselect]:
-		b.focus_mode = Control.FOCUS_NONE
-		orders.add_child(b)
-	box.add_child(orders)
-	var sea_orders := HBoxContainer.new()
-	_board.text = "Board ship"
-	_board.tooltip_text = "Put the selected armies aboard a fleet with transports in the same port. Then send the fleet, or right click an overseas coast to sail and land in one order."
-	_board.pressed.connect(_on_board)
-	_land.text = "Disembark"
-	_land.tooltip_text = "Put the selected armies ashore in the port their fleet lies in. At sea, right click a coast to land."
-	_land.pressed.connect(_on_land)
-	for b in [_board, _land]:
-		b.focus_mode = Control.FOCUS_NONE
-		sea_orders.add_child(b)
-	box.add_child(sea_orders)
-	var by_type := HBoxContainer.new()
-	var by_type_label := Label.new()
-	by_type_label.text = "Split off"
-	by_type_label.custom_minimum_size = Vector2(70, 0)
-	_split_type.focus_mode = Control.FOCUS_NONE
-	_split_type.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_split_type.tooltip_text = "Which kind of unit to detach from the selected army."
-	_split_type.item_selected.connect(func(_i: int) -> void: _refresh_split_picker(GameState.armies.get(_selected[0]) if _selected.size() == 1 else null))
-	_split_count.min_value = 1
-	_split_count.max_value = 1
-	_split_count.value = 1
-	_split_count.tooltip_text = "How many of them."
-	_split_by_type.text = "Detach"
-	_split_by_type.tooltip_text = "Move that many units of that type into a new army in the same province."
-	_split_by_type.focus_mode = Control.FOCUS_NONE
-	_split_by_type.pressed.connect(_on_split_by_type)
-	for c in [by_type_label, _split_type, _split_count, _split_by_type]:
-		by_type.add_child(c)
-	box.add_child(by_type)
 	var fronts_title := Label.new()
 	fronts_title.text = "A front is a line of provinces to hold; armies assigned to it spread along it."
 	fronts_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -318,40 +220,17 @@ func _ready() -> void:
 	recruit_box.add_child(_raise_label)
 	recruit_box.add_child(HSeparator.new())
 
-	var war_title := Label.new()
-	war_title.text = "Testing switch: put two nations at war"
-	recruit_box.add_child(war_title)
-	var war := HBoxContainer.new()
-	_war_picker.focus_mode = Control.FOCUS_NONE
-	_war_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_war_picker.item_selected.connect(func(_i: int) -> void: _refresh_war())
-	_war_button.focus_mode = Control.FOCUS_NONE
-	_war_button.pressed.connect(_on_war)
-	war.add_child(_war_picker)
-	war.add_child(_war_button)
-	recruit_box.add_child(war)
-
-	var note := Label.new()
-	note.text = "Click a province to select your armies, drag a box for several, right-click to march (the route shows the days)."
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.custom_minimum_size = Vector2(320, 0)
-	note.modulate = Color(1, 1, 1, 0.65)
-	box.add_child(note)
-
 	_build_wars_tab()
 	GameState.economy_updated.connect(_refresh)
 	GameState.armies_changed.connect(_refresh)
 	GameState.fronts_changed.connect(_refresh)
-	GameState.war_changed.connect(func(_a: String, _b: String, _w: bool) -> void: _refresh_war())
 	GameState.player_changed.connect(func(_t: String) -> void:
 		_end_drawing()
 		_front_selected = 0
 		_selected.clear()
 		_sync_selection()
-		_rebuild_war_picker()
 		_refresh()
 	)
-	_rebuild_war_picker()
 	_refresh()
 
 
@@ -361,7 +240,7 @@ func toggle() -> void:
 		_refresh()
 
 
-## A folding section of the Land tab: a header button that shows or hides `content`.
+## A folding section of the page: a header button that shows or hides `content`.
 func _add_section(parent: Control, title: String, content: Control, open: bool) -> void:
 	var head := Button.new()
 	head.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -375,7 +254,7 @@ func _add_section(parent: Control, title: String, content: Control, open: bool) 
 	set_section(title, open)
 
 
-## Opens or folds one section of the Land tab.
+## Opens or folds one section of the page.
 func set_section(title: String, open: bool) -> void:
 	var content: Control = _sections[title]
 	content.visible = open
@@ -383,18 +262,13 @@ func set_section(title: String, open: bool) -> void:
 	_fit_height.call_deferred()
 
 
-## Opens the window on a tab by its name (or closes it, with `open` false). "Armies", "Fronts"
-## and "Recruit" are sections of the Land tab: the tab opens with that section unfolded.
-func show_tab(tab_name: String, open := true) -> void:
+## Opens the page, with one of its sections ("Fronts", "Recruit", "Wars") unfolded; or closes it, with `open` false.
+func show_tab(section: String, open := true) -> void:
 	if not open:
 		close_window()
 		return
-	if _sections.has(tab_name):
-		set_section(tab_name, true)
-		tab_name = "Land"
-	for i in _tabs.get_tab_count():
-		if _tabs.get_child(i).name == tab_name:
-			_tabs.current_tab = i
+	if _sections.has(section):
+		set_section(section, true)
 	visible = true
 	move_to_front()
 	_refresh()
@@ -572,32 +446,12 @@ func select_in_rect(rect: Rect2, additive := false) -> void:
 	_refresh()
 
 
-func _read_selection() -> void:
-	_selected.clear()
-	for i in _list.get_selected_items():
-		_selected.append(_listed[i])
-	_sync_selection()
-	_refresh_detail()
-	_refresh_fronts()
-
-
-## Tells the map and the list which armies are selected.
+## Tells the map and the command panel which armies are selected.
 func _sync_selection(keep_fleets := false) -> void:
 	get_tree().call_group("army_layer", "set_selection", _selected.duplicate())
 	get_tree().call_group("command_panel", "set_selection", _selected.duplicate())
 	if not _selected.is_empty() and not keep_fleets:
 		get_tree().call_group("navy_panel", "clear_selection_quiet")
-	for i in _listed.size():
-		if _selected.has(_listed[i]):
-			_list.select(i, false)
-		else:
-			_list.deselect(i)
-
-
-func _jump_to(army_id: int) -> void:
-	var a: Army = GameState.armies.get(army_id)
-	if a:
-		get_tree().call_group("camera_focus", "focus_on", MapData.provinces[a.province].center)
 
 
 func _refresh() -> void:
@@ -630,12 +484,10 @@ func _refresh() -> void:
 		part.tooltip_text = tip
 		part.mouse_filter = Control.MOUSE_FILTER_PASS
 	_set_row("output", "Output lost", "%d%%, factories %d%%" % [roundi(Economy.cfg.mobilization_output_penalty * n.mobilization * 100.0), roundi((1.0 - Economy.worker_share(n)) * 100.0)])
+	_selected = _selected.filter(func(id: int) -> bool: return GameState.armies.has(id))
 	if visible:
-		_refresh_list()
-		_refresh_detail()
 		_refresh_fronts()
 		_refresh_recruit()
-		_refresh_war()
 		_refresh_wars()
 		_fit_height.call_deferred()
 
@@ -644,174 +496,14 @@ func _refresh() -> void:
 func _fit_height() -> void:
 	if not is_inside_tree():
 		return
-	var wanted: float
-	match _tabs.get_current_tab_control():
-		_wars_scroll:
-			wanted = _wars_box.get_combined_minimum_size().y
-		_:
-			wanted = _scroll.get_child(0).get_combined_minimum_size().y
-	fit_window(minf(wanted, 460.0) + 34.0)
-
-
-func _refresh_list() -> void:
-	var mine := Military.armies_of(GameState, GameState.player_tag)
-	var ids: Array[int] = []
-	for a in mine:
-		ids.append(a.id)
-	_selected = _selected.filter(func(id: int) -> bool: return ids.has(id))
-	var rebuild := ids != _listed
-	if rebuild:
-		_list.clear()
-		_listed = ids
-	for i in mine.size():
-		var a := mine[i]
-		var text := "%s · %s · %s" % [a.display_name, MapData.provinces[a.province].name, Fmt.people(a.men())]
-		if a.fighting:
-			text += " · FIGHTING"
-		elif a.embarked():
-			text += " · aboard"
-		elif not a.supplied:
-			text += " · no supply"
-		elif not a.path.is_empty():
-			text += " · marching"
-		if rebuild:
-			_list.add_item(text)
-		else:
-			_list.set_item_text(i, text)
-		if a.fighting:
-			_list.set_item_custom_fg_color(i, Fmt.BAD)
-		elif not a.supplied:
-			_list.set_item_custom_fg_color(i, Fmt.WARN)
-		else:
-			_list.set_item_custom_fg_color(i, Color.WHITE)
-	if rebuild:
-		_sync_selection()
-
-
-func _refresh_detail() -> void:
-	var armies: Array[Army] = []
-	for id in _selected:
-		if GameState.armies.has(id):
-			armies.append(GameState.armies[id])
-	_icon_picker.disabled = armies.is_empty()
-	_deselect.disabled = armies.is_empty()
-	_board.disabled = armies.is_empty() or armies.all(func(x: Army) -> bool: return x.embarked() or Navy.fleets_in_port(GameState, x.province).filter(func(f: Fleet) -> bool: return f.tag == x.tag).is_empty())
-	_land.disabled = armies.is_empty() or not armies.any(func(x: Army) -> bool: return x.embarked() and GameState.fleets.has(x.fleet_id) and GameState.fleets[x.fleet_id].is_in_port())
-	if armies.is_empty():
-		_refresh_split_picker(null)
-		_detail.text = "No army selected."
-		_merge.disabled = true
-		_split.disabled = true
-		_board.disabled = true
-		_land.disabled = true
-		return
-	_updating = true
-	for i in _icon_picker.item_count:
-		if _icon_picker.get_item_metadata(i) == armies[0].icon:
-			_icon_picker.select(i)
-	_updating = false
-	var same_place := armies.all(func(x: Army) -> bool: return x.province == armies[0].province)
-	_merge.disabled = armies.size() < 2 or not same_place
-	_split.disabled = armies.size() != 1 or armies[0].units.size() < 2
-	_refresh_split_picker(armies[0] if armies.size() == 1 else null)
-	if armies.size() > 1:
-		var men := 0.0
-		for a in armies:
-			men += a.men()
-		_detail.text = "%d armies, %s men." % [armies.size(), Fmt.people(men)]
-		return
-	var a := armies[0]
-	var counts: PackedStringArray = []
-	for type in Military.unit_type_ids():
-		if a.count_of(type) > 0:
-			counts.append("%d %s" % [a.count_of(type), Military.cfg.unit_types[type].name.to_lower()])
-	var lines: PackedStringArray = [
-		"%s — %s" % [a.display_name, a.general_name if not a.general_name.is_empty() else "no general"],
-		", ".join(counts),
-		"%s men · morale %d%% · dug in %d/%d" % [Fmt.people(a.men()), roundi(a.morale() * 100.0), a.entrenchment(), Military.cfg.combat.max_entrenchment],
-		"%s on %s%s" % [MapData.provinces[a.province].name, Military.terrain_of(a.province).name.to_lower(),
-				"" if a.supplied else " — OUT OF SUPPLY"],
-	]
-	if a.embarked() and GameState.fleets.has(a.fleet_id):
-		var ship: Fleet = GameState.fleets[a.fleet_id]
-		lines.append("Aboard %s, %s." % [ship.display_name, "in port" if ship.is_in_port() else "at sea in the " + MapData.sea_zones[ship.zone].name])
-	elif a.landing_days > 0:
-		lines.append("Just landed: fights at half strength and is not dug in for %d more days." % a.landing_days)
-	if a.front_id != 0 and GameState.fronts.has(a.front_id):
-		lines.append("On the %s." % GameState.fronts[a.front_id].display_name)
-	if not a.path.is_empty():
-		var etas := Military.army_etas(GameState, a)
-		lines.append("Marching to %s: %d provinces, arrives in %d days (%s)." % [
-			MapData.provinces[a.path.back()].name, a.path.size(), roundi(etas.back()), Clock.date_after(roundi(etas.back()))])
-	var progress: Dictionary = GameState.occupation.get(a.province, {})
-	if progress.get("tag", "") == a.tag:
-		lines.append("Taking the province: day %d of %d." % [progress.days, Military.terrain_of(a.province).occupy_days])
-	_detail.text = "\n".join(lines)
-
-
-func _on_icon_picked(index: int) -> void:
-	if _updating or _selected.is_empty():
-		return
-	var ids: Array[int] = _selected.duplicate()
-	GameState.issue(SetArmyIcon.new(GameState.player_tag, ids, _icon_picker.get_item_metadata(index)))
+	fit_window(minf(_scroll.get_child(0).get_combined_minimum_size().y, 460.0) + 34.0)
 
 
 func _on_merge() -> void:
 	var ids: Array[int] = _selected.duplicate()
 	if GameState.issue(MergeArmies.new(GameState.player_tag, ids)):
 		_selected = [ids[0]]
-		_refresh_list()
 		_sync_selection()
-		_refresh_detail()
-
-
-## Offers the unit types the selected army holds, with how many of each. Rebuilt only when
-## the army's makeup changes, so a choice survives the daily refresh.
-func _refresh_split_picker(a: Army) -> void:
-	var sig := "none"
-	if a != null:
-		sig = str(a.id)
-		for type in Military.unit_type_ids():
-			sig += ":%d" % a.count_of(type)
-	var disabled := a == null or a.units.size() < 2
-	if sig != _split_sig:
-		_split_sig = sig
-		var keep: String = _split_type.get_item_metadata(_split_type.selected) if _split_type.item_count > 0 and _split_type.selected >= 0 else ""
-		_split_type.clear()
-		if a != null:
-			for type in Military.unit_type_ids():
-				var n := a.count_of(type)
-				if n > 0:
-					_split_type.add_item("%s (%d)" % [Military.cfg.unit_types[type].name, n])
-					_split_type.set_item_metadata(_split_type.item_count - 1, type)
-					if type == keep:
-						_split_type.select(_split_type.item_count - 1)
-	_split_type.disabled = disabled
-	_split_by_type.disabled = disabled
-	_split_count.editable = not disabled
-	if a == null or _split_type.item_count == 0:
-		_split_count.max_value = 1
-		return
-	var chosen: String = _split_type.get_item_metadata(_split_type.selected)
-	# At least one unit has to stay behind.
-	_split_count.max_value = maxi(1, mini(a.count_of(chosen), a.units.size() - 1))
-	_split_count.value = clampf(_split_count.value, 1.0, _split_count.max_value)
-
-
-func _on_split_by_type() -> void:
-	if _selected.size() != 1 or _split_type.item_count == 0:
-		return
-	var a: Army = GameState.armies.get(_selected[0])
-	if a == null:
-		return
-	var type: String = _split_type.get_item_metadata(_split_type.selected)
-	var cmd := SplitArmy.new(GameState.player_tag, a.id, SplitArmy.indices_of_type(a, type, int(_split_count.value)))
-	if GameState.issue(cmd):
-		_selected = [a.id, cmd.new_army_id]
-		_split_sig = "?"
-		_refresh_list()
-		_sync_selection()
-		_refresh_detail()
 
 
 func _on_split() -> void:
@@ -826,9 +518,7 @@ func _on_split() -> void:
 	var cmd := SplitArmy.new(GameState.player_tag, a.id, idx)
 	if GameState.issue(cmd):
 		_selected = [a.id, cmd.new_army_id]
-		_refresh_list()
 		_sync_selection()
-		_refresh_detail()
 
 
 # ------------------------------------------------------------------ fronts
@@ -1014,10 +704,6 @@ const FILTERS := ["All events", "Battles", "Occupations and losses"]
 func _build_wars_tab() -> void:
 	_wars_box.add_theme_constant_override("separation", 4)
 	_wars_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_wars_scroll.add_child(_wars_box)
-	var title := Label.new()
-	title.text = "Wars"
-	_wars_box.add_child(title)
 	_wars_list.custom_minimum_size = Vector2(0, 56)
 	_wars_list.focus_mode = Control.FOCUS_NONE
 	_wars_list.item_selected.connect(func(i: int) -> void:
@@ -1283,31 +969,6 @@ func _on_raise() -> void:
 	var type: String = _type_picker.get_item_metadata(_type_picker.selected)
 	GameState.issue(RaiseUnits.new(GameState.player_tag, _province, type, int(_count.value)))
 	_refresh()
-
-
-func _rebuild_war_picker() -> void:
-	_war_picker.clear()
-	for tag in GameState.nations:
-		if tag != GameState.player_tag:
-			_war_picker.add_item(GameState.nations[tag].display_name)
-			_war_picker.set_item_metadata(_war_picker.item_count - 1, tag)
-	_refresh_war()
-
-
-func _war_target() -> String:
-	return _war_picker.get_item_metadata(_war_picker.selected) if _war_picker.item_count > 0 else ""
-
-
-func _refresh_war() -> void:
-	var other := _war_target()
-	_war_button.disabled = other.is_empty()
-	_war_button.text = "Make peace" if (not other.is_empty() and GameState.at_war(GameState.player_tag, other)) else "Declare war"
-
-
-func _on_war() -> void:
-	var other := _war_target()
-	GameState.issue(SetWar.new(GameState.player_tag, other, not GameState.at_war(GameState.player_tag, other)))
-	_refresh_war()
 
 
 func _set_row(key: String, label: String, value: String) -> void:

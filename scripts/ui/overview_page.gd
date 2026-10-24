@@ -175,13 +175,11 @@ func _refresh() -> void:
 			_box.add_child(_line("At war with %s since %s." % [GameState.nations[w.other(n.tag)].display_name, w.start_date], Fmt.BAD))
 
 	_box.add_child(HSeparator.new())
-	_box.add_child(_heading("Under way"))
+	_box.add_child(_heading("Focus"))
 	var work: PackedStringArray = []
 	if not n.focus.is_empty():
 		work.append("National focus: %s, %d of %d days." % [Focus.find(n.tag, n.focus.id).get("name", n.focus.id), int(n.focus.days_total) - int(n.focus.days_left), int(n.focus.days_total)])
 	else:
 		work.append("No national focus chosen (open the Focus tab).")
-	work.append("%d buildings and %d ships under construction." % [n.construction.size(), n.shipbuilding.size()])
-	work.append("%d units in training." % n.recruiting.size())
 	for line in work:
 		_box.add_child(_line(line, Color.WHITE if not line.begins_with("No ") else Fmt.WARN))

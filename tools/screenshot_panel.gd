@@ -39,7 +39,7 @@ func _initialize() -> void:
 				navy.select_fleets(fid)
 	if args.size() > 1 and args[1] == "window":
 		call_group("settings_window", "toggle")
-		call_group("military_panel", "show_tab", "Land")
+		call_group("military_panel", "show_tab", "Fronts")
 	for i in 6:
 		await process_frame
 	var image := root.get_texture().get_image()

@@ -1,9 +1,7 @@
 extends FloatingWindow
-## How the nations compare, in three views of one figure at a time: a bar Chart of every nation
-## in order, a Table with all the figures side by side (click a heading to sort by it), and a
-## Trend line chart of the leaders and you over the months. Pick the figure at the top; click a
-## nation anywhere to see it in the country panel. Open with the Rankings button beside the
-## settings gear, or R.
+## How the nations compare: a Table with all the figures side by side (click a heading to sort by it) and,
+## beneath it, a Trend line chart of the leaders and you over the months. Pick the figure at the top; click a
+## nation anywhere to see it in the country panel. A page of the Nation screen (R).
 
 const TABLE_COLUMNS := ["population", "gdp", "income", "treasury", "army", "navy", "prestige", "provinces"]
 const TREND_LEADERS := 5
@@ -13,8 +11,6 @@ var _metric := "population"
 var _sort := "population"
 var _picker := OptionButton.new()
 var _summary := Label.new()
-var _tabs := TabContainer.new()
-var _chart_rows := VBoxContainer.new()
 var _table := GridContainer.new()
 var _trend := TrendChart.new()
 var _trend_note := Label.new()
@@ -51,29 +47,25 @@ func _ready() -> void:
 	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_summary)
 
-	_tabs.focus_mode = Control.FOCUS_NONE
-	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(_tabs)
-	_tabs.add_child(_scrolled(_chart_rows, "Chart"))
 	_table.columns = 2 + TABLE_COLUMNS.size()
 	_table.add_theme_constant_override("h_separation", 8)
 	_table.add_theme_constant_override("v_separation", 2)
-	_tabs.add_child(_scrolled(_table, "Table"))
+	var table_scroll := _scrolled(_table, "Table")
+	table_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	table_scroll.custom_minimum_size = Vector2(380, 220)
+	box.add_child(table_scroll)
 	var trend_box := VBoxContainer.new()
 	trend_box.name = "Trend"
-	_trend.custom_minimum_size = Vector2(0, 240)
+	_trend.custom_minimum_size = Vector2(0, 180)
 	trend_box.add_child(_trend)
 	_trend_note.modulate = Fmt.DIM
 	_trend_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_trend_note.custom_minimum_size = Vector2(280, 0)
 	_trend_note.text = "The five leaders and your nation, a point for each month since the start."
 	trend_box.add_child(_trend_note)
-	_tabs.add_child(trend_box)
-	_tabs.tab_changed.connect(func(_i: int) -> void: _refresh())
-	_chart_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_chart_rows.add_theme_constant_override("separation", 2)
+	box.add_child(trend_box)
 
-	setup_window("Rankings", true, Vector2(620, 470), 5)
+	setup_window("Rankings", true, Vector2(620, 520), 5)
 
 	GameState.economy_updated.connect(_mark_dirty)
 	GameState.player_changed.connect(func(_t: String) -> void: _mark_dirty())
@@ -149,92 +141,14 @@ func _refresh() -> void:
 	_summary.text = "%s: you are #%d of %d (%s). %s leads with %s." % [
 			metric.label, mine, ranking.size(), format_value(_metric, Standings.value(GameState, me, _metric)),
 			GameState.nations[ranking[0].tag].display_name, format_value(_metric, ranking[0].value)] if not ranking.is_empty() else ""
-	match _tabs.current_tab:
-		0:
-			_refresh_chart(ranking)
-		1:
-			_refresh_table()
-		2:
-			_refresh_trend(ranking)
+	_refresh_table()
+	_refresh_trend(ranking)
 
 
 func _clear(box: Control) -> void:
 	for c in box.get_children():
 		box.remove_child(c)
 		c.queue_free()
-
-
-func _refresh_chart(ranking: Array[Dictionary]) -> void:
-	_clear(_chart_rows)
-	var biggest := 0.0
-	for r in ranking:
-		biggest = maxf(biggest, absf(r.value))
-	biggest = maxf(biggest, 0.0001)
-	for i in ranking.size():
-		var tag: String = ranking[i].tag
-		var value: float = ranking[i].value
-		var n: Nation = GameState.nations[tag]
-		var row := PanelContainer.new()
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.2, 0.26, 0.38, 0.8) if tag == GameState.player_tag else Color(0, 0, 0, 0)
-		style.set_corner_radius_all(2)
-		style.content_margin_left = 4
-		style.content_margin_right = 4
-		style.content_margin_top = 1
-		style.content_margin_bottom = 1
-		row.add_theme_stylebox_override("panel", style)
-		row.mouse_filter = Control.MOUSE_FILTER_STOP
-		row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		var bloc_text := Diplomacy.bloc_name(GameState, tag)
-		row.tooltip_text = "Show %s in the country panel%s" % [n.display_name, "\nBloc: " + bloc_text if bloc_text != "" else ""]
-		row.gui_input.connect(func(event: InputEvent) -> void:
-			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				_show_nation(tag)
-		)
-		var h := HBoxContainer.new()
-		h.add_theme_constant_override("separation", 6)
-		var rank := Label.new()
-		rank.text = "%d" % (i + 1)
-		rank.modulate = Fmt.DIM
-		rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		rank.custom_minimum_size = Vector2(22, 0)
-		h.add_child(rank)
-		var flag := FlagIcon.new(tag)
-		flag.custom_minimum_size = Vector2(30, 20)
-		var flag_box := CenterContainer.new()
-		flag_box.add_child(flag)
-		h.add_child(flag_box)
-		var name := Label.new()
-		name.text = n.display_name
-		name.clip_text = true
-		name.custom_minimum_size = Vector2(140, 0)
-		h.add_child(name)
-		var bloc_label := Label.new()
-		bloc_label.text = bloc_text
-		bloc_label.modulate = Fmt.DIM
-		bloc_label.clip_text = true
-		bloc_label.custom_minimum_size = Vector2(130, 0)
-		bloc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		h.add_child(bloc_label)
-		var bar := Control.new()
-		bar.custom_minimum_size = Vector2(60, 16)
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var ratio := absf(value) / biggest
-		var color := n.color.lightened(0.15) if value >= 0.0 else Fmt.BAD
-		bar.draw.connect(func() -> void:
-			bar.draw_rect(Rect2(0, 2, bar.size.x, 12), Color(1, 1, 1, 0.05))
-			bar.draw_rect(Rect2(0, 2, maxf(bar.size.x * ratio, 2.0), 12), color)
-		)
-		h.add_child(bar)
-		var number := Label.new()
-		number.text = format_value(_metric, value)
-		number.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		number.custom_minimum_size = Vector2(74, 0)
-		number.modulate = Fmt.BAD if value < 0.0 else Color.WHITE
-		h.add_child(number)
-		row.add_child(h)
-		_chart_rows.add_child(row)
 
 
 func _refresh_table() -> void:

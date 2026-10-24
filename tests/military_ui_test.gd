@@ -39,8 +39,6 @@ func _initialize() -> void:
 	await process_frame
 	_check(panel._selected.size() == 1, "clicking a province selects the armies in it (%d)" % panel._selected.size())
 	_check(layer.selected == panel._selected, "the map layer shows the selection")
-	_check(panel._list.item_count == 10, "the list shows all ten French armies (%d)" % panel._list.item_count)
-	_check(panel._detail.text.contains("Marching") == false and panel._detail.text.contains("men"), "the detail text describes the army")
 
 	# Orders.
 	var dest := 0
@@ -62,14 +60,6 @@ func _initialize() -> void:
 	panel._on_raise()
 	await process_frame
 	_check(gs.nations["FRA"].recruiting.size() == 1, "the Raise button queues a division")
-	panel._war_picker.select(0)
-	panel._on_war()
-	await process_frame
-	var other: String = panel._war_target()
-	_check(gs.at_war("FRA", other), "the war switch declares war on %s" % other)
-	_check(panel._war_button.text == "Make peace", "the button flips to peace")
-	panel._on_war()
-	_check(not gs.at_war("FRA", other), "and back")
 
 	# Deselecting.
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
@@ -93,7 +83,6 @@ func _initialize() -> void:
 	_check(panel._selected.size() == 1 and gs.armies[panel._selected[0]].province == paris, "clicking another army's province switches the selection")
 	panel.clear_selection()
 	_check(panel._selected.is_empty(), "clear_selection (Esc, button) deselects")
-	_check(panel._deselect.disabled, "the Deselect button is disabled with nothing selected")
 
 	# A front by clicking the neighbouring nation.
 	var german := 0
@@ -165,7 +154,7 @@ func _initialize() -> void:
 	panel.visible = true
 	panel._refresh()
 	panel._refresh_wars()
-	_check(panel._war_battles.item_count == 1 and not panel._war_battles.get_item_text(0).begins_with("●"), "a finished battle is listed in the Wars tab")
+	_check(panel._war_battles.item_count == 1 and not panel._war_battles.get_item_text(0).begins_with("●"), "a finished battle is listed in the Wars section")
 	panel._open_battle(panel._war_battle_ids[0])
 	await process_frame
 	_check(screen.visible and screen._title.text == "Battle of Moselle", "and opens its screen")
@@ -176,7 +165,7 @@ func _initialize() -> void:
 			log_battles += 1
 	_check(log_battles == 1, "the war log entry for the battle carries its id")
 
-	# Wars tab.
+	# Wars section.
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
 	gs.wars.clear()  # the scenario starts with Austria-Hungary at war with Serbia; these tests want a clean slate
 	gs.join_calls.clear()
@@ -184,10 +173,9 @@ func _initialize() -> void:
 	await process_frame
 	panel.visible = true
 	panel._refresh()
-	_check(panel._tabs.get_tab_count() == 2 and panel._tabs.get_tab_title(0) == "Land" and panel._tabs.get_tab_title(1) == "Wars", "the Military panel has Land and Wars tabs (the navy has a page of its own)")
-	_check(panel._box.visible and not panel._fronts_box.visible and not panel._recruit_box.visible, "the Land tab opens with Armies unfolded, Fronts and Recruit folded")
+	_check(not panel._fronts_box.visible and not panel._recruit_box.visible and not panel._wars_box.visible, "the Military page opens with Fronts, Recruit and Wars folded")
 	panel.show_tab("Recruit")
-	_check(panel._tabs.current_tab == 0 and panel._recruit_box.visible, "show_tab(\"Recruit\") unfolds that section of the Land tab")
+	_check(panel._recruit_box.visible, "show_tab(\"Recruit\") unfolds that section")
 	panel.set_section("Recruit", false)
 	_check(panel._wars_list.item_count == 0 and panel._war_summary.text.contains("No wars"), "it starts empty")
 	gs.set_war("FRA", "GER", true)
@@ -224,40 +212,6 @@ func _initialize() -> void:
 	for c in get_nodes_in_group("event_feed"):
 		collapsed_feed += 1
 	_check(collapsed_feed == 1, "the event feed is in place")
-	panel._tabs.current_tab = 0
-
-	# Splitting by unit type.
-	gs.load_scenario(gs.DEFAULT_SCENARIO)
-	gs.wars.clear()  # the scenario starts with Austria-Hungary at war with Serbia; these tests want a clean slate
-	gs.join_calls.clear()
-	gs.set_player("FRA")
-	await process_frame
-	panel.visible = true
-	panel.set_province(nancy)
-	panel._refresh()
-	var big = gs.armies[panel._selected[0]]
-	var guns_before: int = big.count_of("artillery")
-	var units_before: int = big.units.size()
-	_check(panel._split_type.item_count >= 2 and not panel._split_by_type.disabled, "the split picker lists the unit types in the army (%d)" % panel._split_type.item_count)
-	var artillery_item := -1
-	for i in panel._split_type.item_count:
-		if panel._split_type.get_item_metadata(i) == "artillery":
-			artillery_item = i
-	panel._split_type.select(artillery_item)
-	panel._refresh_split_picker(big)
-	_check(panel._split_count.max_value == guns_before, "the count can go up to what the army has (%d)" % guns_before)
-	panel._split_count.value = 2
-	panel._on_split_by_type()
-	_check(big.count_of("artillery") == guns_before - 2 and big.units.size() == units_before - 2, "Detach takes that many units of that type")
-	_check(panel._selected.size() == 2, "and selects both armies")
-	var detachment = gs.armies[panel._selected[1]]
-	_check(detachment.units.size() == 2 and detachment.count_of("artillery") == 2, "the new army holds exactly those units")
-	panel.clear_selection()
-	panel._refresh()
-	_check(panel._split_by_type.disabled and panel._split_type.item_count == 0, "nothing to split with no army selected")
-	panel.set_province(nancy)
-	panel.set_province(nancy)
-	panel.clear_selection()
 
 	# Several armies on one tile are shown one by one.
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
@@ -337,12 +291,6 @@ func _initialize() -> void:
 	before_ids = panel._selected.duplicate()
 	panel.select_in_rect(Rect2(Vector2(-500, -500), Vector2(10, 10)), true)
 	_check(panel._selected == before_ids, "Shift keeps the existing selection")
-
-	# Map symbols.
-	panel._icon_picker.select(4)
-	panel._on_icon_picked(4)
-	var picked: String = gs.armies[panel._selected[0]].icon
-	_check(picked == panel._icon_picker.get_item_metadata(4), "the symbol picker sets the symbol (%s)" % picked)
 
 	# Drawing a front on the map.
 	panel._begin_drawing()

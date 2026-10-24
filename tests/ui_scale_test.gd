@@ -97,10 +97,7 @@ func _initialize() -> void:
 	var mil: Node = get_first_node_in_group("military_panel")
 	mil.toggle()
 	await process_frame
-	var names: PackedStringArray = []
-	for i in mil._tabs.get_tab_count():
-		names.append(mil._tabs.get_tab_title(i))
-	_check(names == PackedStringArray(["Land", "Wars"]), "the military window is split into tabs (%s)" % ", ".join(names))
+	_check(mil._sections.keys() == ["Fronts", "Recruit", "Wars"], "the military page folds into Fronts, Recruit and Wars (%s)" % str(mil._sections.keys()))
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Settings.path))
 	print("FAILURES: ", _failures)

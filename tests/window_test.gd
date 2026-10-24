@@ -79,7 +79,7 @@ func _initialize() -> void:
 func _windows() -> Dictionary:
 	return {
 		"nation screen": get_first_node_in_group("nation_screen"),
-		"rankings": get_first_node_in_group("rankings_window"),
+		"settings": get_first_node_in_group("settings_window"),
 		"country panel": get_first_node_in_group("nation_stats"),
 		"peace screen": get_first_node_in_group("peace_screen"),
 		"join prompt": get_first_node_in_group("join_prompt"),
@@ -93,7 +93,7 @@ func _test_all_are_windows() -> void:
 		var w: Node = windows[name]
 		_check(w != null and w.has_method("setup_window") and w.has_method("toggle_minimized"), "the %s is a floating window" % name)
 	_check(windows["join prompt"].closable == false, "the join prompt cannot be closed until it is answered")
-	_check(windows["nation screen"].closable and windows["rankings"].closable, "the other menus can")
+	_check(windows["nation screen"].closable and windows["settings"].closable, "the other menus can")
 	var pages := 0
 	for group in ["economy_panel", "construction_panel", "military_panel", "navy_panel", "diplomacy_panel", "focus_panel"]:
 		var page: Node = get_first_node_in_group(group)
@@ -181,7 +181,7 @@ func _double_click() -> InputEvent:
 func _test_front_and_limits() -> void:
 	var eco: Node = get_first_node_in_group("nation_screen")
 	var mil: Node = get_first_node_in_group("nation_stats")
-	var dip: Node = get_first_node_in_group("rankings_window")
+	var dip: Node = get_first_node_in_group("settings_window")
 	if not eco.visible:
 		eco.toggle()
 	mil.toggle()
@@ -225,7 +225,7 @@ func _test_front_and_limits() -> void:
 
 
 func _test_corners() -> void:
-	var win: Node = get_first_node_in_group("rankings_window")
+	var win: Node = get_first_node_in_group("settings_window")
 	win.toggle()
 	await process_frame
 	win.position = Vector2(300, 140)

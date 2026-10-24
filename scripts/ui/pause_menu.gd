@@ -5,6 +5,15 @@ extends CanvasLayer
 ## (clearing a selection) takes it first and marks it handled. It stays shut while the nation
 ## picker or a battle or peace screen is up.
 
+const KEYS := "Move  WASD or arrow keys, wheel to zoom
+Select  click · drag a box for several
+Orders  right-click a province
+Nation screen  N, with E B M Y F O R as its tabs
+Command panel  C
+Map modes  1 to 6 · 3D map  V
+Time  Space pauses, + and - change speed
+Settings  F10 · Save and load  F6 · Menu  Esc"
+
 var _root := Control.new()
 var _was_paused := false
 var _open := false
@@ -47,6 +56,11 @@ func _ready() -> void:
 	)
 	_button(box, "Main menu", to_main_menu)
 	_button(box, "Quit", func() -> void: get_tree().quit())
+	box.add_child(HSeparator.new())
+	var keys := Label.new()
+	keys.text = KEYS
+	keys.modulate = Fmt.DIM
+	box.add_child(keys)
 	var note := Label.new()
 	note.text = "Progress since the last save is lost when you leave."
 	note.modulate = Fmt.DIM

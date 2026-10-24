@@ -117,7 +117,7 @@ func _initialize() -> void:
 	var fronts_before: int = gs.fronts.size()
 	bar._on_front(bar.DRAW_FRONT)
 	await process_frame
-	_check(panel._drawing and panel._assign_new and panel.visible and panel._tabs.current_tab == 0 and panel._fronts_box.visible, "Draw opens the Fronts section of the Land tab in drawing mode")
+	_check(panel._drawing and panel._assign_new and panel.visible and panel._fronts_box.visible, "Draw opens the Fronts section of the Military page in drawing mode")
 	panel.set_province(nancy)
 	var neighbour := 0
 	for n in Mil.neighbors(nancy):

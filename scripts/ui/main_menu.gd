@@ -71,7 +71,6 @@ func _ready() -> void:
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_scenarios = Scenarios.list()
-	_settings.offer_quit_to_menu = false
 	add_child(_settings)
 	show_page("main")
 

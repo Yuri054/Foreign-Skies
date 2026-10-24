@@ -211,6 +211,7 @@ func _sync() -> void:
 		for c in _strip.get_children():
 			_strip.remove_child(c)
 			c.queue_free()
+		_strip_panel.visible = true
 		_sync_legend()  # a map with no button (Construction) still has its legend
 		return
 	_active = at.x
@@ -256,6 +257,8 @@ func _sync_view() -> void:
 	if shown:
 		_view_label.text = "· seen from %s" % GameState.nations[other].display_name
 		_view_back.text = "Back to %s" % GameState.nations[GameState.player_tag].display_name
+	# A lone mode has nothing to choose between, so its strip would be an empty box.
+	_strip_panel.visible = _strip.visible or _sub_picker.visible or shown
 	_sync_legend()
 
 

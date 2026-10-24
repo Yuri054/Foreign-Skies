@@ -61,7 +61,7 @@ func _initialize() -> void:
 	var military: Node = get_first_node_in_group("military_panel")
 	_check(panel != null and layer != null, "the Navy panel and the fleet layer exist")
 	var window: Node = get_first_node_in_group("nation_screen")
-	_check(panel.host == window and not military._tabs.get_children().has(panel), "the Navy panel is a tab of the Nation screen, not of the Military window")
+	_check(panel.host == window, "the Navy panel is a tab of the Nation screen")
 	panel._unhandled_key_input(_key(KEY_Y))
 	await process_frame
 	_check(window.visible and panel.is_visible_in_tree(), "Y opens the Nation screen on the Navy tab")
@@ -170,7 +170,6 @@ func _test_orders(panel: Node, layer: Node) -> void:
 func _test_yard(panel: Node) -> void:
 	main.map_view.select(PORTSMOUTH)
 	await process_frame
-	panel._tabs.current_tab = 1
 	await process_frame
 	_check(panel._yard_title.text.contains("Hampshire") and panel._yard_title.text.contains("level 3"), "the shipyard follows the selected province (%s)" % panel._yard_title.text)
 	gs.nations["GBR"].treasury = 200.0
@@ -185,10 +184,8 @@ func _test_yard(panel: Node) -> void:
 	main.map_view.select(1)
 	await process_frame
 	_check(panel._build.disabled, "an inland province cannot build ships")
-	panel._tabs.current_tab = 2
 	panel._refresh()
-	_check(panel._sea_summary.text.contains("squadrons afloat"), "the Sea tab sums up the navy")
-	panel._tabs.current_tab = 0
+	_check(panel._sea_summary.text.contains("squadrons afloat"), "the sea section sums up the navy")
 
 
 func _test_overseas(military: Node) -> void:
@@ -204,14 +201,10 @@ func _test_overseas(military: Node) -> void:
 	_check(military._selected.has(a.id), "the expedition is selected with its province")
 	military._selected.assign([a.id])
 	military._sync_selection()
-	military._refresh_detail()
-	_check(not military._board.disabled, "Board ship is available beside a fleet with transports")
+	_check(not get_first_node_in_group("command_panel")._board.disabled, "Board ship is available beside a fleet with transports")
 	military._on_board()
 	_check(a.embarked(), "Board ship puts the army aboard")
-	military._refresh_detail()
-	_check(military._detail.text.contains("Aboard"), "the detail says so (%s)" % military._detail.text.replace("
-", " | "))
-	_check(not military._land.disabled, "and Disembark is available in port")
+	_check(not get_first_node_in_group("command_panel")._land.disabled, "and Disembark is available in port")
 	military._on_land()
 	_check(not a.embarked(), "Disembark puts it ashore again")
 	military._selected.assign([a.id])
