@@ -11,7 +11,7 @@
 		"war_each": 10,
 		"war_max": 30,
 		"rivalry_weight": 60,
-		"impulse_decay": 0.035,
+		"impulse_decay": 0.05,
 		"aggression_from": 30,
 		"aggression_gain": 0.3,
 		"harden_above": 50,
@@ -413,6 +413,228 @@
 				1903,
 				6
 			]
+		},
+		{
+			"id": "serbian_coup",
+			"title": "The May Coup in Belgrade",
+			"text": "Officers have murdered the king and queen of Serbia and put the rival Karageorgevic dynasty on the throne. Vienna's friends are gone from Belgrade.",
+			"date": [
+				1903,
+				6
+			],
+			"actors": {
+				"a": "SRB",
+				"b": "AUH",
+				"c": "RUS"
+			},
+			"options": [
+				{
+					"label": "Turn to Russia",
+					"text": "The new king looks to St Petersburg and away from Vienna.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								12
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-12
+							]
+						},
+						{
+							"tension": 2
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep a careful balance",
+					"text": "Do not give Vienna a reason to act.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								3
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-3
+							]
+						}
+					]
+				}
+			],
+			"b_options": [
+				{
+					"label": "Cut Serbia down to size",
+					"text": "A new, bolder Serbia must be shown its place.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"grievance": [
+								"b",
+								"a",
+								8
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Seek a quiet understanding",
+					"text": "Serbia's new rulers can be won with trade.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								5
+							]
+						},
+						{
+							"tension": -1
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"b_ai_option": 0,
+			"until": [
+				1903,
+				12
+			]
+		},
+		{
+			"id": "murzsteg",
+			"title": "The Mürzsteg agreement",
+			"text": "Russia and Austria-Hungary, rivals in the Balkans, can agree on a joint programme of reform for Macedonia and keep the peace there.",
+			"date": [
+				1903,
+				10
+			],
+			"actors": {
+				"a": "RUS",
+				"b": "AUH"
+			},
+			"options": [
+				{
+					"label": "Join the programme",
+					"text": "A calm Balkans for a few years, and a little less distrust.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								12
+							]
+						},
+						{
+							"tension": -3
+						}
+					]
+				},
+				{
+					"label": "Go it alone",
+					"text": "Russia will not share the Balkans.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1904,
+				6
+			]
+		},
+		{
+			"id": "arbitration",
+			"title": "The Anglo-French arbitration treaty",
+			"text": "Britain and France, after Fashoda, can settle their disputes by arbitration instead of by threats.",
+			"date": [
+				1903,
+				10
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "FRA"
+			},
+			"options": [
+				{
+					"label": "Sign the treaty",
+					"text": "Quarrels go to a judge, not to the fleets.",
+					"effects": [
+						{
+							"treaty": [
+								"nap",
+								"a",
+								"b",
+								{},
+								"Arbitration treaty"
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								12
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				},
+				{
+					"label": "Hold off",
+					"text": "Britain keeps its freedom of action.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1904,
+				3
+			],
+			"condition": {
+				"relation_above": [
+					"GBR",
+					"FRA",
+					-30
+				]
+			}
 		},
 		{
 			"id": "russo_japanese",
@@ -961,6 +1183,68 @@
 			]
 		},
 		{
+			"id": "schlieffen",
+			"title": "The Schlieffen Plan",
+			"text": "The German General Staff has a plan for a two-front war: knock France out through Belgium before Russia can mobilize.",
+			"date": [
+				1905,
+				12
+			],
+			"actors": {
+				"a": "GER",
+				"b": "BEL",
+				"c": "FRA"
+			},
+			"options": [
+				{
+					"label": "Adopt the plan",
+					"text": "The railways and the timetables are built around it.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-4
+							]
+						},
+						{
+							"tension": 3
+						},
+						{
+							"mobilize": [
+								"a",
+								0.05
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep to defence",
+					"text": "Germany will not plan to violate its neighbours.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1906,
+				6
+			]
+		},
+		{
 			"id": "algeciras",
 			"title": "The Algeciras Conference",
 			"text": "The powers meet to settle Morocco. Germany finds that only Austria stands beside it.",
@@ -1318,6 +1602,61 @@
 			}
 		},
 		{
+			"id": "portugal_regicide",
+			"title": "Murder in Lisbon",
+			"text": "King Carlos of Portugal and his heir have been shot in the street.",
+			"date": [
+				1908,
+				2
+			],
+			"actors": {
+				"a": "POR"
+			},
+			"options": [
+				{
+					"label": "Crown the younger son",
+					"text": "The monarchy goes on, shaken.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-4
+							]
+						}
+					]
+				},
+				{
+					"label": "Make way for reform",
+					"text": "The new government grants more than the old would.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1908,
+				8
+			]
+		},
+		{
 			"id": "young_turks",
 			"title": "The Young Turk Revolution",
 			"text": "Officers in Salonika have forced the Sultan to restore the constitution. The Ottoman state is stirring, and its neighbours are watching.",
@@ -1355,6 +1694,65 @@
 			"until": [
 				1908,
 				12
+			]
+		},
+		{
+			"id": "buchlau",
+			"title": "The Buchlau bargain",
+			"text": "Russia's foreign minister has told Austria-Hungary's that Russia will not object to the annexation of Bosnia, if the Straits are opened to Russian warships.",
+			"date": [
+				1908,
+				9
+			],
+			"actors": {
+				"a": "RUS",
+				"b": "AUH"
+			},
+			"options": [
+				{
+					"label": "Bargain",
+					"text": "Bosnia for the Straits.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"tension": 1
+						}
+					]
+				},
+				{
+					"label": "Refuse",
+					"text": "Russia will not trade Slav lands.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"tension": 1
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1908,
+				10
 			]
 		},
 		{
@@ -1477,6 +1875,184 @@
 			]
 		},
 		{
+			"id": "daily_telegraph",
+			"title": "The Daily Telegraph interview",
+			"text": "The Kaiser has told an English newspaper that the English are mad as March hares, and that he is their friend. Neither side is pleased.",
+			"date": [
+				1908,
+				10
+			],
+			"actors": {
+				"a": "GER",
+				"b": "GBR"
+			},
+			"options": [
+				{
+					"label": "Defend the Kaiser",
+					"text": "Germany will not apologize for its sovereign.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Rein him in",
+					"text": "The Chancellor makes the Kaiser promise to hold his tongue.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								3
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"until": [
+				1909,
+				3
+			]
+		},
+		{
+			"id": "bulgaria_independence",
+			"title": "Bulgaria declares itself a kingdom",
+			"text": "With the Ottomans weakened, Prince Ferdinand has proclaimed full independence and made himself Tsar.",
+			"date": [
+				1908,
+				10
+			],
+			"actors": {
+				"a": "BUL",
+				"b": "OTT"
+			},
+			"options": [
+				{
+					"label": "Proclaim the Tsardom",
+					"text": "Bulgaria is its own master at last.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								4
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"tension": 2
+						},
+						{
+							"war_support": [
+								"a",
+								5
+							]
+						}
+					]
+				},
+				{
+					"label": "Wait",
+					"text": "A better moment may come.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1909,
+				3
+			]
+		},
+		{
+			"id": "belgian_congo",
+			"title": "The Belgian Congo",
+			"text": "The Congo Free State, the King's own, has become a scandal. Belgium may take it over, and Britain is watching.",
+			"date": [
+				1908,
+				11
+			],
+			"actors": {
+				"a": "BEL",
+				"b": "GBR"
+			},
+			"options": [
+				{
+					"label": "Take it over as a colony",
+					"text": "The state, not the King, is answerable.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-4
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								6
+							]
+						}
+					]
+				},
+				{
+					"label": "Leave it to the King",
+					"text": "Hope the scandal passes.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1909,
+				5
+			]
+		},
+		{
 			"id": "bosnia_2",
 			"title": "The ultimatum to Russia",
 			"text": "Germany is asked to say whether it stands behind its ally in the Balkans.",
@@ -1537,6 +2113,125 @@
 			]
 		},
 		{
+			"id": "tragic_week",
+			"title": "The Tragic Week in Spain",
+			"text": "Calling up reservists for the war in Morocco has set Barcelona on fire.",
+			"date": [
+				1909,
+				7
+			],
+			"actors": {
+				"a": "ESP"
+			},
+			"options": [
+				{
+					"label": "Crush the rising",
+					"text": "Order is restored, and the government's name is not.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"treasury": [
+								"a",
+								-2
+							]
+						}
+					]
+				},
+				{
+					"label": "Call off the reserves",
+					"text": "Spain will not fight for Morocco at that price.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-3
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1909,
+				12
+			]
+		},
+		{
+			"id": "greek_coup",
+			"title": "The Goudi coup",
+			"text": "Greek officers have forced reform on the government and called Eleftherios Venizelos to Athens.",
+			"date": [
+				1909,
+				8
+			],
+			"actors": {
+				"a": "GRE"
+			},
+			"options": [
+				{
+					"label": "Reform the army and the state",
+					"text": "A leaner, bolder Greece.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								6
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"treasury": [
+								"a",
+								-2
+							]
+						},
+						{
+							"tension": 1
+						}
+					]
+				},
+				{
+					"label": "Put the officers in their place",
+					"text": "The old order holds.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-4
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1910,
+				3
+			]
+		},
+		{
 			"id": "racconigi",
 			"title": "The Racconigi agreement",
 			"text": "Italy and Russia agree to a pact over the Balkans, at Austria's expense. Italy's loyalty to the Triple Alliance wears thin.",
@@ -1576,6 +2271,193 @@
 			"until": [
 				1910,
 				6
+			]
+		},
+		{
+			"id": "montenegro_kingdom",
+			"title": "Montenegro becomes a kingdom",
+			"text": "Prince Nicholas has crowned himself king of the little mountain state, which he has ruled for fifty years.",
+			"date": [
+				1910,
+				8
+			],
+			"actors": {
+				"a": "MNE"
+			},
+			"options": [
+				{
+					"label": "Take the crown",
+					"text": "A flag and a title, and a larger idea of itself.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1911,
+				2
+			]
+		},
+		{
+			"id": "adriatic_race",
+			"title": "Dreadnoughts for the Adriatic",
+			"text": "Austria-Hungary has laid down its first dreadnoughts, and Italy will not be outbuilt in the Adriatic.",
+			"date": [
+				1911,
+				2
+			],
+			"actors": {
+				"a": "AUH",
+				"b": "ITA"
+			},
+			"options": [
+				{
+					"label": "Build the dreadnoughts",
+					"text": "A navy to match the empire's pride.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-6
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				},
+				{
+					"label": "Hold back",
+					"text": "The money is wanted for the army.",
+					"effects": []
+				}
+			],
+			"b_options": [
+				{
+					"label": "Match them",
+					"text": "Italy will not be second in its own sea.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-6
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				},
+				{
+					"label": "Seek an understanding",
+					"text": "A naval agreement in the Adriatic.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								6
+							]
+						},
+						{
+							"tension": -1
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"b_ai_option": 0,
+			"until": [
+				1911,
+				9
+			]
+		},
+		{
+			"id": "fez",
+			"title": "The march on Fez",
+			"text": "French troops have gone to Fez to protect the Sultan of Morocco, and so, Berlin says, to take his country.",
+			"date": [
+				1911,
+				4
+			],
+			"actors": {
+				"a": "FRA",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Occupy Fez",
+					"text": "France will protect its interests in Morocco by force.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-4
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				},
+				{
+					"label": "Hold the column back",
+					"text": "Do not give Germany a pretext.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"tension": -1
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1911,
+				7
 			]
 		},
 		{
@@ -2010,6 +2892,60 @@
 			}
 		},
 		{
+			"id": "crete",
+			"title": "Crete and the Greek parliament",
+			"text": "Cretan deputies have taken their seats in the Greek parliament in Athens, and the Ottomans cannot stop them.",
+			"date": [
+				1912,
+				9
+			],
+			"actors": {
+				"a": "GRE",
+				"b": "OTT"
+			},
+			"options": [
+				{
+					"label": "Accept them",
+					"text": "In Athens' eyes, Crete is Greek already.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Delay",
+					"text": "Do not provoke the Porte before the League is ready.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1913,
+				2
+			]
+		},
+		{
 			"id": "balkan_war",
 			"title": "The First Balkan War",
 			"text": "The Balkan League declares war on the Ottoman Empire. Within weeks the Ottoman armies in Europe are reeling.",
@@ -2107,6 +3043,186 @@
 			"until": [
 				1913,
 				12
+			]
+		},
+		{
+			"id": "baghdad",
+			"title": "The Baghdad Railway settlement",
+			"text": "Britain and Germany can settle the railway to the Persian Gulf: a line in German hands, but its end in British waters.",
+			"date": [
+				1913,
+				6
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Sign the settlement",
+					"text": "Another quarrel less, in the year before the war.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"tension": -4
+						}
+					]
+				},
+				{
+					"label": "Refuse",
+					"text": "The line will not end in British waters on German terms.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-4
+							]
+						},
+						{
+							"tension": 1
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"mirror": true,
+			"until": [
+				1914,
+				3
+			],
+			"condition": {
+				"relation_above": [
+					"GBR",
+					"GER",
+					-45
+				]
+			}
+		},
+		{
+			"id": "belgian_service",
+			"title": "Belgium's military service law",
+			"text": "The shadow over Belgium has lengthened; the government proposes universal service to defend its neutrality.",
+			"date": [
+				1913,
+				8
+			],
+			"actors": {
+				"a": "BEL",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Pass the law",
+					"text": "Every Belgian man to serve, and a stronger neutral.",
+					"effects": [
+						{
+							"mobilize": [
+								"a",
+								0.1
+							]
+						},
+						{
+							"treasury": [
+								"a",
+								-2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-3
+							]
+						},
+						{
+							"tension": 1
+						}
+					]
+				},
+				{
+					"label": "Rely on the guarantee",
+					"text": "The powers have promised to defend Belgium.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1914,
+				2
+			]
+		},
+		{
+			"id": "great_programme",
+			"title": "Russia's Great Programme",
+			"text": "The Tsar's ministers propose a vast programme of rearmament: more corps, more railways, a fleet in the Baltic.",
+			"date": [
+				1913,
+				11
+			],
+			"actors": {
+				"a": "RUS",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Adopt it",
+					"text": "By 1917 Russia will be a military giant.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-6
+							]
+						},
+						{
+							"mobilize": [
+								"a",
+								0.1
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"tension": 4
+						}
+					]
+				},
+				{
+					"label": "Pare it down",
+					"text": "The treasury cannot carry it all.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1914,
+				4
 			]
 		},
 		{
