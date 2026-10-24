@@ -1,10 +1,10 @@
 {
-	"_note": "The guided intro, in order. title and text are what the card says. highlight names the real control to outline: {button: text of a top bar button}, {group: a node group} (a window, the map mode bar, the event feed), or none. done is what completes the step: {command: class name} (a command the player gave), {signal: camera | province_selected | mode_changed | game_saved}, {mode: [map modes]}, {window: group of a window that must be open} or {ack: true} (the Got it button). requires: fleet skips the step for a nation with no fleet. Every step can be skipped.",
+	"_note": "The guided intro, in order, played in the 1900 scenario. title and text are what the card says. highlight names the real control to outline: {button: text of a button}, {group: a node group} (a window, the top bar, the map mode bar), or none. done is what completes the step: {command: class name}, {signal: camera | province_selected | mode_changed | game_saved}, {mode: [map modes]}, {window: group of a window that must be open} or {ack: true} (the Got it button). requires: fleet skips the step for a nation with no fleet. Every step can be skipped.",
 	"steps": [
 		{
 			"id": "camera",
 			"title": "Move around the map",
-			"text": "Hold W, A, S and D to pan, or drag with the middle mouse button. Turn the wheel to zoom in and out.",
+			"text": "Hold W, A, S and D to pan, or drag with the middle mouse button. Turn the wheel to zoom in and out. The year is 1900: Europe is at peace, and what happens next is up to you and the other powers.",
 			"done": {
 				"signal": "camera"
 			}
@@ -12,7 +12,7 @@
 		{
 			"id": "province",
 			"title": "Select a province",
-			"text": "Click any province. The panel at the top left tells you who owns it, how many people live there and what it produces.",
+			"text": "Click any province. The card at the top left tells you who owns it and what is there; More shows the rest.",
 			"done": {
 				"signal": "province_selected"
 			}
@@ -20,7 +20,7 @@
 		{
 			"id": "map_mode",
 			"title": "Read a map mode",
-			"text": "The buttons at the bottom left recolour the map: who owns what, the economy, population, armies, terrain. Click one (keys 1 to 6 do the same).",
+			"text": "The buttons at the bottom left recolour the map: who owns what, alliances, the economy, population, armies, terrain. Click one (keys 1 to 6 do the same).",
 			"highlight": {
 				"group": "map_modes"
 			},
@@ -29,9 +29,31 @@
 			}
 		},
 		{
+			"id": "nation",
+			"title": "Open the Nation screen",
+			"text": "Everything about running your country is one window with a tab for each part: Overview, Economy, Build, Military, Navy, Diplomacy, Focus and Rankings. The Overview lists what needs your attention. Click Nation (or press N).",
+			"highlight": {
+				"button": "Nation"
+			},
+			"done": {
+				"window": "nation_screen"
+			}
+		},
+		{
+			"id": "taxes",
+			"title": "Set the taxes",
+			"text": "On the Economy tab (E) the Money section shows what comes in and goes out each month. Move the tax rate: more tax fills the treasury but slows growth and wears down the people's support.",
+			"highlight": {
+				"button": "Nation"
+			},
+			"done": {
+				"command": "SetEconomyPolicy"
+			}
+		},
+		{
 			"id": "build",
 			"title": "Build something",
-			"text": "Open the Nation screen on its Build tab (B), pick a building, and click a green province on the map to build it there. It costs industrial capacity (IC), not money, and takes at least a few weeks; your industry sets how much IC you have each day. It shows in the queue at the bottom right.",
+			"text": "On the Build tab (B) pick a building, then click a green province on the map. Building uses building capacity, not money, and takes weeks. The queue at the bottom right shows progress.",
 			"highlight": {
 				"button": "Nation"
 			},
@@ -42,7 +64,7 @@
 		{
 			"id": "raise",
 			"title": "Raise an army",
-			"text": "Open the Military tab of the Nation screen (M), pick one of your provinces and train a unit. Units cost money and recruits, and form an army where they were raised.",
+			"text": "On the Military tab (M), pick one of your provinces on the map, open Recruit and raise a unit. Units cost money and recruits, and form an army where they were raised.",
 			"highlight": {
 				"button": "Nation"
 			},
@@ -51,20 +73,9 @@
 			}
 		},
 		{
-			"id": "taxes",
-			"title": "Set the taxes",
-			"text": "Open the Economy tab of the Nation screen (E). Its Money tab shows what comes in and what goes out each month; move the tax rate. More tax fills the treasury but slows growth and wears down the people's support.",
-			"highlight": {
-				"button": "Nation"
-			},
-			"done": {
-				"command": "SetEconomyPolicy"
-			}
-		},
-		{
 			"id": "move",
 			"title": "Move an army",
-			"text": "Click an army to select it, then right-click a province to send it there. Drag a box to select several at once. Time is paused: press Space to start the clock, and armies will march.",
+			"text": "Click an army to select it, then right-click a province to send it there. Drag a box to select several at once. Press Space to start the clock, and armies will march.",
 			"done": {
 				"command": "MoveArmy"
 			}
@@ -72,7 +83,7 @@
 		{
 			"id": "front",
 			"title": "Set a front",
-			"text": "With armies selected, press C to open the command panel at the bottom of the screen and draw a front: a line of provinces your army holds against an enemy. Armies assigned to a front defend it.",
+			"text": "Press C to open the command panel. It holds your armies as cards and every order for them. Draw a front: a line of provinces your army holds against a neighbour. Armies assigned to a front defend it.",
 			"highlight": {
 				"group": "command_panel"
 			},
@@ -83,7 +94,7 @@
 		{
 			"id": "relations",
 			"title": "Improve relations",
-			"text": "Open the Diplomacy tab of the Nation screen (F), choose a nation and improve relations with it. Diplomatic effort costs diplomacy points, shown in the top bar.",
+			"text": "On the Diplomacy tab (F) choose a nation and improve relations with it. Diplomatic effort costs diplomacy points, shown in the top bar. Alliances, guarantees and war all start here.",
 			"highlight": {
 				"button": "Nation"
 			},
@@ -94,7 +105,7 @@
 		{
 			"id": "focus",
 			"title": "Choose a national focus",
-			"text": "Open the Focus tab of the Nation screen (O) and start a focus: a few weeks' national effort that makes the economy grow, the army larger, or earns prestige and claims. One at a time; the tree shows what each needs.",
+			"text": "On the Focus tab (O) start a focus: a few weeks of national effort that grows the economy, enlarges the army or earns prestige and claims. One at a time; the tree shows what each needs.",
 			"highlight": {
 				"button": "Nation"
 			},
@@ -103,11 +114,11 @@
 			}
 		},
 		{
-			"id": "feed",
-			"title": "Read the event feed",
-			"text": "News appears at the top of the map: battles, wars, treaties, ships sunk and blockades. Keep an eye on it while the clock runs.",
+			"id": "tension",
+			"title": "Watch Europe's tension",
+			"text": "The flame in the top bar is Europe's tension, from 0 to 100. It rises with the arms race, mobilization and rivalry, and with crises like those of 1905, 1908 and 1911. When a crisis concerns you, time stops and you choose how to answer. The higher it gets, the bolder the other powers become. Nothing says the war must come.",
 			"highlight": {
-				"group": "event_feed"
+				"group": "top_bar"
 			},
 			"done": {
 				"ack": true
@@ -116,7 +127,7 @@
 		{
 			"id": "fleet",
 			"title": "Send a fleet",
-			"text": "Open the Navy tab of the Nation screen (Y), select a fleet, then right-click a patch of sea to send it there. Fleets stationed in the right waters can cut an enemy's trade. New ships are built at your ports and cost money and industrial capacity, drawn from the same daily IC as buildings.",
+			"text": "On the Navy tab (Y) select a fleet, then right-click a patch of sea to send it there. Fleets in the right waters can cut an enemy's trade. New ships are built at your ports from the same daily building capacity as buildings.",
 			"highlight": {
 				"group": "navy_panel"
 			},
@@ -126,23 +137,9 @@
 			}
 		},
 		{
-			"id": "blockade",
-			"title": "See the blockade",
-			"text": "Press 7 or use the Sea map mode at the bottom left to see who controls each sea zone, and which ports are blockaded.",
-			"highlight": {
-				"group": "map_modes"
-			},
-			"done": {
-				"mode": [
-					"SEA_CONTROL",
-					"BLOCKADE"
-				]
-			}
-		},
-		{
 			"id": "save",
 			"title": "Save your game",
-			"text": "Press F5 to quick save, or F6 to open the save window. The game also saves itself on the first of every month. That is everything: good luck!",
+			"text": "Press F5 to quick save, or F6 for the save window; Esc opens the menu, which also lists every key. The game saves itself on the first of every month. Good luck.",
 			"done": {
 				"signal": "game_saved"
 			}

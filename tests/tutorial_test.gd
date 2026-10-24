@@ -52,7 +52,7 @@ func _initialize() -> void:
 	_C_Military = load("res://scripts/sim/military.gd")
 
 	var steps: Array = load("res://scripts/ui/tutorial.gd").load_steps()
-	_check(steps.size() >= 10 and steps.size() <= 15, "the tutorial has about twelve steps (%d)" % steps.size())
+	_check(steps.size() >= 10 and steps.size() <= 15, "the tutorial has about fourteen steps (%d)" % steps.size())
 	var ok := true
 	for s in steps:
 		ok = ok and s.has("id") and s.has("title") and s.has("text") and s.has("done")
@@ -73,7 +73,7 @@ func _open_map(tag: String) -> void:
 	if main != null:
 		main.queue_free()
 		await process_frame
-	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	gs.load_scenario("res://data/scenarios/jan_1900/")
 	gs.set_player(tag)
 	gs.pending_joins.clear()
 	main = load("res://scenes/main.tscn").instantiate()
@@ -115,6 +115,10 @@ func _do(step: Dictionary) -> bool:
 				map_view.set_mode(MapView.Mode.TERRAIN)
 			"game_saved":
 				return gs.save_game(DIR + "tutorial.sav") == ""
+		return true
+	if done.has("window"):
+		get_first_node_in_group(done.window).toggle()
+		tut._process(0.1)
 		return true
 	if done.has("mode"):
 		map_view.set_mode(MapView.Mode[done.mode[0]])
@@ -209,7 +213,7 @@ func _test_skip_end_and_requires() -> void:
 			break
 		ids.append(tut.current().id)
 		tut.skip_step()
-	_check(not ("fleet" in ids) and "blockade" in ids, "the fleet step is skipped for a nation without ships")
+	_check(not ("fleet" in ids) and "save" in ids, "the fleet step is skipped for a nation without ships")
 
 
 func _test_saving() -> void:

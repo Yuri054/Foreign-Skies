@@ -1,5 +1,5 @@
 extends Control
-## The guided intro. About twelve short steps from data/tutorial.json; each shows a card, outlines
+## The guided intro. About fourteen short steps from data/tutorial.json; each shows a card, outlines
 ## the real control it is about, and finishes when the player does the thing (a command, a click,
 ## a window opened, a map mode picked, the game saved). It never blocks anything: the overlay lets
 ## every click through, the clock is not touched, any step can be skipped and the whole tutorial
@@ -133,7 +133,7 @@ func offer() -> void:
 	_card.visible = true
 	_count.text = "Tutorial"
 	_title.text = "New to the game?"
-	_text.text = "A short guided intro (about twelve steps) shows the map, the economy, armies, diplomacy, the navy and saving. You can skip any step, stop at any time, and start it again from the main menu."
+	_text.text = "A short guided intro (about fourteen steps) shows the map, the Nation screen, armies, diplomacy, Europe's tension, the navy and saving. You can skip any step, stop at any time, and start it again from the main menu."
 	_step_row.visible = false
 	_offer_row.visible = true
 

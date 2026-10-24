@@ -10,6 +10,9 @@ const MenuBackdrop := preload("res://scripts/ui/menu_backdrop.gd")
 
 var _box := VBoxContainer.new()
 var _title := Label.new()
+## The tutorial is played in 1900, at peace.
+const TUTORIAL_SCENARIO := "res://data/scenarios/jan_1900/"
+
 var _scenarios: Array[Dictionary] = []
 var _scenario_list := ItemList.new()
 var _blurb := Label.new()
@@ -210,7 +213,7 @@ func start_new(dir := "") -> void:
 
 ## A new game of the first scenario with the tutorial to follow the choice of a nation.
 func start_tutorial() -> void:
-	start_new(GameState.DEFAULT_SCENARIO)
+	start_new(TUTORIAL_SCENARIO)
 	Tutorial.requested = true
 
 
