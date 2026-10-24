@@ -260,6 +260,11 @@ static func city_aura(gs: Node, tag: String, id: int) -> float:
 static func invalidate_aura() -> void:
 	_aura_day = -1
 	_aura.clear()
+	_home_day = -1
+	_home_cache.clear()
+	_supply_stamp = []
+	_supply_cache.clear()
+	AI.invalidate_caches()
 
 
 static func _build_aura(gs: Node) -> Dictionary:

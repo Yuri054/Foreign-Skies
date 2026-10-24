@@ -168,6 +168,14 @@ static var _threat_cache: Dictionary = {}
 static var _worth_cache: Dictionary = {}
 
 
+## Forgets what was kept for the day (another game was loaded, or a scenario began).
+static func invalidate_caches() -> void:
+	_index.clear()
+	_index_key = -1
+	_threat_cache.clear()
+	_worth_cache.clear()
+
+
 ## Provinces within `hops` steps of `id` (itself included), as province id -> hops. The map
 ## never changes, so each answer is worked out once; callers must not modify it.
 static func hops_from(id: int, hops: int) -> Dictionary:

@@ -39,6 +39,10 @@ func _fresh() -> void:
 	gs.join_calls.clear()
 	gs.wars.clear()
 	gs.ai_enabled = false
+	# The big cities begin with railways; these tests start from none.
+	for built in gs.province_buildings:
+		built.erase("railway")
+	Eco.recompute(gs)
 	gs.set_player("FRA")
 
 

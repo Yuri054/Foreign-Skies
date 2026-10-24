@@ -432,8 +432,9 @@ func finish_load() -> void:
 	owner_version += 1
 	_rebuild_nation_provinces()
 	control_version += 1
+	# A front keeps its slots and retries as saved (dealing them again would let armies look for routes they were
+	# waiting to look for); only the line is read again, since control_version starts over.
 	for front: Front in fronts.values():
-		front.dirty = true
 		front.line_stamp = -1
 	Military._home_cache.clear()
 	Military._home_day = -1
