@@ -62,7 +62,7 @@ static func urge(gs: Node, tag: String, war: War) -> float:
 	u += float(c.k_days_per_month) * war.days_lasted(Clock.days_elapsed) / 30.0
 	if Peace.capital_taken_by(gs, tag) == enemy:
 		u += float(c.capital_lost)
-	var t: Dictionary = AI.temperament(gs, tag)
+	var t: Dictionary = AI.base_temperament(gs, tag)
 	var boldness := clampf((float(t.aggression) + 1.0 - float(t.caution)) / 2.0, 0.0, 1.0)
 	u -= float(c.k_ally) * allies_fighting(gs, tag, enemy) * (1.0 - float(c.ally_boldness_discount) * boldness)
 	return u

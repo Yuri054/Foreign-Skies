@@ -49,6 +49,8 @@ func _test_config() -> void:
 
 
 func _test_traits_and_plans() -> void:
+	gs.pressure_ai = false  # these check the AI's own constants, without tension's push
+	gs.tension_bonus = 0.0
 	_check(A.temperament(gs, "FRA") == A.cfg.temperament.default, "a nation without overrides has the default temperament")
 	_check(A.province_named("Brussels") > 0 and A.province_named("Atlantis") == 0, "province names resolve, unknown ones give 0")
 	# The shipped scenario has no overrides yet and its plans, if any, resolve.

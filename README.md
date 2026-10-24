@@ -4,7 +4,7 @@ A real-time historical-pressure sandbox on a map of Europe (flat, or in 3D with 
 Start in January 1900, at peace, or in July 1914 with the crisis already under way. Pick any of 22 nations,
 run its economy, armies, navy, diplomacy and national focus, and steer through the crises that pushed the
 great powers toward war. Europe's tension rises with the arms race and rivalry; events put choices to you; the
-AI plays every other nation. There is no score: whether the great war comes is up to you and them. The design is
+AI plays every other nation. There is no score, but a set ending: the account is read on 1 January 1919, and whether the great war comes before that is up to you and them. The design is
 in [DESIGN.md](DESIGN.md).
 
 ## Running it

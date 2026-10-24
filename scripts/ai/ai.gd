@@ -85,6 +85,11 @@ static func is_ai(gs: Node, tag: String) -> bool:
 
 
 ## The nation's temperament: the default, with the scenario's overrides.
+## The same without tension's push: for how readily a nation makes peace, which a tense Europe does not change.
+static func base_temperament(gs: Node, tag: String) -> Dictionary:
+	return gs.ai_traits.get(tag, cfg.temperament.default)
+
+
 static func temperament(gs: Node, tag: String) -> Dictionary:
 	var t: Dictionary = gs.ai_traits.get(tag, cfg.temperament.default)
 	if gs.tension_bonus <= 0.0:

@@ -12,8 +12,8 @@ A historical-pressure sandbox on a map of Europe. There is no score and no victo
 
 | | Start | Shape |
 |---|---|---|
-| January 1900 | 1 Jan 1900, peace | The long campaign: 1900 borders (Albania and Macedonia Ottoman, Southern Dobruja Bulgarian), smaller populations and armies, no submarines, the Franco-Russian and Triple Alliances, no Entente. Historical pressure steers the AI (`pressure_ai`). |
-| July 1914 | 28 Jul 1914, Austria-Hungary at war with Serbia | The short start, with the crisis already under way. Tension is shown but does not steer the AI. The tutorial is played in 1900, not here. |
+| January 1900 | 1 Jan 1900, peace | The long campaign: 1900 borders (Albania and Macedonia Ottoman, Southern Dobruja Bulgarian), smaller populations and armies, no submarines, the Franco-Russian and Triple Alliances, no Entente. Historical pressure steers the AI (`pressure_ai`), as in 1914. |
+| July 1914 | 28 Jul 1914, Austria-Hungary at war with Serbia | The short start, with the crisis already under way and tension at about 70, so the AI is already bold. The tutorial is played in 1900, not here. |
 
 A scenario is a folder in `data/scenarios/` with `scenario.json` (nations, deployment, alliances, guarantees, relations, claims, AI plans, `owner_changes`, `start_tension`, `pressure_ai`), and `provinces.tsv` (people), `resources.tsv`, `navy.tsv`, `cities.tsv`. `tools/make_1900.py` builds the 1900 folder from the 1914 one and holds the numbers that differ.
 
@@ -24,7 +24,7 @@ Three pillars, each with a number to read and a lever.
 - **Money.** Income is tax on output (lever: the tax rate) plus tariffs at ports and the sale of surplus raw materials. It pays civil government, the army and navy, imports and debt interest. The treasury may go negative; debt costs interest. `Economy.calibrate` sets each nation's civil spending so a scenario starts with a balanced budget.
 - **Industry.** Industrial output sets building capacity, spent a day at a time on one queue of buildings and ships. Raw materials are one ratio (own deposits plus imports against need) that scales industry; a blockade cuts imports. Food is a separate famine check.
 - **Manpower.** Recruits from population are drawn on to raise units and refilled each month. Mobilization is the lever: more men under arms, lower factory output. In peace it may reach 40%; at war it is pushed up to a war floor.
-Buildings: factory, railway, port, trench, fortification. National focus adds lasting effects.
+Buildings: factory, railway, port, trench, fortification. National focus adds lasting effects. Big cities begin with the factories and railways they already had (`buildings` in the scenario, from `tools/make_start_buildings.py`), which is why they smoke.
 
 ### Military (`military.gd`, `navy.gd`, `data/military.json`, `data/navy.json`)
 Infantry, cavalry and artillery in armies under generals, grouped into army groups. Combat uses strength, terrain, entrenchment and morale, which makes defence strong. Armies need supply from owned or occupied land. Fronts are lines of provinces armies hold; attack lines send an army group along one. Ships are squadrons in fleets that control sea zones, blockade and carry armies. Provinces have a controller apart from the owner; occupation takes days.
@@ -35,11 +35,13 @@ Relations between every pair; treaties (alliance, guarantee, non-aggression, pas
 ### Historical pressure (`pressure.gd`, `data/events.json`)
 - **Tension**, 0 to 100, is made of a base, the great powers' arms race, mobilization, wars between them, rivalry (and two rival blocs), and the lasting force of events, which fades. It shows as a flame in the top bar and on the Overview.
 - In a `pressure_ai` scenario the AI starts no war of its own choosing below tension 30, and above that grows bolder with it; above 50 the great powers' quarrels worsen each month.
-- **Events**: 22, from the Boxer Rising (1900) to Sarajevo (1914), plus a conference the player can call and an "on the brink" notice. Each fires on its date while its conditions hold. If it concerns the player, time stops and each answer is a button with its effects; otherwise the AI's choice is made and it is news. Effects: tension, relations, treasury, prestige, war support, diplomacy points, manpower, mobilization, grievance, treaties, wars. Events dated before a scenario's start are history already.
+- **Events**: 33, from the Boxer Rising (1900) to the Liman von Sanders mission (1913) and Sarajevo (1914), plus a conference the player can call and an "on the brink" notice. Each fires on its date while its conditions hold. If it concerns the player, time stops and each answer is a button with its effects; otherwise the AI's choice is made and it is news. Effects: tension, relations, treasury, prestige, war support, diplomacy points, manpower, mobilization, grievance, treaties, wars. Events dated before a scenario's start are history already.
+- **Public stands**: from the Overview any nation may spend diplomacy points on an appeal for calm (tension down) or to rattle the sabre (tension up, prestige and war support), once every half year.
+- **The set ending**: on 1 January 1919 time stops and the same event window shows a short account of how things stand (whether the great powers fought, what the player holds, the largest economies) with two answers: keep playing as a sandbox, or return to the main menu. There is no separate ending screen.
 - Nothing is guaranteed: left alone, the 1900 world drifts to a general war in 1914; a player who cools things down or hardens them changes that.
 
 ### AI (`scripts/ai/`, `data/ai.json`)
-Every other nation plays by the same rules and a temperament (aggression and caution, raised by tension). It budgets (taxes, one building a month), raises and positions forces, defends and attacks along plans and fronts, builds and uses a navy, proposes and answers treaties, makes and accepts peace, picks national foci, and, late, forms ambitions against neighbours it could beat.
+Every other nation plays by the same rules and a temperament (aggression and caution, raised by tension; how readily it makes peace is not). Its peacetime army grows with its people and output. It budgets (taxes, one building a month), raises and positions forces, defends and attacks along plans and fronts, builds and uses a navy, proposes and answers treaties, makes and accepts peace, picks national foci, and, late, forms ambitions against neighbours it could beat.
 
 ## Interface
 

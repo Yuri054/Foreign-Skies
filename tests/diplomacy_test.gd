@@ -361,6 +361,7 @@ func _test_player_join() -> void:
 	_check(D.relation(gs, "FRA", "BEL") == rel - 30.0 and gs.nations["FRA"].prestige == prestige - 10.0, "which costs Belgium's goodwill and prestige")
 	_check(not D.has_treaty(gs, "guarantee", "FRA", "BEL"), "and ends the guarantee")
 	_check(not gs.at_war("FRA", "GER") and gs.pending_joins.is_empty(), "France stays out and nothing is left pending")
+	gs.pending_events.clear()
 	clock.paused = false
 	_check(not clock.paused, "time can run once nothing is pending")
 	clock.paused = true

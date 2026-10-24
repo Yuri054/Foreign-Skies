@@ -45,6 +45,8 @@ func _initialize() -> void:
 
 func _fresh(keep_armies := false) -> void:
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	gs.pressure_ai = false  # these check the AI's own temperament, without tension's push
+	gs.tension_bonus = 0.0
 	gs.join_calls.clear()
 	gs.wars.clear()
 	if not keep_armies:

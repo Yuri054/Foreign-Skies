@@ -59,7 +59,7 @@ func _test_tension() -> void:
 	_check(calm > 5.0 and calm < 30.0, "1900 begins in a calm Europe (tension %.1f)" % calm)
 	_start(gs.DEFAULT_SCENARIO, "GER")
 	_check(gs.tension > calm + 15.0, "July 1914 begins much tighter (%.1f)" % gs.tension)
-	_check(gs.tension_bonus == 0.0 and P.ai_may_declare(gs), "but there tension does not steer the AI: its crisis is already under way")
+	_check(gs.tension_bonus > 0.0 and P.ai_may_declare(gs), "there it already steers the AI: the crisis is under way and the AI is bold (%.2f)" % gs.tension_bonus)
 	_start("res://data/scenarios/jan_1900/", "GER")
 	_check(not P.ai_may_declare(gs), "in 1900 the AI starts no wars while Europe is calm")
 	var before: float = gs.tension
