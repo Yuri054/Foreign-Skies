@@ -133,7 +133,9 @@ func _refresh() -> void:
 	var net := Fmt.monthly(b.net)
 	_pair(g, "Treasury", "£%.1fM" % n.treasury, Fmt.BAD if n.treasury < 0.0 else Color.WHITE)
 	_pair(g, "Population", Fmt.people(n.population))
-	_pair(g, "Net a month", "£%+.1fM" % net, Fmt.GOOD if net >= 0.0 else Fmt.BAD)
+	# A balance that rounds to nothing is shown as nothing, not as a red "-0.0".
+	var level := absf(net) < 0.05
+	_pair(g, "Net a month", "£%.1fM" % 0.0 if level else "£%+.1fM" % net, Color.WHITE if level else (Fmt.GOOD if net > 0.0 else Fmt.BAD))
 	_pair(g, "Under arms", Fmt.people(n.men_in_units), Color.WHITE, "In armies and in training.")
 	_pair(g, "Income", "£%.1fM" % Fmt.monthly(b.revenue))
 	_pair(g, "Reserve", Fmt.people(n.manpower), Color.WHITE, "Recruits not yet in a unit.")

@@ -309,7 +309,7 @@ func _refresh_yard() -> void:
 		_yard_info.text = "Opens on the %s.\nOn the slips: %d of %d. In port: %d squadrons." % [
 				" and ".join(zones), Navy.building_in(GameState, tag, _province), Navy.yard_slots(GameState, _province), ships]
 	else:
-		_yard_title.text = "Shipyard"
+		_yard_title.text = "No port selected"
 		_yard_info.text = "Select one of your coastal provinces on the map to build ships there."
 	var problem := Navy.build_problem(GameState, tag, _province, type, count) if ok_province else "Select a coastal province of yours."
 	var def: Dictionary = Navy.cfg.types[type]
