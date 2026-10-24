@@ -1,12 +1,11 @@
 extends FloatingWindow
-## The economy of the player's nation, in three tabs that follow its three pillars (see Economy), all
+## The economy of the player's nation, in three sections that follow its three pillars (see Economy), all
 ## figures per month (building is in the Construction panel, B):
 ##   Money:    problems, the tax rate, income and spending.
 ##   Industry: construction points, what the queue takes, and the raw materials.
 ##   People:   manpower, mobilization, and food.
 ## Toggle with E. Hover over a label for the detail behind it.
 
-var _tabs := TabContainer.new()
 var _alerts := VBoxContainer.new()
 var _tax_slider := HSlider.new()
 var _tax_label := Label.new()
@@ -24,15 +23,15 @@ var _province := 0
 func _ready() -> void:
 	add_to_group("economy_panel")
 	visible = false
-	_tabs.focus_mode = Control.FOCUS_NONE
-	add_child(_tabs)
-	_tabs.add_child(_scroll(_build_money(), "Money"))
-	_tabs.add_child(_scroll(_industry, "Industry"))
-	_tabs.add_child(_scroll(_build_people(), "People"))
-	_tabs.tab_changed.connect(func(_i: int) -> void:
-		_refresh()
-		_fit_tab.call_deferred()
-	)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	column.add_child(_heading("Money"))
+	column.add_child(_build_money())
+	column.add_child(_heading("Industry"))
+	column.add_child(_industry)
+	column.add_child(_heading("People"))
+	column.add_child(_build_people())
+	add_child(_scroll(column, "Economy"))
 	setup_window("Economy", true, Vector2(520, 0), 0)
 	_fit_tab()
 
@@ -48,11 +47,9 @@ func toggle() -> void:
 		_fit_tab.call_deferred()
 
 
-## Sizes the window to the tab showing, unless the player has sized it.
+## Sizes the window to its content, unless the player has sized it.
 func _fit_tab() -> void:
-	var tab := _tabs.get_current_tab_control()
-	if tab != null and tab.get_child_count() > 0:
-		fit_window(minf(tab.get_child(0).get_combined_minimum_size().y + 34.0, 520.0))
+	fit_window(minf(get_child(0).get_child(0).get_combined_minimum_size().y + 34.0, 520.0))
 
 
 ## Called by the map when the selected province changes (0 = none).
@@ -206,10 +203,9 @@ func _refresh() -> void:
 	var n := GameState.get_player()
 	if n == null or n.budget.is_empty() or not visible:
 		return
-	match _tabs.current_tab:
-		0: _refresh_money(n)
-		1: _refresh_industry(n)
-		2: _refresh_people(n)
+	_refresh_money(n)
+	_refresh_industry(n)
+	_refresh_people(n)
 
 
 func _refresh_money(n: Nation) -> void:

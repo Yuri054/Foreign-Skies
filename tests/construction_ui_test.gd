@@ -62,7 +62,7 @@ func _test_open_and_colours() -> void:
 	_check(map_view.mode == MapView.Mode.CONSTRUCTION and map_view.submode == "factory", "the map shows where a civilian factory can be built")
 	_check(panel.picked() == "factory" and panel._rows["factory"].button_pressed, "the first building is picked and lit")
 	var eco_panel: Node = get_first_node_in_group("economy_panel")
-	_check(eco_panel._tabs.get_tab_count() == 3 and eco_panel._tabs.get_tab_title(2) == "People", "the Economy window has no Buildings tab, only Money, Industry and People")
+	_check(eco_panel._tax_slider.is_inside_tree() and eco_panel._industry.is_inside_tree() and eco_panel._mob_slider.is_inside_tree(), "the Economy window is one page of Money, Industry and People")
 
 	var free := 0
 	var full := 0

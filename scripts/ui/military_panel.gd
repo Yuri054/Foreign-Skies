@@ -8,7 +8,6 @@ extends FloatingWindow
 ## province sends the selected armies to it. A front is a line of provinces drawn on the map
 ## with armies assigned to it: they spread along the line and hold it. Toggle with M. The fleets, shipyard and sea state are the Navy tab of the Nation screen (Y).
 
-var _slider := HSlider.new()
 var _slider_label := Label.new()
 var _mob_note := Label.new()
 var _rows: Dictionary = {}
@@ -121,17 +120,10 @@ func _ready() -> void:
 	var name_label := Label.new()
 	name_label.text = "Mobilization"
 	name_label.custom_minimum_size = Vector2(100, 0)
-	_slider.min_value = 0.0
-	_slider.max_value = 1.0
-	_slider.step = 0.05
-	_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_slider.focus_mode = Control.FOCUS_NONE
-	_slider.value_changed.connect(func(v: float) -> void:
-		GameState.issue(SetEconomyPolicy.new(GameState.player_tag, "mobilization", v))
-	)
-	_slider_label.custom_minimum_size = Vector2(50, 0)
 	_slider_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	for c in [name_label, _slider, _slider_label]:
+	_slider_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_slider_label.tooltip_text = "Set the mobilization level under Economy, People (E)."
+	for c in [name_label, _slider_label]:
 		row.add_child(c)
 	box.add_child(row)
 	_mob_note.modulate = Fmt.WARN
@@ -615,9 +607,7 @@ func _refresh() -> void:
 	var b := n.budget
 	var cap := Economy.mobilization_cap(GameState, n)
 	var least := Economy.mobilization_range(GameState, n).x
-	_slider.max_value = cap
-	_slider.set_value_no_signal(n.mobilization)
-	_slider_label.text = "%d%%" % roundi(n.mobilization * 100.0)
+	_slider_label.text = "%d%%  (set under Economy)" % roundi(n.mobilization * 100.0)
 	var floor_level: float = Diplomacy.cfg.crisis.war_floor
 	var fighting := not GameState.wars_of(n.tag).is_empty()
 	var notes: PackedStringArray = []

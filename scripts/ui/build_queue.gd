@@ -69,7 +69,7 @@ func _make_row(job: Dictionary) -> Control:
 	button.flat = true
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
-	button.text = "%s, %s  (%dd)" % [job.label, MapData.provinces[job.province].name, job.days_left]
+	button.text = "%s, %s  (%s)" % [job.label, MapData.provinces[job.province].name, "stalled" if job.days_left >= 1000 else "%dd" % job.days_left]
 	button.tooltip_text = "Click to go to the province"
 	var id: int = job.province
 	button.pressed.connect(func() -> void: province_clicked.emit(id))

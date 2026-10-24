@@ -142,7 +142,5 @@ func _act() -> void:
 				elif rng.randf() < 0.3:
 					focus._on_cancel()
 		13:
-			var eco := get_first_node_in_group("economy_panel")
-			if eco != null and eco.visible and eco._tabs != null:
-				eco._tabs.current_tab = rng.randi() % eco._tabs.get_tab_count()
+			pass
 	await process_frame

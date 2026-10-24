@@ -19,11 +19,9 @@ func _initialize() -> void:
 		_war_state(gs)
 	var eco: Node = get_first_node_in_group("economy_panel")
 	eco.toggle()
-	for tab in eco._tabs.get_tab_count():
-		eco._tabs.current_tab = tab
-		for i in 4:
-			await process_frame
-		root.get_texture().get_image().save_png("%s/economy_%d_%s.png" % [dir, tab, eco._tabs.get_tab_title(tab).to_lower().replace(" ", "_")])
+	for i in 4:
+		await process_frame
+	root.get_texture().get_image().save_png("%s/economy.png" % dir)
 	eco.toggle()
 	var cons: Node = get_first_node_in_group("construction_panel")
 	cons.toggle()

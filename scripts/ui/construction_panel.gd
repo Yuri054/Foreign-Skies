@@ -251,9 +251,9 @@ func _queue_row(n: Nation, job: Dictionary, index: int) -> Control:
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
 	var percent := roundi(100.0 * (1.0 - job.points_left / maxf(job.points_total, 1.0)))
-	var eta := "waiting" if job.days_left >= 9999 else "%dd" % job.days_left
+	var eta := "stalled" if job.days_left >= 1000 else "%dd" % job.days_left
 	label.text = "%s, %s  %d%%  %s" % [Economy.cfg.buildings[job.type].name, MapData.provinces[job.province].name, percent, eta]
-	if job.days_left >= 9999:
+	if job.days_left >= 1000:
 		label.modulate = Fmt.WARN
 	row.add_child(label)
 	var first := Button.new()

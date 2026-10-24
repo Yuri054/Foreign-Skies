@@ -81,14 +81,12 @@ func _test_support() -> void:
 func _test_panels() -> void:
 	var eco: Node = get_first_node_in_group("economy_panel")
 	eco.toggle()
-	eco._tabs.current_tab = 1
 	await process_frame
 	await process_frame
-	_check(_find_text(eco._industry, "Raw materials") and _find_text(eco._industry, "Own deposits"), "the Industry tab says where the raw materials come from")
+	_check(_find_text(eco._industry, "Raw materials") and _find_text(eco._industry, "Own deposits"), "the Industry section says where the raw materials come from")
 	var ger = gs.nations["GER"]
 	ger.war_support = 20.0
 	gs.set_war("GER", "FRA", true)
-	eco._tabs.current_tab = 0
 	eco._refresh()
 	await process_frame
 	_check(_find_text(eco._alerts, "War support is 20"), "the Economy window warns when war support is low at war")
