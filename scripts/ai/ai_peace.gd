@@ -93,7 +93,8 @@ static func accepts(gs: Node, offer: Dictionary) -> bool:
 	# I am offered terms by the one who gives.
 	if white:
 		return u >= -float(c.white_tolerance)
-	return offer.cost >= float(c.accept_share) * maxf(0.0, score) or u >= float(c.seek_threshold)
+	# (A little slack: an offer built to be exactly the share of the score must not fail on rounding.)
+	return offer.cost >= float(c.accept_share) * maxf(0.0, score) - 0.000001 or u >= float(c.seek_threshold)
 
 
 ## Whether a nation can carry the indemnities in a set of demands on top of those it pays.
