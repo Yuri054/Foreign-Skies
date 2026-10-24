@@ -617,7 +617,7 @@ func _refresh() -> void:
 		return
 	var b := n.budget
 	var cap := Economy.mobilization_cap(GameState, n)
-	var least := Economy.mobilization_range(n).x
+	var least := Economy.mobilization_range(GameState, n).x
 	_slider.max_value = cap
 	_slider.set_value_no_signal(n.mobilization)
 	_slider_label.text = "%d%%" % roundi(n.mobilization * 100.0)
@@ -627,9 +627,9 @@ func _refresh() -> void:
 	if fighting and n.mobilization < floor_level + 0.001:
 		notes.append("At war: a nation is held at a war footing of at least %d%% mobilization." % roundi(floor_level * 100.0))
 	if cap < 0.999:
-		notes.append("%s allows up to %d%%; a higher economy law (Economy window) allows more." % [Economy.law_of(n).name, roundi(cap * 100.0)])
+		notes.append("In peace a nation may mobilize only up to %d%%; at war it may go to the full." % roundi(cap * 100.0))
 	if n.mobilization < least - 0.001:
-		notes.append("%s calls up at least %d%%; mobilization is rising to it." % [Economy.law_of(n).name, roundi(least * 100.0)])
+		notes.append("At least %d%% is called up now; mobilization is rising to it." % roundi(least * 100.0))
 	_mob_note.visible = not notes.is_empty()
 	_mob_note.text = "
 ".join(notes)
@@ -695,7 +695,7 @@ func _refresh_list() -> void:
 			_list.set_item_text(i, text)
 		if a.fighting:
 			_list.set_item_custom_fg_color(i, Fmt.BAD)
-		elif not a.supplied or kit < 0.7:
+		elif not a.supplied:
 			_list.set_item_custom_fg_color(i, Fmt.WARN)
 		else:
 			_list.set_item_custom_fg_color(i, Color.WHITE)
