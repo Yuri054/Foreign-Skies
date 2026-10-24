@@ -30,7 +30,7 @@ func _initialize() -> void:
 	var list: Array = Scenarios.list()
 	var names: Array = list.map(func(s: Dictionary) -> String: return s.name)
 	_check("July 1914" in names, "the scenario list has July 1914")
-	_check(list[0].playable and list[0].start_date == "28 July 1914", "it is playable and starts on 28 July 1914")
+	_check("January 1900" in names and list[0].playable and list[0].start_date == "1 January 1900", "January 1900 is listed first, playable, and starts on 1 January 1900")
 
 	var menu: Control = load("res://scenes/menu.tscn").instantiate()
 	menu.opens_map = false
@@ -39,13 +39,13 @@ func _initialize() -> void:
 	_check(menu.page() == "main", "the menu opens on its main page")
 	_check(menu._continue.disabled, "Continue is off while there are no saves")
 	menu.show_page("new")
-	_check(menu.selected_scenario().get("name", "") == "July 1914", "the new game page offers July 1914, selected")
+	_check(menu.selected_scenario().get("name", "") == "January 1900", "the new game page offers January 1900, selected")
 
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
 	var direct := _fingerprint()
 	for i in 30:
 		Clock.advance_day()
-	menu.start_new()
+	menu.start_new(gs.DEFAULT_SCENARIO)
 	_check(_fingerprint() == direct, "a game started from the menu equals a direct launch")
 	_check(not Scenarios.resume, "a new game asks for a nation")
 

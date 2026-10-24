@@ -1,0 +1,942 @@
+id	name	population
+1	Banja Luka	714200
+2	Banskobystrický	594200
+3	Baranya	383900
+4	Bjelovarsko-bilogorska	111600
+5	Bohinj	73500
+6	Bozen	441100
+7	Bratislavský	429100
+8	Brodsko-Posavska	197700
+9	Brodsko-Posavska (2)	97400
+10	Budapest	901200
+11	Burgenland	204200
+12	Bács-Kiskun	500700
+13	Central Bosnia	139800
+14	Doboj	122800
+15	Dubrovacko-Neretvanska	124500
+16	Fejér	347600
+17	Foča	137500
+18	Gyor-Moson-Sopron	340600
+19	Herzegovina-Neretva	429900
+20	Ilirska Bistrica	127900
+21	Istarska	207400
+22	Jihomoravský	635700
+23	Jihočeský	575800
+24	Karlovacka	220600
+25	Karlovarský	151100
+26	Kocevje	111000
+27	Komárom-Esztergom	200100
+28	Koprivničko-Križevačka	71800
+29	Královéhradecký	337900
+30	Krško	73800
+31	Kärnten	531500
+32	Liberecký	275000
+33	Licko-Senjska	157700
+34	Ljubljana	468400
+35	Moravskoslezský	618900
+36	Niederösterreich	960300
+37	Nitriansky	270000
+38	Nova Goriška	313800
+39	Oberösterreich	817900
+40	Olomoucký	353300
+41	Osjecko-Baranjska	271200
+42	Pardubický	328900
+43	Pest	385000
+44	Plzeňský	531100
+45	Prague	703700
+46	Primorsko-Goranska	325900
+47	Salzburg	515200
+48	Sarajevo-romanija	619300
+49	Sisacko-Moslavacka	218300
+50	Slovenska Bistrica	333100
+51	Somogy	391400
+52	Splitsko-Dalmatinska	384400
+53	Steiermark	953500
+54	Středočeský	494700
+55	Tirol	717200
+56	Tolna	211400
+57	Trebinje	129500
+58	Trenciansky	203400
+59	Trento	387100
+60	Trnavský	276900
+61	Tuzla	342900
+62	Una-Sana	201400
+63	Varaždinska	86300
+64	Vas	280000
+65	Veszprém	301900
+66	Viroviticko-Podravska	90400
+67	Vlasenica	94100
+68	Vorarlberg	162400
+69	Vukovarsko-Srijemska	98200
+70	Vysočina	392800
+71	West Bosnia	216000
+72	Wien	1147000
+73	Zadarska	351700
+74	Zagrebacka	682600
+75	Zala	233400
+76	Zenica-Doboj	314300
+77	Zlínský	316900
+78	Ústecký	369000
+79	Šibensko-Kninska	132300
+80	Žilinský	413400
+81	Antwerp	946000
+82	Belgian Luxembourg	461400
+83	Brussels	1091100
+84	East Flanders	690600
+85	Flemish Brabant	292000
+86	Hainaut	851400
+87	Liege	943400
+88	Limburg	330800
+89	Namur	493400
+90	West Flanders	499900
+91	Hovedstaden	541700
+92	Midtjylland 1	262800
+93	Midtjylland 2	352300
+94	Nordjylland	385900
+95	Sjaælland	295600
+96	Syddanmark 1	365000
+97	Syddanmark 2	260800
+98	Albacete 1	234900
+99	Albacete 2	188200
+100	Alicante	270100
+101	Almería	288500
+102	Asturias	515200
+103	Badajoz 1	194800
+104	Badajoz 2	426200
+105	Baleares	275900
+106	Barcelona	1210800
+107	Bizkaia	333400
+108	Burgos 1	179100
+109	Burgos 2	256100
+110	Cantabria	234000
+111	Castellón	249700
+112	Ceuta	52700
+113	Ciudad Real 1	231100
+114	Ciudad Real 2	216200
+115	Cuenca 1	188000
+116	Cuenca 2	208400
+117	Cáceres 1	232300
+118	Cáceres 2	231300
+119	Cádiz	454200
+120	Córdoba 1	173700
+121	Córdoba 2	271700
+122	Gerona	140900
+123	Gipuzkoa	196900
+124	Granada 1	106100
+125	Granada 2	334900
+126	Guadalajara 1	104100
+127	Guadalajara 2	229600
+128	Huelva	307800
+129	Huesca 1	201800
+130	Huesca 2	172100
+131	Jaén 1	140900
+132	Jaén 2	272700
+133	La Coruña	406600
+134	La Rioja	207600
+135	León 1	266900
+136	León 2	184000
+137	Lugo	238200
+138	Lérida 1	191900
+139	Lérida 2	136500
+140	Madrid	1202100
+141	Murcia	574200
+142	Málaga	458300
+143	Navarra	368900
+144	Orense	248100
+145	Palencia	190400
+146	Pontevedra	262300
+147	Salamanca 1	231300
+148	Salamanca 2	149500
+149	Segovia	161100
+150	Sevilla 1	163800
+151	Sevilla 2	497500
+152	Soria	243100
+153	Tarragona	220200
+154	Teruel 1	148500
+155	Teruel 2	194200
+156	Toledo 1	180400
+157	Toledo 2	224800
+158	Valencia	513500
+159	Valladolid	327000
+160	Zamora	252600
+161	Zaragoza 1	503000
+162	Zaragoza 2	132400
+163	Álava	176500
+164	Ávila	188400
+165	Ain	218800
+166	Aisne	308100
+167	Allier	359600
+168	Alpes-Maritimes	867400
+169	Alpes-de-Haute-Provence	259700
+170	Ardennes	216300
+171	Ardèche	211400
+172	Ariège	180700
+173	Aube	343000
+174	Aude	230000
+175	Aveyron	328400
+176	Bouches-du-Rhône	1231100
+177	Calvados	443700
+178	Cantal	216200
+179	Charente	226000
+180	Charente-Maritime	376300
+181	Cher	392000
+182	Corrèze	315900
+183	Corse-du-Sud	233300
+184	Creuse	214200
+185	Côte-d'Or	543500
+186	Côtes-d'Armor	374600
+187	Deux-Sèvres	235800
+188	Dordogne	348900
+189	Doubs	367100
+190	Drôme	244400
+191	Essonne	73700
+192	Eure	248000
+193	Eure-et-Loir	233500
+194	Finistère	451100
+195	Gard	416500
+196	Gers	230800
+197	Gironde	970000
+198	Haute-Corse	246000
+199	Haute-Garonne	843200
+200	Haute-Loire	188100
+201	Haute-Marne	255700
+202	Haute-Rhin	393200
+203	Haute-Savoie	320100
+204	Haute-Saône	206700
+205	Haute-Vienne	396300
+206	Hautes-Alpes	208800
+207	Hautes-Pyrénées	252800
+208	Hérault	656800
+209	Ille-et-Vilaine	496000
+210	Indre	271700
+211	Indre-et-Loire	492100
+212	Isère	650300
+213	Jura	191600
+214	Landes	350200
+215	Loir-et-Cher	252800
+216	Loire	565100
+217	Loire-Atlantique	649000
+218	Loiret	501700
+219	Lot	190800
+220	Lot-et-Garonne	290000
+221	Lozère	190500
+222	Maine-et-Loire	496600
+223	Manche	345200
+224	Marne	544800
+225	Mayenne	210000
+226	Meurthe-et-Moselle	483200
+227	Meuse	254000
+228	Morbihan	393600
+229	Nièvre	348400
+230	Nord	937900
+231	Oise	296200
+232	Orne	245100
+233	Paris	3411400
+234	Pas-de-Calais	507600
+235	Puy-de-Dôme	548000
+236	Pyrénées-Atlantiques	469500
+237	Pyrénées-Orientales	332800
+238	Rhône	995600
+239	Sarthe	423800
+240	Savoie	235500
+241	Saône-et-Loire	332800
+242	Seien-et-Marne	491900
+243	Seine-Maritime	1019900
+244	Somme	434000
+245	Tarn	214400
+246	Tarn-et-Garonne	139100
+247	Var	553100
+248	Vaucluse	126600
+249	Vendée	259300
+250	Vienne	388300
+251	Vosges	236700
+252	Yonne	366600
+253	Yvelines	213000
+254	Aberdeenshire	513400
+255	Angus	330800
+256	Argyll and Bute	240800
+257	Barnsley	56600
+258	Belfast	566400
+259	Birmingham	1762100
+260	Bridgend	470600
+261	Buckinghamshire	52800
+262	Cambridgeshire	575100
+263	Cardiff	889500
+264	Carmarthenshire	65700
+265	Cavan	54500
+266	Ceredigion	51100
+267	Cheshire East	252200
+268	Clare	128600
+269	Cork	510100
+270	Cornwall	160600
+271	Cumbria	358300
+272	Denbighshire	55000
+273	Derbyshire	1272200
+274	Devon	767600
+275	Donegal	161100
+276	Dorset	613700
+277	Down	37100
+278	Dublin	1049800
+279	Dumfries and Galloway	277900
+280	Dungannon	69000
+281	Durham	641200
+282	East Ayrshire	229900
+283	East Riding of Yorkshire	498200
+284	East Sussex	655600
+285	Edinburgh	618800
+286	Eilean Siar	98200
+287	Essex	802400
+288	Fermanagh	55600
+289	Fife	40900
+290	Galway	337000
+291	Glasgow	1096400
+292	Gloucestershire	73800
+293	Gwynedd	127100
+294	Hampshire	1162400
+295	Herefordshire	59000
+296	Hertfordshire	424000
+297	Highland 1	183500
+298	Highland 2	210100
+299	Highland 3	340400
+300	Highland 4	276100
+301	Isle of Wight	11200
+302	Kent	199500
+303	Kerry	256000
+304	Kildare	48900
+305	Kilkenny	245200
+306	Lancashire	526400
+307	Laoighis	48000
+308	Leicestershire	639600
+309	Leitrim	48200
+310	Limerick	258100
+311	Lincolnshire	199700
+312	Lisburn	100000
+313	Liverpool	856900
+314	London	4467400
+315	Manchester	1734000
+316	Mayo	162500
+317	Meath	288500
+318	Monaghan	64200
+319	Monmouthshire	41100
+320	Moray	70800
+321	Moyle	78700
+322	Norfolk	460800
+323	North Tipperary	59700
+324	North Yorkshire 1	1104800
+325	North Yorkshire 2	2068300
+326	Northamptonshire	86000
+327	Northumberland	1063000
+328	Nottinghamshire	921800
+329	Offaly	57400
+330	Orkney	65000
+331	Oxfordshire	895200
+332	Pembrokeshire	43600
+333	Perthshire and Kinross	273200
+334	Powys	142600
+335	Roscommon	92600
+336	Scottish Borders	174300
+337	Shropshire	98600
+338	Sligo	117500
+339	Somerset	966600
+340	South Ayrshire	189600
+341	South Lanarkshire	51300
+342	South Tipperary	57300
+343	Staffordshire	594100
+344	Stirling	117800
+345	Strabane	361700
+346	Suffolk	358400
+347	Surrey	45200
+348	Warwickshire	568300
+349	Waterford	51600
+350	West Sussex	53600
+351	Westmeath	84100
+352	Wexford	66300
+353	Wicklow	81600
+354	Wiltshire	91400
+355	Worcestershire	48500
+356	Baden-Württemberg 1	3697800
+357	Baden-Württemberg 2	302400
+358	Baden-Württemberg 3	614000
+359	Baden-Württemberg 4	338700
+360	Bas-Rhin	546200
+361	Bayern 1	502400
+362	Bayern 2	512700
+363	Bayern 3	540900
+364	Bayern 4	1096200
+365	Bayern 5	1683100
+366	Bayern 6	692200
+367	Bayern 7	627300
+368	Berlin	1634400
+369	Brandenburg 1	215500
+370	Brandenburg 2	322300
+371	Brandenburg 3	477800
+372	Brandenburg 4	531400
+373	Bremen	726200
+374	Greater Poland 1	290600
+375	Greater Poland 2	824400
+376	Greater Poland 3	270300
+377	Greater Poland 4	244400
+378	Hamburg	1034800
+379	Hessen 1	620700
+380	Hessen 2	346100
+381	Hessen 3	2126100
+382	Kuyavian-Pomeranian 1	939500
+383	Kuyavian-Pomeranian 2	365600
+384	Lower Silesian 1	743900
+385	Lower Silesian 2	290100
+386	Lower Silesian 3	206600
+387	Lubusz 1	264000
+388	Lubusz 2	433000
+389	Mecklenburg-Vorpommern 1	602300
+390	Mecklenburg-Vorpommern 2	293800
+391	Mecklenburg-Vorpommern 3	490500
+392	Moselle	582500
+393	Niedersachsen 1	309200
+394	Niedersachsen 2	545500
+395	Niedersachsen 3	343300
+396	Niedersachsen 4	831700
+397	Niedersachsen 5	564800
+398	Niedersachsen 6	773200
+399	Nordrhein-Westfalen 1	637300
+400	Nordrhein-Westfalen 2	2895800
+401	Nordrhein-Westfalen 3	293900
+402	Nordrhein-Westfalen 4	2887300
+403	Opole	508300
+404	Pomeranian 1	556900
+405	Pomeranian 2	820600
+406	Pomeranian 3	229000
+407	Rheinland-Pfalz 1	515000
+408	Rheinland-Pfalz 2	239500
+409	Rheinland-Pfalz 3	503400
+410	Saarland	661200
+411	Sachsen 1	746500
+412	Sachsen 2	1163700
+413	Sachsen-Anhalt 1	529300
+414	Sachsen-Anhalt 2	226600
+415	Sachsen-Anhalt 3	276100
+416	Schleswig-Holstein 1	443700
+417	Schleswig-Holstein 2	842100
+418	Silesian 1	1187000
+419	Silesian 2	1614900
+420	Thüringen 1	584200
+421	Thüringen 2	517700
+422	Warmian-Masurian	983800
+423	West Pomeranian 1	560000
+424	West Pomeranian 2	260800
+425	West Pomeranian 3	633200
+426	Łódź 1	1211300
+427	Łódź 2	468700
+428	Agrigento	186300
+429	Alessandria	235800
+430	Ancona	238300
+431	Aoste	283800
+432	Arezzo	311900
+433	Asti	183800
+434	Avellino	175800
+435	Bari	561300
+436	Barletta-Andria Trani	211500
+437	Belluno	267200
+438	Benevento	204900
+439	Bergamo	356800
+440	Bologna	548700
+441	Brescia	344400
+442	Brindisi	223800
+443	Cagliari	698200
+444	Caltanissetta	131800
+445	Campobasso	260700
+446	Caserta	462400
+447	Catania	595500
+448	Catanzaro	247500
+449	Chieti	173000
+450	Como	337000
+451	Cosenza	436000
+452	Cremona	182000
+453	Crotene	180800
+454	Cuneo	479800
+455	Enna	154400
+456	Ferrara	306900
+457	Firenze	983500
+458	Foggia	593800
+459	Forlì-Cesena	222700
+460	Frosinone	209600
+461	Genova	496800
+462	Grosseto	304400
+463	L'Aquila	712600
+464	Latina	147600
+465	Lecce	321500
+466	Lucca	122700
+467	Macerata	330400
+468	Mantova	160800
+469	Massa-Carrara	139900
+470	Matera	223300
+471	Messina	400600
+472	Milano	1270800
+473	Modena	331800
+474	Napoli	950700
+475	Nuoro	257700
+476	Ogliastra	119900
+477	Olbia-Tempio	280200
+478	Oristrano	196900
+479	Padova	147300
+480	Palermo	764900
+481	Parma	379900
+482	Pavia	214100
+483	Perugia	549600
+484	Pesaro e Urbino	221100
+485	Piacenza	178900
+486	Pisa	549400
+487	Pordenone	150400
+488	Potenza	503800
+489	Ravenna	253000
+490	Reggio Calabria	468500
+491	Reggio Emilia	158500
+492	Rieti	180800
+493	Roma	1584300
+494	Rovigo	128300
+495	Salerno	797200
+496	Sassari	400300
+497	Savona	194600
+498	Siena	319700
+499	Siracusa	429200
+500	Sondrio	228700
+501	Taranto	318300
+502	Teramo	133800
+503	Terni	141500
+504	Trapani	240900
+505	Treviso	322700
+506	Turin	1190800
+507	Udine	444200
+508	Venezia	353100
+509	Verbano-Cusio-Ossola	162400
+510	Vercelli	399100
+511	Verona	447400
+512	Vicenza	192300
+513	Viterbo	244600
+514	Luxembourg	228800
+515	Drenthe	229500
+516	Flevoland	149600
+517	Friesland	353100
+518	Gelderland	431600
+519	Groningen	303500
+520	Limburg (2)	226700
+521	Noord-Brabant	651400
+522	Noord-Holland	863500
+523	Overijssel	304800
+524	Utrecht	394700
+525	Zeeland	172900
+526	Zuid-Holland	1164800
+527	Aveiro	158600
+528	Beja	452300
+529	Braga	354200
+530	Bragança	304400
+531	Castelo Branco	322400
+532	Coimbra	227200
+533	Faro	276100
+534	Guarda	264900
+535	Leiria	182200
+536	Lisboa	676400
+537	Portalegre	268400
+538	Porto	431800
+539	Santarém	306700
+540	Setúbal	276500
+541	Viana do Castelo	112600
+542	Vila Real	199900
+543	Viseu	241300
+544	Évora	344200
+545	Basel-Stadt	225500
+546	Bern	630600
+547	Fribourg	94700
+548	Genève	308400
+549	Graubünden	347800
+550	Lucerne	213200
+551	Sankt Gallen	293600
+552	Schwyz	140000
+553	Ticino	200100
+554	Valais	261800
+555	Vaud	312400
+556	Zürich	391800
+557	Berat	40900
+558	Dibër	53900
+559	Elbasan	77100
+560	Fier	46000
+561	Gjirokastër	64100
+562	Korçë	83200
+563	Kukës	51000
+564	Shkodër	118100
+565	Tiranë	85500
+566	Vlorë	60200
+567	Alba	303900
+568	Arad	426700
+569	Bihor	437100
+570	Bistrita-Nasaud	274000
+571	Borsod-Abaúj-Zemplén	430400
+572	Brasov	380800
+573	Békés	281900
+574	Caras-Severin	399400
+575	Carpathian Ruthenia	621600
+576	Cluj	442300
+577	Covasna	204200
+578	Csongrád	294800
+579	Czernowitz	497600
+580	Hajdú-Bihar	388500
+581	Harghita	301300
+582	Heves	190200
+583	Hunedoara	334400
+584	Južno-Backi	306000
+585	Južno-Banatski	160200
+586	Jász-Nagykun-Szolnok	302400
+587	Košický	410800
+588	Krakow	898300
+589	Lemberg	1294400
+590	Maramures	351900
+591	Mures	362500
+592	Nógrád	98000
+593	Prešov	418300
+594	Rzeszow	861300
+595	Salaj	206900
+596	Satu Mare	274100
+597	Severno-Backi	146600
+598	Severno-Banatski	89800
+599	Sibiu	328900
+600	Srednje-Banatski	178900
+601	Sremski	136500
+602	Stanislau	695100
+603	Suceava	430900
+604	Szabolcs-Szatmár-Bereg	343700
+605	Tarnopol	699000
+606	Timis	528200
+607	Zapadno-Backi	91900
+608	Blagoevgrad	206000
+609	Burgas	277800
+610	Gabrovo	59500
+611	Haskovo	145500
+612	Kardzhali	124500
+613	Kyustendil	111500
+614	Lovech	135300
+615	Montana	130300
+616	Pazardzhik	122100
+617	Pernik	99200
+618	Pleven	165800
+619	Plovdiv	240200
+620	Razgrad	90500
+621	Ruse	134300
+622	Shumen	126900
+623	Sliven	133800
+624	Smolyan	111700
+625	Sofia	208900
+626	Sofia City	220200
+627	Stara Zagora	182600
+628	Targovishte	76800
+629	Varna	187400
+630	Veliko Tarnovo	158600
+631	Vidin	95800
+632	Vratsa	153300
+633	Yambol	127600
+634	Shetland Islands	22500
+635	Masuria	533000
+636	Anatoliki Makedonia kai Thraki 1	179900
+637	Anatoliki Makedonia kai Thraki 2	204400
+638	Attica	564700
+639	Dytiki Ellada	302900
+640	Dytiki Makedonia	202600
+641	Ionioi Nisoi	65300
+642	Ipeiros	215600
+643	Kentriki Makedonia 1	257300
+644	Kentriki Makedonia 2	363200
+645	Kriti	258600
+646	Notio Aigaio	149100
+647	Peloponnisos 1	162300
+648	Peloponnisos 2	196800
+649	Stereá Elláda 1	181300
+650	Stereá Elláda 2	173700
+651	Thessalia 1	160900
+652	Thessalia 2	193700
+653	Voreio Aigaio	113100
+654	Berane	27000
+655	Cetinje	34600
+656	Nikšic	28100
+657	Pljevlja	59300
+658	Podgorica	63300
+659	Constantinople	759900
+660	Edirne	243500
+661	Kirklareli	314200
+662	Tekirdag	382300
+663	Arges	301600
+664	Bacau	306800
+665	Botosani	247900
+666	Braila	234700
+667	Bucuresti	308400
+668	Buzau	267800
+669	Calarasi	210700
+670	Constanta	350600
+671	Dobrich	204600
+672	Dolj	340500
+673	Dâmbovita	181200
+674	Galati	233300
+675	Giurgiu	151900
+676	Gorj	245800
+677	Ialomita	193400
+678	Iasi	286700
+679	Mehedinti	224400
+680	Neamt	247800
+681	Olt	228900
+682	Prahova	235400
+683	Silistra	118600
+684	Teleorman	249400
+685	Tulcea	330000
+686	Vaslui	224800
+687	Vrancea	215200
+688	Vâlcea	247400
+689	Belgrade	267700
+690	Borski	124400
+691	Branicevski	179300
+692	Brod	54500
+693	Gevgelija	60200
+694	Jablanicki	89400
+695	Kavadartsi	72600
+696	Kolubarski	78000
+697	Kosovska Mitrovica	82400
+698	Kočani	212100
+699	Kumanovo	204100
+700	Macvanski	103400
+701	Mavrovo and Rostusa	143500
+702	Moravicki	138200
+703	Nišavski	141000
+704	Pcinjski	113400
+705	Pirotski	88000
+706	Pomoravski	86300
+707	Pomoravski (2)	81900
+708	Prilep	219600
+709	Priština	201600
+710	Raški	132800
+711	Struga	57600
+712	Toplicki	73700
+713	Uroševac	127200
+714	Zajecarski	113400
+715	Zlatiborski	199000
+716	Đakovica	133000
+717	Šumadijski	118700
+718	Klaipedos	114800
+719	Konigsberg 1	534900
+720	Konigsberg 2	572100
+721	Adygea	128300
+722	Alytaus	134800
+723	Arkhangelsk 1	554600
+724	Arkhangelsk 2	854600
+725	Arkhangelsk 3	851000
+726	Arkhangelsk 4	773300
+727	Arkhangelsk 5	793000
+728	Astrakhan	638500
+729	Bashkortostan 1	1136200
+730	Bashkortostan 2	886200
+731	Belgorod	454700
+732	Brest	889200
+733	Bryansk	519500
+734	Burtnieku	122100
+735	Central Finland	178000
+736	Central Ostrobothnia	54900
+737	Chechnya	233800
+738	Chelyabinsk	920200
+739	Cherkasy	872400
+740	Chernihiv	1267400
+741	Chuvashia	314600
+742	Comrat	363900
+743	Crimea	450200
+744	Criuleni	442100
+745	Dagestan	734200
+746	Donetsk	1500200
+747	Finland Proper	110000
+748	Gomel	1051700
+749	Grodno	666600
+750	Gulbene	129700
+751	Harju	341900
+752	Hiiu	15800
+753	Hîncesti	460900
+754	Ivanovo	385500
+755	Jekabpils	201300
+756	Kabardin-Balkar	198500
+757	Kainuu	199500
+758	Kalmyk	906800
+759	Kaluga	435600
+760	Karachay-Cherkess	198700
+761	Karelia 1	826800
+762	Karelia 2	736600
+763	Karelia 3	606900
+764	Kauno	476000
+765	Kharkiv	1402200
+766	Kherson	1030700
+767	Kiev	1056600
+768	Kiev (city)	438600
+769	Kirovohrad	936500
+770	Komi 1	630600
+771	Komi 2	657600
+772	Komi 3	641500
+773	Komi 4	568000
+774	Komi 5	741500
+775	Komi 6	839800
+776	Komi 7	639200
+777	Kostroma	790800
+778	Krasnodar	1231700
+779	Kursk	448200
+780	Kymenlaakso	53800
+781	Lapland	272300
+782	Lipetsk	395000
+783	Lublin	2020300
+784	Luhansk	1096400
+785	Madona	77400
+786	Mari El	329200
+787	Masovian	3478100
+788	Minsk	967600
+789	Minsk (city)	207500
+790	Mogilev	773000
+791	Mordovia	370700
+792	Moscow	1440000
+793	Moscow Governorate	717500
+794	Murmansk	393700
+795	Mykolayiv	981800
+796	Nenets	330200
+797	Nizhny Novgorod	1123800
+798	North Karelia	187700
+799	North Ossetia	219000
+800	Northern Ostrobothnia	326100
+801	Northern Savonia	181400
+802	Novgorod	723800
+803	Odessa	1442000
+804	Ogre	132800
+805	Orenburg 1	1077600
+806	Orenburg 2	600800
+807	Oryol	371500
+808	Ostrobothnia	74600
+809	Panevezio	222300
+810	Penza	623800
+811	Perm 1	573000
+812	Perm 2	696000
+813	Perm 3	895000
+814	Petrograd 1	482300
+815	Petrograd 2	620300
+816	Pirkanmaa	160600
+817	Podlachian	1727800
+818	Podolia	863100
+819	Poltava	1165800
+820	Pskov	730900
+821	Päijät-Häme	68100
+822	Pärnu	184000
+823	Rezeknes	114300
+824	Riga	391100
+825	Rivne	794600
+826	Rostov 1	470600
+827	Rostov 2	1100300
+828	Ryazan	562200
+829	Rîşcani	348500
+830	Saare	43400
+831	Saint Petersburg	1680000
+832	Saldus	189100
+833	Samara	928500
+834	Saratov 1	696100
+835	Saratov 2	761600
+836	Satakunta	85400
+837	Sevastopol	61800
+838	Simbirsk	551800
+839	Smolensk	695900
+840	South Karelia	73600
+841	Southern Ostrobothnia	114000
+842	Southern Savonia	175600
+843	Stavropol	968700
+844	Sumy	993100
+845	Sîngerei	384700
+846	Talsi	162300
+847	Tambov	508600
+848	Tartu	118200
+849	Tatarstan	1129600
+850	Tavastia Proper	59400
+851	Tsaritsyn 1	597800
+852	Tsaritsyn 2	992800
+853	Tula	451200
+854	Tver 1	628600
+855	Tver 2	524400
+856	Udmurtia	654300
+857	Utenos	170500
+858	Uusimaa	185000
+859	Vilniaus	336300
+860	Vinnytsia	1045700
+861	Vitebsk	1044400
+862	Vladimir	457300
+863	Vologda 1	528200
+864	Vologda 2	740800
+865	Vologda 3	597000
+866	Volyn	806300
+867	Voronezh	740000
+868	Vyatka 1	767500
+869	Vyatka 2	802600
+870	Võru	96800
+871	Yaroslavl	563700
+872	Yekaterinburg 1	507700
+873	Yekaterinburg 2	832600
+874	Yekaterinoslav	1510900
+875	Zaporizhzhya	1222100
+876	Zhytomyr	1173800
+877	Świętokrzyskie	1013700
+878	Šiauliai	340100
+879	Isle of Man	46800
+880	Channel Islands	84400
+881	Malta	190400
+882	Cyprus	246700
+883	Faroe Islands	15900
+884	Åland	16800
+885	Akershus	72400
+886	Aust-Agder	103900
+887	Buskerud	145400
+888	Christiania	151900
+889	Hedmark 1	78600
+890	Hedmark 2	111800
+891	Hordaland	173000
+892	More og Romsdal	111700
+893	Nord-Trondelag 1	44700
+894	Nord-Trondelag 2	72400
+895	Nordland 1	46900
+896	Nordland 2	47800
+897	Oppland 1	79600
+898	Oppland 2	100800
+899	Rogaland	171800
+900	Sogn og Fjordane	119000
+901	Sor-Trondelag	141500
+902	Telemark	157100
+903	Vest-Agder	103700
+904	Vestfold	36400
+905	Østfold	53500
+906	Blekinge	69300
+907	Dalarna 1	112500
+908	Dalarna 2	207600
+909	Gotland	65800
+910	Gävleborg 1	110400
+911	Gävleborg 2	98700
+912	Halland	122500
+913	Jamtland 1	78200
+914	Jamtland 2	116900
+915	Jamtland 3	98800
+916	Jamtland 4	105300
+917	Jönköping	216300
+918	Kalmar	198800
+919	Kronoberg	177200
+920	Norrbotten 1	45700
+921	Norrbotten 2	58400
+922	Norrbotten 3	61300
+923	Norrbotten 4	79700
+924	Norrbotten 5	78900
+925	Orebro	157100
+926	Ostergotland	254600
+927	Skane	325600
+928	Sodermanland	104800
+929	Stockholm City	321600
+930	Uppsala	125600
+931	Vasterbotten 1	93100
+932	Vasterbotten 2	60200
+933	Vasterbotten 3	176000
+934	Vasterbotten 4	69800
+935	Vasternorrland 1	115100
+936	Vasternorrland 2	108100
+937	Vastmanland	120400
+938	Vastra Gotaland 1	368800
+939	Vastra Gotaland 2	284700
+940	Värmland 1	86700
+941	Värmland 2	193900

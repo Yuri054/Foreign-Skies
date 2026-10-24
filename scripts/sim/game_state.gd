@@ -347,6 +347,13 @@ func load_scenario(dir: String) -> void:
 		province_owner[id] = MapData.provinces[id].owner
 		owner_version += 1
 		province_controller[id] = MapData.provinces[id].owner
+	var by_name := {}
+	for id in range(1, count):
+		by_name[MapData.provinces[id].name] = id
+	for pname: String in scenario.get("owner_changes", {}):
+		var pid: int = by_name[pname]
+		province_owner[pid] = scenario.owner_changes[pname]
+		province_controller[pid] = scenario.owner_changes[pname]
 	for row in MapData.read_table(dir + "provinces.tsv"):
 		province_population[int(row.id)] = int(row.population)
 	province_pop_base = province_population.duplicate()

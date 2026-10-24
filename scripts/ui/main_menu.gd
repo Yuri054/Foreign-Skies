@@ -211,10 +211,7 @@ func start_new(dir := "") -> void:
 
 ## A new game of the first scenario with the tutorial to follow the choice of a nation.
 func start_tutorial() -> void:
-	var first := _scenarios.filter(func(s: Dictionary) -> bool: return s.playable)
-	if first.is_empty():
-		return
-	start_new(first[0].dir)
+	start_new(GameState.DEFAULT_SCENARIO)
 	Tutorial.requested = true
 
 
