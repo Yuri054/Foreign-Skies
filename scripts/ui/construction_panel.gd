@@ -85,7 +85,7 @@ func _ready() -> void:
 	_mass_box.add_theme_constant_override("separation", 4)
 	box.add_child(_mass_box)
 	_mass_box.add_child(_mass_row("Up to provinces", _mass_count, 1.0, 999.0, 10.0))
-	_mass_box.add_child(_mass_row("Spend at most £M (0 = any)", _mass_spend, 0.0, 9999.0, 0.0))
+	_mass_box.add_child(_mass_row("Queue at most IC (0 = any)", _mass_spend, 0.0, 9999.0, 0.0))
 	_mass_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_mass_preview.custom_minimum_size = Vector2(330, 0)
 	_mass_box.add_child(_mass_preview)
@@ -231,7 +231,7 @@ func _refresh_queue() -> void:
 	if n == null or not visible:
 		return
 	var points: float = n.budget.get("construction_points", 0.0)
-	_pool.text = "Construction: %s IC a day from your industry, %s in use (buildings and ships)." % [Fmt.thousands(roundi(points)), Fmt.thousands(roundi(n.construction_used))]
+	_pool.text = "Buildings are paid in industry (IC), not money, so the treasury does not move. Your industry gives %s IC a day; %s is going into projects now (buildings and ships). Projects are served in the order below and wait when the day's IC runs out." % [Fmt.thousands(roundi(points)), Fmt.thousands(roundi(n.construction_used))]
 	for c in _queue.get_children():
 		_queue.remove_child(c)
 		c.queue_free()
@@ -255,6 +255,10 @@ func _queue_row(n: Nation, job: Dictionary, index: int) -> Control:
 	label.text = "%s, %s  %d%%  %s" % [Economy.cfg.buildings[job.type].name, MapData.provinces[job.province].name, percent, eta]
 	if job.days_left >= 1000:
 		label.modulate = Fmt.WARN
+		label.tooltip_text = "Stalled: no IC reaches this project (no industry, or the projects above it take it all)."
+	else:
+		label.tooltip_text = "%s IC left. Paid from the daily IC, not from money." % Fmt.thousands(roundi(job.points_left))
+	label.mouse_filter = Control.MOUSE_FILTER_STOP
 	row.add_child(label)
 	var first := Button.new()
 	first.text = "^"
@@ -319,15 +323,15 @@ func _refresh_mass() -> void:
 		return
 	var preview := _mass_command().preview(GameState)
 	var limits := {"all": "every eligible province", "count": "your province limit",
-			"spend": "your spending limit", "money": "your treasury"}
+			"spend": "your IC limit", "money": "your treasury"}
 	if preview.count == 0:
 		_mass_preview.text = "No eligible province for this building." if preview.stopped_by == "all" \
 				else "Nothing can be built: the first one costs more than %s allows." % limits[preview.stopped_by]
 		_mass_button.text = "Build"
 		_mass_button.disabled = true
 	else:
-		_mass_preview.text = "%d buildings for £%.1fM, materials included, best provinces first. Limited by %s." % [preview.count, preview.spent, limits[preview.stopped_by]]
-		_mass_button.text = "Build %d for £%.1fM" % [preview.count, preview.spent]
+		_mass_preview.text = "%d buildings, %s IC in all, best provinces first. Limited by %s." % [preview.count, Fmt.thousands(roundi(preview.spent)), limits[preview.stopped_by]]
+		_mass_button.text = "Build %d (%s IC)" % [preview.count, Fmt.thousands(roundi(preview.spent))]
 		_mass_button.disabled = false
 
 

@@ -49,7 +49,8 @@ func _refresh() -> void:
 	for job in n.shipbuilding:
 		jobs.append({"label": Navy.cfg.types[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total})
 	var title := Label.new()
-	title.text = "Under construction (%d)" % jobs.size()
+	title.text = "Under construction (%d), paid in IC" % jobs.size()
+	title.tooltip_text = "Buildings cost industry (IC a day), not money. \"stalled\" means no IC is reaching the project."
 	_list.add_child(title)
 	jobs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.days_left < b.days_left)
 	for i in mini(jobs.size(), MAX_ROWS):
@@ -70,7 +71,7 @@ func _make_row(job: Dictionary) -> Control:
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
 	button.text = "%s, %s  (%s)" % [job.label, MapData.provinces[job.province].name, "stalled" if job.days_left >= 1000 else "%dd" % job.days_left]
-	button.tooltip_text = "Click to go to the province"
+	button.tooltip_text = "Click to go to the province. %s" % ("Stalled: no IC reaches it." if job.days_left >= 1000 else "Paid from the daily IC, not from money.")
 	var id: int = job.province
 	button.pressed.connect(func() -> void: province_clicked.emit(id))
 	box.add_child(button)

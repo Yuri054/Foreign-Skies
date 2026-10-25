@@ -570,28 +570,47 @@ func _front_stretches(f: Front) -> Array:
 ## The line itself, on the border, as on the war map of Hearts of Iron: a dark casing with the
 ## front's colour inside, and arrows across it pointing at the enemy.
 func _draw_border_line(f: Front, stretches: Array, color: Color, chosen: bool, px: float) -> void:
-	var casing := (9.0 if chosen else 7.0) * px
-	var inner := (5.0 if chosen else 3.6) * px
+	var casing := (5.5 if chosen else 4.2) * px
+	var inner := (3.0 if chosen else 2.0) * px
+	var lines: Array[PackedVector2Array] = []
+	for s in stretches:
+		lines.append(_smooth(s.line, 2))
 	if chosen:
-		for s in stretches:
-			draw_polyline(s.line, Color(color, 0.28), 16.0 * px, true)
-	for s in stretches:
-		draw_polyline(s.line, Color(0.02, 0.03, 0.05, 0.92), casing, true)
-	for s in stretches:
-		draw_polyline(s.line, color, inner, true)
-	var longest: PackedVector2Array = stretches[0].line
-	for s in stretches:
-		_draw_arrows(s.line, s.enemy, color, chosen, px)
-		if _length(s.line) > _length(longest):
-			longest = s.line
+		for l in lines:
+			draw_polyline(l, Color(color, 0.22), 12.0 * px, true)
+	for l in lines:
+		draw_polyline(l, Color(0.02, 0.03, 0.05, 0.75), casing, true)
+	for l in lines:
+		draw_polyline(l, color, inner, true)
+	var longest: PackedVector2Array = lines[0]
+	for i in stretches.size():
+		_draw_arrows(lines[i], stretches[i].enemy, color, chosen, px)
+		if _length(lines[i]) > _length(longest):
+			longest = lines[i]
 	_labels.append([f, _midpoint(longest), color, chosen])
+
+
+## Corner-cutting: each pass replaces every corner by two points a quarter along its sides, so the
+## zigzag of province edges becomes a gentle curve (the ends stay put).
+static func _smooth(line: PackedVector2Array, passes: int) -> PackedVector2Array:
+	var out := line
+	for _p in passes:
+		if out.size() < 3:
+			break
+		var next := PackedVector2Array([out[0]])
+		for i in range(1, out.size() - 1):
+			next.append(out[i - 1].lerp(out[i], 0.75) if i > 1 else out[i - 1].lerp(out[i], 0.5))
+			next.append(out[i].lerp(out[i + 1], 0.25))
+		next.append(out[out.size() - 1])
+		out = next
+	return out
 
 
 ## Arrows spaced along a stretch of border, each pointing at the province across it.
 func _draw_arrows(line: PackedVector2Array, enemy: int, color: Color, chosen: bool, px: float) -> void:
 	var length := _length(line)
 	var screen := length / px
-	var count := clampi(int(screen / 100.0), 0 if screen < 45.0 else 1, 5)
+	var count := clampi(int(screen / 160.0), 0 if screen < 60.0 else 1, 4)
 	if count == 0:
 		return
 	var target: Vector2 = MapData.provinces[enemy].center
@@ -599,13 +618,13 @@ func _draw_arrows(line: PackedVector2Array, enemy: int, color: Color, chosen: bo
 		var spot := _point_along(line, length * (i + 0.5) / count)
 		var origin: Vector2 = spot.point
 		var dir := _normal(line, spot.index, target - origin)
-		var size := (19.0 if chosen else 16.0) * px
+		var size := (11.0 if chosen else 9.0) * px
 		var tail: Vector2 = origin - dir * size * 0.5
 		var tip: Vector2 = origin + dir * size * 1.5
 		var side := Vector2(-dir.y, dir.x)
 		var head := PackedVector2Array([tail + dir * size * 0.55 + side * size * 0.75, tip, tail + dir * size * 0.55 - side * size * 0.75])
-		draw_line(tail - dir * size * 0.55, tail + dir * size * 0.6, Color(0.02, 0.03, 0.05, 0.95), 7.5 * px, true)
-		draw_line(tail - dir * size * 0.55, tail + dir * size * 0.6, color.lightened(0.15), 4.4 * px, true)
+		draw_line(tail - dir * size * 0.55, tail + dir * size * 0.6, Color(0.02, 0.03, 0.05, 0.8), 4.2 * px, true)
+		draw_line(tail - dir * size * 0.55, tail + dir * size * 0.6, color.lightened(0.15), 2.4 * px, true)
 		draw_colored_polygon(head, color.lightened(0.15))
 		draw_polyline(PackedVector2Array([head[0], head[1], head[2], head[0]]), Color(0.02, 0.03, 0.05, 0.95), 1.8 * px, true)
 

@@ -151,7 +151,7 @@ func _test_close_and_mass() -> void:
 	panel._rows["railway"].pressed.emit()
 	ger.treasury = 5000.0
 	panel._refresh()
-	_check(panel._mass_box.visible and panel._mass_preview.text.contains("£"), "mass build previews: " + panel._mass_preview.text)
+	_check(panel._mass_box.visible and panel._mass_preview.text.contains("IC in all"), "mass build previews: " + panel._mass_preview.text)
 	var jobs: int = ger.construction.size()
 	panel._mass_button.pressed.emit()
 	_check(ger.construction.size() > jobs, "mass build queues the buildings")

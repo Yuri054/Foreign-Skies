@@ -238,7 +238,12 @@ func _ready() -> void:
 	GameState.fronts_changed.connect(_refresh)
 	GameState.fleets_changed.connect(_refresh)
 	GameState.player_changed.connect(func(_t: String) -> void: _refresh())
-	get_viewport().size_changed.connect(_place)
+	# The map palette re-lays itself out after a scale change, so place again once it has.
+	get_viewport().size_changed.connect(func() -> void:
+		_place()
+		_place.call_deferred()
+		get_tree().process_frame.connect(_place, CONNECT_ONE_SHOT)
+	)
 	resized.connect(_place)
 	_refresh()
 
