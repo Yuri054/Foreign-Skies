@@ -23,17 +23,17 @@ to the mouse, wheel ignored over menus); diplomacy mouse tip and more tooltips; 
 | Step | Work | Size | Why now |
 |---|---|---|---|
 | 1 | War length and peace | S | The trained AI fights the great war for years (about 30 months). Decide whether that is wanted; add a peace term to the fitness or a war-weariness rule, and retrain only if so. |
-| 2 | June 1914 crisis | L | The July Crisis is the central fantasy, and it fixes the missing Belgian invasion (Britain never joins now). |
-| 3 | Cabinet briefing and "why" | M | Read-only, cheap; also the best tool for tuning the AI. |
-| 4 | Data validator and save version | S | Catches the ordering and indentation mistakes the data has had. |
-| 5 | History book | M | The payoff for a game with no score: a readable, exportable history. |
-| 6 | War aims and peace conference | L | Gives wars a purpose; touches `war.gd`, `peace.gd`, `ai_peace.gd` and needs a balance run. |
-| 7 | Long game (post-1914 crises, dynamic crises) | XL | Only after 2, 3 and 6 are stable. |
-| 8 | Home front (rationing and strikes only) | L | Blockade should be able to break a nation, but start small. |
+| 2 | War goals and justification | L | You cannot choose what you fight for today; "justify" only makes a generic claim. Goals shape the war, the peace terms and the AI. Needed by step 3. |
+| 3 | June 1914 crisis | L | The July Crisis is the central fantasy, and it fixes the missing Belgian invasion (Britain never joins now). Uses the goals of step 2. |
+| 4 | Cabinet briefing and "why" | M | Read-only, cheap; shows each war's goal and why the AI acts; also the best tool for tuning the AI. |
+| 5 | Data validator and save version | S | Catches the ordering and indentation mistakes the data has had. |
+| 6 | History book | M | The payoff for a game with no score: a readable, exportable history. |
+| 7 | Peace conference | M | Allies negotiate together, built on the goals of step 2. |
+| 8 | Long game (post-1914 crises, dynamic crises) | XL | Only after 2, 3 and 4 are stable. |
 | 9 | Staff tools (supply map, odds preview, delegate to front) | M | Fronts are drawn already; supply and odds are the missing legibility. |
-| 10 | Coalition AI and difficulty | L | After the war-length decision and war aims. |
+| 10 | Coalition AI and difficulty | L | After the war-length decision and war goals. |
 
-Cut for now: localization, modding, and the art pipeline (no release target; PhotoCraft is unspecified).
+Cut: the home front (food, unrest, revolution), localization, modding and the art pipeline (no release target; PhotoCraft is unspecified).
 
 ## Steps in detail
 
@@ -43,44 +43,65 @@ Cut for now: localization, modding, and the art pipeline (no release target; Pho
   war's length (or a war-weariness rule that raises peace urge with time), then retrain from the current state.
 - Test: `ai_history_test` bounds on peaces and fighting at day 520, kept meaningful.
 
-### 2. June 1914 crisis
+### 2. War goals and justification
+Today: "justify" costs 25 points and 90 days and yields a generic `fabricated_claim`; casus belli otherwise come
+only from scenario claims; the peace screen allows any demand the war score pays for, whatever was justified.
+
+- **A goal when you justify.** Goals: claim named provinces (a region, a city and its hinterland), force a concession
+  (indemnity, disarmament, ending a treaty), liberate or back a nationality (Austria-Hungary, the Ottoman Empire,
+  Russia carry these in data), enforce a guarantee, free an ally. Each has its own cost, time and grievance in
+  `data/diplomacy.json`, and a goal can need a precondition (a claim, an alliance, a guarantee).
+- **The goal shapes the war.** A war fought for a goal gets its goal at a discount in war score and everything
+  else at a premium; a war with no goal stays allowed, keeps today's penalties and pays more for terms. The goal is
+  stored on the war and saved.
+- **A visible build-up.** Justifying is an open step: the target and its friends see it (a notice and an opinion
+  effect), rivals and allies react, and the target can respond (mobilize, ask for a guarantee, appeal).
+- **The AI uses goals.** `ai_ambition` picks a goal, `ai_diplomacy` justifies it, offence and peace treat reaching it
+  as the aim of the war (`aims_enough`), and a limited goal makes a limited war. Retrain the affected numbers after
+  step 1.
+- **A "why" line** on every war: the goal and its progress, in the war tooltip and the peace screen (and later the
+  briefing).
+- Tests: `tests/war_goals_test.gd`, extend `justify_test.gd` and `peace_test.gd`, `ai_diplomacy_test.gd`; a balance
+  run and `ai_history_test` afterwards.
+
+### 3. June 1914 crisis
 - `data/scenarios/june_1914/` from `july_1914`: start 28 June, no starting wars, tense but at peace.
 - A daily hook (`Crisis.step_day`) with deadlines for the dates the monthly events cannot hit (23, 25, 28, 30 July,
   2 August). The monthly event table stays as it is.
 - Event chain in `data/events.json` using `requires_event`, `until`, `options`, `ai_option`: Sarajevo, the blank
-  cheque, the ultimatum, the Serbian reply, Russian mobilization, British mediation, the Belgian ultimatum.
+  cheque, the ultimatum, the Serbian reply, Russian mobilization, British mediation, the Belgian ultimatum. The
+  ultimatums and the Belgian violation grant goals and casus belli through the step 2 system.
 - A crisis state saved with the game; a panel with phase, days to decision and each power's stance.
 - AI options keyed to tension, relations and temperament: the historical path likely, never certain.
 - Acceptance: both a war path and a mediation path are reachable from the same start; a mid-crisis save loads.
 - Test: `tests/crisis_1914_test.gd`, and `history_test` stays green.
 
-### 3. Cabinet briefing and "why"
+### 4. Cabinet briefing and "why"
 - A monthly briefing with the top three issues, each with a one-line reason and a button to the screen.
 - Tension breakdown (`Pressure.parts`) with a 24-month sparkline.
 - Read-only explanation functions for declarations, joining wars and peace (`AIDiplomacy.explain_*`,
   `AIPeace.explain`), built from the numbers the AI uses, shown in the country panel, join prompt and peace screen.
 - No AI behaviour change. Test: `tests/briefing_test.gd`.
 
-### 4. Data validator and save version
+### 5. Data validator and save version
 - `tools/validate_data.py`: required keys, event `requires_event` integrity, scenario owners and claims, focus trees,
   the trainer's parameter paths. A deliberately broken file is rejected with a clear message.
 - A save-format version with a migration test. Python tests for `ai_train.py` (`apply()` on a copy of `ai.json`).
 
-### 5. History book
+### 6. History book
 - A whole-run `history_log` and `territory_log` in the state (the chronicle is a 40-entry ring) plus monthly aggregates.
-- `scripts/sim/history.gd` builds sections (timeline, wars, territory, nations); a window with tabs and an export to
-  Markdown and HTML under `user://history/`.
+- `scripts/sim/history.gd` builds sections (timeline, wars with their goals, territory, nations); a window with tabs and
+  an export to Markdown and HTML under `user://history/`.
 - Budget: the day step grows by under 2 ms, a 20-year save by under 10%. Test: `tests/history_book_test.gd`.
 
-### 6. War aims and peace conference
-- Per-nation aims on a war (limited, status quo, total; provinces, indemnity, disarmament), a War Aims panel, effects on
-  war support and on what a nation will accept. Start with the player's side only for the conference.
-- Tests: `war_aims_test.gd`, extend `peace_test.gd`; a balance run afterwards.
+### 7. Peace conference
+- Allies in a war group negotiate together, each with its own goal from step 2; counter-offers and a chairman.
+  Start with a screen for the player's side only. Tests: extend `peace_test.gd`; a balance run afterwards.
 
-### 7 to 10
-As in the earlier plan, in this order, each scoped when reached. Home front starts with food and strikes only; staff
-tools are a supply map, an order preview with an odds range under fog (never the hidden strength) and "delegate to a
-front"; coalition AI starts with shared objectives and no separate peace.
+### 8 to 10
+Each scoped when reached. Staff tools are a supply map, an order preview with an odds range under fog (never the
+hidden strength) and "delegate to a front"; coalition AI starts with shared objectives and no separate peace;
+difficulty presets in data.
 
 ## Quality gates
 
@@ -94,7 +115,6 @@ front"; coalition AI starts with shared objectives and no separate peace.
 ## Open decisions
 
 1. Years-long great war, or shorter? (step 1)
-2. Start with step 2 (the crisis) straight after step 1, or the briefing first?
-3. Any content guideline for revolutions and civilian suffering before the home front?
-4. Step 6 of the earlier plan (point git at the Foreign-Skies repository) still needs that repository added to this
+2. Which goals to start with in step 2 (province claims, concessions, nationality, guarantee, ally)?
+3. Step 6 of the earlier plan (point git at the Foreign-Skies repository) still needs that repository added to this
    session's sources.
