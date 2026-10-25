@@ -48,6 +48,7 @@ var _back := Button.new()
 var _perspective_row := VBoxContainer.new()
 var _list := ItemList.new()
 var _detail := Label.new()
+var _crisis_box := VBoxContainer.new()
 var _header := HBoxContainer.new()
 var _header_flag := FlagIcon.new()
 var _header_name := Label.new()
@@ -149,6 +150,8 @@ func _ready() -> void:
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.custom_minimum_size = Vector2(250, 0)
 	_box.add_child(_detail)
+	_crisis_box.add_theme_constant_override("separation", 3)
+	_box.add_child(_crisis_box)
 
 	_box.add_child(_heading("Treaties"))
 	_treaties.custom_minimum_size = Vector2(0, 46)
@@ -483,6 +486,7 @@ func _refresh_detail() -> void:
 		if why != "":
 			lines.append(why)
 	_detail.text = "\n".join(lines)
+	_refresh_crises(me, _selected)
 	_refresh_actions()
 	_fit_height.call_deferred()
 
@@ -704,6 +708,52 @@ func _on_justify() -> void:
 ## Whether the two are not at war (the intent line is about a war that may come).
 func war_none(a: String, b: String) -> bool:
 	return GameState.war_between(a, b) == null
+
+
+## The crises the selected nation is in: what is demanded, and what a third nation (the player) may do about it.
+func _refresh_crises(me: String, tag: String) -> void:
+	for c in _crisis_box.get_children():
+		_crisis_box.remove_child(c)
+		c.queue_free()
+	if not GameState.nations.has(tag):
+		return
+	for c: Dictionary in Crisis.of(GameState, tag):
+		var head := Label.new()
+		head.text = "%s\nAnswer due %s." % [c.text, Clock.date_after(c.deadline_day - Clock.days_elapsed)]
+		head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		head.custom_minimum_size = Vector2(250, 0)
+		head.modulate = Fmt.WARN
+		head.tooltip_text = "A crisis: %s demands, %s must answer. A refusal gives the demander a casus belli; a nation with standing may mediate, or back a side." % [GameState.nations[c.a].display_name, GameState.nations[c.b].display_name]
+		head.mouse_filter = Control.MOUSE_FILTER_PASS
+		_crisis_box.add_child(head)
+		if not _acting() or me in [c.a, c.b]:
+			continue
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		var chance := Crisis.mediation_chance(GameState, c, me)
+		_crisis_button(row, "Mediate (%d)" % int(Crisis.cfg.mediate.cost_points), c.id, "mediate",
+				"Try to bring the two to terms: a %d%% chance, from your standing and the goodwill you hold with both. Success earns prestige and eases tension; failure costs a little prestige." % roundi(chance * 100.0))
+		_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.b].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_b",
+				"Stand behind %s: the demander has to reckon with you, relations with %s improve and with %s worsen." % [GameState.nations[c.b].display_name, GameState.nations[c.b].display_name, GameState.nations[c.a].display_name])
+		_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.a].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_a",
+				"Stand behind %s's demand: its side is stronger, relations with it improve and with %s worsen." % [GameState.nations[c.a].display_name, GameState.nations[c.b].display_name])
+		_crisis_box.add_child(row)
+
+
+func _crisis_button(row: HBoxContainer, text: String, id: int, action: String, tip: String) -> void:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.tooltip_text = tip
+	var cost: float = Crisis.cfg.mediate.cost_points if action == "mediate" else Crisis.cfg.back.cost_points
+	b.disabled = not Diplomacy.can_afford(GameState, GameState.player_tag, cost)
+	if b.disabled:
+		b.tooltip_text = "Not enough diplomacy points (need %d).\n%s" % [int(cost), tip]
+	b.pressed.connect(func() -> void:
+		GameState.issue(CrisisAction.new(GameState.player_tag, id, action))
+		_refresh()
+	)
+	row.add_child(b)
 
 
 func refresh_now() -> void:

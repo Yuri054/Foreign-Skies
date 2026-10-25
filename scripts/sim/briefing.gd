@@ -57,6 +57,13 @@ static func issues(gs: Node, tag: String) -> Array[Dictionary]:
 			var other := key.get_slice(">", 0)
 			if gs.nations.has(other) and not gs.at_war(other, tag):
 				_add(out, "alarm_" + other, 45.0, "%s is mobilizing near you" % gs.nations[other].display_name, "Its armies are drawing up on your border.", "Diplomacy")
+	for c: Dictionary in gs.crises:
+		if c.b == tag:
+			_add(out, "crisis_%d" % c.id, 88.0, c.title, "Answer by %s: yield, refuse, mobilize or appeal." % Clock.date_after(c.deadline_day - Clock.days_elapsed), "Diplomacy")
+		elif c.a != tag:
+			var close: bool = Diplomacy.are_allied(gs, tag, c.a) or Diplomacy.are_allied(gs, tag, c.b) or c.a in Diplomacy.neighbor_nations(gs, tag) or c.b in Diplomacy.neighbor_nations(gs, tag)
+			if close:
+				_add(out, "crisis_%d" % c.id, 50.0, c.title, "You may mediate or stand behind a side before the answer is due.", "Diplomacy")
 	var rival := AIDiplomacy.strongest_rival(gs, tag)
 	if not rival.is_empty() and rival.ratio >= 1.0:
 		_add(out, "rival", minf(40.0 + rival.ratio * 15.0, 75.0), "%s outweighs you %.1f to 1" % [gs.nations[rival.tag].display_name, rival.ratio], "It is a neighbour that does not like you. Make an alliance or a guarantee before it moves.", "Diplomacy")

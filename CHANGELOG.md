@@ -5,6 +5,14 @@ Versions are `major.minor.patch`. Each step of `PLAN.md` that changes how the ga
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.5.0
+
+- Dynamic crises: the quarrels of the world now open crises with demands and deadlines (a claimed province, a border
+  province, reparations, or the withdrawal of border armies). The nation asked yields, refuses (the demander gets a
+  casus belli for it), mobilizes (a demander that cannot win backs down) or appeals to the powers. Any third nation, you
+  included, can mediate or back a side from the Diplomacy tab. When it is your crisis you are asked at once.
+- The briefing lists crises you must answer or may act on; crises are written into the chronicle and the news.
+
 ## 0.4.2
 
 - Saves carry a format version (now 2). Saves from version 1 still load; a save from a newer game, or one too old, is

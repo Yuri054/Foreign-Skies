@@ -262,7 +262,9 @@ static func answer(gs: Node, decision_id: int, option: int) -> bool:
 		if e.has("b_options") and e.has("b_ai_option") and not d.as_b:
 			for fx: Dictionary in e.b_options[_pick(gs, e.b_ai_option)].effects:
 				_apply(gs, fx, _swapped(d.roles))
-		_record(gs, d.title, "%s %s." % [gs.nations[gs.player_tag].display_name, chosen.label.to_lower()], 1)
+		# A crisis writes its own account of how it ended (see Crisis).
+		if not str(d.event).begins_with("crisis:"):
+			_record(gs, d.title, "%s %s." % [gs.nations[gs.player_tag].display_name, chosen.label.to_lower()], 1)
 		_update(gs)
 		gs.event_resolved.emit(d, option)
 		return true
@@ -298,6 +300,9 @@ static func _apply(gs: Node, fx: Dictionary, roles: Dictionary) -> void:
 			var held := Diplomacy.find_treaty(gs, e[0], roles.get(e[1], e[1]), roles.get(e[2], e[2]))
 			if held != null:
 				Diplomacy.end_treaty(gs, held)
+	elif fx.has("crisis"):
+		# [crisis id, answer, role of the nation answering] (see Crisis)
+		Crisis.respond(gs, int(fx.crisis[0]), _tag(roles, fx.crisis[2]), fx.crisis[1])
 	elif fx.has("war"):
 		var w: Array = fx.war
 		var a := _tag(roles, w[0])
@@ -335,6 +340,9 @@ static func _apply_to(gs: Node, key: String, n: Nation, v: float) -> void:
 ## What an option would do, in plain words, for the decision window.
 static func effect_lines(gs: Node, option: Dictionary, roles: Dictionary) -> PackedStringArray:
 	var out: PackedStringArray = []
+	# An option that says in its own words what it does (a crisis answer) needs no reckoning.
+	if option.has("tip"):
+		return PackedStringArray(str(option.tip).split("\n"))
 	for fx: Dictionary in option.effects:
 		if fx.has("tension"):
 			if absf(float(fx.tension)) >= 0.5:
