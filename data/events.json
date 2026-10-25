@@ -179,6 +179,60 @@
 			]
 		},
 		{
+			"id": "chamberlain_overture",
+			"title": "Chamberlain's overture",
+			"text": "Britain's colonial secretary hints at an understanding with Germany: a quiet alliance against Russia and France.",
+			"date": [
+				1901,
+				3
+			],
+			"actors": {
+				"a": "GBR",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Pursue an understanding",
+					"text": "Talk, and see what Berlin wants.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"tension": -1
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep our hands free",
+					"text": "Splendid isolation has served well enough.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"until": [
+				1901,
+				9
+			]
+		},
+		{
 			"id": "splendid_isolation",
 			"title": "The end of splendid isolation",
 			"text": "Britain stands alone in a world of alliances. The Boer War has shown how few friends it has.",
@@ -412,6 +466,112 @@
 			"until": [
 				1903,
 				6
+			]
+		},
+		{
+			"id": "venezuela",
+			"title": "The Venezuela blockade",
+			"text": "Germany and Britain are blockading Venezuelan ports to collect unpaid debts, and Washington is watching.",
+			"date": [
+				1902,
+				12
+			],
+			"actors": {
+				"a": "GER",
+				"b": "GBR"
+			},
+			"options": [
+				{
+					"label": "Join the blockade",
+					"text": "Gunboats make a debtor pay.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								1
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								3
+							]
+						},
+						{
+							"tension": 1
+						}
+					]
+				},
+				{
+					"label": "Leave it to others",
+					"text": "Not worth the quarrel with America.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1903,
+				4
+			]
+		},
+		{
+			"id": "baghdad_concession",
+			"title": "The Baghdad Railway concession",
+			"text": "The Sultan offers a German company the right to build a railway from Konya to the Persian Gulf.",
+			"date": [
+				1903,
+				3
+			],
+			"actors": {
+				"a": "GER",
+				"b": "OTT"
+			},
+			"options": [
+				{
+					"label": "Take the concession",
+					"text": "German steel and German influence reach the Gulf.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-4
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Decline",
+					"text": "The cost and the quarrel are not worth it.",
+					"effects": []
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1903,
+				9
 			]
 		},
 		{
@@ -1133,6 +1293,70 @@
 			]
 		},
 		{
+			"id": "delcasse",
+			"title": "The fall of Delcassé",
+			"text": "Germany has made it plain that it will not tolerate the French foreign minister's Moroccan policy. Paris must decide whether he stays.",
+			"date": [
+				1905,
+				6
+			],
+			"actors": {
+				"a": "FRA",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Let him go",
+					"text": "Peace is worth a minister.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								4
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				},
+				{
+					"label": "Back him",
+					"text": "France will not take orders from Berlin.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"tension": 5
+						},
+						{
+							"war_support": [
+								"a",
+								3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1905,
+				10
+			]
+		},
+		{
 			"id": "bjorko",
 			"title": "The Treaty of Björkö",
 			"text": "The Kaiser has met the Tsar on a yacht and proposes a pact that would draw Russia away from France.",
@@ -1180,6 +1404,49 @@
 			"until": [
 				1905,
 				12
+			]
+		},
+		{
+			"id": "portsmouth",
+			"title": "The Treaty of Portsmouth",
+			"text": "American mediation has ended the war with Japan. Russia pays no indemnity, but the army and the treasury are exhausted.",
+			"date": [
+				1905,
+				9
+			],
+			"actors": {
+				"a": "RUS"
+			},
+			"options": [
+				{
+					"label": "Sign the treaty",
+					"text": "Better peace abroad while the revolution burns at home.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-4
+							]
+						},
+						{
+							"treasury": [
+								"a",
+								2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1906,
+				2
 			]
 		},
 		{
@@ -1499,6 +1766,61 @@
 			"until": [
 				1906,
 				12
+			]
+		},
+		{
+			"id": "persian_revolution",
+			"title": "Persia's constitution",
+			"text": "A revolution in Tehran has forced the Shah to grant a parliament, and the great powers circle.",
+			"date": [
+				1906,
+				8
+			],
+			"actors": {
+				"a": "RUS",
+				"b": "GBR"
+			},
+			"options": [
+				{
+					"label": "Watch and wait",
+					"text": "Keep the Shah's court close.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-2
+							]
+						}
+					]
+				},
+				{
+					"label": "Back the Shah",
+					"text": "A constitution so near the Caucasus is dangerous.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1907,
+				2
 			]
 		},
 		{
@@ -2274,6 +2596,139 @@
 			]
 		},
 		{
+			"id": "tegetthoff",
+			"title": "The Tegetthoff class",
+			"text": "The Austro-Hungarian navy wants four dreadnoughts for the Adriatic, and Italy is watching the slipways.",
+			"date": [
+				1910,
+				3
+			],
+			"actors": {
+				"a": "AUH",
+				"b": "ITA"
+			},
+			"options": [
+				{
+					"label": "Order the dreadnoughts",
+					"text": "Prestige at sea, and a bill for the Delegations.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-6
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Defer the programme",
+					"text": "The treasury cannot bear it.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1910,
+				9
+			]
+		},
+		{
+			"id": "albanian_revolt",
+			"title": "The Albanian revolt",
+			"text": "The mountain clans have risen against the new Ottoman taxes and conscription.",
+			"date": [
+				1910,
+				4
+			],
+			"actors": {
+				"a": "OTT",
+				"b": "ALB"
+			},
+			"options": [
+				{
+					"label": "Send the army",
+					"text": "Crush it before it spreads.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-3
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Offer concessions",
+					"text": "Schools in Albanian, and fewer tax collectors.",
+					"effects": [
+						{
+							"treasury": [
+								"a",
+								-1
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"until": [
+				1910,
+				10
+			]
+		},
+		{
 			"id": "montenegro_kingdom",
 			"title": "Montenegro becomes a kingdom",
 			"text": "Prince Nicholas has crowned himself king of the little mountain state, which he has ruled for fifty years.",
@@ -2647,6 +3102,107 @@
 			]
 		},
 		{
+			"id": "stolypin",
+			"title": "Stolypin is shot",
+			"text": "Russia's reforming prime minister has been assassinated in Kiev. The land reform stalls and the court drifts.",
+			"date": [
+				1911,
+				9
+			],
+			"actors": {
+				"a": "RUS"
+			},
+			"options": [
+				{
+					"label": "Carry on",
+					"text": "The reform has few friends left.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1912,
+				3
+			]
+		},
+		{
+			"id": "morocco_treaty",
+			"title": "The Morocco–Congo treaty",
+			"text": "After Agadir, France takes a protectorate in Morocco, and Germany takes a strip of the French Congo.",
+			"date": [
+				1911,
+				11
+			],
+			"actors": {
+				"a": "GER",
+				"b": "FRA"
+			},
+			"options": [
+				{
+					"label": "Accept the bargain",
+					"text": "A swamp for a nation's pride.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-3
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								3
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				},
+				{
+					"label": "Grumble and wait",
+					"text": "The public is told it was a humiliation.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-4
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1912,
+				3
+			]
+		},
+		{
 			"id": "naval_talks",
 			"title": "The Haldane mission",
 			"text": "Britain offers to talk about the naval race with Germany. An agreement could ease the tension.",
@@ -2843,6 +3399,55 @@
 			]
 		},
 		{
+			"id": "home_rule",
+			"title": "The Home Rule bill",
+			"text": "The Liberal government has introduced Home Rule for Ireland, and Ulster is drilling volunteers.",
+			"date": [
+				1912,
+				4
+			],
+			"actors": {
+				"a": "GBR"
+			},
+			"options": [
+				{
+					"label": "Press on",
+					"text": "The Commons has its majority.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-3
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				},
+				{
+					"label": "Seek a compromise",
+					"text": "Exempt the north, and lose the Irish members' enthusiasm.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"until": [
+				1912,
+				10
+			]
+		},
+		{
 			"id": "anglo_french_navies",
 			"title": "The naval understanding",
 			"text": "Britain and France can divide the seas between them: the French fleet to the Mediterranean, the British to the North Sea.",
@@ -3011,6 +3616,63 @@
 			}
 		},
 		{
+			"id": "scutari",
+			"title": "The Scutari crisis",
+			"text": "Montenegro's army is besieging Scutari, and Austria-Hungary will not tolerate a Slav port on the Albanian coast.",
+			"date": [
+				1913,
+				4
+			],
+			"actors": {
+				"a": "MNE",
+				"b": "AUH"
+			},
+			"options": [
+				{
+					"label": "Hold the siege",
+					"text": "Montenegro has paid in blood for the town.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-12
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"tension": 6
+						}
+					]
+				},
+				{
+					"label": "Yield to the Powers",
+					"text": "A conference in London decides the town's fate.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"tension": -3
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"until": [
+				1913,
+				9
+			]
+		},
+		{
 			"id": "balkan_peace",
 			"title": "The Treaty of London",
 			"text": "The Ottomans give up almost all their land in Europe, and the victors fall out over the spoils.",
@@ -3104,6 +3766,71 @@
 					-45
 				]
 			}
+		},
+		{
+			"id": "second_balkan",
+			"title": "The quarrel over the spoils",
+			"text": "The Balkan allies cannot agree on how to share Macedonia, and Bulgaria feels cheated by Serbia and Greece.",
+			"date": [
+				1913,
+				6
+			],
+			"actors": {
+				"a": "BUL",
+				"b": "SRB"
+			},
+			"options": [
+				{
+					"label": "Strike at Serbia",
+					"text": "Take Macedonia by force before the others settle in.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-20
+							]
+						},
+						{
+							"grievance": [
+								"b",
+								"a",
+								15
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"tension": 6
+						}
+					]
+				},
+				{
+					"label": "Accept Russian arbitration",
+					"text": "Let the Tsar decide.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								4
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"until": [
+				1913,
+				9
+			]
 		},
 		{
 			"id": "belgian_service",
@@ -3226,6 +3953,69 @@
 			]
 		},
 		{
+			"id": "zabern",
+			"title": "The Zabern affair",
+			"text": "A lieutenant has insulted the people of an Alsatian town, and the army has taken their side against the civil authorities.",
+			"date": [
+				1913,
+				11
+			],
+			"actors": {
+				"a": "GER",
+				"b": "FRA"
+			},
+			"options": [
+				{
+					"label": "Stand by the army",
+					"text": "The Reichstag protests and the army carries on.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						}
+					]
+				},
+				{
+					"label": "Rebuke the officers",
+					"text": "The Kaiser is displeased, the Reichstag appeased.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1914,
+				3
+			]
+		},
+		{
 			"id": "liman",
 			"title": "The Liman von Sanders mission",
 			"text": "A German general is to command the Ottoman corps at Constantinople. Russia sees the Straits in German hands.",
@@ -3283,6 +4073,43 @@
 			"until": [
 				1914,
 				5
+			]
+		},
+		{
+			"id": "curragh",
+			"title": "The Curragh incident",
+			"text": "Officers at the Curragh camp have said they would resign rather than march on Ulster.",
+			"date": [
+				1914,
+				3
+			],
+			"actors": {
+				"a": "GBR"
+			},
+			"options": [
+				{
+					"label": "Smooth it over",
+					"text": "The officers keep their commissions.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-2
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1914,
+				6
 			]
 		},
 		{

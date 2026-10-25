@@ -2535,7 +2535,40 @@
 		},
 		"MNE": {
 			"template": "minor",
-			"extra": []
+			"extra": [
+				{
+					"id": "black_mountain_levy",
+					"name": "The Black Mountain levy",
+					"desc": "Every man with a rifle, under his own captain.",
+					"x": 3,
+					"y": 0,
+					"days": 70,
+					"requires": [
+						"modernise_army"
+					],
+					"effects": {
+						"army_size": 0.15,
+						"war_support": 4
+					},
+					"ai": 0.8
+				},
+				{
+					"id": "cetinje_court",
+					"name": "The court at Cetinje",
+					"desc": "A king, and daughters married into every house of Europe.",
+					"x": 3,
+					"y": 1,
+					"days": 70,
+					"requires": [
+						"seek_friends"
+					],
+					"effects": {
+						"prestige": 4,
+						"diplomacy": 0.3
+					},
+					"ai": 1.0
+				}
+			]
 		},
 		"ALB": {
 			"template": "minor",
@@ -2733,7 +2766,40 @@
 		},
 		"LUX": {
 			"template": "minor",
-			"extra": []
+			"extra": [
+				{
+					"id": "minette_steel",
+					"name": "Steel from the Minette",
+					"desc": "Ore and furnaces on the southern border.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [
+						"administrative_reform"
+					],
+					"effects": {
+						"gdp": 0.04,
+						"industry": 0.02
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "customs_ties",
+					"name": "The customs union",
+					"desc": "A small market tied to its big neighbours.",
+					"x": 3,
+					"y": 1,
+					"days": 60,
+					"requires": [
+						"minette_steel"
+					],
+					"effects": {
+						"trade": 0.006,
+						"diplomacy": 0.2
+					},
+					"ai": 0.8
+				}
+			]
 		}
 	}
 }

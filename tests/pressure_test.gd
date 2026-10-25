@@ -29,6 +29,7 @@ func _initialize() -> void:
 	A = load("res://scripts/ai/ai.gd")
 	D = load("res://scripts/sim/diplomacy.gd")
 	AnswerEventC = load("res://scripts/sim/answer_event.gd")
+	_test_event_data()
 	_test_tension()
 	_test_player_event()
 	_test_ai_event()
@@ -69,6 +70,31 @@ func _test_tension() -> void:
 	gs.tension_impulse = 40.0
 	P.step_month(gs)
 	_check(gs.tension_bonus > 0.0 and A.temperament(gs, "ESP").aggression > A.cfg.temperament.default.aggression and P.ai_may_declare(gs), "high tension makes the AI bolder and lets it declare wars")
+
+
+## Every event in the data names real nations, has a valid AI answer and a window of dates (or repeats), and uses only
+## known effects.
+func _test_event_data() -> void:
+	var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/events.json"))
+	var known := ["tension", "relation", "treasury", "prestige", "war_support", "points", "manpower", "mobilize", "grievance", "treaty", "end_treaty", "war"]
+	var ids := {}
+	var bad := 0
+	for e: Dictionary in cfg.events:
+		var ai: Variant = e.get("ai_option", 0)
+		var ai_ok: bool = ai is Dictionary or int(ai) < e.options.size()
+		var ok: bool = not ids.has(e.id) and not e.options.is_empty() and ai_ok and (e.has("until") or e.has("repeat_months"))
+		ids[e.id] = true
+		for actor: String in e.actors.values():
+			ok = ok and (actor == "$player" or gs.nations.has(actor))
+		for list_name in ["options", "b_options"]:
+			for o: Dictionary in e.get(list_name, []):
+				for fx: Dictionary in o.effects:
+					for k: String in fx:
+						ok = ok and known.has(k)
+		if not ok:
+			bad += 1
+			printerr("bad event: ", e.id)
+	_check(cfg.events.size() >= 60 and bad == 0, "all %d events are well formed" % cfg.events.size())
 
 
 func _test_player_event() -> void:
