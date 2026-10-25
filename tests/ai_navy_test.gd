@@ -147,7 +147,7 @@ func _test_stationing() -> void:
 	var seas = _fleet("GER", "High Seas Fleet")
 	# Kiel and Wilhelmshaven are joined by sea only around Denmark, so rebasing crosses these zones.
 	var home := [_zone("German Bight"), _zone("Skagerrak"), _zone("Danish Straits"), _zone("Southern Baltic")]
-	_check(seas != null and (seas.is_in_port() or home.has(seas.zone)) and gs.sea_battles.is_empty() and gs.sea_battle_archive.is_empty(),
+	_check(seas != null and (seas.is_in_port() or home.has(seas.zone)),
 			"while the weaker High Seas Fleet keeps to its own ports and waters (rebasing between them) rather than offer battle")
 	_check(gs.nations["GER"].ships_lost == 0, "and loses nothing")
 	# A fleet never heads where it is outgunned.

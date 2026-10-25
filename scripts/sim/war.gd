@@ -20,6 +20,8 @@ var peace: Dictionary = {}
 var casus_belli := ""
 var war_group := 0
 var start_day := 0
+## The day of the last battle between the two sides (-1: none yet): a war nobody fights goes stale (see AIPeace).
+var last_fight_day := -1
 var start_date := ""
 var end_day := -1
 var end_date := ""

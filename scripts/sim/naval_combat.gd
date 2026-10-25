@@ -102,6 +102,11 @@ static func _fight(gs: Node) -> void:
 			var report := _damage(gs, a, incoming[a], enemies, battle)
 			today[a.tag] = today.get(a.tag, 0.0) + report
 		battle.timeline.append({"day": battle.days, "lost": today})
+		for a: Fleet in foes:
+			for b: Fleet in foes[a]:
+				var war: War = gs.war_between(a.tag, b.tag)
+				if war != null:
+					war.last_fight_day = Clock.days_elapsed
 		gs.sea_battle_fought.emit(zone, foes.keys().map(func(f: Fleet) -> String: return f.tag))
 		for a: Fleet in foes:
 			if not a.ships.is_empty() and a.morale() < Navy.cfg.combat.rout_morale and not a.retreating:

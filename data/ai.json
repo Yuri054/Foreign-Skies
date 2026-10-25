@@ -200,13 +200,15 @@
 		}
 	},
 	"peace": {
-		"_note": "AIPeace. urge = -score * k_score + k_support * (support_ref - war support, if positive) + k_debt * months of revenue owed (at most debt_cap_months) + k_days_per_month * months at war + capital_lost if the enemy holds the capital - k_ally * allies still fighting (less by ally_boldness_discount for the bold). A nation made to give accepts terms costing no more than its urge, if its score is at most -loss_floor or its urge is at least seek_threshold; a white peace is taken while urge is at least -white_tolerance; offered terms are taken if they cost at least accept_share of the taker's score. Past seek_threshold a nation proposes peace; with score at least demand_score and war aims met by aims_enough it names its price: up to demand_budget_share of its score in provinces (aims first), then an indemnity of at most indemnity_max_share over indemnity_months. afford_share: the most of its monthly revenue a nation will commit to indemnities.",
+		"_note": "AIPeace. urge = -score * k_score + k_support * (support_ref - war support, if positive) + k_debt * months of revenue owed (at most debt_cap_months) + k_days_per_month * months at war + k_quiet * months without a battle beyond quiet_grace_months + capital_lost if the enemy holds the capital - k_ally * allies still fighting (less by ally_boldness_discount for the bold). A nation made to give accepts terms costing no more than its urge, if its score is at most -loss_floor or its urge is at least seek_threshold; a white peace is taken while urge is at least -white_tolerance; offered terms are taken if they cost at least accept_share of the taker's score. Past seek_threshold a nation proposes peace; with score at least demand_score and war aims met by aims_enough it names its price: up to demand_budget_share of its score in provinces (aims first), then an indemnity of at most indemnity_max_share over indemnity_months. afford_share: the most of its monthly revenue a nation will commit to indemnities.",
 		"k_score": 1.0,
 		"k_support": 2.0,
 		"support_ref": 50,
 		"k_debt": 5.0,
 		"debt_cap_months": 6,
 		"k_days_per_month": 1.0,
+		"k_quiet": 6.0,
+		"quiet_grace_months": 5,
 		"capital_lost": 40,
 		"k_ally": 15,
 		"ally_boldness_discount": 0.5,

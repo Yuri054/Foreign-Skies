@@ -29,7 +29,7 @@ static func step(gs: Node, tag: String) -> void:
 			return
 		_run(gs, tag, c)
 		return
-	if Clock.days_elapsed < gs.ai_landing_wait.get(tag, 0) or gs.ai_campaign.has(tag) or AI.enemies(gs, tag).is_empty():
+	if Clock.days_elapsed < gs.ai_landing_wait.get(tag, 0) or AI.enemies(gs, tag).is_empty():
 		return
 	c = _start(gs, tag)
 	if c == null:
@@ -209,5 +209,10 @@ static func _run(gs: Node, tag: String, c: Dictionary) -> void:
 			var aboard: bool = false
 			for id in c.armies:
 				aboard = aboard or gs.armies[id].embarked()
-			if not aboard or age > int(cfg().sail_days):
+			if aboard and f.is_in_port() and not f.is_moving():
+				# Turned back by an enemy fleet and put into a port: the landing is off; the men go ashore there.
+				for id in c.armies:
+					gs.issue_quiet(DisembarkArmy.new(tag, id, f.port))
+				_end(gs, tag)
+			elif not aboard or age > int(cfg().sail_days):
 				_end(gs, tag)

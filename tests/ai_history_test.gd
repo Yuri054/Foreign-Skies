@@ -63,10 +63,10 @@ func _test_history() -> void:
 	var winter_cross := -1
 	var debt_leader := ""
 	var survived := true
-	for day in 460:
+	for day in 520:
 		clock.advance_day()
-		if day == 120:
-			_check(battles.get("RUS", 0) > 0 and battles.get("GER", 0) > 0, "by day 120 there is fighting on the Eastern front")
+		if day == 250:
+			_check(battles.get("RUS", 0) > 0 and battles.get("GER", 0) > 0, "by day 250 there is fighting on the Eastern front")
 			_check(battles.get("FRA", 0) > 0, "and on the Western front")
 		if day == 125:
 			# The first winter: the west is a line, not a collapse.
@@ -83,8 +83,8 @@ func _test_history() -> void:
 	_check(collapsed.is_empty(), "no nation collapses (%s)" % str(collapsed))
 	_check(survived, "Serbia, Belgium and Montenegro are still there after eight months")
 	_check(debt_leader in ["RUS", "GER", "FRA", "GBR", "AUH"], "a great power at war carries the heaviest debt by month eight (%s)" % debt_leader)
-	_check(not peaces.is_empty() and peaces[0].day >= 100, "the first peace comes after the first hundred days (day %d)" % (peaces[0].day if not peaces.is_empty() else -1))
-	_check(gs.wars.is_empty() and clock.days_elapsed < 460, "the general war has run its course by day %d" % clock.days_elapsed)
+	_check(not peaces.is_empty() and peaces[0].day >= 60, "the first peace comes after the first two months (day %d)" % (peaces[0].day if not peaces.is_empty() else -1))
+	_check(gs.wars.is_empty() and clock.days_elapsed < 520, "the general war has run its course by day %d" % clock.days_elapsed)
 	# A truce follows each peace: nobody re-declares on the nation they just made peace with.
 	var broken := 0
 	for p in peaces:

@@ -81,6 +81,7 @@ static func war_score(gs: Node, war: War, tag: String) -> float:
 ## Credits the winner of a finished battle. Called by Military when a battle is written into
 ## a war's record; the points scale with what the loser lost, and with how lopsided it was.
 static func record_battle(war: War, record: Dictionary) -> void:
+	war.last_fight_day = Clock.days_elapsed
 	var winner: String = record.winner
 	if winner.is_empty():
 		return

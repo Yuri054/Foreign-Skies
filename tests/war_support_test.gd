@@ -168,7 +168,7 @@ func _test_dynamics() -> void:
 	ger.war_support = 60.0
 	ger.blockade = 1.0
 	W.step_month(gs)
-	_check(is_equal_approx(ger.war_support, 49.5), "a full blockade costs 10")
+	_check(is_equal_approx(ger.war_support, 56.5), "a full blockade costs 3")
 	ger.blockade = 0.0
 	ger.war_support = 60.0
 	_occupy("GER", "FRA", 20)

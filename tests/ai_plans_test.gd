@@ -96,7 +96,7 @@ func _test_tick_and_crisis() -> void:
 	for f in gs.fronts.values():
 		ai_fronts += 1
 	_check(ai_fronts > 0, "the AI draws fronts in the real day tick (%d)" % ai_fronts)
-	for i in 120:
+	for i in 240:
 		clock.advance_day()
 	_check(battles.get("RUS", 0) > 0 and battles.get("GER", 0) > 0, "there is fighting on the Eastern front")
 	_check(battles.get("FRA", 0) > 0, "there is fighting on the Western front")

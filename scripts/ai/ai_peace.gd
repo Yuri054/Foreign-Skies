@@ -60,6 +60,11 @@ static func urge(gs: Node, tag: String, war: War) -> float:
 	var monthly_revenue := maxf(float(n.budget.get("revenue", 0.0)), 1.0) / 12.0
 	u += float(c.k_debt) * minf(float(c.debt_cap_months), maxf(0.0, -n.treasury) / monthly_revenue)
 	u += float(c.k_days_per_month) * war.days_lasted(Clock.days_elapsed) / 30.0
+	# A war nobody fights (the two cannot reach each other, or sit behind others) wears on both with no end in sight.
+	var quiet_months := float(Clock.days_elapsed - maxi(war.last_fight_day, war.start_day)) / 30.0
+	if n.blockade > 0.05 or gs.nations[enemy].blockade > 0.05:
+		quiet_months = 0.0   # a blockade is fighting too
+	u += float(c.k_quiet) * maxf(0.0, quiet_months - float(c.quiet_grace_months))
 	if Peace.capital_taken_by(gs, tag) == enemy:
 		u += float(c.capital_lost)
 	var t: Dictionary = AI.base_temperament(gs, tag)
