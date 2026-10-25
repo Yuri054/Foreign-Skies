@@ -194,7 +194,7 @@
 		"support_ref": 50,
 		"k_debt": 5.0,
 		"debt_cap_months": 6,
-		"k_days_per_month": 2.0,
+		"k_days_per_month": 1.0,
 		"capital_lost": 40,
 		"k_ally": 15,
 		"ally_boldness_discount": 0.5,
