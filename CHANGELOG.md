@@ -6,6 +6,13 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.5.2
+
+- Peace conferences: when allies are at war with the same enemy, the peace screen lists them with what each would ask
+  (for its own goal, within its own war score) and offers a joint peace. The enemy takes or refuses the whole package; a
+  refusal may come back as a smaller counter-offer you can accept. The partner with the highest war score chairs and gains
+  standing, and nobody at the table is held to have deserted the others.
+
 ## 0.5.1
 
 - The history book (the History tab, key H): a year-by-year timeline with a headline for each month, the wars with their

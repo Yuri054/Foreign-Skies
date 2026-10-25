@@ -203,6 +203,8 @@ var standings_history: Array[Dictionary] = []
 var relation_projects: Array[Dictionary] = []
 ## Money each nation has recently gifted another, "from>to": {amount}; fades monthly (see Diplomacy.gift_effect).
 var gift_memory: Dictionary = {}
+## A counter-offer from a conference waiting for the player (see Conference): {from, enemy, entries, day}, or {}.
+var conference_counter: Dictionary = {}
 ## The history of the run (see History): what happened, every change of owner, and a row of figures a month.
 var history_log: Array[Dictionary] = []
 var territory_log: Array[Dictionary] = []
@@ -431,6 +433,7 @@ func load_scenario(dir: String) -> void:
 	Pressure.load_scenario(self)
 	Crisis.load_scenario(self)
 	History.load_scenario(self)
+	conference_counter = {}
 	economy_dirty = false
 	budget_dirty = false
 	standings_history.clear()

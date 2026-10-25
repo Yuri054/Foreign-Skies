@@ -32,6 +32,11 @@ var _years := HSlider.new()
 var _years_label := Label.new()
 var _cost_bar := ProgressBar.new()
 var _cost_label := Label.new()
+var _conf_box := VBoxContainer.new()
+var _conf_checks: Dictionary = {}
+var _conf_button := Button.new()
+var _counter_box := VBoxContainer.new()
+var _counter_text := Label.new()
 var _result := Label.new()
 var _propose := Button.new()
 var _close := Button.new()
@@ -173,6 +178,22 @@ func _ready() -> void:
 	_compose.add_child(_cost_bar)
 	_cost_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_compose.add_child(_cost_label)
+	_conf_box.add_theme_constant_override("separation", 3)
+	_compose.add_child(_conf_box)
+	_counter_box.add_theme_constant_override("separation", 3)
+	_counter_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_counter_text.custom_minimum_size = Vector2(440, 0)
+	_counter_box.add_child(_counter_text)
+	var counter_row := HBoxContainer.new()
+	for item: Array in [["Accept the counter-offer", true], ["Refuse it", false]]:
+		var b := Button.new()
+		b.text = item[0]
+		b.focus_mode = Control.FOCUS_NONE
+		var yes: bool = item[1]
+		b.pressed.connect(func() -> void: _answer_counter(yes))
+		counter_row.add_child(b)
+	_counter_box.add_child(counter_row)
+	_compose.add_child(_counter_box)
 
 	_result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_result)
@@ -358,6 +379,7 @@ func _rebuild_terms() -> void:
 	_release_picker.disabled = partners.is_empty()
 	_updating = false
 	_refresh_cost()
+	_refresh_conference()
 
 
 func _select_goal() -> void:
@@ -426,6 +448,79 @@ func _refresh_cost() -> void:
 		_cost_label.modulate = Fmt.WARN
 	else:
 		_cost_label.modulate = Color.WHITE
+
+
+## The allies on the player's side at war with the same enemy, each with what it would ask: a joint peace offers them all
+## to the enemy together, taken or refused whole; a refusal may bring a smaller package back.
+func _refresh_conference() -> void:
+	for c in _conf_box.get_children():
+		_conf_box.remove_child(c)
+		c.queue_free()
+	_conf_checks.clear()
+	var partners := Conference.partners(GameState, _me(), _enemy()) if _war != null and _proposal_mode() == "demand" and not _incoming else []
+	_conf_box.visible = not partners.is_empty()
+	if not partners.is_empty():
+		var head := Label.new()
+		head.text = "A joint peace: your allies fighting %s at the table" % GameState.nations[_enemy()].display_name
+		head.modulate = Fmt.DIM
+		head.tooltip_text = "Each ally asks what its own goal and war score pay for. %s takes or refuses the whole package; if it refuses it may offer less." % GameState.nations[_enemy()].display_name
+		head.mouse_filter = Control.MOUSE_FILTER_PASS
+		_conf_box.add_child(head)
+		for p in partners:
+			var terms := Conference.partner_terms(GameState, p, _enemy())
+			var text := "; ".join(terms.map(func(d: Dictionary) -> String: return Peace.describe_demand(GameState, d))) if not terms.is_empty() else "a white peace"
+			var check := CheckBox.new()
+			check.text = "%s asks for %s" % [GameState.nations[p].display_name, text]
+			check.button_pressed = true
+			check.focus_mode = Control.FOCUS_NONE
+			var war: War = GameState.war_between(p, _enemy())
+			check.tooltip_text = "War score %+.1f against %s.%s" % [Peace.war_score(GameState, war, p), GameState.nations[_enemy()].display_name, (" " + WarGoal.line(GameState, war)) if war != null and WarGoal.line(GameState, war) != "" else ""]
+			_conf_checks[p] = check
+			_conf_box.add_child(check)
+		_conf_button.text = "Propose a joint peace"
+		_conf_button.focus_mode = Control.FOCUS_NONE
+		_conf_button.tooltip_text = "Offer your terms and your allies' together."
+		if not _conf_button.pressed.is_connected(_on_joint):
+			_conf_button.pressed.connect(_on_joint)
+		_conf_box.add_child(_conf_button)
+	var counter: Dictionary = GameState.conference_counter
+	_counter_box.visible = not counter.is_empty() and counter.from == _me() and counter.enemy == _enemy()
+	if _counter_box.visible:
+		var lines: PackedStringArray = []
+		for e: Dictionary in counter.entries:
+			lines.append("%s: %s" % [GameState.nations[e.tag].display_name, "; ".join(e.demands.map(func(d: Dictionary) -> String: return Peace.describe_demand(GameState, d))) if not e.demands.is_empty() else "a white peace"])
+		_counter_text.text = "%s will not take that, but offers peace on these terms:\n%s" % [GameState.nations[counter.enemy].display_name, "\n".join(lines)]
+
+
+func _on_joint() -> void:
+	var included: Array = []
+	for p: String in _conf_checks:
+		if _conf_checks[p].button_pressed:
+			included.append(p)
+	var cmd := ProposeConference.new(_me(), _enemy(), _build_demands(), included)
+	if not GameState.issue(cmd):
+		_result.text = "That joint proposal is not possible: one of the terms cannot be made."
+		_result.modulate = Fmt.BAD
+		return
+	var enemy_name: String = GameState.nations[_enemy()].display_name
+	if cmd.result.accepted == true:
+		_result.text = "%s accepts. The war is over for the nations at the table." % enemy_name
+		_result.modulate = Fmt.GOOD
+		visible = false
+	else:
+		_result.text = "%s refuses the joint peace." % enemy_name
+		_result.modulate = Fmt.BAD
+		_refresh_conference()
+
+
+func _answer_counter(accept: bool) -> void:
+	GameState.issue(AnswerConference.new(accept))
+	_result.text = "The counter-offer is accepted: peace is made." if accept else "You refuse the counter-offer."
+	_result.modulate = Fmt.GOOD if accept else Fmt.DIM
+	if accept:
+		visible = false
+	else:
+		_refresh_conference()
 
 
 func _on_propose() -> void:
