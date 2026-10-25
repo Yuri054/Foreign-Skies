@@ -145,7 +145,10 @@ func _test_stationing() -> void:
 	var ger = gs.nations["GER"]
 	_check(ger.blockade > 0.0, "Germany comes under blockade (%.2f)" % ger.blockade)
 	var seas = _fleet("GER", "High Seas Fleet")
-	_check(seas != null and seas.is_in_port(), "while the weaker High Seas Fleet stays in port rather than offer battle")
+	# Kiel and Wilhelmshaven are joined by sea only around Denmark, so rebasing crosses these zones.
+	var home := [_zone("German Bight"), _zone("Skagerrak"), _zone("Danish Straits"), _zone("Southern Baltic")]
+	_check(seas != null and (seas.is_in_port() or home.has(seas.zone)) and gs.sea_battles.is_empty() and gs.sea_battle_archive.is_empty(),
+			"while the weaker High Seas Fleet keeps to its own ports and waters (rebasing between them) rather than offer battle")
 	_check(gs.nations["GER"].ships_lost == 0, "and loses nothing")
 	# A fleet never heads where it is outgunned.
 	var odds: float = load("res://scripts/ai/ai.gd").required_odds(gs, "GER")
