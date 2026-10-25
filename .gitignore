@@ -3,7 +3,7 @@
 *.translation
 
 # Exports and editor leftovers
-export_presets.cfg
+build/
 export/
 .mono/
 tools/ai_training/jobs/

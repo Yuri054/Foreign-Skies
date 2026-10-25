@@ -76,6 +76,14 @@ func _ready() -> void:
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_scenarios = Scenarios.list()
 	add_child(_settings)
+	var version := Label.new()
+	version.text = "v%s" % ProjectSettings.get_setting("application/config/version", "")
+	version.modulate = Color(1, 1, 1, 0.5)
+	version.tooltip_text = "The version of the game (see CHANGELOG.md)."
+	version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	version.offset_left = 16.0
+	version.offset_top = -34.0
+	add_child(version)
 	show_page("main")
 
 

@@ -1,0 +1,72 @@
+name: build
+
+# Builds the Windows game on every push to main and keeps it as a downloadable artifact.
+# When the version in project.godot (application/config/version) is new, it also publishes
+# a GitHub Release named v<version> with the zip attached.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the version
+        id: version
+        run: |
+          version=$(grep -oP '^config/version="\K[^"]+' project.godot)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Install Godot
+        run: |
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+      - name: Cache the export templates
+        id: templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-templates-${{ env.GODOT_VERSION }}
+      - name: Install the export templates
+        if: steps.templates.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL -o templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q templates.tpz -d templates
+          mv templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+      - name: Import the project
+        run: godot --headless --path . --import || true
+      - name: Export for Windows
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-release "Windows Desktop" build/ForeignSkies.exe
+          ls -la build
+      - name: Zip it
+        run: |
+          cd build
+          zip -q "../ForeignSkies-v${{ steps.version.outputs.version }}-windows.zip" ForeignSkies.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ForeignSkies-v${{ steps.version.outputs.version }}-windows
+          path: ForeignSkies-v${{ steps.version.outputs.version }}-windows.zip
+      - name: Publish a release for a new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "Release $tag exists; the artifact is the build for this commit."
+          else
+            gh release create "$tag" "ForeignSkies-${tag}-windows.zip" --title "Foreign Skies $tag" --target "$GITHUB_SHA" \
+              --notes "Windows build of $tag. See CHANGELOG.md for what changed."
+          fi
