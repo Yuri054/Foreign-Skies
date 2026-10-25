@@ -1,5 +1,5 @@
 extends SceneTree
-## Saves pictures of the audio controls: the main menu's Sound and music page, the settings window and the pause menu.
+## Saves pictures of the audio controls: the main menu's settings window, the settings window and the pause menu.
 ##   godot --path . --resolution 1280x720 --rendering-driver opengl3 -s res://tools/screenshot_audio.gd -- out_dir
 func _initialize() -> void:
 	await process_frame
@@ -10,7 +10,7 @@ func _initialize() -> void:
 	load("res://scripts/ui/ui_settings.gd").apply_saved(root)
 	for i in 6:
 		await process_frame
-	menu.show_page("sound")
+	menu._toggle_settings()
 	for i in 10:
 		await process_frame
 	root.get_texture().get_image().save_png("%s/audio_menu.png" % dir)
