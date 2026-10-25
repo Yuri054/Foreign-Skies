@@ -1139,6 +1139,7 @@ static func _battle_event(gs: Node, province: int, text: String) -> void:
 static func _finish_engagement(gs: Node, id: int) -> void:
 	var battle: Dictionary = gs.engagements[id]
 	gs.engagements.erase(id)
+	gs.last_battle_day[id] = Clock.days_elapsed
 	var present := {}
 	var here_comp := {}
 	for a in armies_at(gs, id):
@@ -1290,7 +1291,10 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 			progress = {"tag": occupier, "days": 0}
 		progress.days += 1
 		gs.occupation[id] = progress
-		if progress.days >= terrain_of(id).occupy_days:
+		# An army that walks into a province nobody defends takes it the same day; where a battle was just fought it
+		# takes the terrain's time to hold it (the mopping up).
+		var mopping: bool = Clock.days_elapsed - int(gs.last_battle_day.get(id, -1000)) <= int(cfg.occupation.mop_up_days)
+		if progress.days >= (terrain_of(id).occupy_days if mopping else 1):
 			gs.occupation.erase(id)
 			gs.set_controller(id, occupier)
 			captured = true

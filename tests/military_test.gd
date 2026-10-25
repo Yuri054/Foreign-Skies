@@ -235,7 +235,7 @@ func _test_occupation(pair: Array) -> void:
 	while gs.province_controller[pair[1]] != "FRA" and days < 60:
 		_step(1)
 		days += 1
-	_check(gs.province_controller[pair[1]] == "FRA", "France takes control after a siege (%d days in all)" % days)
+	_check(gs.province_controller[pair[1]] == "FRA", "France takes control of the undefended province as its army arrives (%d days of march)" % days)
 	_check(gs.province_owner[pair[1]] == "GER", "ownership does not change")
 	_check(ger.budget.gdp < gdp_before, "Germany loses the province's output")
 	_check(fra.budget.gdp > fra_gdp, "France collects a share")
@@ -255,6 +255,20 @@ func _test_occupation(pair: Array) -> void:
 	raider.attacking = true
 	_step(3)
 	_check(gs.occupation.is_empty(), "no occupation while a battle is on")
+	# An undefended province falls the day an army stands in it; one that has just been fought over takes longer.
+	_fresh()
+	gs.set_war("FRA", "GER", true)
+	_army("FRA", pair[1], 2)
+	_step(1)
+	_check(gs.province_controller[pair[1]] == "FRA", "an army in an undefended enemy province takes it at once")
+	_fresh()
+	gs.set_war("FRA", "GER", true)
+	gs.last_battle_day[pair[1]] = root.get_node("Clock").days_elapsed
+	_army("FRA", pair[1], 2)
+	_step(1)
+	_check(gs.province_controller[pair[1]] == "GER", "ground just fought over is not held the first day")
+	_step(Mil.terrain_of(pair[1]).occupy_days)
+	_check(gs.province_controller[pair[1]] == "FRA", "but is after the mopping up")
 
 
 func _test_supply() -> void:
@@ -568,6 +582,7 @@ func _test_collapse_and_cut_off(pair: Array) -> void:
 	for id in range(1, gs.province_owner.size()):
 		if gs.province_owner[id] == "GER":
 			gs.set_controller(id, "FRA")
+			gs.last_battle_day[id] = root.get_node("Clock").days_elapsed   # (fought over: retaking takes a while)
 	_step(1)
 	_check(Mil.armies_of(gs, "GER").is_empty(), "a fully occupied nation's armies disband")
 	_check(collapsed.size() == 1 and collapsed[0][0] == "GER" and absf(collapsed[0][1] - men) < men * 0.02, "the collapse is announced with the men lost")

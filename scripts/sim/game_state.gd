@@ -131,6 +131,8 @@ var war_history: Array[War] = []
 var next_war_id := 1
 ## Province id -> the battle being fought there (Military keeps it to write the war record).
 var engagements: Dictionary = {}
+## Province id -> the day a battle there last ended (an undefended province falls at once; one just fought over takes longer).
+var last_battle_day: Dictionary = {}
 ## Finished battles in full (id -> battle dictionary, see Military._engagement); the oldest
 ## are dropped past MAX_ARCHIVED_BATTLES.
 var battle_archive: Dictionary = {}
@@ -346,6 +348,7 @@ func load_scenario(dir: String) -> void:
 	next_war_id = 1
 	next_war_group = 1
 	engagements.clear()
+	last_battle_day.clear()
 	battle_archive.clear()
 	sea_battles.clear()
 	sea_battle_archive.clear()

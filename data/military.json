@@ -158,6 +158,7 @@
 		"supply_days": 20
 	},
 	"occupation": {
+		"mop_up_days": 5,
 		"income_share": 0.25
 	},
 	"army_group": {
