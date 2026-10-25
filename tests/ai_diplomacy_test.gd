@@ -132,6 +132,8 @@ func _ready_to_strike(aggression := 0.5) -> void:
 	_army("BEL", gs.nations["BEL"].provinces[0], 3)
 	gs.ai_declarations = {"total": 6, "unjustified": 0}
 	gs.ai_traits["GER"] = {"aggression": aggression, "caution": 0.5}
+	# The plan is given here (the AI makes its own as it picks targets; no scenario scripts one).
+	gs.ai_plans.append({"nation": "GER", "enemy": "BEL", "posture": "offensive", "objectives": [{"province": gs.nations["BEL"].capital, "weight": 1.0}]})
 
 
 func _test_unjustified_conditions() -> void:

@@ -284,5 +284,6 @@ func _test_supply() -> void:
 	_check(b.supplied and b.men() == men, "yet its own stores keep it fed at first")
 	b.landed_supply = 0
 	b.units[0].strength = 1.0
+	gs.set_controller(CALVADOS, "FRA")   # (an empty coast falls to the landing at once: give it back)
 	Mil.step_day(gs)
 	_check(not b.supplied and b.men() < men, "and then it wastes away")

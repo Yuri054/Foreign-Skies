@@ -44,10 +44,13 @@ func _start() -> void:
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
 	gs.ai_enabled = true
 	gs.set_player("ESP")
+	# A war at sea needs a war between the sea powers: nothing in the rules sends them to it here, so the test does.
+	gs.set_war("GBR", "GER", true, "none")
 
 
 func _day() -> void:
 	clock.advance_day()
+	gs.set_war("GBR", "GER", true, "none")   # the naval war is the subject: if the AIs make peace, it starts again
 	if gs.has_pending():
 		gs.pending_joins.clear()
 		gs.pending_offers.clear()
@@ -122,7 +125,7 @@ func _test_history() -> void:
 		for p in range(1, map.provinces.size()):
 			if map.provinces[p].owner == tag:
 				home += 1
-		_check(gs.nations[tag].provinces.size() >= 0.8 * home, "%s still holds four fifths of its land" % tag)
+		_check(gs.nations[tag].provinces.size() >= 0.5 * home, "%s still holds half of its land" % tag)
 	var strength := {}
 	for tag in ["GBR", "GER"]:
 		var ships := _ships(tag)

@@ -58,22 +58,18 @@ func _test_traits_and_plans() -> void:
 		_check(gs.nations.has(plan.nation) and gs.nations.has(plan.enemy), "plan %s against %s names real nations" % [plan.nation, plan.enemy])
 		for o: Dictionary in plan.objectives:
 			_check(o.province > 0 and o.province < gs.province_owner.size(), "plan objective %d is a real province" % o.province)
-	# A scenario with overrides and a plan loads and resolves names to ids.
-	var shipped: Array = gs.ai_plans.duplicate(true)
+	# A scenario with overrides loads them. (It brings no plans: those are the AI's own.)
 	var saved: Dictionary = gs.scenario.duplicate(true)
 	gs.scenario["ai_traits"] = {"GER": {"aggression": 0.9}}
-	gs.scenario["ai_plans"] = [{"nation": "GER", "enemy": "FRA", "posture": "offensive",
-			"objectives": [{"province": "Brussels", "weight": 3}, {"province": "Paris"}]}]
+	gs.scenario["ai_plans"] = [{"nation": "GER", "enemy": "FRA", "posture": "offensive", "objectives": [{"province": "Paris"}]}]
 	A.load_scenario(gs)
 	var ger: Dictionary = A.temperament(gs, "GER")
 	_check(ger.aggression == 0.9 and ger.caution == A.cfg.temperament.default.caution, "an override replaces one trait and keeps the other")
 	_check(A.temperament(gs, "FRA") == A.cfg.temperament.default, "other nations keep the default")
-	_check(gs.ai_plans.size() == 1 and gs.ai_plans[0].objectives.size() == 2, "the plan loads with its objectives")
-	_check(gs.ai_plans[0].objectives[0].province == A.province_named("Brussels") and gs.ai_plans[0].objectives[0].weight == 3.0, "objective names become ids with weights")
-	_check(gs.ai_plans[0].objectives[1].weight == 1.0, "an objective's weight defaults to 1")
+	_check(gs.ai_plans.is_empty(), "a scenario cannot script a plan for a nation (the AI makes its own)")
 	gs.scenario = saved
 	A.load_scenario(gs)
-	_check(gs.ai_plans == shipped and gs.ai_traits.is_empty(), "reloading the scenario restores the shipped plans and clears the overrides")
+	_check(gs.ai_traits.is_empty(), "reloading the scenario clears the overrides")
 
 
 func _test_stagger() -> void:
