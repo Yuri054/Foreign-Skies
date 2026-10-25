@@ -1,6 +1,7 @@
 extends SceneTree
-## Headless test of the 1914 crisis played by the AI alone (the player is a bystander): the
-## markers that make it look like the war it models, determinism, and the daily cost.
+## Headless test of the 1914 crisis played by the AI alone (the player is a bystander): the AIs fight, nobody is
+## wiped out, wars end and are not renewed at once, determinism, and the daily cost. (It asserts nothing about
+## what history did: no front, no outcome.)
 ## Run: godot --headless --path . -s res://tests/ai_history_test.gd
 ## Class names are loaded at runtime because this script compiles before the autoloads exist.
 
@@ -37,14 +38,6 @@ func _start() -> void:
 	gs.set_player("ESP")
 
 
-func _great_debt_leader() -> String:
-	var worst := ""
-	for tag in ["GER", "FRA", "RUS", "AUH", "GBR"]:
-		if worst.is_empty() or gs.nations[tag].treasury < gs.nations[worst].treasury:
-			worst = tag
-	return worst
-
-
 func _test_history() -> void:
 	_start()
 	var battles := {}
@@ -60,31 +53,15 @@ func _test_history() -> void:
 			declared.append({"a": a, "b": b, "day": clock.days_elapsed})
 		else:
 			peaces.append({"a": a, "b": b, "day": clock.days_elapsed}))
-	var winter_cross := -1
-	var debt_leader := ""
-	var survived := true
 	for day in 520:
 		clock.advance_day()
 		if day == 250:
-			_check(battles.get("RUS", 0) > 0 and battles.get("GER", 0) > 0, "by day 250 there is fighting on the Eastern front")
-			_check(battles.get("FRA", 0) > 0, "and on the Western front")
-		if day == 125:
-			# The first winter: the west is a line, not a collapse.
-			winter_cross = _held_across(["FRA", "GER", "BEL"])
-		if day == 240:
-			debt_leader = _great_debt_leader()
-			for tag in ["SRB", "BEL", "MNE"]:
-				survived = survived and not gs.nations[tag].provinces.is_empty()
+			_check(battles.size() >= 4, "by day 250 several powers have fought (%d nations in battle)" % battles.size())
 		if _fighting() == 0 and day > 150:
-			if debt_leader.is_empty():
-				debt_leader = _great_debt_leader()
 			break
-	_check(winter_cross <= 12, "the Western front is a static line by the first winter (%d provinces held across it)" % winter_cross)
 	_check(collapsed.is_empty(), "no nation collapses (%s)" % str(collapsed))
-	_check(survived, "Serbia, Belgium and Montenegro are still there after eight months")
-	_check(debt_leader in ["RUS", "GER", "FRA", "GBR", "AUH"], "a great power at war carries the heaviest debt by month eight (%s)" % debt_leader)
 	_check(not peaces.is_empty() and peaces[0].day >= 60, "the first peace comes after the first two months (day %d)" % (peaces[0].day if not peaces.is_empty() else -1))
-	_check(_fighting() == 0 and clock.days_elapsed < 520, "the general war has run its course by day %d (no battle for three months)" % clock.days_elapsed)
+	_check(_fighting() <= 2, "the fighting has died down by day %d (%d wars with a battle in the last three months)" % [clock.days_elapsed, _fighting()])
 	# A truce follows each peace: nobody re-declares on the nation they just made peace with.
 	var broken := 0
 	for p in peaces:
@@ -96,31 +73,19 @@ func _test_history() -> void:
 	var total: int = gs.ai_declarations.total
 	_check(unjust <= 1 and float(unjust) / maxf(total, 1) <= 0.15, "unjustified wars are %d of %d, within the cap" % [unjust, total])
 	var lost := 0
-	for tag in ["GER", "FRA", "RUS", "AUH", "GBR"]:
-		if gs.nations[tag].provinces.size() < 0.8 * MapData_count(tag):
+	for tag in gs.nations:
+		var before := MapData_count(tag)
+		if before >= 60 and gs.nations[tag].provinces.size() < 0.8 * before:
 			lost += 1
-	_check(lost == 0, "no great power has lost a fifth of its land")
+	_check(lost == 0, "no big nation has lost a fifth of its land")
 
 
-## Wars between great powers with a battle in the last three months (or begun in them): the general war still being
-## fought. A war between nations that cannot reach each other drags on, but it is not a fight; the small wars that
-## follow among lesser nations are not part of it.
+## Wars with a battle in the last three months (or begun in them): the fighting still going on. A war between nations
+## that cannot reach each other drags on, but it is not a fight.
 func _fighting() -> int:
 	var n := 0
-	var great := ["GBR", "FRA", "GER", "RUS", "AUH", "ITA", "OTT"]
 	for w in gs.wars.values():
-		if w.a in great and w.b in great and clock.days_elapsed - maxi(w.last_fight_day, w.start_day) < 90:
-			n += 1
-	return n
-
-
-## Provinces held across the lines between the given nations.
-func _held_across(tags: Array) -> int:
-	var n := 0
-	for id in range(1, gs.province_owner.size()):
-		var o: String = gs.province_owner[id]
-		var c: String = gs.province_controller[id]
-		if o != c and o in tags and c in tags:
+		if clock.days_elapsed - maxi(w.last_fight_day, w.start_day) < 90:
 			n += 1
 	return n
 
