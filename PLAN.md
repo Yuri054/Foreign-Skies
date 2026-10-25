@@ -37,19 +37,20 @@ Cut: the home front (food, unrest, revolution), localization, modding and the ar
 
 ## Steps in detail
 
-### 1. War length and peace
-- Measure: `tools/war_length.gd` on July 1914 over several seeds, before and after.
-- Decide with the user: years-long great war (historical) or months. If months: add to the fitness a penalty on the
-  war's length (or a war-weariness rule that raises peace urge with time), then retrain from the current state.
-- Test: `ai_history_test` bounds on peaces and fighting at day 520, kept meaningful.
+### 1. War length and peace (decided: the great war lasts years)
+- No retraining. Check with `tools/war_length.gd` over several seeds that the July 1914 war still ends within about
+  five years and no nation is left fighting for ever; if a seed runs away, add a small war-weariness rule rather than
+  a fitness term.
+- Keep `ai_history_test` bounds meaningful (peaces are made all along).
 
 ### 2. War goals and justification
 Today: "justify" costs 25 points and 90 days and yields a generic `fabricated_claim`; casus belli otherwise come
 only from scenario claims; the peace screen allows any demand the war score pays for, whatever was justified.
 
-- **A goal when you justify.** Goals: claim named provinces (a region, a city and its hinterland), force a concession
-  (indemnity, disarmament, ending a treaty), liberate or back a nationality (Austria-Hungary, the Ottoman Empire,
-  Russia carry these in data), enforce a guarantee, free an ally. Each has its own cost, time and grievance in
+- **A goal when you justify.** Goals, built in this order: (a) claim named provinces (a region, a city and its
+  hinterland), (b) force a concession (indemnity, disarmament, ending a treaty), (c) liberate or back a nationality
+  (Austria-Hungary, the Ottoman Empire, Russia carry these in data). Defending a guarantee or an ally needs no
+  justification: it becomes the war's goal automatically. Each has its own cost, time and grievance in
   `data/diplomacy.json`, and a goal can need a precondition (a claim, an alliance, a guarantee).
 - **The goal shapes the war.** A war fought for a goal gets its goal at a discount in war score and everything
   else at a premium; a war with no goal stays allowed, keeps today's penalties and pays more for terms. The goal is
@@ -114,7 +115,5 @@ difficulty presets in data.
 
 ## Open decisions
 
-1. Years-long great war, or shorter? (step 1)
-2. Which goals to start with in step 2 (province claims, concessions, nationality, guarantee, ally)?
-3. Step 6 of the earlier plan (point git at the Foreign-Skies repository) still needs that repository added to this
-   session's sources.
+None open. Decided: the great war lasts years; step 2 starts with province claims, then concessions, then nationality
+(defence of a guarantee or an ally is an automatic goal); git now points at the Foreign-Skies repository.
