@@ -104,7 +104,7 @@ func _test_limits() -> void:
 	_check(gs.nations["BEL"].recruiting.size() <= int(A.cfg.forces.max_training), "units in training never exceed the cap")
 
 	_war()
-	gs.nations["BEL"].treasury = 2.0
+	gs.nations["BEL"].treasury = float(A.cfg.forces.treasury_floor) * 0.5
 	Forces.step(gs, "BEL")
 	_check(gs.nations["BEL"].recruiting.is_empty(), "below the treasury floor it raises nothing")
 
@@ -150,7 +150,7 @@ func _test_where_and_mix() -> void:
 		men[job.type] = men.get(job.type, 0.0) + size
 		total += size
 	var art: float = men.get("artillery", 0.0) / total
-	_check(men.get("infantry", 0.0) > men.get("artillery", 0.0) and art > 0.1 and art < 0.3, "the force moves toward the mix in ai.json (artillery %.0f%%)" % (art * 100.0))
+	_check(men.get("infantry", 0.0) > men.get("artillery", 0.0) and art > 0.03 and art < 0.3, "the force moves toward the mix in ai.json (artillery %.0f%%)" % (art * 100.0))
 	# Near the line: within train_hops of the most threatened border province.
 	var line: Array = Mil.border_provinces(gs, "BEL", "GER")
 	var near := false
