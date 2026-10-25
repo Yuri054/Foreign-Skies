@@ -233,8 +233,9 @@ func _test_unprovoked() -> void:
 	D.step_month(gs)
 	_check(not gs.at_war("NED", "GER"), "the monthly step no longer declares for anyone: provoked AI nations answer through AIDiplomacy (see ai_diplomacy_test)")
 
-	# The casus belli lapses after its years.
+	# The casus belli lapses after its years (no crises meanwhile: a refused one would leave a casus belli of its own).
 	_fresh()
+	gs.pressure_ai = false
 	_declare("GER", "BEL", "none")
 	for i in 5 * 12 + 2:
 		D.step_month(gs)
