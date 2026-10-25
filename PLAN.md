@@ -20,17 +20,21 @@ to the mouse, wheel ignored over menus); diplomacy mouse tip and more tooltips; 
 
 ## Order
 
-| Step | Work | Size | Why now |
-|---|---|---|---|
-| 1 | War length and peace | done | The great war lasts 26 to 36 months across six seeds; no change needed. |
-| 2 | War goals and justification | done (v0.3.0) | Choose what a war is for; goals shape peace terms and the AI. |
-| 3 | Cabinet briefing and "why" | M | Read-only, cheap; shows each war's goal and why the AI acts; also the best tool for tuning the AI. |
-| 4 | Data validator and save version | S | Catches the ordering and indentation mistakes the data has had. |
-| 5 | Dynamic crises for 1900 | L | The calendar of authored pressure runs dry for a player who keeps the peace; generate crises (rival powers, claims, grievances) with demands, a deadline and ways to defuse them, on the monthly event path. |
-| 6 | History book | M | The payoff for a game with no score: a readable, exportable history. |
-| 7 | Peace conference | M | Allies negotiate together, built on the goals of step 2. |
-| 8 | Staff tools (supply map, odds preview, delegate to front) | M | Fronts are drawn already; supply and odds are the missing legibility. |
-| 9 | Coalition AI and difficulty | L | After war goals and the briefing. |
+| Step | Work | Status |
+|---|---|---|
+| 1 | War length and peace | done: the great war lasts 26 to 46 months across seeds |
+| 2 | War goals and justification | done (v0.3.0) |
+| 3 | Cabinet briefing and "why" | done (v0.4.0) |
+| 4 | Data validator and save version | done (v0.4.2) |
+| 5 | Dynamic crises for 1900 | done (v0.5.0) |
+| 6 | History book | done (v0.5.1) |
+| 7 | Peace conference | done (v0.5.2) |
+| 8 | Staff tools (supply map, order preview, delegation) | done (v0.5.3) |
+| 9 | Coalition AI and difficulty | done (v0.5.4) |
+
+Every step of the plan is built. What would come next, in no order: retrain the AI under the war goals, crises and coalitions
+(its numbers were trained before them), a battle "staff report" and an advisor line on event options (left out of step 3),
+a player-initiated crisis (today only the AI opens them), and a release pass (art, a manual, a trailer).
 
 Cut: the June 1914 crisis scenario (the game stays focused on 1900; July 1914 remains as a start), the home front (food, unrest, revolution), localization, modding and the art pipeline (no release target; PhotoCraft is unspecified).
 
