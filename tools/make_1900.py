@@ -70,7 +70,7 @@ with open(SRC + "navy.tsv") as f, open(DST + "navy.tsv", "w") as g:
 
 # ---- nations
 dev = {"GER": .78, "RUS": .80, "AUH": .82, "ITA": .82, "FRA": .88, "GBR": .88}
-army = {"GER": .72, "FRA": .85, "RUS": .80, "AUH": .80, "ITA": .85, "GBR": .85}
+army = {"GER": .72, "FRA": .85, "RUS": .80, "AUH": .80, "ITA": .85, "GBR": .85, "OTT": .8}
 navy = {"GER": .40, "GBR": .72, "FRA": .80, "RUS": .60, "ITA": .70, "AUH": .55}
 nations = {}
 for tag, v in sc["nations"].items():

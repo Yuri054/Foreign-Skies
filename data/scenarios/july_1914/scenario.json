@@ -203,7 +203,7 @@
 			"capital": 659,
 			"development": 0.455,
 			"agri_yield": 1.205,
-			"peacetime_army": 13000,
+			"peacetime_army": 35000,
 			"naval_budget": 0.8,
 			"treasury": 6,
 			"government": "constitutional_monarchy"
