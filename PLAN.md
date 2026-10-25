@@ -37,7 +37,8 @@ Cut: the home front (food, unrest, revolution), localization, modding and the ar
 
 ## Steps in detail
 
-### 1. War length and peace (decided: the great war lasts years)
+### 1. War length and peace (decided: the great war lasts years; done)
+- Result, July 1914 over six AI seeds: the great war lasts 26 to 36 months (ending between October 1916 and August 1917, 18 to 23 declarations, up to 10 wars at once); two seeds see a second round of wars later (13 and 29 months, 1919-1920); none is still fighting after six years. No change needed.
 - No retraining. Check with `tools/war_length.gd` over several seeds that the July 1914 war still ends within about
   five years and no nation is left fighting for ever; if a seed runs away, add a small war-weariness rule rather than
   a fitness term.
