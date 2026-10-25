@@ -221,7 +221,7 @@
 		"recovery_per_month": 3,
 		"weariness": 0.5,
 		"casualty_weight": 150,
-		"blockade_weight": 6,
+		"blockade_weight": 10,
 		"occupied_weight": 20,
 		"win_bonus": 2,
 		"home_win_bonus": 3,
