@@ -1,6 +1,8 @@
 extends FloatingWindow
+
+const AudioPanel := preload("res://scripts/ui/audio_panel.gd")
 ## Settings: the UI scale, a slider from 50% to 200% that resizes the whole interface (Ctrl and
-## + or -, and Ctrl 0, do the same from the keyboard), and the sound. The choice is saved. Toggle with F10, or the gear
+## + or -, and Ctrl 0, do the same from the keyboard), and the sound and music (AudioPanel). The choice is saved. Toggle with F10, or the gear
 ## at the right end of the top bar.
 
 var _slider := HSlider.new()
@@ -124,40 +126,12 @@ func _ready() -> void:
 	quality_row.add_child(_quality)
 	box.add_child(quality_row)
 
-	var sound := Label.new()
-	sound.text = "Sound"
-	box.add_child(sound)
-	for bus: String in Audio.BUSES:
-		box.add_child(_audio_row(bus))
+	box.add_child(HSeparator.new())
+	box.add_child(AudioPanel.new())
 
 	setup_window("Settings", true, Vector2(300, 360), 3, true)
 	fit_window(box.get_combined_minimum_size().y + 4.0)
 	_sync()
-
-
-## A bus's name, its volume slider and its mute box.
-func _audio_row(bus: String) -> Control:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = bus
-	label.custom_minimum_size = Vector2(70, 0)
-	row.add_child(label)
-	var slider := HSlider.new()
-	slider.min_value = 0.0
-	slider.max_value = 1.0
-	slider.step = 0.05
-	slider.value = Audio.volume(bus)
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.focus_mode = Control.FOCUS_NONE
-	slider.value_changed.connect(func(v: float) -> void: Audio.set_volume(bus, v))
-	row.add_child(slider)
-	var mute := CheckBox.new()
-	mute.text = "Mute"
-	mute.focus_mode = Control.FOCUS_NONE
-	mute.button_pressed = Audio.is_muted(bus)
-	mute.toggled.connect(func(on: bool) -> void: Audio.set_muted(bus, on))
-	row.add_child(mute)
-	return row
 
 
 func toggle() -> void:

@@ -1,7 +1,7 @@
 extends SceneTree
 ## Headless test of the sound: every manifest entry resolves to a file, an event plays at most
 ## once per cooldown, a muted or silent bus is silent, the game's signals play their sounds, the
-## music layers follow the player's wars, and the settings are saved.
+## music follows the menus, peace and war and answers its controls, and the settings are saved.
 ## Run: godot --headless --path . -s res://tests/audio_test.gd
 
 var _failures := 0
@@ -33,8 +33,16 @@ func _initialize() -> void:
 			missing += 1
 			printerr("  unresolved: ", e)
 	_check(not audio.events.is_empty() and missing == 0, "every manifest entry resolves to a file and a bus (%d events)" % audio.events.size())
-	for key in ["calm", "war"]:
-		_check(ResourceLoader.exists("res://data/audio/" + audio.music_cfg[key]), "the %s music file exists" % key)
+	_check(audio.tracks().size() == 3, "the soundtrack has three pieces")
+	var every_file := true
+	for t in audio.tracks():
+		every_file = every_file and ResourceLoader.exists("res://data/audio/" + t.file)
+	_check(every_file, "every piece of the soundtrack is a file in the project")
+	var lists_ok := true
+	for key in ["menu", "peace", "war"]:
+		for id in audio.music_cfg[key]:
+			lists_ok = lists_ok and not audio.track_info(id).is_empty()
+	_check(lists_ok and audio.music_cfg.menu[0] == "diplomatic_silence", "the menu, peace and war lists name real pieces, and the menu plays Diplomatic Silence")
 
 	audio.fake_time = 100.0
 	audio.played.clear()
@@ -104,19 +112,45 @@ func _initialize() -> void:
 	_check(fire.call("click", func(): button.pressed.emit()), "a button clicks")
 	button.queue_free()
 
-	# Music layers.
+	# The music.
+	audio.set_music_context("menu")
+	_check(audio.current_track() == "diplomatic_silence", "the menus play Diplomatic Silence (%s)" % audio.current_track())
+	audio.set_music_context("game")
 	gs.wars.clear()
-	audio._war_level = 0.0
 	audio._process(1.0)
-	_check(audio.war_level() == 0.0, "the war layer is silent at peace")
+	_check(audio.current_track() == "diplomatic_silence", "at peace the game plays from the peace list (%s)" % audio.current_track())
 	gs.wars[player + "|" + other] = true
-	audio._process(1.5)
-	var half: float = audio.war_level()
+	audio._process(1.0)
+	_check(audio.current_track() == "diplomacy_of_steel", "when the player goes to war the music crossfades to the war list (%s)" % audio.current_track())
 	audio._process(10.0)
-	_check(half > 0.0 and half < 1.0 and audio.war_level() == 1.0, "the war layer fades in when the player goes to war")
+	_check(audio._fade == 1.0 and not audio._players[1 - audio._front].playing, "and the crossfade finishes, the old piece stopped")
 	gs.wars.clear()
-	audio._process(10.0)
-	_check(audio.war_level() == 0.0, "and fades out at peace")
+	audio._process(1.0)
+	_check(audio.current_track() == "diplomatic_silence", "at peace again it goes back")
+	audio._on_music_finished(audio._players[audio._front])
+	_check(audio.current_track() == "marche_imperiale", "when a piece ends the next of the list follows")
+	audio.step_track(1)
+	_check(audio.current_track() == "diplomacy_of_steel" and not audio.music_auto, "Next goes on through the soundtrack and leaves Auto")
+	audio.step_track(-1)
+	_check(audio.current_track() == "marche_imperiale", "and Previous goes back")
+	gs.wars[player + "|" + other] = true
+	audio._process(1.0)
+	_check(audio.current_track() == "marche_imperiale", "out of Auto the music no longer follows the war")
+	audio.set_music_repeat(true)
+	audio._on_music_finished(audio._players[audio._front])
+	_check(audio.current_track() == "marche_imperiale", "with Repeat a piece starts over")
+	audio.set_music_repeat(false)
+	audio.set_music_paused(true)
+	_check(audio._players[audio._front].stream_paused, "Pause holds the music")
+	audio.set_music_paused(false)
+	audio.set_music_auto(true)
+	_check(audio.current_track() == "diplomacy_of_steel", "Follow the game takes it back to the war list (%s)" % audio.current_track())
+	gs.wars.clear()
+	audio.choose_track("marche_imperiale")
+	cfg.load(UiSettings.path)
+	_check(cfg.get_value("audio", "music_track", "") == "marche_imperiale" and cfg.get_value("audio", "music_auto", true) == false, "the chosen piece and Auto are saved")
+	audio.set_music_auto(true)
+	audio.set_music_context("menu")
 
 	DirAccess.remove_absolute(UiSettings.path)
 	print("FAILURES: ", _failures)

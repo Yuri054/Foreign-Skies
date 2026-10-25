@@ -7,6 +7,7 @@ extends Control
 const MAIN_SCENE := "res://scenes/main.tscn"
 const Tutorial := preload("res://scripts/ui/tutorial.gd")
 const MenuBackdrop := preload("res://scripts/ui/menu_backdrop.gd")
+const AudioPanel := preload("res://scripts/ui/audio_panel.gd")
 
 var _box := VBoxContainer.new()
 var _title := Label.new()
@@ -26,6 +27,7 @@ var opens_map := true
 
 func _ready() -> void:
 	add_to_group("main_menu")
+	Audio.set_music_context("menu")
 	UiSettings.apply_saved(get_window())
 	GameState.autosave_enabled = false
 	Scenarios.resume = false
@@ -78,7 +80,7 @@ func _ready() -> void:
 	show_page("main")
 
 
-## Which page is showing: "main", "new" or "load".
+## Which page is showing: "main", "new", "load" or "sound".
 func page() -> String:
 	return _page
 
@@ -95,6 +97,8 @@ func show_page(page: String) -> void:
 			_build_new()
 		"load":
 			_build_load()
+		"sound":
+			_build_sound()
 		_:
 			_build_main()
 	_box.add_child(_status)
@@ -109,8 +113,16 @@ func _build_main() -> void:
 	_button("New game", func() -> void: show_page("new"))
 	_button("Load game", func() -> void: show_page("load"))
 	_button("Tutorial", start_tutorial)
+	_button("Sound and music", func() -> void: show_page("sound"))
 	_button("Settings", func() -> void: _settings.toggle())
 	_button("Quit", func() -> void: get_tree().quit())
+	_status.text = ""
+
+
+func _build_sound() -> void:
+	_title.text = "Sound and music"
+	_box.add_child(AudioPanel.new())
+	_button("Back", func() -> void: show_page("main"))
 	_status.text = ""
 
 

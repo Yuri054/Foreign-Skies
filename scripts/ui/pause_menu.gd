@@ -5,6 +5,8 @@ extends CanvasLayer
 ## (clearing a selection) takes it first and marks it handled. It stays shut while the nation
 ## picker or a battle or peace screen is up.
 
+const AudioPanel := preload("res://scripts/ui/audio_panel.gd")
+
 const KEYS := "Move  WASD or arrow keys, wheel to zoom
 Select  click · drag a box for several
 Orders  right-click a province
@@ -56,6 +58,11 @@ func _ready() -> void:
 		close()
 		get_tree().call_group("settings_window", "toggle")
 	)
+	box.add_child(HSeparator.new())
+	var music := AudioPanel.new()
+	music.compact = true
+	box.add_child(music)
+	box.add_child(HSeparator.new())
 	_button(box, "Main menu", to_main_menu)
 	_button(box, "Quit", func() -> void: get_tree().quit())
 	box.add_child(HSeparator.new())

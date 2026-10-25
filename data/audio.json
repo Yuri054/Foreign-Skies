@@ -14,10 +14,17 @@
 		"blockade_begins":    {"file": "blockade.wav",  "bus": "Effects",   "volume_db": -5.0,  "cooldown": 5.0}
 	},
 	"music": {
+		"_note": "The soundtrack (files under data/audio/music/). tracks: id, title and file of each piece, in the order Next and Previous follow. menu: what plays in the menus. peace and war: what plays in a game while the player's nation is at peace or at war (each a list; one track ends and the next of the list starts, and when the situation changes the music crossfades to the first track of the new list unless the one playing is in it). Out of Auto the player picks the track and it plays on through the tracks in order.",
 		"bus": "Music",
 		"volume_db": -6.0,
 		"fade_seconds": 3.0,
-		"calm": "music_calm.wav",
-		"war": "music_war.wav"
+		"tracks": [
+			{"id": "diplomatic_silence", "title": "Diplomatic Silence", "file": "music/diplomatic_silence.mp3"},
+			{"id": "marche_imperiale", "title": "Marche Impériale", "file": "music/marche_imperiale.mp3"},
+			{"id": "diplomacy_of_steel", "title": "Diplomacy of Steel", "file": "music/diplomacy_of_steel.mp3"}
+		],
+		"menu": ["diplomatic_silence"],
+		"peace": ["diplomatic_silence", "marche_imperiale"],
+		"war": ["diplomacy_of_steel", "marche_imperiale"]
 	}
 }
