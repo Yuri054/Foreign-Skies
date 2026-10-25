@@ -194,6 +194,70 @@ static func find_path(gs: Node, tag: String, speed: float, from: int, to: int) -
 	return path
 
 
+## What an order would do, for the player to see before giving it: {ok, reason, days, eta, hops, unsupplied, ends_supplied,
+## enemy_seen, enemy (Vector2: fewest and most men the enemy there may have), odds (Vector2: worst and best odds of
+## the men sent against them)}. `armies` are the army ids to send. The enemy's strength is only what Intel lets the
+## player see, as the range its estimate allows; an army that is not seen is not counted, and nothing exact about one
+## that is only estimated is given away. `reason` is "" when the order can be given, else here, embarked, no_route or none.
+static func order_preview(gs: Node, armies: Array, destination: int) -> Dictionary:
+	var out := {"ok": false, "reason": "none", "days": 0.0, "eta": "", "hops": 0, "unsupplied": 0, "ends_supplied": true,
+			"enemy_seen": false, "enemy": Vector2.ZERO, "odds": Vector2.ZERO}
+	var power := 0.0
+	var men := 0.0
+	var tag := ""
+	var any := false
+	for id in armies:
+		var a: Army = gs.armies.get(id)
+		if a == null:
+			continue
+		if a.embarked():
+			out.reason = "embarked"
+			return out
+		if a.province == destination:
+			out.reason = "here"
+			continue
+		var path := find_path(gs, a.tag, a.speed(), a.province, destination)
+		if path.is_empty():
+			out.reason = "no_route"
+			return out
+		tag = a.tag
+		any = true
+		var at := a.province
+		var days := 0.0
+		var unsupplied := 0
+		for i in path.size():
+			var p: int = path[i]
+			if i == 0 and not a.path.is_empty() and a.path[0] == p:
+				days += a.move_days_left
+			else:
+				days += move_days(gs, a.tag, a.speed(), at, p)
+			if supply_cost(gs, a.tag, p) == INF:
+				unsupplied += 1
+			at = p
+		out.days = maxf(out.days, days)
+		out.hops = maxi(out.hops, path.size())
+		out.unsupplied = maxi(out.unsupplied, unsupplied)
+		power += a.power()
+		men += a.men()
+	if not any:
+		return out
+	out.ok = true
+	out.reason = ""
+	out.eta = Clock.date_after(int(out.days))
+	out.ends_supplied = supply_cost(gs, tag, destination) < INF
+	var seen := 0.0
+	for e: Army in gs.armies.values():
+		if e.province == destination and gs.at_war(tag, e.tag) and Intel.level(gs, e) == Intel.ESTIMATE:
+			seen += Intel.men_seen(gs, e)
+	if seen > 0.0:
+		out.enemy_seen = true
+		out.enemy = Vector2(seen / (1.0 + Intel.ERROR), seen / (1.0 - Intel.ERROR))
+		# The enemy is assumed to fight as well, man for man, as the men sent: terrain and trenches are not known.
+		var per_man := power / maxf(men, 1.0)
+		out.odds = Vector2(power / maxf(out.enemy.y * per_man, 1.0), power / maxf(out.enemy.x * per_man, 1.0))
+	return out
+
+
 static func _heap_less(x: Array, y: Array) -> bool:
 	return x[0] < y[0] or (x[0] == y[0] and x[1] < y[1])
 

@@ -88,6 +88,11 @@ const ALL_BUILDINGS := "all"
 const MIL_CONTROL := "control"
 const MIL_FRONT := "front"
 const MIL_STRENGTH := "strength"
+const MIL_SUPPLY := "supply"
+const SUPPLY_HOME := Color(0.36, 0.7, 0.36)
+const SUPPLY_NEAR := Color(0.78, 0.8, 0.3)
+const SUPPLY_FAR := Color(0.9, 0.58, 0.2)
+const SUPPLY_NONE := Color(0.8, 0.2, 0.18)
 const FRONT_HOT := Color(0.86, 0.2, 0.16)
 const STRENGTH_COLOR := Color(0.85, 0.35, 0.2)
 const LOOKUP_WIDTH := 256
@@ -241,7 +246,7 @@ func _apply_land_style() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _tip_layer != null and _tip.visible and (mode != Mode.DIPLOMACY or _over_interface()):
+	if _tip_layer != null and _tip.visible and (_over_interface() or (mode != Mode.DIPLOMACY and not _orders_selected())):
 		_tip.visible = false
 	var camera := get_viewport().get_camera_2d()
 	if camera != null and _material != null and not is_equal_approx(camera.zoom.x, _land_zoom) or (_land_zoom < 0.0 and _material != null and camera != null):
@@ -265,7 +270,7 @@ func submodes(for_mode: Mode = mode) -> Array:
 			for type in Economy.building_ids():
 				list.append([type, Economy.cfg.buildings[type].name])
 		Mode.MILITARY:
-			list = [[MIL_CONTROL, "Control"], [MIL_FRONT, "Front line"], [MIL_STRENGTH, "Strength"]]
+			list = [[MIL_CONTROL, "Control"], [MIL_FRONT, "Front line"], [MIL_STRENGTH, "Strength"], [MIL_SUPPLY, "Supply"]]
 	return list
 
 
@@ -557,7 +562,25 @@ func military_color(id: int) -> Color:
 		MIL_STRENGTH:
 			var men: float = _men_at.get(id, 0.0)
 			return NO_DATA_COLOR.darkened(0.45) if men <= 0.0 else NO_DATA_COLOR.lerp(STRENGTH_COLOR, 0.25 + 0.75 * _scale(men))
+		MIL_SUPPLY:
+			return supply_color(id)
 	return held
+
+
+## What a province shows in the Supply variant: how well the player's armies would be supplied standing there. Green is
+## ground tied to the homeland; yellow through amber is ground in supply range, the nearer the range's end the more amber;
+## red is beyond it, where an army suffers attrition.
+func supply_color(id: int) -> Color:
+	var tag := GameState.player_tag
+	if tag == "" or not GameState.nations.has(tag):
+		return NO_DATA_COLOR
+	var cost := Military.supply_cost(GameState, tag, id)
+	if cost == 0.0:
+		return SUPPLY_HOME
+	if cost == INF:
+		return SUPPLY_NONE
+	var reach: float = Military.cfg.supply.range + float(Military.cfg.cities.supply_range) * Military.city_aura(GameState, tag, id)
+	return SUPPLY_NEAR.lerp(SUPPLY_FAR, clampf(cost / maxf(reach, 0.1), 0.0, 1.0))
 
 
 ## What a province shows in Construction mode for one kind of building: dark if it is not the
@@ -612,6 +635,8 @@ func legend() -> Dictionary:
 		match submode:
 			MIL_FRONT:
 				return {"title": "Front line", "swatches": [[FRONT_HOT, "held next to an enemy"], [NO_DATA_COLOR.darkened(0.45), "rear"]]}
+			MIL_SUPPLY:
+				return {"title": "Supply for your armies", "swatches": [[SUPPLY_HOME, "tied to home: full supply"], [SUPPLY_NEAR.lerp(SUPPLY_FAR, 0.5), "in range, thinner with distance"], [SUPPLY_NONE, "out of supply: attrition"]]}
 			MIL_STRENGTH:
 				return {"title": "Men stationed", "low": "none", "high": Fmt.people(_max_value) if _max_value > 0.0 else "none",
 						"from": NO_DATA_COLOR.lerp(STRENGTH_COLOR, 0.25), "to": STRENGTH_COLOR}
@@ -722,8 +747,26 @@ var _tip := PanelContainer.new()
 var _tip_label := Label.new()
 
 
+## Whether armies are selected, so that a province under the mouse would be an order.
+func _orders_selected() -> bool:
+	var panel := get_tree().get_first_node_in_group("military_panel")
+	return panel != null and panel.has_method("selected_ids") and not panel.selected_ids().is_empty() and GameState.player_tag != ""
+
+
+var _tip_key := ""
+
+
 func _show_diplomacy_tip(id: int) -> void:
-	var text := _diplomacy_tip_text(id) if mode == Mode.DIPLOMACY and id > 0 and not _over_interface() else ""
+	var text := ""
+	if id > 0 and not _over_interface():
+		# The order preview is a search over the map: worked out again only when the province or the selection changes.
+		var panel := get_tree().get_first_node_in_group("military_panel")
+		var key := "%d|%s|%d" % [id, str(panel.selected_ids()) if panel != null and mode != Mode.DIPLOMACY else "", Clock.days_elapsed]
+		if _tip_layer != null and _tip.visible and key == _tip_key:
+			_place_tip()
+			return
+		_tip_key = key
+		text = _diplomacy_tip_text(id) if mode == Mode.DIPLOMACY else _order_tip_text(id)
 	if text.is_empty():
 		if _tip_layer != null:
 			_tip.visible = false
@@ -755,6 +798,36 @@ func _place_tip() -> void:
 	at.x = minf(at.x, view.x - _tip.size.x - 4.0)
 	at.y = minf(at.y, view.y - _tip.size.y - 4.0)
 	_tip.position = at
+
+
+## What an order to this province would do, when armies are selected: the road, the date of arrival, the supply on the
+## way and what is known of the enemy there.
+func _order_tip_text(id: int) -> String:
+	var panel := get_tree().get_first_node_in_group("military_panel")
+	if panel == null or not panel.has_method("selected_ids") or GameState.player_tag == "":
+		return ""
+	var ids: Array[int] = panel.selected_ids()
+	if ids.is_empty():
+		return ""
+	return order_tip_for(ids, id)
+
+
+## The text of the order preview for these armies and a province ("" when there is nothing to say).
+func order_tip_for(ids: Array, id: int) -> String:
+	var p := Military.order_preview(GameState, ids, id)
+	if not p.ok:
+		return {"no_route": "No road there for these armies."}.get(p.reason, "")
+	var lines: PackedStringArray = ["%s: %d days, arriving %s" % [MapData.provinces[id].name, roundi(p.days), p.eta]]
+	if p.unsupplied == 0:
+		lines.append("In supply all the way")
+	elif p.ends_supplied:
+		lines.append("%d of %d stages out of supply" % [p.unsupplied, p.hops])
+	else:
+		lines.append("Out of supply there (%d of %d stages): attrition" % [p.unsupplied, p.hops])
+	if p.enemy_seen:
+		lines.append("Enemy seen: %s to %s men" % [Fmt.people(p.enemy.x), Fmt.people(p.enemy.y)])
+		lines.append("Odds %.1f to %.1f (men only; terrain unknown)" % [p.odds.x, p.odds.y])
+	return "\n".join(lines)
 
 
 ## Name, opinion and treaties of the nation owning a province, as the viewpoint nation sees it.

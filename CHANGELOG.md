@@ -6,6 +6,13 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.5.3
+
+- Staff tools: a Supply variant of the Military map mode (green where your armies are supplied from home, amber to red as
+  the range runs out, red beyond it), and an order preview: with armies selected, the province under the mouse shows the days
+  the road takes, the date of arrival, the stages that would be out of supply, and what you can see of the enemy there (a
+  range, from what your intelligence allows, with the odds on men alone).
+
 ## 0.5.2
 
 - Peace conferences: when allies are at war with the same enemy, the peace screen lists them with what each would ask

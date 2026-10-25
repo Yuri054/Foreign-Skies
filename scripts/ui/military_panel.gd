@@ -304,6 +304,11 @@ func has_selection() -> bool:
 	return not _selected.is_empty() or _drawing or _picking_nation
 
 
+## The armies selected, as ids.
+func selected_ids() -> Array[int]:
+	return _selected.duplicate()
+
+
 ## Selects exactly these armies (the action bar's merge and split use it).
 func select_ids(ids: Array[int]) -> void:
 	_selected = ids.filter(func(id: int) -> bool: return GameState.armies.has(id))
