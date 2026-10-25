@@ -164,7 +164,7 @@
 		"war": {
 			"declare_threshold": 0.9,
 			"min_motive": 0.4,
-			"truce_days": 365,
+			"truce_days": 1095,
 			"w_hostile": 1.0,
 			"w_tension": 0.5,
 			"w_grievance": 1.5,
