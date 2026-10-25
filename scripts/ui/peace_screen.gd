@@ -457,7 +457,9 @@ func _refresh_conference() -> void:
 		_conf_box.remove_child(c)
 		c.queue_free()
 	_conf_checks.clear()
-	var partners := Conference.partners(GameState, _me(), _enemy()) if _war != null and _proposal_mode() == "demand" and not _incoming else []
+	var partners: Array[String] = []
+	if _war != null and _proposal_mode() == "demand" and not _incoming:
+		partners = Conference.partners(GameState, _me(), _enemy())
 	_conf_box.visible = not partners.is_empty()
 	if not partners.is_empty():
 		var head := Label.new()
