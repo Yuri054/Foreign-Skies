@@ -1,6 +1,8 @@
 extends FloatingWindow
 ## A crisis or event that concerns the player's nation (see Pressure): time stops, the situation is told, and
-## each way to answer is a button with what it would do. The next waiting event follows.
+## each way to answer is a button with what it would do, written under it. The next waiting event follows.
+
+const ADVISOR_COLOR := Color(0.82, 0.78, 0.62)
 
 var _box := VBoxContainer.new()
 var _title := Label.new()
@@ -77,12 +79,22 @@ func _option_block(d: Dictionary, index: int) -> Control:
 	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	about.modulate = Fmt.DIM
 	block.add_child(about)
-	# What the answer would do is for the mouse to ask: over the button or its description.
 	var lines := Pressure.effect_lines(GameState, option, d.roles)
 	var tip := "\n".join(lines) if not lines.is_empty() else "No lasting effects."
+	# What the answer would do is written under it, so the choice can be made without hovering; the
+	# full list stays in the tooltip.
+	var advisor := Label.new()
+	advisor.name = "Advisor"
+	advisor.text = "Advisor: " + (" · ".join(lines) if not lines.is_empty() else "no lasting effects.")
+	advisor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	advisor.modulate = ADVISOR_COLOR
+	advisor.add_theme_font_size_override("font_size", 12)
+	block.add_child(advisor)
 	button.tooltip_text = tip
 	about.tooltip_text = tip
 	about.mouse_filter = Control.MOUSE_FILTER_PASS
+	advisor.tooltip_text = tip
+	advisor.mouse_filter = Control.MOUSE_FILTER_PASS
 	return block
 
 

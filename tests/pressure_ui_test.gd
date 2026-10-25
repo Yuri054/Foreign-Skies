@@ -38,6 +38,8 @@ func _initialize() -> void:
 	_check(prompt._options.get_child_count() == 2 and prompt._title.text == "The Boxer Rising", "with its two answers")
 	var first_button: Button = prompt._options.get_child(0).get_child(0)
 	_check(first_button.tooltip_text.contains("Tension +3") and first_button.tooltip_text.contains("Treasury"), "what an answer does is its tooltip (%s)" % first_button.tooltip_text.replace("\n", " / "))
+	var advisor: Label = prompt._options.get_child(0).get_node_or_null("Advisor")
+	_check(advisor != null and advisor.text.begins_with("Advisor:") and advisor.text.contains("Tension +3") and advisor.text.contains("Treasury"), "the answer's effects are also on screen (%s)" % (advisor.text if advisor != null else "-"))
 	var bar: Node = get_first_node_in_group("top_bar")
 	_check(bar != null and bar._tension.text == str(roundi(gs.tension)) and bar._chips["tension"].tooltip_text.contains("tension"), "the top bar shows tension")
 	prompt._answer(0)
