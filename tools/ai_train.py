@@ -238,31 +238,89 @@ def test(games: int):
           f"better in {wins} of {games}; per seed {[round(x, 2) for x in per_seed]}")
 
 
-def apply():
-    state = json.loads((OUT / "state.json").read_text())
-    values = theta_to_values(state["theta"])
-    text = (ROOT / "data" / "ai.json").read_text()
-    cfg = json.loads(text)
+def _skip_string(text: str, i: int) -> int:
+    """Index just past the string that starts at text[i] (a double quote)."""
+    i += 1
+    while text[i] != '"':
+        i += 2 if text[i] == "\\" else 1
+    return i + 1
+
+
+def _find_value(text: str, keys: list) -> tuple:
+    """The span (start, end) of the number at a dotted path in a JSON text, found by walking the braces so that a
+    key of the same name in another object cannot be taken for it."""
+    lo, hi = 0, len(text)
+    for depth, key in enumerate(keys):
+        i = lo
+        level = 0
+        found = None
+        while i < hi:
+            c = text[i]
+            if c == '"':
+                end = _skip_string(text, i)
+                if level == 1 and text[i + 1:end - 1] == key:
+                    j = end
+                    while text[j] in " \t\r\n":
+                        j += 1
+                    if text[j] == ":":
+                        found = j + 1
+                        break
+                i = end
+                continue
+            if c in "{[":
+                level += 1
+            elif c in "}]":
+                level -= 1
+                if level == 0:
+                    break
+            i += 1
+        if found is None:
+            raise KeyError(".".join(keys))
+        while text[found] in " \t\r\n":
+            found += 1
+        if depth == len(keys) - 1:
+            end = found
+            while end < len(text) and text[end] in "-+.0123456789eE":
+                end += 1
+            if end == found:
+                raise ValueError(".".join(keys) + " is not a number")
+            return found, end
+        # the next key is looked for inside this object
+        lo = found
+        i = lo
+        level = 0
+        while i < len(text):
+            if text[i] == '"':
+                i = _skip_string(text, i)
+                continue
+            if text[i] in "{[":
+                level += 1
+            elif text[i] in "}]":
+                level -= 1
+                if level == 0:
+                    hi = i + 1
+                    break
+            i += 1
+        # `level` was counted from the object's own brace, so the scan above starts at it
+    raise KeyError(".".join(keys))
+
+
+def rewrite_values(text: str, values: dict) -> str:
+    """The text of data/ai.json with these dotted-path numbers replaced, and nothing else changed (the file keeps its
+    layout and its notes)."""
     for path, v in values.items():
-        node = cfg
-        keys = path.split(".")
-        for key in keys[:-1]:
-            node = node[key]
-        node[keys[-1]] = v
-    # keep the file's layout: rewrite only the lines of these numbers
-    import re
-    for path, v in values.items():
-        leaf = path.split(".")[-1]
-        section = path.split(".")[0]
-        # locate the section block and the leaf inside it
-        m = re.search(r'\n\t"%s": \{' % section, text)
-        start = m.end()
-        pat = re.compile(r'("%s": )(-?[0-9.]+)' % re.escape(leaf))
-        mm = pat.search(text, start)
-        text = text[:mm.start(2)] + str(v) + text[mm.end(2):]
+        start, end = _find_value(text, path.split("."))
+        text = text[:start] + str(v) + text[end:]
     json.loads(text)
-    (ROOT / "data" / "ai.json").write_text(text)
-    print("wrote", len(values), "numbers to data/ai.json")
+    return text
+
+
+def apply(state_path=None, ai_path=None):
+    state = json.loads((state_path or OUT / "state.json").read_text())
+    values = theta_to_values(state["theta"])
+    ai_path = ai_path or ROOT / "data" / "ai.json"
+    ai_path.write_text(rewrite_values(ai_path.read_text(), values))
+    print("wrote", len(values), "numbers to", ai_path)
 
 
 if __name__ == "__main__":

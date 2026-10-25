@@ -10,7 +10,12 @@ extends RefCounted
 ## without touching this file; derived tables (output, caches) are rebuilt on load. Rules in
 ## GameState.save_game and load_game.
 
-const VERSION := 1
+## The save format. Bump it when a change to the state cannot be read from an older save by the fields' defaults
+## alone, and add the step to `_migrate`. A save of OLDEST up to VERSION is read; anything else is refused.
+##   1  the first format
+##   2  wars carry a goal (War.goal); a version 1 save loads with every war goalless
+const VERSION := 2
+const OLDEST := 1
 ## Where saves live; tests point it somewhere else.
 static var dir := "user://saves/"
 const EXT := ".sav"
@@ -76,8 +81,10 @@ static func read_header(path: String) -> Dictionary:
 	if not (parsed is Dictionary) or parsed.get("magic", "") != MAGIC:
 		return {"error": "This is not a save of this game."}
 	var version := int(parsed.get("version", 0))
-	if version != VERSION:
-		return {"error": "This save is from version %d of the save format; this game reads version %d." % [version, VERSION]}
+	if version < OLDEST:
+		return {"error": "This save is from version %d of the save format, too old to read (this game reads versions %d to %d)." % [version, OLDEST, VERSION]}
+	if version > VERSION:
+		return {"error": "This save is from version %d of the save format, made by a newer game (this game reads versions %d to %d)." % [version, OLDEST, VERSION]}
 	return parsed
 
 
@@ -102,6 +109,7 @@ static func read(gs: Node, path: String) -> String:
 	if not (body is Dictionary) or not body.has("state") or not body.has("clock"):
 		return "The save is damaged."
 	var state: Dictionary = body.state
+	_migrate(state, int(head.get("version", VERSION)))
 	if state.get("province_owner", PackedStringArray()).size() != MapData.provinces.size():
 		return "The save was made for a different map."
 
@@ -120,6 +128,18 @@ static func read(gs: Node, path: String) -> String:
 	Clock.paused = true
 	gs.finish_load()
 	return ""
+
+
+## Brings the state of an older save up to VERSION, one step at a time. Fields a newer game added are filled from
+## their defaults when the save is assigned; a step is for what the defaults cannot do (a field renamed, a value
+## that changed meaning). `state` is the encoded state of the save (see snapshot).
+static func _migrate(state: Dictionary, from: int) -> void:
+	var v := from
+	while v < VERSION:
+		match v:
+			1:
+				pass   # 1 -> 2: War.goal is new; an old war has none, which is its default
+		v += 1
 
 
 ## The saves in a folder, newest first: [{path, file, header}] (unreadable ones carry an error).

@@ -105,8 +105,23 @@ func _test_refused() -> void:
 	SaveGame.write(gs, DIR + "old.sav", 0)
 	var day: int = Clock.days_elapsed
 	var err: String = gs.load_game(DIR + "old.sav")
-	_check(err != "" and "version" in err, "an old save version is refused with a message: " + err)
+	_check(err != "" and "too old" in err, "a save older than the oldest readable version is refused with a message: " + err)
 	_check(Clock.days_elapsed == day, "a refused save changes nothing")
+	SaveGame.write(gs, DIR + "future.sav", SaveGame.VERSION + 1)
+	err = gs.load_game(DIR + "future.sav")
+	_check(err != "" and "newer game" in err, "a save from a newer game is refused with a message: " + err)
+	_check(Clock.days_elapsed == day, "and changes nothing")
+
+	# A version 1 save (made before war goals) still loads: its wars simply have no goal.
+	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	gs.set_war("GER", "FRA", true, "none")
+	var war: War = gs.war_between("GER", "FRA")
+	_check(SaveGame.write(gs, DIR + "v1.sav", 1) == "", "a version 1 save can be made")
+	war.goal = {"kind": "provinces", "ids": [1]}
+	_check(gs.load_game(DIR + "v1.sav") == "", "and is read by this game")
+	_check(gs.war_between("GER", "FRA") != null and gs.war_between("GER", "FRA").goal.is_empty(), "its war loads with no goal")
+	_check(SaveGame.read_header(DIR + "v1.sav").version == 1, "the header keeps the version it was made in")
+	gs.load_game(good)
 	var f := FileAccess.open(DIR + "junk.sav", FileAccess.WRITE)
 	f.store_string("not a save at all")
 	f.close()

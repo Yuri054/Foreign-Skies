@@ -66,7 +66,7 @@ Every other nation plays by the same rules. **Nothing in a scenario scripts what
 
 - `GameState` (autoload) holds every fact; the map and UI only read it. `Clock` ticks days and months. All changes go through commands (`GameState.issue`), which is what makes saves, tests and the AI share one path.
 - The running game does a day's step a stage a frame; tests and tools run all stages at once.
-- Saves are the whole state as compressed variant bytes; derived tables are rebuilt on load.
+- Saves are the whole state as compressed variant bytes; derived tables are rebuilt on load. A save carries a format version (`SaveGame.VERSION`, currently 2); versions from `OLDEST` up are read, older steps are brought forward by `_migrate`, and newer or older-than-oldest saves are refused with a message.
 - `Economy`, `Military`, `Navy`, `Diplomacy`, `Pressure`, `Focus` are static classes over that state; their numbers are in `data/`.
 - Folders: `scripts/sim`, `scripts/ai`, `scripts/map`, `scripts/ui`, `data`, `tools`, `tests`.
 

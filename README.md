@@ -49,6 +49,8 @@ GODOT=/path/to/godot python tools/run_tests.py save_load menu   # a few, with th
 
 A test passes when it prints `FAILURES: 0`. Tests marked `## WINDOWED` need a real window (headless Godot does not dispatch mouse events) and run only with `--windowed`, under `xvfb-run`. `SPEED_TESTS=0` skips the checks on how long a day takes, for a slow or busy machine. The CI check (`.github/workflows/tests.yml`) does both.
 
+`python tools/validate_data.py` checks the data files for what only shows up in play (an event waiting for an event that does not exist, a claim on a province that is not on the map, a trained AI parameter missing from `ai.json`, a playlist naming a missing piece) and exits 1 with the list of problems; `python -m unittest discover -s tools -p "test_*.py"` tests the Python tools (the trainer's number handling and the validator). The CI check runs both.
+
 Two long soak runs look for the bugs a short test misses: `godot --headless --path . -s res://tools/soak.gd -- <seed> <nation> <years>` plays the whole AI game with random commands and checks the state's invariants every month; `tools/ui_soak.gd` does random clicks, keys and windows in the real scene (run it under `xvfb-run`). `tools/profile_days.gd` times each part of the daily step over an AI run; `tools/balance_run.gd` prints a yearly table of the great powers, tension and wars for a long AI-only run (the balance check); `tools/late_report.gd` counts the AI's wars, treaties and foci year by year.
 
  Run `godot --headless --path . --import` once after

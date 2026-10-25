@@ -5,6 +5,14 @@ Versions are `major.minor.patch`. Each step of `PLAN.md` that changes how the ga
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.4.2
+
+- Saves carry a format version (now 2). Saves from version 1 still load; a save from a newer game, or one too old, is
+  refused with a message that says which.
+- `tools/validate_data.py` checks the data files (events, claims, focus trees, the AI's trained parameters, music); the CI
+  runs it and the Python tool tests before the game tests and before each build.
+- The trainer's `apply` walks the JSON instead of matching text, so a key of the same name elsewhere cannot be changed by mistake.
+
 ## 0.4.1
 
 - Three more pieces: *Ein letzter Tanzschritt* joins the peace rotation, *Mechanical March* and *Brandschaftsmarsch* the war

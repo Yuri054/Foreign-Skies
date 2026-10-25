@@ -14,6 +14,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Check the data
+        run: python3 tools/validate_data.py
+      - name: Test the Python tools
+        run: python3 -m unittest discover -s tools -p "test_*.py"
       - name: Install Godot
         run: |
           curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
