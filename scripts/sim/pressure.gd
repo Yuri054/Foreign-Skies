@@ -230,7 +230,8 @@ static func _post(gs: Node, e: Dictionary, roles: Dictionary) -> void:
 	_record(gs, e.title, _fill(gs, e.text, roles), 1)
 
 
-static func _record(gs: Node, title: String, text: String, level: int) -> void:
+static func _record(gs: Node, title: String, text: String, level: int, kind := "event") -> void:
+	History.note(gs, kind, "%s: %s" % [title, text])
 	gs.chronicle.push_front({"date": Clock.date_string(), "title": title, "text": text})
 	if gs.chronicle.size() > CHRONICLE_MAX:
 		gs.chronicle.pop_back()

@@ -31,6 +31,7 @@ const ConstructionPanel := preload("res://scripts/ui/construction_panel.gd")
 const MapView := preload("res://scripts/map/map_view.gd")
 const NationStats := preload("res://scripts/ui/nation_stats.gd")
 const RankingsWindow := preload("res://scripts/ui/rankings_window.gd")
+const HistoryBook := preload("res://scripts/ui/history_book.gd")
 const ProvincePanel := preload("res://scripts/ui/province_panel.gd")
 
 @onready var map_view: Sprite2D = $MapView
@@ -120,6 +121,7 @@ func _ready() -> void:
 	screen.add_page("Diplomacy", "F", DiplomacyPanel.new())
 	screen.add_page("Focus", "O", FocusPanel.new())
 	screen.add_page("Rankings", "R", RankingsWindow.new())
+	screen.add_page("History", "H", HistoryBook.new())
 	ui.add_child(CommandPanel.new())
 	var nation_stats := NationStats.new()
 	nation_stats.closed.connect(_end_peek)

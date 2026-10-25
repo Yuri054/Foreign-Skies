@@ -203,6 +203,11 @@ var standings_history: Array[Dictionary] = []
 var relation_projects: Array[Dictionary] = []
 ## Money each nation has recently gifted another, "from>to": {amount}; fades monthly (see Diplomacy.gift_effect).
 var gift_memory: Dictionary = {}
+## The history of the run (see History): what happened, every change of owner, and a row of figures a month.
+var history_log: Array[Dictionary] = []
+var territory_log: Array[Dictionary] = []
+var history_months: Array[Dictionary] = []
+var history_counters: Dictionary = {}
 ## Crises under way and those finished (see Crisis), the next id, and the day before which a pair may not quarrel again.
 var crises: Array[Dictionary] = []
 var crisis_log: Array[Dictionary] = []
@@ -425,6 +430,7 @@ func load_scenario(dir: String) -> void:
 	AI.load_scenario(self)
 	Pressure.load_scenario(self)
 	Crisis.load_scenario(self)
+	History.load_scenario(self)
 	economy_dirty = false
 	budget_dirty = false
 	standings_history.clear()
@@ -517,6 +523,7 @@ func transfer_province(id: int, tag: String) -> void:
 			nations[old].construction.erase(job)
 	_rebuild_nation_provinces()
 	Economy.recompute(self)
+	History.record_territory(self, id, old, tag)
 	province_owner_changed.emit(id, old, tag)
 	economy_updated.emit()
 
@@ -541,6 +548,8 @@ func set_war(a: String, b: String, value: bool, cb := "", group := 0) -> void:
 		war.add_log(war.start_date, "war", "%s declares war on %s%s." % [nations[a].display_name, nations[b].display_name,
 				" (%s)" % Diplomacy.cfg.war.casus_belli[cb].label.to_lower() if Diplomacy.cfg.war.casus_belli.has(cb) else ""])
 		wars[_war_key(a, b)] = war
+		History.note(self, "war", "%s declares war on %s%s." % [nations[a].display_name, nations[b].display_name,
+				" (%s)" % Diplomacy.cfg.war.casus_belli[cb].label.to_lower() if Diplomacy.cfg.war.casus_belli.has(cb) else ""])
 	else:
 		var war: War = wars[_war_key(a, b)]
 		war.end_day = Clock.days_elapsed
@@ -548,6 +557,7 @@ func set_war(a: String, b: String, value: bool, cb := "", group := 0) -> void:
 		war.add_log(war.end_date, "peace", "%s and %s make peace." % [nations[a].display_name, nations[b].display_name])
 		wars.erase(_war_key(a, b))
 		war_history.append(war)
+		History.note(self, "peace", "%s and %s make peace." % [nations[a].display_name, nations[b].display_name])
 	war_changed.emit(a, b, value)
 
 
@@ -648,6 +658,7 @@ func _on_month_ticked() -> void:
 	Pressure.step_month(self)
 	Crisis.step_month(self)
 	Standings.record(self)
+	History.step_month(self)
 	economy_updated.emit()
 	if autosave_enabled:
 		autosave()

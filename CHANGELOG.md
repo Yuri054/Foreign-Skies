@@ -1,9 +1,16 @@
 # Changelog
 
-Versions are `major.minor.patch`. Each step of `PLAN.md` that changes how the game plays is a minor version
-(`0.3.0`, `0.4.0`, ...); `1.0.0` is the first release we call finished. Fixes between steps bump the patch number.
+Versions are `major.minor.patch`. A minor version (`0.6.0`, `0.7.0`, ...) is for a large change to how the game plays;
+most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). `1.0.0` is the first release we call
+finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
+
+## 0.5.1
+
+- The history book (the History tab, key H): a year-by-year timeline with a headline for each month, the wars with their
+  goals, battles and peace terms, the map of the end with every change of owner, and how each nation stands against the
+  start. It can be exported as Markdown or as a web page (with the map inside), or copied to the clipboard.
 
 ## 0.5.0
 

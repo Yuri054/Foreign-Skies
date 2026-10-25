@@ -234,7 +234,7 @@ static func open(gs: Node, found: Dictionary) -> Dictionary:
 	gs.tension_impulse += float(cfg.open.tension)
 	Diplomacy.change_relation(gs, a, b, float(cfg.open.relation))
 	gs.crisis_cooldown[Diplomacy.pair_key(a, b)] = Clock.days_elapsed + int(cfg.gate.pair_cooldown_months) * 30
-	Pressure._record(gs, c.title, c.text, 1)
+	Pressure._record(gs, c.title, c.text, 1, "crisis")
 	gs.crisis_opened.emit(c)
 	if b == gs.player_tag:
 		_ask_player(gs, c)
@@ -429,7 +429,7 @@ static func end(gs: Node, c: Dictionary, outcome: String, text: String) -> void:
 	if gs.crisis_log.size() > int(cfg.gate.log_max):
 		gs.crisis_log.pop_front()
 	_cancel_prompt(gs, c)
-	Pressure._record(gs, c.title, text, 1)
+	Pressure._record(gs, c.title, text, 1, "crisis")
 	gs.crisis_ended.emit(c, outcome)
 
 

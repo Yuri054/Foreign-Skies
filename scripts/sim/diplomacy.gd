@@ -314,6 +314,8 @@ static func add_treaty(gs: Node, kind: String, a: String, b: String, end_day := 
 	gs.treaties.append(t)
 	_treaty_epoch += 1
 	_shift_baseline(gs, a, b, cfg.treaties[kind].relation_bonus)
+	if kind in ["alliance", "guarantee"]:
+		History.note(gs, "treaty", "%s: %s and %s." % [cfg.treaties[kind].label, gs.nations[a].display_name, gs.nations[b].display_name])
 	gs.treaty_changed.emit(t, true)
 	return t
 
@@ -325,6 +327,8 @@ static func end_treaty(gs: Node, t: Treaty) -> void:
 	t.end_day = Clock.days_elapsed
 	_treaty_epoch += 1
 	_shift_baseline(gs, t.a, t.b, -cfg.treaties[t.kind].relation_bonus)
+	if t.kind in ["alliance", "guarantee"]:
+		History.note(gs, "treaty", "The %s of %s and %s ends." % [str(cfg.treaties[t.kind].label).to_lower(), gs.nations[t.a].display_name, gs.nations[t.b].display_name])
 	gs.treaty_changed.emit(t, false)
 
 

@@ -1215,6 +1215,7 @@ static func _collapse_nations(gs: Node) -> void:
 		for war in gs.wars_of(tag):
 			war.add_log(Clock.date_string(), "collapse", "%s holds no land: its armies (%dk men) disband." % [
 					n.display_name, roundi(men / 1000.0)])
+		History.note(gs, "collapse", "%s holds no land: its armies (%dk men) disband." % [n.display_name, roundi(men / 1000.0)])
 		gs.nation_collapsed.emit(tag, roundi(men))
 
 

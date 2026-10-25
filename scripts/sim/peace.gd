@@ -335,6 +335,7 @@ static func make_peace(gs: Node, war: War, offer: Dictionary) -> void:
 	war.peace = {"taker": taker, "giver": giver, "terms": terms, "white": terms.is_empty(), "score": score_taker,
 			"forced": offer.forced, "date": Clock.date_string()}
 	war.add_log(Clock.date_string(), "peace", text)
+	History.refine_last(gs, "peace", text)
 	_separate_peace(gs, war)
 
 

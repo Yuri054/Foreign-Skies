@@ -103,5 +103,5 @@ func _test_quiet_world() -> void:
 			calm = false
 	_check(calm and gs.alarms.is_empty() and gs.mobilization_calls.is_empty(), "nobody mobilizes and nobody is alarmed")
 	# A refused crisis leaves a fabricated claim; nothing else should have come up.
-	var other_cb := gs.casus_belli.filter(func(cb: Dictionary) -> bool: return cb.kind != "fabricated_claim")
+	var other_cb: Array = gs.casus_belli.filter(func(cb: Dictionary) -> bool: return cb.kind != "fabricated_claim")
 	_check(other_cb.is_empty() and gs.treaties.size() > 0, "no casus belli but those of refused crises appears, and the treaty web is intact")
