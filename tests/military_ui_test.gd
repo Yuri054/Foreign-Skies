@@ -136,12 +136,12 @@ func _initialize() -> void:
 	_check(screen.visible and screen._title.text == "Battle of Moselle", "clicking the icon opens the battle screen")
 	_check(screen._status.text.begins_with("In progress"), "which says the battle is in progress (%s)" % screen._status.text)
 	_check(screen._sides.get_child_count() == 2, "it shows both sides")
-	_check(screen._men_chart.series.size() == 2 and screen._men_chart.series[0].points.size() >= 3, "the strength chart has a line per side with the days so far")
+	_check(screen._morale_chart.series.size() == 2 and screen._morale_chart.series[0].points.size() >= 3, "the morale chart has a line per side with the days so far")
 	_check(screen._morale_chart.percent and screen._events.item_count >= 1, "morale chart and event list are filled in")
-	var points_before: int = screen._men_chart.series[0].points.size()
+	var points_before: int = screen._morale_chart.series[0].points.size()
 	root.get_node("Clock").advance_day()
 	await process_frame
-	_check(screen._men_chart.series[0].points.size() == points_before + 1, "an open screen follows the battle day by day")
+	_check(screen._morale_chart.series[0].points.size() == points_before + 1, "an open screen follows the battle day by day")
 	var guard := 0
 	while not gs.engagements.is_empty() and guard < 120:
 		root.get_node("Clock").advance_day()

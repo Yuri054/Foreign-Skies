@@ -1,7 +1,6 @@
 extends FloatingWindow
 ## The detailed account of one battle, in progress or finished: both sides' strength, losses,
-## morale, generals, armies and composition; how strength and morale changed day by day; and
-## what happened. Opened by clicking a battle's icon on the map or an entry in the Wars tab
+## morale, generals, armies and composition; how morale changed day by day; and what happened. Opened by clicking a battle's icon on the map or an entry in the Wars tab
 ## of the Military panel. A battle in progress updates every day while the screen is open.
 
 const BattleChart := preload("res://scripts/ui/battle_chart.gd")
@@ -10,7 +9,6 @@ var _battle_id := 0
 var _title := Label.new()
 var _status := Label.new()
 var _sides := HBoxContainer.new()
-var _men_chart := BattleChart.new()
 var _morale_chart := BattleChart.new()
 var _events := ItemList.new()
 var _map_button := Button.new()
@@ -23,7 +21,7 @@ func _ready() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.custom_minimum_size = Vector2(560, 160)
 	add_child(scroll)
-	setup_window("Battle", true, Vector2(800, 620), 0, true, Color(0.45, 0.2, 0.2))
+	setup_window("Battle", true, Vector2(800, 540), 0, true, Color(0.45, 0.2, 0.2))
 	closed.connect(func() -> void: _battle_id = 0)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -42,13 +40,14 @@ func _ready() -> void:
 	_sides.add_theme_constant_override("separation", 14)
 	box.add_child(_sides)
 	box.add_child(HSeparator.new())
-	box.add_child(_men_chart)
 	box.add_child(_morale_chart)
 	var events_title := Label.new()
 	events_title.text = "What happened"
 	box.add_child(events_title)
 	_events.custom_minimum_size = Vector2(0, 110)
 	_events.focus_mode = Control.FOCUS_NONE
+	_events.auto_height = false
+	_events.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_events)
 	var buttons := HBoxContainer.new()
 	_map_button.text = "Show on map"
@@ -137,10 +136,8 @@ func _rebuild_sides(battle: Dictionary) -> void:
 		var left: float = side.men_now if battle.active else side.men_end
 		var morale: float = _final_morale(battle, tag) if not battle.active else side.morale
 		var lines: PackedStringArray = [
-			"Brought %s men" % Fmt.people(start),
-			"%s %s men" % ["Now" if battle.active else "Left with", Fmt.people(left)],
-			"Lost %s (%d%%)" % [Fmt.people(lost), roundi(100.0 * lost / maxf(start, 1.0))],
-			"Morale %d%%" % roundi(morale * 100.0),
+			"%s men of %s %s" % [Fmt.people(left), Fmt.people(start), "now" if battle.active else "left"],
+			"Lost %s (%d%%), morale %d%%" % [Fmt.people(lost), roundi(100.0 * lost / maxf(start, 1.0)), roundi(morale * 100.0)],
 		]
 		if side.defense > 1.0 and battle.active:
 			lines.append("Defence ×%.2f from terrain and trenches" % side.defense)
@@ -151,8 +148,9 @@ func _rebuild_sides(battle: Dictionary) -> void:
 		stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		column.add_child(stats)
 		var comp := Label.new()
-		comp.text = "At the start: %s\n%s: %s" % [_comp_text(side.comp_start),
-				"Now" if battle.active else "At the end", _comp_text(side.comp_now if battle.active else side.comp_end)]
+		var comp_now: String = _comp_text(side.comp_now if battle.active else side.comp_end)
+		var comp_start: String = _comp_text(side.comp_start)
+		comp.text = comp_start if comp_now == comp_start else "At the start: %s\n%s: %s" % [comp_start, "Now" if battle.active else "At the end", comp_now]
 		comp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		comp.modulate = Fmt.DIM
 		column.add_child(comp)
@@ -193,19 +191,14 @@ func _final_morale(battle: Dictionary, tag: String) -> float:
 
 
 func _update_charts(battle: Dictionary) -> void:
-	var men_series := []
 	var morale_series := []
 	for tag: String in _side_order(battle):
 		var color: Color = GameState.nations[tag].color.lightened(0.25)
 		var name: String = GameState.nations[tag].display_name
-		var men_points: Array[Vector2] = [Vector2(0, battle.start_men.get(tag, 0.0))]
 		var morale_points: Array[Vector2] = [Vector2(0, 1.0)]
 		for entry: Dictionary in battle.timeline:
-			men_points.append(Vector2(entry.day, entry.men.get(tag, 0.0)))
 			morale_points.append(Vector2(entry.day, entry.morale.get(tag, 0.0)))
-		men_series.append({"name": name, "color": color, "points": men_points})
 		morale_series.append({"name": name, "color": color, "points": morale_points})
-	_men_chart.set_data("Men fighting", men_series)
 	_morale_chart.set_data("Morale", morale_series, true)
 
 

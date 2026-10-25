@@ -18,7 +18,7 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_headline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_headline.custom_minimum_size = Vector2(360, 0)
+	_headline.custom_minimum_size = Vector2(480, 0)
 	box.add_child(_headline)
 	_table.columns = 4
 	_table.add_theme_constant_override("h_separation", 14)
@@ -28,6 +28,7 @@ func _ready() -> void:
 	title.modulate = Fmt.DIM
 	box.add_child(title)
 	_events.custom_minimum_size = Vector2(0, 130)
+	_events.focus_mode = Control.FOCUS_NONE
 	_events.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_events)
 	_focus.text = "Show on map"
@@ -37,7 +38,7 @@ func _ready() -> void:
 			get_tree().call_group("camera_focus", "focus_on", MapData.sea_zones[_zone].center))
 	box.add_child(_focus)
 	add_child(box)
-	setup_window("Naval battle", true, Vector2(420, 0), 3, true)
+	setup_window("Naval battle", true, Vector2(540, 0), 3, true)
 	GameState.fleets_changed.connect(_refresh)
 
 
