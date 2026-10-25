@@ -733,10 +733,17 @@ func _refresh_crises(me: String, tag: String) -> void:
 		var chance := Crisis.mediation_chance(GameState, c, me)
 		_crisis_button(row, "Mediate (%d)" % int(Crisis.cfg.mediate.cost_points), c.id, "mediate",
 				"Try to bring the two to terms: a %d%% chance, from your standing and the goodwill you hold with both. Success earns prestige and eases tension; failure costs a little prestige." % roundi(chance * 100.0))
-		_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.b].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_b",
-				"Stand behind %s: the demander has to reckon with you, relations with %s improve and with %s worsen." % [GameState.nations[c.b].display_name, GameState.nations[c.b].display_name, GameState.nations[c.a].display_name])
-		_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.a].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_a",
-				"Stand behind %s's demand: its side is stronger, relations with it improve and with %s worsen." % [GameState.nations[c.a].display_name, GameState.nations[c.b].display_name])
+		var backing := Crisis.backs(c, me)
+		if backing != "":
+			var stand := Label.new()
+			stand.text = "You stand behind %s." % GameState.nations[c[backing]].display_name
+			stand.modulate = Fmt.DIM
+			row.add_child(stand)
+		else:
+			_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.b].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_b",
+					"Stand behind %s: the demander has to reckon with you, relations with %s improve and with %s worsen." % [GameState.nations[c.b].display_name, GameState.nations[c.b].display_name, GameState.nations[c.a].display_name])
+			_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.a].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_a",
+					"Stand behind %s's demand: its side is stronger, relations with it improve and with %s worsen." % [GameState.nations[c.a].display_name, GameState.nations[c.b].display_name])
 		_crisis_box.add_child(row)
 
 

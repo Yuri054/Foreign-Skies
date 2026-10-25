@@ -392,10 +392,13 @@ static func _compromise(gs: Node, c: Dictionary, mediator: String) -> void:
 	end(gs, c, "mediated", "%s brings %s and %s to terms: %s." % [_name(gs, mediator), _name(gs, c.a), _name(gs, c.b), terms])
 
 
-## A third nation acts: "mediate", "back_a" or "back_b". Returns false if it cannot.
+## A third nation acts: "mediate", "back_a" or "back_b". Returns false if it cannot (a nation backs one side once, and
+## never both).
 static func act(gs: Node, id: int, tag: String, action: String) -> bool:
 	var c := find(gs, id)
 	if c.is_empty() or tag in [c.a, c.b] or not gs.nations.has(tag) or action not in ["mediate", "back_a", "back_b"]:
+		return false
+	if action != "mediate" and backs(c, tag) != "":
 		return false
 	var cost: float = cfg.mediate.cost_points if action == "mediate" else cfg.back.cost_points
 	if not Diplomacy.can_afford(gs, tag, cost):
@@ -410,9 +413,7 @@ static func act(gs: Node, id: int, tag: String, action: String) -> bool:
 		return true
 	var backed: String = c.a if action == "back_a" else c.b
 	var against: String = c.b if action == "back_a" else c.a
-	var list: Array = c["backers_" + backed_side(c, backed)]
-	if tag not in list:
-		list.append(tag)
+	c["backers_" + backed_side(c, backed)].append(tag)
 	Diplomacy.change_relation(gs, tag, backed, float(cfg.back.relation))
 	Diplomacy.change_relation(gs, tag, against, float(cfg.back.against_relation))
 	gs.tension_impulse += float(cfg.back.tension)
@@ -422,6 +423,15 @@ static func act(gs: Node, id: int, tag: String, action: String) -> bool:
 
 static func backed_side(c: Dictionary, tag: String) -> String:
 	return "a" if tag == c.a else "b"
+
+
+## The side `tag` already backs in a crisis ("a" or "b"), or "" if neither.
+static func backs(c: Dictionary, tag: String) -> String:
+	if tag in c.backers_a:
+		return "a"
+	if tag in c.backers_b:
+		return "b"
+	return ""
 
 
 ## Files a crisis as ended.

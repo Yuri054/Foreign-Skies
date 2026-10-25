@@ -13,7 +13,8 @@ You need [Godot 4.7.2](https://godotengine.org/) (the project is set to 4.7, GL 
 
 1. Open the project folder in Godot and press F5, or run `godot --path .` from this folder.
 2. The first launch imports the map images; wait for it to finish.
-3. On the main menu choose **New game** and a scenario (January 1900 or July 1914), or **Tutorial**, a guided intro in 1900; then a nation.
+3. On the main menu choose **New game**, a scenario (January 1900 or July 1914) and a difficulty, or **Tutorial**, a guided intro in 1900; then a nation.
+   The difficulty (Historical, Challenging or Sandbox) only changes how the AI nations and the crisis generator behave, never what the rules give anyone; it is saved with the game.
 
 Saves and settings are written to Godot's user folder (`user://saves/`, `user://settings.cfg`).
 
@@ -28,7 +29,7 @@ Saves and settings are written to Godot's user folder (`user://saves/`, `user://
 | Space, `-` `+` | Pause, change speed (five speeds) |
 | 1 to 6 | Map modes (political, diplomacy, economy, population, military with its sea control and blockade variants, terrain) |
 | C | Show or hide the command panel (armies and fleets as cards along the bottom) |
-| N | The Nation screen, on its Overview. Its tabs have their own letters: E Economy, B Build, M Military, Y Navy, F Diplomacy, O Focus, R Rankings (a letter opens the screen on that tab and, pressed again, closes it) |
+| N | The Nation screen, on its Overview. Its tabs have their own letters: E Economy, B Build, M Military, Y Navy, F Diplomacy, O Focus, R Rankings, H History (a letter opens the screen on that tab and, pressed again, closes it) |
 | V | Switch the 3D map on or off. Page Up and Page Down tilt it, `[` and `]` turn it, Home resets; Settings has the 3D map's quality |
 | F5, Shift+F5, F6 | Quick save, quick load, save and load window |
 | F10, Ctrl and `+` `-` | Settings, UI scale |
