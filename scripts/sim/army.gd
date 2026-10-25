@@ -69,7 +69,7 @@ func power() -> float:
 	for u in units:
 		total += u.power()
 	var landing: float = Military.cfg.landing.power_mult if landing_days > 0 else 1.0
-	return total * general_skill * Military.marshal_mult(self) * landing * Military.quality_mult(tag)
+	return total * general_skill * Military.marshal_mult(self) * landing
 
 
 ## Mean morale, weighted by men.

@@ -77,6 +77,13 @@ static func urge(gs: Node, tag: String, war: War) -> float:
 
 ## Whether an AI nation (the offer's target) takes the deal.
 static func accepts(gs: Node, offer: Dictionary) -> bool:
+	var previous := AI.enter(offer.to)
+	var answer := _accepts(gs, offer)
+	AI.leave(previous)
+	return answer
+
+
+static func _accepts(gs: Node, offer: Dictionary) -> bool:
 	var war: War = gs.war_between(offer.from, offer.to)
 	if war == null:
 		return false
@@ -139,6 +146,13 @@ static func overtures(gs: Node) -> void:
 
 ## What `tag` would propose in this war: {mode, demands}, or {} for nothing.
 static func proposal(gs: Node, tag: String, war: War) -> Dictionary:
+	var previous := AI.enter(tag)
+	var out := _proposal(gs, tag, war)
+	AI.leave(previous)
+	return out
+
+
+static func _proposal(gs: Node, tag: String, war: War) -> Dictionary:
 	var c := cfg()
 	var enemy := war.other(tag)
 	var score := Peace.war_score(gs, war, tag)

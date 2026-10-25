@@ -389,7 +389,7 @@ static func _in_theatre(theatre: Dictionary, f: Fleet) -> bool:
 
 static func _station(gs: Node, tag: String, mem: Dictionary) -> void:
 	var c := cfg()
-	var odds := AI.required_odds(gs, tag)
+	var odds := AI.battle_odds(gs, tag)
 	var enemies_at := enemy_map(gs, tag)
 	var t := targets(gs, tag, enemies_at)
 	var zones: Array = t.importance.keys()

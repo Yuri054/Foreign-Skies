@@ -114,7 +114,7 @@ static func _resistance(gs: Node, tag: String, target: int) -> float:
 ## The odds the nation wants before it attacks this enemy: its temperament's, less what an offensive plan against
 ## the enemy asks it to risk (`plan_odds_factor`).
 static func odds_against(gs: Node, tag: String, enemy: String) -> float:
-	var odds := AI.required_odds(gs, tag)
+	var odds := AI.battle_odds(gs, tag)
 	for plan: Dictionary in gs.ai_plans:
 		if plan.nation == tag and plan.enemy == enemy and plan.posture == "offensive":
 			return odds * float(AI.cfg.offense.plan_odds_factor)

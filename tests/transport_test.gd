@@ -149,7 +149,7 @@ func _test_crossing() -> void:
 	var full := 0.0
 	for u in a.units:
 		full += u.power()
-	_check(is_equal_approx(a.power(), full * a.general_skill * Mil.quality_mult(a.tag)), "the penalty ends")
+	_check(is_equal_approx(a.power(), full * a.general_skill), "the penalty ends")
 	# Landing in friendly territory is no assault.
 	_reset()
 	var f2 = _convoy("GBR", PORTSMOUTH, 2)

@@ -120,7 +120,7 @@ static func _start(gs: Node, tag: String) -> Variant:
 			gs.ai_navy_need[tag] = "transport"
 		return null
 	gs.ai_navy_need.erase(tag)
-	var odds := AI.required_odds(gs, tag)
+	var odds := AI.battle_odds(gs, tag)
 	var enemies_at := AINavy.enemy_map(gs, tag)
 	var own_navy := 0.0
 	for f in Navy.fleets_of(gs, tag):

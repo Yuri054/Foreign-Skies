@@ -89,7 +89,10 @@ static func join_value(gs: Node, d: Dictionary) -> float:
 
 
 static func joins(gs: Node, d: Dictionary) -> bool:
-	return join_value(gs, d) >= float(cfg().join.threshold)
+	var previous := AI.enter(d.tag)
+	var yes := join_value(gs, d) >= float(cfg().join.threshold)
+	AI.leave(previous)
+	return yes
 
 
 # --- Declaring war ---------------------------------------------------------------------------

@@ -11,6 +11,25 @@ extends RefCounted
 const CONFIG_PATH := "res://data/ai.json"
 
 static var cfg: Dictionary = {}
+## Parameter sets of single nations (tag -> a complete copy of the config): used when AIs are trained and tried
+## against each other, so that one nation can play by other numbers than the rest. A nation with none uses `cfg`.
+static var overrides: Dictionary = {}
+static var _base: Dictionary = {}
+
+
+## Makes `cfg` the nation's own parameters and returns what it was, for `leave`. Everything the AI does for a nation
+## (its turn, its answers to peace offers and calls to arms) runs between the two.
+static func enter(tag: String) -> Dictionary:
+	var previous := cfg
+	if overrides.has(tag):
+		if _base.is_empty():
+			_base = cfg
+		cfg = overrides[tag]
+	return previous
+
+
+static func leave(previous: Dictionary) -> void:
+	cfg = previous
 
 
 static func load_config() -> void:
@@ -22,12 +41,11 @@ static func load_config() -> void:
 
 # --- Setup ---------------------------------------------------------------------------------
 
-## Reads and checks `ai_traits` and `ai_plans` from the scenario. Called by
+## Reads and checks `ai_traits` from the scenario. Called by
 ## GameState.load_scenario once the nations exist.
 ##
 ## ai_traits: {tag: {aggression, caution}}, any key may be left out (the default fills in).
-## ai_plans: [{nation, enemy, posture: "offensive" | "defensive", objectives: [{province, weight}]}]
-## where `province` is a province name; it is stored as an id.
+## (The plans in GameState.ai_plans are the AI's own: AIAmbition makes them as it picks its targets.)
 static func load_scenario(gs: Node) -> void:
 	gs.ai_traits.clear()
 	gs.ai_plans.clear()
@@ -58,17 +76,6 @@ static func load_scenario(gs: Node) -> void:
 			assert(v >= 0.0 and v <= 1.0, "ai_traits %s.%s must be between 0 and 1" % [tag, key])
 			traits[key] = v
 		gs.ai_traits[tag] = traits
-	for entry: Dictionary in s.get("ai_plans", []):
-		assert(gs.nations.has(entry.nation) and gs.nations.has(entry.enemy), "ai_plans names an unknown nation: %s against %s" % [entry.nation, entry.enemy])
-		assert(entry.nation != entry.enemy, "ai_plans: %s cannot plan against itself" % entry.nation)
-		var posture: String = entry.get("posture", "offensive")
-		assert(posture in ["offensive", "defensive"], "ai_plans: unknown posture %s" % posture)
-		var objectives: Array[Dictionary] = []
-		for o: Dictionary in entry.get("objectives", []):
-			var id := province_named(o.province)
-			assert(id > 0, "ai_plans: %s against %s names an unknown province: %s" % [entry.nation, entry.enemy, o.province])
-			objectives.append({"province": id, "weight": float(o.get("weight", 1.0))})
-		gs.ai_plans.append({"nation": entry.nation, "enemy": entry.enemy, "posture": posture, "objectives": objectives})
 
 
 ## The id of the province with this name, or 0 if there is none.
@@ -146,6 +153,12 @@ static func step_day(gs: Node) -> void:
 ## One nation's turn: the war (defence, offence, recruiting) when it is at war, and always
 ## diplomacy and the budget.
 static func think(gs: Node, tag: String) -> void:
+	var previous := enter(tag)
+	_think(gs, tag)
+	leave(previous)
+
+
+static func _think(gs: Node, tag: String) -> void:
 	if not gs.wars_of(tag).is_empty():
 		_timed("defence", func() -> void: AIDefense.step(gs, tag))
 		_timed("offence", func() -> void: AIOffense.step(gs, tag))
@@ -283,6 +296,14 @@ static func required_odds(gs: Node, tag: String) -> float:
 	var t: Dictionary = temperament(gs, tag)
 	var boldness := clampf((float(t.aggression) + 1.0 - float(t.caution)) / 2.0, 0.0, 1.0)
 	return lerpf(float(cfg.odds.cautious), float(cfg.odds.bold), boldness)
+
+
+## The odds a nation wants before it fights a battle it chooses (an advance, a retaking, a landing, a sortie): like
+## required_odds but with its own numbers, so that how it fights can be tuned apart from how readily it goes to war.
+static func battle_odds(gs: Node, tag: String) -> float:
+	var t: Dictionary = temperament(gs, tag)
+	var boldness := clampf((float(t.aggression) + 1.0 - float(t.caution)) / 2.0, 0.0, 1.0)
+	return lerpf(float(cfg.offense.odds_cautious), float(cfg.offense.odds_bold), boldness)
 
 
 ## Whether an army of `tag` standing in the province could draw supply there.

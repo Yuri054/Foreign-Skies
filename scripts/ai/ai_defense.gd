@@ -296,7 +296,7 @@ static func _km_to_line(a: Army, f: Front) -> float:
 ## them in step beats the defenders by the odds the nation's temperament asks for. At most
 ## one province a turn.
 static func _retake(gs: Node, tag: String) -> void:
-	var odds := AI.required_odds(gs, tag)
+	var odds := AI.battle_odds(gs, tag)
 	var targets: Array[int] = []
 	for p: int in gs.nations[tag].provinces:
 		var holder: String = gs.province_controller[p]

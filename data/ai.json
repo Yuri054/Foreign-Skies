@@ -10,8 +10,8 @@
 	},
 	"odds": {
 		"_note": "Attacker power over defender power wanted before an advance: the bold (aggression 1, caution 0) ask for `bold`, the cautious (aggression 0, caution 1) for `cautious`.",
-		"bold": 1.0,
-		"cautious": 1.6
+		"bold": 1.2,
+		"cautious": 2.0
 	},
 	"value": {
 		"_note": "AI.value of a province: its share of the owner's people and of its output (GDP plus industry), with a bonus when it is the capital.",
@@ -45,7 +45,7 @@
 		"settle_days": 10
 	},
 	"offense": {
-		"_note": "max_share: share of a nation's power an aggression of 1 puts on offence. Target utility = w_plan * plan weight + w_value * AI.value + w_score * war score share + w_margin * (power over required odds, up to 2) - w_days * days to arrive - w_supply * supply hops; a target below min_utility is not attacked. retry_days: wait after finding nothing to attack. gather_days: give up if the force is not ready by then. fall_back_morale (scaled by 0.5 + caution) and fall_back_ratio (own power over the enemy's around the target): below them the stack falls back. plan_hops: how far an objective's weight reaches. reach_hops: armies this near may be sent, and reinforce_weight: the share of the power of enemy armies within support_hops that counts against an attack. max_campaigns: campaigns run at once, against different enemies. plan_odds_factor: an offensive plan against an enemy lowers the odds wanted against it to this share. gather_eta_share: only armies that can reach the staging province within this share of gather_days are picked. front_keep: an army may leave its front for an offence while the armies that stay keep this share of the power the front had.",
+		"_note": "max_share: share of a nation's power an aggression of 1 puts on offence. Target utility = w_plan * plan weight + w_value * AI.value + w_score * war score share + w_margin * (power over required odds, up to 2) - w_days * days to arrive - w_supply * supply hops; a target below min_utility is not attacked. retry_days: wait after finding nothing to attack. gather_days: give up if the force is not ready by then. fall_back_morale (scaled by 0.5 + caution) and fall_back_ratio (own power over the enemy's around the target): below them the stack falls back. plan_hops: how far an objective's weight reaches. reach_hops: armies this near may be sent, and reinforce_weight: the share of the power of enemy armies within support_hops that counts against an attack. odds_bold and odds_cautious: the odds wanted before a chosen battle (like `odds`, but for fighting only). max_campaigns: campaigns run at once, against different enemies. plan_odds_factor: an offensive plan against an enemy lowers the odds wanted against it to this share. gather_eta_share: only armies that can reach the staging province within this share of gather_days are picked. front_keep: an army may leave its front for an offence while the armies that stay keep this share of the power the front had.",
 		"max_share": 1.0,
 		"w_plan": 3.0,
 		"w_value": 2.0,
@@ -54,6 +54,8 @@
 		"w_days": 0.05,
 		"w_supply": 0.2,
 		"min_utility": 0.0,
+		"odds_bold": 1.0,
+		"odds_cautious": 1.6,
 		"max_campaigns": 3,
 		"plan_odds_factor": 0.7,
 		"gather_eta_share": 0.8,

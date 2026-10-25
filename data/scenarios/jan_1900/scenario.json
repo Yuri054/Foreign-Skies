@@ -50,7 +50,6 @@
 	},
 	"nations": {
 		"GBR": {
-			"army_quality": 1.08,
 			"pop_growth": 0.009,
 			"war_support": 55,
 			"capital": 314,
@@ -62,7 +61,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"FRA": {
-			"army_quality": 1.0,
 			"pop_growth": 0.002,
 			"war_support": 65,
 			"capital": 233,
@@ -74,7 +72,6 @@
 			"government": "republic"
 		},
 		"GER": {
-			"army_quality": 1.2,
 			"pop_growth": 0.012,
 			"war_support": 70,
 			"capital": 368,
@@ -86,7 +83,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"BEL": {
-			"army_quality": 0.95,
 			"pop_growth": 0.009,
 			"war_support": 70,
 			"capital": 83,
@@ -128,7 +124,6 @@
 			"government": "republic"
 		},
 		"ITA": {
-			"army_quality": 0.92,
 			"pop_growth": 0.007,
 			"war_support": 40,
 			"capital": 493,
@@ -170,7 +165,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"AUH": {
-			"army_quality": 0.9,
 			"pop_growth": 0.009,
 			"war_support": 60,
 			"capital": 72,
@@ -205,7 +199,6 @@
 			"pop_growth": 0.0
 		},
 		"BUL": {
-			"army_quality": 1.0,
 			"pop_growth": 0.013,
 			"capital": 625,
 			"development": 0.541,
@@ -216,7 +209,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"GRE": {
-			"army_quality": 0.9,
 			"pop_growth": 0.01,
 			"capital": 638,
 			"development": 0.617,
@@ -237,7 +229,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"OTT": {
-			"army_quality": 0.8,
 			"pop_growth": 0.008,
 			"capital": 659,
 			"development": 0.387,
@@ -248,7 +239,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"ROM": {
-			"army_quality": 0.9,
 			"pop_growth": 0.014,
 			"capital": 667,
 			"development": 0.554,
@@ -259,7 +249,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"SRB": {
-			"army_quality": 1.05,
 			"pop_growth": 0.012,
 			"war_support": 75,
 			"capital": 689,
@@ -271,7 +260,6 @@
 			"government": "constitutional_monarchy"
 		},
 		"RUS": {
-			"army_quality": 0.9,
 			"pop_growth": 0.015,
 			"war_support": 55,
 			"capital": 831,
@@ -971,131 +959,6 @@
 	"passage": [],
 	"nap": [],
 	"ai_traits": {},
-	"ai_plans": [],
-	"relations": [
-		{
-			"a": "GER",
-			"b": "FRA",
-			"value": -40
-		},
-		{
-			"a": "GBR",
-			"b": "FRA",
-			"value": -15,
-			"note": "Fashoda, 1898"
-		},
-		{
-			"a": "GBR",
-			"b": "RUS",
-			"value": -30,
-			"note": "The Great Game"
-		},
-		{
-			"a": "GBR",
-			"b": "GER",
-			"value": 5
-		},
-		{
-			"a": "RUS",
-			"b": "AUH",
-			"value": -35,
-			"note": "Rivals in the Balkans"
-		},
-		{
-			"a": "RUS",
-			"b": "GER",
-			"value": -5
-		},
-		{
-			"a": "ITA",
-			"b": "AUH",
-			"value": -20,
-			"note": "Italia irredenta"
-		},
-		{
-			"a": "ITA",
-			"b": "FRA",
-			"value": 5
-		},
-		{
-			"a": "GBR",
-			"b": "OTT",
-			"value": -5
-		},
-		{
-			"a": "OTT",
-			"b": "RUS",
-			"value": -45
-		},
-		{
-			"a": "OTT",
-			"b": "GER",
-			"value": 20
-		},
-		{
-			"a": "GRE",
-			"b": "OTT",
-			"value": -40
-		},
-		{
-			"a": "SRB",
-			"b": "AUH",
-			"value": -25
-		},
-		{
-			"a": "SRB",
-			"b": "OTT",
-			"value": -25
-		},
-		{
-			"a": "BUL",
-			"b": "OTT",
-			"value": -30
-		},
-		{
-			"a": "BUL",
-			"b": "SRB",
-			"value": -20
-		},
-		{
-			"a": "NOR",
-			"b": "SWE",
-			"value": 25,
-			"note": "Joined in a union under one king"
-		},
-		{
-			"a": "SWE",
-			"b": "RUS",
-			"value": -30
-		},
-		{
-			"a": "DEN",
-			"b": "GER",
-			"value": -20,
-			"note": "Schleswig"
-		},
-		{
-			"a": "BEL",
-			"b": "GBR",
-			"value": 25
-		},
-		{
-			"a": "BEL",
-			"b": "FRA",
-			"value": 15
-		},
-		{
-			"a": "NED",
-			"b": "GBR",
-			"value": 10,
-			"note": "The Boer War"
-		},
-		{
-			"a": "ESP",
-			"b": "FRA",
-			"value": 5
-		}
-	],
 	"claims": [
 		{
 			"holder": "FRA",

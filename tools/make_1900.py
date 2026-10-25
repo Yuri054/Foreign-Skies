@@ -110,7 +110,7 @@ out = {
         {"a": "GBR", "b": "POR", "terms": {"defensive_only": True}, "note": "Anglo-Portuguese Alliance, 1373"},
     ],
     "passage": [], "nap": [],
-    "ai_traits": {}, "ai_plans": [],
+    "ai_traits": {},
     "relations": [
         {"a": "GER", "b": "FRA", "value": -40}, {"a": "GBR", "b": "FRA", "value": -15, "note": "Fashoda, 1898"},
         {"a": "GBR", "b": "RUS", "value": -30, "note": "The Great Game"}, {"a": "GBR", "b": "GER", "value": 5},
