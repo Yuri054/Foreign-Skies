@@ -251,10 +251,8 @@ static func consider_justify(gs: Node, tag: String) -> void:
 	var temperament: Dictionary = AI.temperament(gs, tag)
 	if float(temperament.aggression) < float(w.unjustified_min_aggression):
 		return
-	var cost := Diplomacy.justify_cost(gs, tag) + Diplomacy.cost_of("declare_war", "fabricated_claim")
-	if not Diplomacy.can_afford(gs, tag, cost):
-		return
 	var best := ""
+	var best_goal := {}
 	var best_desire := -INF
 	for target in Diplomacy.neighbor_nations(gs, tag):
 		if Diplomacy.justify_block(gs, tag, target) != "" or in_truce(gs, tag, target) or not has_plan(gs, tag, target):
@@ -265,11 +263,40 @@ static func consider_justify(gs: Node, tag: String) -> void:
 		var desire := war_desire(gs, tag, target, false)
 		if desire < float(w.min_motive) or odds_against(gs, tag, target) < AI.required_odds(gs, tag) * float(w.odds_margin):
 			continue
+		var goal := choose_goal(gs, tag, target)
+		var cost := Diplomacy.justify_cost(gs, tag, goal) + Diplomacy.cost_of("declare_war", "fabricated_claim")
+		if goal.is_empty() or not Diplomacy.can_afford(gs, tag, cost):
+			continue
 		if desire > best_desire:
 			best = target
+			best_goal = goal
 			best_desire = desire
 	if best != "":
-		gs.issue_quiet(JustifyWar.new(tag, best))
+		gs.issue_quiet(JustifyWar.new(tag, best, best_goal))
+
+
+## What `tag` would fight `target` for: the provinces its campaign plans aim at, else the
+## richest of the target's provinces on its border, else (with no border to take) an indemnity.
+static func choose_goal(gs: Node, tag: String, target: String) -> Dictionary:
+	var limit: int = mini(int(WarGoal.cfg().max_provinces), 3)
+	var wanted := {}
+	for plan: Dictionary in gs.ai_plans:
+		if plan.nation == tag and plan.enemy == target:
+			for o: Dictionary in plan.objectives:
+				if gs.province_owner[o.province] == target:
+					wanted[o.province] = o.weight
+	if wanted.is_empty():
+		for id: int in gs.nations[target].provinces:
+			for n: int in Military.neighbors(id):
+				if gs.province_owner[n] == tag:
+					wanted[id] = Peace.province_share(gs, id, target)
+					break
+	if not wanted.is_empty():
+		var ids: Array = wanted.keys()
+		ids.sort_custom(func(x: int, y: int) -> bool: return wanted[x] > wanted[y] or (wanted[x] == wanted[y] and x < y))
+		return WarGoal.provinces_goal(ids.slice(0, limit))
+	var c: Dictionary = WarGoal.cfg().concession
+	return WarGoal.concession_goal({"kind": "indemnity", "share": c.indemnity_share, "months": c.indemnity_months})
 
 
 # --- Treaties and relations ----------------------------------------------------------------------
@@ -282,7 +309,13 @@ static func neediness(gs: Node, tag: String) -> float:
 	for other in Diplomacy.neighbor_nations(gs, tag):
 		if Diplomacy.relation(gs, other, tag) < float(cfg().treaties.rival_relation):
 			worst = maxf(worst, side_power(gs, _side(gs, other)) / mine)
-	return clampf(worst, 0.0, 2.0) / 2.0
+	var need := clampf(worst, 0.0, 2.0) / 2.0
+	# A case being built against it makes a nation look for friends, whatever its neighbours' strength.
+	for j: Dictionary in gs.justifications:
+		if j.target == tag:
+			need = maxf(need, 0.8)
+			break
+	return need
 
 
 static func _same_bloc(gs: Node, a: String, b: String) -> bool:

@@ -23,6 +23,8 @@ signal blockade_changed(tag: String, value: float)
 signal focus_changed(tag: String)
 signal focus_completed(tag: String, id: String)
 signal casus_belli_ready(holder: String, target: String)
+## A nation began building a case for a war: the goal (see WarGoal) and who was told (the target, its allies and guarantors).
+signal justification_started(holder: String, target: String, goal: Dictionary, told: Array)
 signal ship_built(tag: String, province: int, type: String)
 signal war_changed(a: String, b: String, at_war: bool)
 ## A nation lost its last province and its armies broke up.
@@ -198,7 +200,7 @@ var standings_history: Array[Dictionary] = []
 var relation_projects: Array[Dictionary] = []
 ## Money each nation has recently gifted another, "from>to": {amount}; fades monthly (see Diplomacy.gift_effect).
 var gift_memory: Dictionary = {}
-## War justifications under way: {holder, target, done_day}.
+## War justifications under way: {holder, target, goal, done_day}.
 var justifications: Array[Dictionary] = []
 ## Every command issued so far, in order.
 var command_log: Array[Dictionary] = []

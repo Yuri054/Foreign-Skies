@@ -383,10 +383,10 @@ static func cost_of(action: String, detail := "") -> float:
 
 
 ## What a war justification costs `tag`: the base price, less what its prestige buys.
-static func justify_cost(gs: Node, tag: String) -> float:
+static func justify_cost(gs: Node, tag: String, goal := {}) -> float:
 	var u: Dictionary = cfg.points.prestige_uses
 	var cut := clampf(gs.nations[tag].prestige * float(u.justify_discount), -float(u.justify_discount_max), float(u.justify_discount_max))
-	return cost_of("justify") * (1.0 - cut)
+	return cost_of("justify") * (1.0 - cut) * (WarGoal.cost_mult(goal) if not goal.is_empty() else 1.0)
 
 
 ## How much a nation's prestige adds to the regard others have of it when it offers a treaty.
@@ -717,6 +717,7 @@ static func declare_war(gs: Node, a: String, b: String, cb := "none", group := 0
 		return false
 	var rules: Dictionary = cfg.war.casus_belli[cb]
 	gs.set_war(a, b, true, cb, group)
+	gs.war_between(a, b).goal = WarGoal.for_declaration(gs, a, b, cb)
 	var conflict: Dictionary = _open_group(gs, a, b, gs.war_between(a, b).war_group)
 	# A dated casus belli is used up.
 	for held: Dictionary in gs.casus_belli.duplicate():
@@ -830,12 +831,24 @@ static func justifications_of(gs: Node, a: String) -> Array[Dictionary]:
 	return out
 
 
-## Starts the work (points are charged by JustifyWar).
-static func start_justification(gs: Node, a: String, b: String) -> bool:
+## Starts the work (points are charged by JustifyWar). `goal` is what the war will be for (see
+## WarGoal; {} for a bare fabricated claim). The target and its friends hear of it at once.
+static func start_justification(gs: Node, a: String, b: String, goal := {}) -> bool:
 	if justify_block(gs, a, b) != "":
 		return false
-	gs.justifications.append({"holder": a, "target": b, "done_day": Clock.days_elapsed + int(cfg.war.justify.days)})
-	add_grievance(gs, b, a, cfg.war.justify.grievance)
+	if not goal.is_empty() and WarGoal.invalid(gs, a, b, goal) != "":
+		return false
+	var work_days: int = WarGoal.days(goal) if not goal.is_empty() else int(cfg.war.justify.days)
+	gs.justifications.append({"holder": a, "target": b, "goal": goal.duplicate(true), "done_day": Clock.days_elapsed + work_days})
+	add_grievance(gs, b, a, WarGoal.grievance(goal) if not goal.is_empty() else float(cfg.war.justify.grievance))
+	var notice: float = WarGoal.cfg().notice_relations
+	var told: Array[String] = [b]
+	for ward in allies_of(gs, b) + guarantors_of(gs, b):
+		if ward != a and ward not in told:
+			told.append(ward)
+	for tag in told:
+		change_relation(gs, tag, a, notice)
+	gs.justification_started.emit(a, b, goal, told)
 	return true
 
 
@@ -851,7 +864,7 @@ static func _step_justifications(gs: Node) -> void:
 			gs.justifications.remove_at(i)
 		elif today >= j.done_day:
 			gs.justifications.remove_at(i)
-			gs.casus_belli.append({"holder": j.holder, "target": j.target, "kind": "fabricated_claim", "expires_day": today + int(cfg.war.cb_years * 365)})
+			gs.casus_belli.append({"holder": j.holder, "target": j.target, "kind": "fabricated_claim", "goal": j.get("goal", {}), "expires_day": today + int(cfg.war.cb_years * 365)})
 			gs.casus_belli_ready.emit(j.holder, j.target)
 
 

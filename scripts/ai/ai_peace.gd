@@ -24,6 +24,10 @@ static func cfg() -> Dictionary:
 ## The war aims of `tag` against `enemy` that it has met, 0 to 1 by plan weight (1 if it has
 ## no plan: the general rule has no aims beyond the score).
 static func aims_met(gs: Node, tag: String, enemy: String) -> float:
+	var war: War = gs.war_between(tag, enemy)
+	# A stated war goal is the aim of the war for the nation that declared it.
+	if war != null and war.a == tag and not war.goal.is_empty():
+		return WarGoal.progress(gs, war)
 	var total := 0.0
 	var met := 0.0
 	for plan: Dictionary in gs.ai_plans:
@@ -178,6 +182,11 @@ static func price_terms(gs: Node, taker: String, giver: String, war: War) -> Arr
 		if plan.nation == taker and plan.enemy == giver:
 			for o: Dictionary in plan.objectives:
 				aims[o.province] = o.weight
+	# The goal of the war comes first, ahead of every plan.
+	var goal: Dictionary = war.goal if war.a == taker else {}
+	if not goal.is_empty() and goal.has("ids"):
+		for id: int in goal.ids:
+			aims[id] = 1000.0
 	var held: Array = []
 	for id: int in gs.nations[giver].provinces:
 		if gs.province_controller[id] == taker:
@@ -192,26 +201,35 @@ static func price_terms(gs: Node, taker: String, giver: String, war: War) -> Arr
 		return px > py or (px == py and x < y))
 	var ids: Array = []
 	var spent := 0.0
+	var terms: Array = []
+	# A concession goal is the first term asked.
+	if not goal.is_empty() and goal.kind == "concession":
+		var cost := Peace.demand_cost(gs, taker, giver, goal.demand)
+		if cost >= 0.0 and cost <= budget and (goal.demand.kind != "indemnity" or _affordable(gs, giver, [goal.demand])):
+			terms.append(goal.demand.duplicate(true))
+			spent += cost
 	for id: int in held:
-		var price := Peace.province_price(gs, id, taker, giver)
+		var price := Peace.province_price(gs, id, taker, giver) * WarGoal.price_factor(war, taker, {"kind": "province"}, id)
 		if spent + price <= budget:
 			ids.append(id)
 			spent += price
-	var terms: Array = []
 	if not ids.is_empty():
 		terms.append({"kind": "province", "ids": ids})
 	var ind := indemnity_for(gs, taker, giver, budget - spent)
-	if not ind.is_empty() and not ids.is_empty():
+	var has_indemnity := false
+	for t: Dictionary in terms:
+		has_indemnity = has_indemnity or t.kind == "indemnity"
+	if not ind.is_empty() and not has_indemnity and (not ids.is_empty() or not terms.is_empty()):
 		terms.append(ind)
 	return terms
 
 
-## An indemnity worth up to `left` of war score that the giver can carry, as a demand ({} if none fits).
 static func indemnity_for(gs: Node, taker: String, giver: String, left: float) -> Dictionary:
 	var c := cfg()
 	var per_year: float = Diplomacy.cfg.peace.price.indemnity_points_per_year
 	var months := int(c.indemnity_months)
-	var share := minf(float(c.indemnity_max_share), left / (per_year * months / 12.0))
+	var factor := WarGoal.price_factor(gs.war_between(taker, giver), taker, {"kind": "indemnity"})
+	var share := minf(float(c.indemnity_max_share), left / (per_year * months / 12.0 * factor))
 	if share < 0.01:
 		return {}
 	var ind := {"kind": "indemnity", "share": snappedf(share, 0.01), "months": months}

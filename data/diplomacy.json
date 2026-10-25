@@ -97,6 +97,18 @@
 			}
 		},
 		"cb_years": 5,
+		"goals": {
+			"_note": "War goals (scripts/sim/war_goal.gd). A war has a goal for its aggressor: a province claim (justified: the provinces are named), a concession (justified: an indemnity, a border disarmament or an end to the target's ties with a named nation), or a national claim (from a scenario claim, no justification needed). Defending a guarantee or an ally is the 'defence' goal. At peace the aggressor pays `discount` times the price for what matches its goal and `premium` times for everything else; a war declared with no casus belli at all pays `none_premium` for every term. justify cost is war.justify cost times cost_mult (plus cost_per_province for each province named after the first); days is how long the work takes. met_score is the war score at which a concession goal counts as met. notice_relations is what the target (and its allies and guarantors) think less of the nation building the case, at once.",
+			"discount": 0.5,
+			"premium": 1.5,
+			"none_premium": 1.3,
+			"max_provinces": 6,
+			"notice_relations": -5,
+			"provinces": {"label": "Province claim", "days": 90, "cost_mult": 1.0, "cost_per_province": 0.15, "grievance": 8},
+			"concession": {"label": "Concession", "days": 60, "cost_mult": 0.7, "grievance": 5, "met_score": 12, "indemnity_share": 0.15, "indemnity_months": 24, "disarm_years": 3},
+			"nationality": {"label": "National claim"},
+			"defence": {"label": "Defence", "met_score": 0}
+		},
 		"provocation": {
 			"grievance_on_unprovoked_war": 40,
 			"grievance_decay_per_month": 2,

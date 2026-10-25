@@ -110,6 +110,8 @@ static func province_price(gs: Node, id: int, taker: String, giver: String) -> f
 ## What one demand costs the taker in score, or -1 if it cannot be made.
 static func demand_cost(gs: Node, taker: String, giver: String, d: Dictionary) -> float:
 	var p: Dictionary = cfg().price
+	var war: War = gs.war_between(taker, giver)
+	var f := WarGoal.price_factor(war, taker, d)
 	match d.get("kind", ""):
 		"province":
 			var ids: Array = d.get("ids", [])
@@ -119,24 +121,24 @@ static func demand_cost(gs: Node, taker: String, giver: String, d: Dictionary) -
 			for id: int in ids:
 				if id < 1 or id >= gs.province_owner.size() or gs.province_owner[id] != giver:
 					return -1.0
-				total += province_price(gs, id, taker, giver)
+				total += province_price(gs, id, taker, giver) * WarGoal.price_factor(war, taker, d, id)
 			return total
 		"indemnity":
 			var share: float = d.get("share", 0.0)
 			var months: int = d.get("months", 0)
 			if share <= 0.0 or share > p.max_share or months < 1 or months > p.max_months:
 				return -1.0
-			return p.indemnity_points_per_year * share * months / 12.0
+			return p.indemnity_points_per_year * share * months / 12.0 * f
 		"release_ally":
 			var other: String = d.get("nation", "")
 			if not gs.nations.has(other) or other == taker or other == giver or _release_treaties(gs, giver, other).is_empty():
 				return -1.0
-			return p.release_ally
+			return p.release_ally * f
 		"disarm_border":
 			var years: int = d.get("years", 0)
 			if years < 1 or years > p.disarm_years_max or Military.border_provinces(gs, giver, taker).is_empty():
 				return -1.0
-			return p.disarm_border_per_year * years
+			return p.disarm_border_per_year * years * f
 	return -1.0
 
 

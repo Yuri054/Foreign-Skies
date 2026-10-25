@@ -18,6 +18,8 @@ var battle_points: Dictionary = {}
 ## How the war ended, if by an accepted peace: {taker, giver, terms, white, score, forced, date}.
 var peace: Dictionary = {}
 var casus_belli := ""
+## What `a` fights for (see WarGoal); empty when it has no stated goal.
+var goal: Dictionary = {}
 var war_group := 0
 var start_day := 0
 ## The day of the last battle between the two sides (-1: none yet): a war nobody fights goes stale (see AIPeace).
