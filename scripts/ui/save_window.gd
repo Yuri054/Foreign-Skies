@@ -25,6 +25,7 @@ func _ready() -> void:
 	row.add_child(_name_edit)
 	var save := Button.new()
 	save.text = "Save"
+	save.tooltip_text = "Saves the game under the name typed (the same name overwrites)."
 	save.focus_mode = Control.FOCUS_NONE
 	save.pressed.connect(_save_named)
 	row.add_child(save)
@@ -108,12 +109,14 @@ func _row(s: Dictionary) -> Control:
 	row.add_child(label)
 	var load_button := Button.new()
 	load_button.text = "Load"
+	load_button.tooltip_text = "Replaces the game now running with this save."
 	load_button.disabled = head.has("error")
 	load_button.focus_mode = Control.FOCUS_NONE
 	load_button.pressed.connect(func() -> void: load_from(s.file))
 	row.add_child(load_button)
 	var delete := Button.new()
 	delete.text = "Delete"
+	delete.tooltip_text = "Removes this save for good."
 	delete.focus_mode = Control.FOCUS_NONE
 	delete.pressed.connect(func() -> void:
 		DirAccess.remove_absolute(s.path)

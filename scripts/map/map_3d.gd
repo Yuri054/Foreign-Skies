@@ -783,6 +783,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton:
 		var wheel: bool = event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+		# The wheel belongs to a menu while the cursor is over one (the picture's own viewport
+		# cannot know, so it is asked here).
+		if wheel and get_viewport().gui_get_hovered_control() != null:
+			return
 		if wheel and event.shift_pressed and event.pressed:
 			tilt += TILT_STEP if event.button_index == MOUSE_BUTTON_WHEEL_UP else -TILT_STEP
 			_apply_tilt()

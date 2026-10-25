@@ -95,10 +95,11 @@ func _ready() -> void:
 	map_view.zone_ordered.connect(func(zone: int) -> void:
 		get_tree().call_group("navy_panel", "order_zone", zone)
 	)
-	camera.limit_left = 0
-	camera.limit_top = 0
-	camera.limit_right = MapData.map_size.x
-	camera.limit_bottom = MapData.map_size.y
+	camera.map_rect = Rect2(Vector2.ZERO, Vector2(MapData.map_size))
+	camera.limit_left = -100000
+	camera.limit_top = -100000
+	camera.limit_right = 100000
+	camera.limit_bottom = 100000
 	camera.zoom = Vector2(0.4, 0.4)
 	_focus_on(GameState.player_tag)
 

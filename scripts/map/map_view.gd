@@ -241,6 +241,8 @@ func _apply_land_style() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _tip_layer != null and _tip.visible and (mode != Mode.DIPLOMACY or _over_interface()):
+		_tip.visible = false
 	var camera := get_viewport().get_camera_2d()
 	if camera != null and _material != null and not is_equal_approx(camera.zoom.x, _land_zoom) or (_land_zoom < 0.0 and _material != null and camera != null):
 		_land_zoom = camera.zoom.x
@@ -713,6 +715,71 @@ func _zone_under_mouse() -> int:
 	return MapData.sea_zone_at_pixel(Vector2i(to_local(get_global_mouse_position()).floor()))
 
 
+## The small tip that follows the mouse in the Diplomacy mode: how the nation under it stands with
+## the viewpoint nation.
+var _tip_layer: CanvasLayer
+var _tip := PanelContainer.new()
+var _tip_label := Label.new()
+
+
+func _show_diplomacy_tip(id: int) -> void:
+	var text := _diplomacy_tip_text(id) if mode == Mode.DIPLOMACY and id > 0 and not _over_interface() else ""
+	if text.is_empty():
+		if _tip_layer != null:
+			_tip.visible = false
+		return
+	if _tip_layer == null:
+		_tip_layer = CanvasLayer.new()
+		_tip_layer.layer = 90
+		add_child(_tip_layer)
+		_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tip_label.add_theme_font_size_override("font_size", 12)
+		_tip.add_child(_tip_label)
+		_tip_layer.add_child(_tip)
+	_tip_label.text = text
+	_tip.reset_size()
+	_tip.visible = true
+	_place_tip()
+
+
+func _place_tip() -> void:
+	var view := get_viewport().get_visible_rect().size
+	var at := get_viewport().get_mouse_position() + Vector2(16, 18)
+	at.x = minf(at.x, view.x - _tip.size.x - 4.0)
+	at.y = minf(at.y, view.y - _tip.size.y - 4.0)
+	_tip.position = at
+
+
+## Name, opinion and treaties of the nation owning a province, as the viewpoint nation sees it.
+func _diplomacy_tip_text(id: int) -> String:
+	var tag: String = GameState.province_owner[id]
+	var me := diplomacy_viewpoint()
+	if not GameState.nations.has(tag) or not GameState.nations.has(me):
+		return ""
+	var lines: PackedStringArray = [GameState.nations[tag].display_name]
+	if tag == me:
+		lines.append("Yourself" if me == GameState.player_tag else "The viewpoint nation")
+		return "\n".join(lines)
+	var r := Diplomacy.relation(GameState, me, tag)
+	lines.append("Opinion %s (%+d)" % [load("res://scripts/ui/diplomacy_panel.gd").mood(r), roundi(r)])
+	if GameState.at_war(me, tag):
+		lines.append("At war")
+	for t in Diplomacy.treaties_between(GameState, me, tag):
+		var label: String = Diplomacy.cfg.treaties[t.kind].label
+		if t.terms.get("entente", false):
+			label += " (entente)"
+		elif t.kind == "guarantee":
+			label += " (%s guarantees %s)" % [GameState.nations[t.a].display_name, GameState.nations[t.b].display_name]
+		elif t.kind == "passage":
+			label += " (%s lets %s cross)" % [GameState.nations[t.a].display_name, GameState.nations[t.b].display_name]
+		lines.append(label)
+	var bloc := Diplomacy.bloc_name(GameState, tag)
+	if bloc != "":
+		lines.append("Bloc: " + bloc)
+	return "\n".join(lines)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Z 			and not event.ctrl_pressed and not event.alt_pressed:
 		set_show_zones(not show_zones)
@@ -722,6 +789,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			hover_zone = zone
 			_material.set_shader_parameter("hover_zone", zone)
 		var id := maxi(_province_under_mouse(), 0)
+		_show_diplomacy_tip(id)
 		if id != hover_id:
 			hover_id = id
 			_material.set_shader_parameter("hover_id", hover_id)
