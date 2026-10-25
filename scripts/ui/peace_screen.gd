@@ -322,7 +322,7 @@ func _rebuild_terms() -> void:
 	_flag_a.tag = _me()
 	_flag_b.tag = _enemy()
 	_title.text = "Peace between %s and %s" % [me_name, enemy_name]
-	_goal.text = WarGoal.line(GameState, _war)
+	_goal.text = (WarGoal.line(GameState, _war) + "\n" if WarGoal.line(GameState, _war) != "" else "") + AIPeace.explain(GameState, _enemy(), _war)
 	_goal.visible = _goal.text != ""
 	var goal: Dictionary = _war.goal if taker == _war.a else {}
 	_goal_button.disabled = goal.is_empty() or not goal.has("ids")

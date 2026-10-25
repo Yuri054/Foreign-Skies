@@ -40,6 +40,9 @@ Relations between every pair; treaties (alliance, guarantee, non-aggression, pas
 - **No ending**: the game is an open sandbox. Nothing stops the clock; a general war, a peace or a long quiet are all just where the years lead.
 - Nothing is guaranteed: left alone, the 1900 world drifts to a general war in 1914; a player who cools things down or hardens them changes that.
 
+### Briefing and explanations (`scripts/sim/briefing.gd`)
+Read-only. `Briefing.issues` ranks what a nation should look at (money, supply, war, neighbours, tension, idle effort) with a reason and the tab to open; the Overview shows the top three. `AIDiplomacy.war_check` is the single weighing of a declaration (`war_option` and `explain_declare` both read it) and `AIPeace.urge_parts` the parts of the wish for peace (`urge` and `explain` read them), so the lines in the diplomacy panel and the peace screen come from the numbers the AI acts on.
+
 ### AI (`scripts/ai/`, `data/ai.json`)
 Every other nation plays by the same rules. **Nothing in a scenario scripts what the AI does**: there are no authored war plans and no army-quality bonuses; wars, fronts and campaigns arise from the modules weighing their options (utility scoring over odds, distance, value of the target, the nation's temperament and a small per-game noise, `gs.ai_seed`, so no two games go alike).
 
@@ -51,7 +54,7 @@ Every other nation plays by the same rules. **Nothing in a scenario scripts what
 
 - **Top bar:** nation, treasury and its monthly change, recruits (while mobilized or at war), diplomacy points, tension, the Nation button, date, pause and speed, settings.
 - **Map:** map modes (1 to 6) with a strip for the variants and a legend, the province card, army and fleet banners, the command panel (C) for orders, the build queue, the news feed.
-- **Nation screen (N):** one window with tabs: Overview (what needs attention, Europe's tension, recent events), Economy (E), Build (B), Military (M), Navy (Y), Diplomacy (F), Focus (O), Rankings (R). A right click on your own land opens it; on another nation it opens the country panel.
+- **Nation screen (N):** one window with tabs: Overview (the cabinet briefing, Europe's tension with its breakdown and chart, recent events), Economy (E), Build (B), Military (M), Navy (Y), Diplomacy (F), Focus (O), Rankings (R). A right click on your own land opens it; on another nation it opens the country panel.
 - **Decisions** stop time: join prompts, peace offers and events.
 - **Pause menu (Esc):** resume, save and load, settings, main menu, and the list of keys. **Tutorial:** fourteen steps in 1900.
 

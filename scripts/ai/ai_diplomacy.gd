@@ -172,39 +172,104 @@ static func war_desire(gs: Node, tag: String, target: String, justified: bool) -
 ## What a declaration against `target` would be, or {} if the nation should not: {target, cb,
 ## desire, odds}.
 static func war_option(gs: Node, tag: String, target: String) -> Dictionary:
-	var w: Dictionary = cfg().war
-	if Diplomacy.declare_block(gs, tag, target) != "" or in_truce(gs, tag, target):
+	var check := war_check(gs, tag, target)
+	if check.reason != "":
 		return {}
+	return {"target": target, "cb": check.cb, "desire": check.desire, "odds": check.odds}
+
+
+## The same weighing as war_option, with the reason it stops: {reason, cb, desire, odds, threshold,
+## need} where `reason` is "" for a war the nation would declare, else one of blocked, truce, calm,
+## unmobilized, cannot, desire, motive, odds, plan, temper, cap. war_option and the explanations
+## (explain_declare) read the same answer.
+static func war_check(gs: Node, tag: String, target: String) -> Dictionary:
+	var w: Dictionary = cfg().war
+	var out := {"reason": "", "cb": "none", "desire": 0.0, "odds": 0.0, "threshold": float(w.declare_threshold), "need": 0.0}
+	if Diplomacy.declare_block(gs, tag, target) != "":
+		out.reason = "blocked"
+		return out
+	if in_truce(gs, tag, target):
+		out.reason = "truce"
+		return out
 	var n: Nation = gs.nations[tag]
 	var options := Diplomacy.casus_belli_options(gs, tag, target)
 	var cb: String = options[0]
+	out.cb = cb
 	var justified := cb != "none"
 	var provoked := Diplomacy.grievance(gs, tag, target) >= float(Diplomacy.cfg.war.provocation.retaliation_threshold) and justified
 	# In a calm Europe the AI starts no wars of its own choosing (see Pressure).
 	if not provoked and not Pressure.ai_may_declare(gs):
-		return {}
+		out.reason = "calm"
+		return out
 	# An AI goes to war only when its country is mobilized, or it has been provoked past bearing.
 	if n.mobilization < float(Diplomacy.cfg.crisis.min_mobilization) and not provoked:
-		return {}
+		out.reason = "unmobilized"
+		return out
 	if not Diplomacy.can_declare(gs, tag, target, cb) or not Diplomacy.can_afford(gs, tag, Diplomacy.cost_of("declare_war", cb)):
-		return {}
+		out.reason = "cannot"
+		return out
 	var temperament: Dictionary = AI.temperament(gs, tag)
 	var desire := war_desire(gs, tag, target, justified)
+	out.desire = desire
 	if desire * (0.5 + float(temperament.aggression)) < float(w.declare_threshold):
-		return {}
+		out.reason = "desire"
+		return out
 	# A casus belli alone is no reason: a defensive tie to someone else's war does not make a nation fight.
 	if war_desire(gs, tag, target, false) < float(w.min_motive):
-		return {}
+		out.reason = "motive"
+		return out
 	var odds := odds_against(gs, tag, target)
+	out.odds = odds
 	if justified:
-		if odds < AI.required_odds(gs, tag) * float(w.odds_margin):
-			return {}
+		out.need = AI.required_odds(gs, tag) * float(w.odds_margin)
+		if odds < out.need:
+			out.reason = "odds"
+			return out
 	else:
-		if not has_plan(gs, tag, target) or float(temperament.aggression) < float(w.unjustified_min_aggression):
-			return {}
+		out.need = float(w.unjustified_odds)
+		if not has_plan(gs, tag, target):
+			out.reason = "plan"
+			return out
+		if float(temperament.aggression) < float(w.unjustified_min_aggression):
+			out.reason = "temper"
+			return out
 		if odds < float(w.unjustified_odds) or not unjustified_allowed(gs):
-			return {}
-	return {"target": target, "cb": cb, "desire": desire, "odds": odds}
+			out.reason = "odds" if odds < float(w.unjustified_odds) else "cap"
+			return out
+	return out
+
+
+## In words, whether `tag` would go to war with `target` now and why not: the weighing of war_check.
+static func explain_declare(gs: Node, tag: String, target: String) -> String:
+	var who: String = gs.nations[tag].display_name
+	var them: String = gs.nations[target].display_name
+	var c := war_check(gs, tag, target)
+	match c.reason:
+		"":
+			return "%s is ready to attack %s (desire %.1f against %.1f needed, odds %.1f to 1%s)." % [who, them, c.desire, c.threshold, c.odds, "" if c.cb != "none" else ", with no casus belli"]
+		"blocked":
+			return "%s cannot attack %s: they are allied, bound by a pact or already at war." % [who, them]
+		"truce":
+			return "%s will not attack %s: a peace between them is too recent." % [who, them]
+		"calm":
+			return "%s will not attack %s: Europe is too calm for the AI to start a war." % [who, them]
+		"unmobilized":
+			return "%s will not attack %s: its country is not mobilized for war." % [who, them]
+		"cannot":
+			return "%s cannot afford to declare war on %s (diplomacy points)." % [who, them]
+		"desire":
+			return "%s does not want war with %s enough (desire %.1f, it needs %.1f): they are not hostile or aggrieved enough." % [who, them, c.desire, c.threshold]
+		"motive":
+			return "%s has no reason of its own to attack %s." % [who, them]
+		"odds":
+			return "%s would not win: odds %.1f to 1, it wants %.1f." % [who, c.odds, c.need]
+		"plan":
+			return "%s has no plan against %s, and would need a casus belli." % [who, them]
+		"temper":
+			return "%s is too cautious to start a war with no casus belli." % who
+		"cap":
+			return "%s would be starting too many wars with no casus belli." % who
+	return ""
 
 
 ## Whether a nation is mobilized, or resents someone past the retaliation threshold: the only
@@ -316,6 +381,18 @@ static func neediness(gs: Node, tag: String) -> float:
 			need = maxf(need, 0.8)
 			break
 	return need
+
+
+## The land neighbour that does not like `tag` and outweighs it most: {tag, ratio}, or {} if none.
+static func strongest_rival(gs: Node, tag: String) -> Dictionary:
+	var mine := maxf(side_power(gs, _side(gs, tag)), 0.01)
+	var best := {}
+	for other in Diplomacy.neighbor_nations(gs, tag):
+		if Diplomacy.relation(gs, other, tag) < float(cfg().treaties.rival_relation):
+			var ratio := side_power(gs, _side(gs, other)) / mine
+			if best.is_empty() or ratio > best.ratio:
+				best = {"tag": other, "ratio": ratio}
+	return best
 
 
 static func _same_bloc(gs: Node, a: String, b: String) -> bool:

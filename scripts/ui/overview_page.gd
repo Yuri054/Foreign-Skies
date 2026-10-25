@@ -82,6 +82,62 @@ func _pair(g: GridContainer, name_text: String, value: String, color := Color.WH
 	g.add_child(b)
 
 
+## One issue of the briefing: what it is, why, and a button to the tab that deals with it.
+func _issue_row(issue: Dictionary) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 1)
+	var color: Color = Fmt.BAD if issue.severity >= 70.0 else (Fmt.WARN if issue.severity >= 45.0 else Color.WHITE)
+	var head := HBoxContainer.new()
+	var title := _line(issue.title, color)
+	title.custom_minimum_size = Vector2(120, 0)
+	head.add_child(title)
+	if issue.page != "Overview" and host != null:
+		var go := Button.new()
+		go.text = "Open " + issue.page
+		go.focus_mode = Control.FOCUS_NONE
+		go.tooltip_text = "Go to the %s tab." % issue.page
+		var page: String = issue.page
+		go.pressed.connect(func() -> void: host.open_page(page))
+		head.add_child(go)
+	box.add_child(head)
+	box.add_child(_line(issue.why, Fmt.DIM))
+	return box
+
+
+## What tension is made of, the worst rivalries and a sparkline of the last two years.
+func _tension_breakdown() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	var p := Pressure.parts(GameState)
+	var g := _grid()
+	g.columns = 4
+	for key: String in Pressure.PART_NAMES:
+		if p[key] >= 0.5:
+			_pair(g, Pressure.PART_NAMES[key], "+%d" % roundi(p[key]), Color.WHITE, "How much of the %d it adds." % roundi(p.total))
+	_pair(g, "The general unease", "+%d" % roundi(p.base), Fmt.DIM, "What Europe starts from.")
+	box.add_child(g)
+	var rivals := Briefing.rivalries(GameState, 3)
+	if not rivals.is_empty():
+		var names: PackedStringArray = []
+		for r: Dictionary in rivals:
+			names.append("%s and %s" % [GameState.nations[r.a].display_name, GameState.nations[r.b].display_name])
+		var line := _line("Worst rivalries: " + ", ".join(names) + ".", Fmt.DIM)
+		line.tooltip_text = "The great powers that think worst of each other: they feed the rivalry part of tension."
+		line.mouse_filter = Control.MOUSE_FILTER_PASS
+		box.add_child(line)
+	var history := GameState.tension_history
+	if history.size() >= 3:
+		var chart := TrendChart.new()
+		chart.custom_minimum_size = Vector2(0, 90)
+		var points: Array[Vector2] = []
+		var first := maxi(0, history.size() - 24)
+		for i in range(first, history.size()):
+			points.append(Vector2(i - first, history[i]))
+		chart.set_data("Tension, last %d months" % (history.size() - first), [{"name": "Tension", "color": Color(0.95, 0.6, 0.3), "points": points, "bold": true}], func(v: float) -> String: return "%d" % roundi(v), PackedStringArray(["", "now"]))
+		box.add_child(chart)
+	return box
+
+
 func _clear() -> void:
 	for c in _box.get_children():
 		_box.remove_child(c)
@@ -119,12 +175,12 @@ func _refresh() -> void:
 		return
 	var b: Dictionary = n.budget
 
-	_box.add_child(_heading("Needs your attention"))
-	var list := problems(n)
-	if list.is_empty():
-		_box.add_child(_line("Nothing is wrong.", Fmt.GOOD))
-	for p in list:
-		_box.add_child(_line(p, Fmt.BAD))
+	_box.add_child(_heading("Cabinet briefing"))
+	var issues := Briefing.top(GameState, n.tag)
+	if issues.is_empty():
+		_box.add_child(_line("Nothing needs your attention.", Fmt.GOOD))
+	for issue: Dictionary in issues:
+		_box.add_child(_issue_row(issue))
 
 	_box.add_child(HSeparator.new())
 	_box.add_child(_heading("The nation"))
@@ -161,6 +217,7 @@ func _refresh() -> void:
 	bar.custom_minimum_size = Vector2(0, 8)
 	bar.tooltip_text = tension.tooltip_text
 	_box.add_child(bar)
+	_box.add_child(_tension_breakdown())
 	var stands := HBoxContainer.new()
 	stands.add_theme_constant_override("separation", 6)
 	for kind: String in ["calm", "rattle"]:

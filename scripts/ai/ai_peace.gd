@@ -55,26 +55,71 @@ static func allies_fighting(gs: Node, tag: String, enemy: String) -> int:
 
 ## How much `tag` wants out of the war (negative: it wants to go on).
 static func urge(gs: Node, tag: String, war: War) -> float:
+	return urge_parts(gs, tag, war).total
+
+
+## What the urge is made of, each part with its sign (positive pushes toward peace): {score, support, debt,
+## duration, quiet, capital, allies, total}.
+static func urge_parts(gs: Node, tag: String, war: War) -> Dictionary:
 	var c := cfg()
 	var enemy := war.other(tag)
 	var n: Nation = gs.nations[tag]
 	var score := Peace.war_score(gs, war, tag)
+	var parts := {}
 	var u := -score * float(c.k_score)
-	u += maxf(0.0, float(c.support_ref) - n.war_support) * float(c.k_support)
+	parts.score = u
+	parts.support = maxf(0.0, float(c.support_ref) - n.war_support) * float(c.k_support)
+	u += parts.support
 	var monthly_revenue := maxf(float(n.budget.get("revenue", 0.0)), 1.0) / 12.0
-	u += float(c.k_debt) * minf(float(c.debt_cap_months), maxf(0.0, -n.treasury) / monthly_revenue)
-	u += float(c.k_days_per_month) * war.days_lasted(Clock.days_elapsed) / 30.0
+	parts.debt = float(c.k_debt) * minf(float(c.debt_cap_months), maxf(0.0, -n.treasury) / monthly_revenue)
+	u += parts.debt
+	parts.duration = float(c.k_days_per_month) * war.days_lasted(Clock.days_elapsed) / 30.0
+	u += parts.duration
 	# A war nobody fights (the two cannot reach each other, or sit behind others) wears on both with no end in sight.
 	var quiet_months := float(Clock.days_elapsed - maxi(war.last_fight_day, war.start_day)) / 30.0
 	if n.blockade > 0.05 or gs.nations[enemy].blockade > 0.05:
 		quiet_months = 0.0   # a blockade is fighting too
-	u += float(c.k_quiet) * maxf(0.0, quiet_months - float(c.quiet_grace_months))
-	if Peace.capital_taken_by(gs, tag) == enemy:
-		u += float(c.capital_lost)
+	parts.quiet = float(c.k_quiet) * maxf(0.0, quiet_months - float(c.quiet_grace_months))
+	u += parts.quiet
+	parts.capital = float(c.capital_lost) if Peace.capital_taken_by(gs, tag) == enemy else 0.0
+	u += parts.capital
 	var t: Dictionary = AI.base_temperament(gs, tag)
 	var boldness := clampf((float(t.aggression) + 1.0 - float(t.caution)) / 2.0, 0.0, 1.0)
-	u -= float(c.k_ally) * allies_fighting(gs, tag, enemy) * (1.0 - float(c.ally_boldness_discount) * boldness)
-	return u
+	parts.allies = -float(c.k_ally) * allies_fighting(gs, tag, enemy) * (1.0 - float(c.ally_boldness_discount) * boldness)
+	u += parts.allies
+	parts.total = u
+	return parts
+
+
+## In words, how `tag` stands on ending `war`: its urge against the level it seeks peace at, and what
+## weighs most each way. Read-only: the same numbers urge() uses.
+static func explain(gs: Node, tag: String, war: War) -> String:
+	var who: String = gs.nations[tag].display_name
+	var c := cfg()
+	var p := urge_parts(gs, tag, war)
+	var seek := float(c.seek_threshold)
+	var names := {"score": "the war is going badly", "support": "war support is low at home", "debt": "it is in debt",
+			"duration": "the war has dragged on", "quiet": "the fighting has gone quiet", "capital": "its capital is lost",
+			"allies": "its allies are still fighting"}
+	var push: Array = []
+	var hold: Array = []
+	for key: String in names:
+		if p[key] >= 3.0:
+			push.append([p[key], names[key]])
+		elif p[key] <= -3.0:
+			hold.append([p[key], "the war is going well" if key == "score" else "its allies are still fighting"])
+	push.sort_custom(func(x: Array, y: Array) -> bool: return x[0] > y[0])
+	hold.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	var line := ""
+	if p.total >= seek:
+		line = "%s wants peace now (%+d against %d needed)" % [who, roundi(p.total), roundi(seek)]
+	else:
+		line = "%s will fight on (%+d against %d needed for peace)" % [who, roundi(p.total), roundi(seek)]
+	if not push.is_empty():
+		line += "; pushing it to peace: %s" % ", ".join(push.slice(0, 2).map(func(x: Array) -> String: return x[1]))
+	if not hold.is_empty():
+		line += "; holding it back: %s" % ", ".join(hold.slice(0, 2).map(func(x: Array) -> String: return x[1]))
+	return line + "."
 
 
 # --- Answering ---------------------------------------------------------------------------------

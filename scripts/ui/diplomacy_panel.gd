@@ -461,6 +461,8 @@ func _refresh_detail() -> void:
 	_header_flag.tag = _selected
 	_header_name.text = n.display_name
 	lines.append("%s's opinion of %s: %s (%+d), settling at %+d." % [n.display_name, _who(me), mood(r), roundi(r), roundi(base)])
+	if acting and me != _selected and war_none(me, _selected):
+		lines.append(AIDiplomacy.explain_declare(GameState, _selected, me))
 	var bloc := Diplomacy.bloc_name(GameState, _selected)
 	lines.append("Bloc: %s%s" % [bloc if bloc != "" else "none", " (historic)" if Diplomacy.is_historic_bloc(GameState, _selected) else ""])
 	lines.append("War support %d  ·  Mobilization %d%%  ·  Prestige %d" % [roundi(n.war_support), roundi(n.mobilization * 100.0), roundi(n.prestige)])
@@ -697,6 +699,11 @@ func _on_justify() -> void:
 		_status.modulate = Fmt.BAD
 		return
 	get_tree().call_group("goal_picker", "open", _selected)
+
+
+## Whether the two are not at war (the intent line is about a war that may come).
+func war_none(a: String, b: String) -> bool:
+	return GameState.war_between(a, b) == null
 
 
 func refresh_now() -> void:

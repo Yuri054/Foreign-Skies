@@ -376,14 +376,17 @@ static func _effect_text(key: String, v: float) -> String:
 	return key
 
 
+## The names of the parts of tension (see parts()).
+const PART_NAMES := {"arms": "The arms race", "mobilization": "Mobilization", "wars": "Wars between the powers", "rivalry": "Rivalries and rival blocs", "events": "Recent crises"}
+
+
 ## What Europe's tension is made of, for a tooltip.
 static func tip(gs: Node) -> String:
 	var p := parts(gs)
 	var lines: PackedStringArray = ["Europe's tension: %d of 100. The nearer it gets to war, the bolder the AI nations grow." % roundi(p.total)]
-	var names := {"arms": "The arms race", "mobilization": "Mobilization", "wars": "Wars between the powers", "rivalry": "Rivalries and rival blocs", "events": "Recent crises"}
-	for key: String in names:
+	for key: String in PART_NAMES:
 		if p[key] >= 0.5:
-			lines.append("%s  +%d" % [names[key], roundi(p[key])])
+			lines.append("%s  +%d" % [PART_NAMES[key], roundi(p[key])])
 	return "\n".join(lines)
 
 
