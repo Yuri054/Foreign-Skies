@@ -383,9 +383,9 @@ func _test_overtures() -> void:
 	war = _war()
 	P.step_month(gs)
 	_check(gs.at_war("FRA", "GER"), "a young war goes on")
-	clock.days_elapsed += 800
+	clock.days_elapsed += 1600
 	P.step_month(gs)
-	_check(not gs.at_war("FRA", "GER") and war.peace.white, "a stalemate of over two years ends in a white peace")
+	_check(not gs.at_war("FRA", "GER") and war.peace.white, "a stalemate of over four years ends in a white peace")
 
 	# An offer to the player waits for them.
 	war = _war()

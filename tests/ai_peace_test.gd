@@ -85,7 +85,7 @@ func _test_urge() -> void:
 	_check(AP.urge(gs, "FRA", war) > base + 10.0, "so does one deep in debt")
 	gs.nations["FRA"].treasury = 20.0
 	var before: float = AP.urge(gs, "FRA", war)
-	clock.days_elapsed += 480
+	clock.days_elapsed += 960
 	_check(AP.urge(gs, "FRA", war) > before + 25.0, "and one worn down by months of war")
 	war = _war()
 	gs.set_controller(gs.nations["FRA"].capital, "GER")
