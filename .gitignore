@@ -7,3 +7,7 @@ build/
 export/
 .mono/
 tools/ai_training/jobs/
+
+# Python
+__pycache__/
+*.pyc
