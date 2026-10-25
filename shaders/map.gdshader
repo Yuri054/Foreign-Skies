@@ -162,8 +162,21 @@ void fragment() {
 			coast = 1.0;
 		}
 	}
-	col = mix(col, vec3(0.0), province_edge * 0.25);
-	col = mix(col, vec3(0.0), owner_edge * 0.5);
+	// Where the ground's colours wash out the nations' (close up), a national border also shows as a band of each
+	// nation's own colour a few pixels wide on its side, and its lines are darker, so it still reads.
+	float ground = land_on ? land_blend * land_natural : 0.0;
+	if (id > 0 && ground > 0.0) {
+		float band = 0.0;
+		for (int i = 0; i < 4; i++) {
+			int n = id_at(UV + offsets[i] * 6.0, lod);
+			if (n > 0 && n != id && owner_color(n).rgb != owner_color(id).rgb) {
+				band = 1.0;
+			}
+		}
+		col = mix(col, owner_color(id).rgb, band * clamp(ground * 1.8, 0.0, 0.85));
+	}
+	col = mix(col, vec3(0.0), province_edge * (0.25 + 0.2 * ground));
+	col = mix(col, vec3(0.0), owner_edge * (0.5 + 0.5 * ground));
 	col = mix(col, vec3(0.0), coast * 0.45);
 	col = mix(col, bloc_rgb, bloc_edge * 0.9);
 
