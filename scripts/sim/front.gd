@@ -14,6 +14,9 @@ var against := ""
 ## The provinces of the line (a hand-drawn line is a chain: each borders the next).
 var provinces: Array[int] = []
 var army_ids: Array[int] = []
+## Provinces of the line the armies gather on instead of spreading along all of it (empty: the whole line).
+## Armies massed on a few key provinces fight as stacks; the AI sets these (see AIDefense).
+var anchors: Array[int] = []
 ## army id -> province it should hold.
 var slots: Dictionary = {}
 ## Set when the line or the assigned armies changed and the slots must be dealt again.

@@ -26,7 +26,7 @@
 		"stakes": 4.0
 	},
 	"defense": {
-		"_note": "reserve_share: share of a nation's power kept back as a reserve (scaled up by caution); needs reserve_min_armies armies. reserve_stay: the reserve moves only when another province is this many times more threatened than where it stands. merge_max_units: the most units in a stack the AI will form by merging. rebalance_ratio: an army changes front when one front is this many times better covered than another. retake_hops and retake_eta_spread: armies within that many hops, arriving within that many days of each other, may retake home ground.",
+		"_note": "reserve_share: share of a nation's power kept back as a reserve (scaled up by caution); needs reserve_min_armies armies. reserve_stay: the reserve moves only when another province is this many times more threatened than where it stands. merge_max_units: the most units in a stack the AI will form by merging. rebalance_ratio: an army changes front when one front is this many times better covered than another. retake_hops and retake_eta_spread: armies within that many hops, arriving within that many days of each other, may retake home ground. A front masses its armies on anchor provinces, one for every anchor_armies armies (at most anchor_max): the provinces with most threat plus anchor_value_weight times their value, chosen again every anchor_days.",
 		"reserve_share": 0.2,
 		"reserve_min_armies": 3,
 		"reserve_stay": 1.5,
@@ -34,7 +34,11 @@
 		"min_need": 1.0,
 		"merge_max_units": 10,
 		"retake_hops": 3,
-		"retake_eta_spread": 3
+		"retake_eta_spread": 3,
+		"anchor_armies": 4,
+		"anchor_max": 3,
+		"anchor_days": 20,
+		"anchor_value_weight": 100.0
 	},
 	"offense": {
 		"_note": "max_share: share of a nation's power an aggression of 1 puts on offence. Target utility = w_plan * plan weight + w_value * AI.value + w_score * war score share + w_margin * (power over required odds, up to 2) - w_days * days to arrive - w_supply * supply hops; a target below min_utility is not attacked. retry_days: wait after finding nothing to attack. gather_days: give up if the force is not ready by then. fall_back_morale (scaled by 0.5 + caution) and fall_back_ratio (own power over the enemy's around the target): below them the stack falls back. plan_hops: how far an objective's weight reaches. reach_hops: armies this near may be sent, and reinforce_weight: the share of the power of enemy armies within support_hops that counts against an attack.",

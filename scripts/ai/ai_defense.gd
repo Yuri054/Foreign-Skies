@@ -12,6 +12,7 @@ static func step(gs: Node, tag: String) -> void:
 	_merge(gs, tag)
 	var fronts := _fronts(gs, tag)
 	if not fronts.is_empty():
+		_anchor(gs, tag, fronts)
 		_reserve(gs, tag, fronts)
 		_assign(gs, tag, fronts)
 		_rebalance(gs, tag, fronts)
@@ -45,6 +46,31 @@ static func _fronts(gs: Node, tag: String) -> Array[Front]:
 			out.append(f)
 	out.sort_custom(func(x: Front, y: Front) -> bool: return x.id < y.id)
 	return out
+
+
+## Picks the few provinces of each line its armies mass on, so they stand as stacks that can fight a stack:
+## the most threatened (and most valuable) ones, one anchor for every `anchor_armies` armies on the front.
+## It is looked at again every `anchor_days`, or at once when an anchor is no longer on the line.
+static func _anchor(gs: Node, tag: String, fronts: Array[Front]) -> void:
+	var d: Dictionary = AI.cfg.defense
+	for f in fronts:
+		var stale := Clock.days_elapsed - int(gs.ai_anchor_stamp.get(f.id, -1000)) >= int(d.anchor_days)
+		for p in f.anchors:
+			if not f.provinces.has(p):
+				stale = true
+		if not stale or f.provinces.is_empty():
+			continue
+		gs.ai_anchor_stamp[f.id] = Clock.days_elapsed
+		var scored: Array = []
+		for p in f.provinces:
+			scored.append([AI.threat(gs, tag, p) + float(d.anchor_value_weight) * AI.value(gs, p), p])
+		scored.sort_custom(func(x: Array, y: Array) -> bool: return x[0] > y[0] + 0.000001 or (absf(x[0] - y[0]) <= 0.000001 and x[1] < y[1]))
+		var count := clampi(f.army_ids.size() / int(d.anchor_armies), 1, int(d.anchor_max))
+		var picks: Array[int] = []
+		for i in mini(count, scored.size()):
+			picks.append(scored[i][1])
+		picks.sort()
+		gs.issue_quiet(SetFrontAnchors.new(tag, f.id, picks))
 
 
 ## What a front must stand against: the threat on the provinces of its line.

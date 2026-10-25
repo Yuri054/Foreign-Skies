@@ -38,6 +38,7 @@ static func load_scenario(gs: Node) -> void:
 	gs.ai_diplo_stamp.clear()
 	gs.ai_budget_stamp.clear()
 	gs.ai_campaign_wait.clear()
+	gs.ai_anchor_stamp.clear()
 	gs.ai_navy.clear()
 	gs.ai_landing.clear()
 	gs.ai_landing_wait.clear()

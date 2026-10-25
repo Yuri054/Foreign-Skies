@@ -763,7 +763,13 @@ static func _deal_slots(gs: Node, f: Front) -> void:
 	f.slots.clear()
 	f.retry.clear()
 	var held := {}
-	for p in f.provinces:
+	var spots: Array[int] = []
+	for p in f.anchors:
+		if f.provinces.has(p):
+			spots.append(p)
+	if spots.is_empty():
+		spots = f.provinces
+	for p in spots:
 		held[p] = 0.0
 	var list: Array[Army] = []
 	for id in f.army_ids:
@@ -771,7 +777,7 @@ static func _deal_slots(gs: Node, f: Front) -> void:
 	list.sort_custom(func(x: Army, y: Army) -> bool: return x.men() > y.men() or (x.men() == y.men() and x.id < y.id))
 	for a in list:
 		var best := 0
-		for p in f.provinces:
+		for p in spots:
 			if best == 0 or held[p] < held[best] - 0.5 or (absf(held[p] - held[best]) <= 0.5 and _dist(a.province, p) < _dist(a.province, best)):
 				best = p
 		f.slots[a.id] = best

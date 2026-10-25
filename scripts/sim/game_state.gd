@@ -217,6 +217,8 @@ var ai_reserve: Dictionary = {}
 ## for a new one.
 var ai_campaign: Dictionary = {}
 var ai_campaign_wait: Dictionary = {}
+## Front id -> the day the AI last chose where the front masses its armies (see AIDefense).
+var ai_anchor_stamp: Dictionary = {}
 ## The naval AI: tag -> {assign: {fleet id: zone}}, the landings it is preparing (tag -> {enemy,
 ## target, port, fleet, armies, phase, started}), when it may look for another, and what it lacks.
 var ai_navy: Dictionary = {}
