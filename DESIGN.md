@@ -15,7 +15,7 @@ A historical-pressure sandbox on a map of Europe. There is no score and no victo
 | January 1900 | 1 Jan 1900, peace | The long campaign: 1900 borders (Albania and Macedonia Ottoman, Southern Dobruja Bulgarian), smaller populations and armies, no submarines, the Franco-Russian and Triple Alliances, no Entente. Historical pressure steers the AI (`pressure_ai`), as in 1914. |
 | July 1914 | 28 Jul 1914, Austria-Hungary at war with Serbia | The short start, with the crisis already under way and tension at about 70, so the AI is already bold. The tutorial is played in 1900, not here. |
 
-A scenario is a folder in `data/scenarios/` with `scenario.json` (nations, deployment, alliances, guarantees, relations, claims, AI plans, `owner_changes`, `start_tension`, `pressure_ai`), and `provinces.tsv` (people), `resources.tsv`, `navy.tsv`, `cities.tsv`. `tools/make_1900.py` builds the 1900 folder from the 1914 one and holds the numbers that differ.
+A scenario is a folder in `data/scenarios/` with `scenario.json` (nations, deployment, alliances, guarantees, relations, claims, `owner_changes`, `start_tension`, `pressure_ai`), and `provinces.tsv` (people), `resources.tsv`, `navy.tsv`, `cities.tsv`. `tools/make_1900.py` builds the 1900 folder from the 1914 one and holds the numbers that differ.
 
 ## Systems
 
@@ -27,7 +27,7 @@ Three pillars, each with a number to read and a lever.
 Buildings: factory, railway, port, trench, fortification. National focus (`data/focus.json`) is one effort at a time that adds lasting or one-off effects: the seven great powers each have a tree of their own (16 to 19 foci in four or five branches, written by `tools/make_focus_trees.py`), every other nation a short common one. Big cities begin with the factories and railways they already had (`buildings` in the scenario, from `tools/make_start_buildings.py`), which is why they smoke.
 
 ### Military (`military.gd`, `navy.gd`, `data/military.json`, `data/navy.json`)
-Infantry, cavalry and artillery in armies under generals, grouped into army groups. Combat uses strength, terrain, entrenchment and morale, which makes defence strong. Armies need supply from owned or occupied land. Fronts are lines of provinces armies hold; attack lines send an army group along one. Ships are squadrons in fleets that control sea zones, blockade and carry armies. Provinces have a controller apart from the owner; occupation takes days.
+Infantry, cavalry and artillery in armies under generals, grouped into army groups. Combat uses strength, terrain, entrenchment and morale, which makes defence strong. Armies need supply from owned or occupied land. Fronts are lines of provinces armies hold; attack lines send an army group along one. Ships are squadrons in fleets that control sea zones, blockade and carry armies. Provinces have a controller apart from the owner. An attacking division that enters a province with no defender takes it at once; contested ground (where a battle was fought lately) still takes a few days to mop up (`occupation.mop_up_days`). A railway at home speeds marching on one's own land (`home_rail`).
 
 ### Diplomacy (`diplomacy.gd`, `peace.gd`, `data/diplomacy.json`)
 Relations between every pair; treaties (alliance, guarantee, non-aggression, passage, neutrality pact) with an entente grade; casus belli and claims; war declarations that cost diplomacy points and prestige; mobilization as a diplomatic act that alarms neighbours; calls to arms that put a join decision to the player; peace priced in war score, with provinces, indemnities and disarmament as terms. War support (0 to 100) falls with casualties and blockade and decides when a nation will take any peace.
@@ -41,7 +41,11 @@ Relations between every pair; treaties (alliance, guarantee, non-aggression, pas
 - Nothing is guaranteed: left alone, the 1900 world drifts to a general war in 1914; a player who cools things down or hardens them changes that.
 
 ### AI (`scripts/ai/`, `data/ai.json`)
-Every other nation plays by the same rules and a temperament (aggression and caution, raised by tension; how readily it makes peace is not). Its peacetime army grows with its people and output. It budgets (taxes, one building a month), raises and positions forces, defends and attacks along plans and fronts, builds and uses a navy, proposes and answers treaties, makes and accepts peace, picks national foci, and, late, forms ambitions against neighbours it could beat.
+Every other nation plays by the same rules. **Nothing in a scenario scripts what the AI does**: there are no authored war plans and no army-quality bonuses; wars, fronts and campaigns arise from the modules weighing their options (utility scoring over odds, distance, value of the target, the nation's temperament and a small per-game noise, `gs.ai_seed`, so no two games go alike).
+
+- **Modules:** `ai_budget` (taxes, one building a month), `ai_forces` (raising units; mix and training cap), `ai_defense` (anchors per front, rebalancing by proximity, settling), `ai_offense` (several campaigns at once, each with a gather point; odds against the enemy decide the start, a fall-back morale decides the retreat), `ai_landing` and `ai_navy`, `ai_diplomacy` (treaties, declarations, justification), `ai_peace` (seeking and accepting peace from war score, war support and how long the fighting has been quiet; indemnity offers), `ai_ambition`.
+- **Numbers:** every weight and threshold is in `data/ai.json` (read as `AI.cfg`). `AI.overrides` lets a game give each nation its own copy, which the trainer uses.
+- **Training:** `tools/ai_train.py` tunes 57 of those numbers by self-play (an evolution strategy, rank-weighted, mirrored sampling). `tools/ai_arena.gd` plays one game of two groups of nations (candidate against baseline, then swapped); fitness is the change in the group's share of Europe's people and output plus 30 times the change in its share of soldiers. `run N` trains, `test N` plays the trained numbers against the starting ones on fresh seeds, `apply` writes them into `data/ai.json`. State and history are kept in `tools/ai_training/`. The shipped numbers are from 40 generations; on 16 unseen seeds they beat the originals in all 16 (mean +11.3). The fitness does not reward ending wars, so the great war now runs for years (about 30 months in a July 1914 run) rather than months.
 
 ## Interface
 
@@ -70,6 +74,10 @@ Headless tests under `tests/` (`tools/run_tests.py`), with windowed ones under `
 ## Balance notes (the 1900 scenario, AI only)
 
 Output grows about 3% a year for the larger economies (building effects and baseline growth were halved from the first draft, and the national focus tariffs cut to a hundredth of output), treasuries stay within a few months of revenue, armies grow with the arms-race events, tension rises from the mid-20s to about 60 by 1912, the Balkan League's war comes in 1912 and the general war in 1914. A player who does nothing sees the same.
+
+## Sound
+
+The `Audio` autoload (`scripts/audio.gd`, `data/audio.json`) has buses Master, Music, Effects and Interface and plays three pieces (`data/audio/music/`): *Diplomatic Silence* (the menu theme and peace), *Marche Imperiale* and *Diplomacy of Steel* (war). Music follows the game (menu, peace, or war when the player's nation is fighting) with a crossfade, or the player picks a piece, pauses, skips or repeats. Volume, mute and the music settings are saved with the UI settings; they sit under Settings in the main menu and in the Settings window, and the pause menu has a compact player.
 
 ## Not in the game
 

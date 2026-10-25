@@ -56,6 +56,10 @@ adding a new script with a `class_name`, so Godot learns the class. `tests/playt
 plays a hundred days at four nations in the real map scene and prints the load time, memory and the
 cost of a day; `tools/ai_report.gd` plays the whole AI war and prints a month-by-month report.
 
+## Training the AI
+
+The AI's numbers (`data/ai.json`) were tuned by self-play, with no scripted plans: `python tools/ai_train.py run 10` trains from the saved state in `tools/ai_training/` (set `GODOT`, and `WORKERS` for the games played at once), `python tools/ai_train.py test 16` plays the trained numbers against the starting ones on fresh seeds, and `apply` writes them into `data/ai.json`. `tools/ai_watch.gd`, `ai_wars.gd`, `ai_battles.gd`, `ai_scoreboard.gd` and `war_length.gd` show what the AI is doing.
+
 ## Layout
 
 | Folder | Holds |
@@ -64,9 +68,9 @@ cost of a day; `tools/ai_report.gd` plays the whole AI war and prints a month-by
 | `scripts/ai/` | The AI: defence, offence, navy, landings, diplomacy, budget, focus and ambition |
 | `scripts/map/` | Map data, the map view and its shader, army and fleet layers |
 | `scripts/ui/` | Panels, windows, menus, tutorial |
-| `scripts/audio.gd` | Sound (the `Audio` autoload) |
+| `scripts/audio.gd` | Sound and the music player (the `Audio` autoload) |
 | `data/` | Map bitmaps and tables, scenarios, balance files (`economy.json`, `military.json`, `navy.json`, `ai.json`, `diplomacy.json`, `focus.json`, ...), `audio.json`, `tutorial.json` |
-| `tools/` | Build scripts for the map data, the audio, and the test runner |
+| `tools/` | Build scripts for the map data and audio, the test runner, the AI trainer (`ai_train.py`, `ai_arena.gd`) and screenshot tools |
 | `tests/` | The headless tests |
 
 Everything that can be a number is in `data/`. All changes to the world go through commands
@@ -75,7 +79,7 @@ Everything that can be a number is in `data/`. All changes to the world go throu
 ## Rebuilding generated data
 
 Python 3 scripts in `tools/` build the map tables and the stock sounds (`python tools/make_audio.py`
-writes `data/audio/`; replace any file with your own recording of the same name). `tools/extend_map.py`
+writes the sound effects in `data/audio/`; the music in `data/audio/music/` is the three supplied pieces). `tools/extend_map.py`
 adds a region to the map bitmap (Natural Earth admin-1 data), `tools/add_scandinavia.py` its population,
 resources and terrain, and `tools/build_relief.py` the 3D map's heightmap (open elevation tiles). They need
 `numpy`, `scipy`, `shapely`, `pyshp` and `Pillow`.
