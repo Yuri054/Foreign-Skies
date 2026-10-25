@@ -1,0 +1,36 @@
+{
+	"_note": "Difficulty presets (scripts/sim/difficulty.gd). A preset changes only how the AI nations and the crisis generator are tuned, never what the rules give anyone: `ai` and `crisis` are lists of {path, mul}, a dotted path into data/ai.json or data/crises.json and what to multiply that number by. The preset is chosen when a game starts and is saved with it. 'historical' leaves the shipped (trained) numbers alone.",
+	"default": "historical",
+	"presets": {
+		"historical": {
+			"label": "Historical",
+			"text": "The nations play as they were trained, and Europe drifts toward its war as it did.",
+			"ai": [],
+			"crisis": []
+		},
+		"challenging": {
+			"label": "Challenging",
+			"text": "The nations are bolder, take worse odds, keep fighting longer and press their quarrels sooner.",
+			"ai": [
+				{"path": "odds.bold", "mul": 0.9},
+				{"path": "odds.cautious", "mul": 0.9},
+				{"path": "offense.odds_bold", "mul": 0.9},
+				{"path": "offense.odds_cautious", "mul": 0.9},
+				{"path": "peace.seek_threshold", "mul": 1.25},
+				{"path": "forces.war_multiplier", "mul": 1.15}
+			],
+			"crisis": [{"path": "gate.min_score", "mul": 0.9}]
+		},
+		"sandbox": {
+			"label": "Sandbox",
+			"text": "The nations are slower to quarrel, wary of long odds and quicker to make peace.",
+			"ai": [
+				{"path": "diplomacy.war.declare_threshold", "mul": 1.4},
+				{"path": "odds.bold", "mul": 1.15},
+				{"path": "odds.cautious", "mul": 1.15},
+				{"path": "peace.seek_threshold", "mul": 0.8}
+			],
+			"crisis": [{"path": "gate.min_score", "mul": 1.3}]
+		}
+	}
+}

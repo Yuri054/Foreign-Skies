@@ -113,6 +113,7 @@ static func read(gs: Node, path: String) -> String:
 	if state.get("province_owner", PackedStringArray()).size() != MapData.provinces.size():
 		return "The save was made for a different map."
 
+	gs.difficulty = Difficulty.DEFAULT
 	gs.load_scenario(scenario_dir)
 	for key: String in state:
 		if key in SKIPPED or not (key in gs):

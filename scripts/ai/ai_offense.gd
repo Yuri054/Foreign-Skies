@@ -160,6 +160,7 @@ static func _best_target(gs: Node, tag: String, enemy: String, candidates: Array
 	var w: Dictionary = AI.cfg.offense
 	var odds := odds_against(gs, tag, enemy)
 	var best := {}
+	var claimed := AICoalition.claimed(gs, tag)
 	for target in candidates:
 		if not AI.supplied(gs, tag, target):
 			continue
@@ -175,7 +176,7 @@ static func _best_target(gs: Node, tag: String, enemy: String, candidates: Array
 			days = maxf(days, (_km(a.province, staging) + _km(staging, target)) / a.speed())
 		var margin := clampf(picked.power / required - 1.0, 0.0, 2.0)
 		var cost: float = float(w.w_days) * days + float(w.w_supply) * Military.supply_cost(gs, tag, target)
-		var utility := _worth(gs, tag, enemy, target) + float(w.w_margin) * margin - cost + float(AI.cfg.variety.target) * AI.noise(gs, "%s%d_%d" % [tag, target, Clock.days_elapsed / 30])
+		var utility := _worth(gs, tag, enemy, target) + float(w.w_margin) * margin - cost - (float(AI.cfg.coalition.claim_penalty) if claimed.has(target) else 0.0) + float(AI.cfg.variety.target) * AI.noise(gs, "%s%d_%d" % [tag, target, Clock.days_elapsed / 30])
 		if best.is_empty() or utility > best.utility + 0.000001:
 			best = {"target": target, "staging": staging, "utility": utility, "armies": picked.armies}
 	return best

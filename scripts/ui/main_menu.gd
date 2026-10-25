@@ -18,6 +18,8 @@ var _scenario_list := ItemList.new()
 var _blurb := Label.new()
 var _status := Label.new()
 var _continue := Button.new()
+var _difficulty: OptionButton
+var _difficulty_note: Label
 var _settings := preload("res://scripts/ui/settings_window.gd").new()
 var _page := "main"
 ## Tests turn this off, so that starting or loading a game does not change the scene.
@@ -148,9 +150,39 @@ func _build_new() -> void:
 	_blurb.custom_minimum_size = Vector2(0, 60)
 	_box.add_child(_blurb)
 	_show_blurb()
+	var hard := Label.new()
+	hard.text = "Difficulty"
+	hard.modulate = Fmt.DIM
+	_box.add_child(hard)
+	_difficulty = OptionButton.new()
+	_difficulty.focus_mode = Control.FOCUS_NONE
+	for id in Difficulty.ids():
+		_difficulty.add_item(Difficulty.label(id))
+		_difficulty.set_item_metadata(_difficulty.item_count - 1, id)
+		if id == GameState.difficulty:
+			_difficulty.select(_difficulty.item_count - 1)
+	_difficulty.tooltip_text = "How the nations behave: Historical as they were trained, Challenging bolder and more stubborn, Sandbox slower to quarrel. It changes how the AI plays, never what the rules give anyone."
+	_difficulty_note = Label.new()
+	_difficulty_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_difficulty_note.modulate = Fmt.DIM
+	_difficulty.item_selected.connect(func(_i: int) -> void: _show_difficulty())
+	_box.add_child(_difficulty)
+	_box.add_child(_difficulty_note)
+	_show_difficulty()
 	_button("Play", start_new)
 	_button("Back", func() -> void: show_page("main"))
 	_status.text = ""
+
+
+func _show_difficulty() -> void:
+	_difficulty_note.text = Difficulty.text(selected_difficulty())
+
+
+## The difficulty picked on the New game page.
+func selected_difficulty() -> String:
+	if _difficulty != null and is_instance_valid(_difficulty) and _difficulty.item_count > 0:
+		return _difficulty.get_item_metadata(_difficulty.selected)
+	return Difficulty.DEFAULT
 
 
 func _show_blurb() -> void:
@@ -218,11 +250,12 @@ func latest_save() -> Dictionary:
 
 
 ## Loads the chosen scenario and opens the map, where the nation is chosen.
-func start_new(dir := "") -> void:
+func start_new(dir := "", difficulty := "") -> void:
 	if dir.is_empty():
 		dir = selected_scenario().get("dir", "")
 	if dir.is_empty():
 		return
+	GameState.difficulty = difficulty if difficulty != "" else selected_difficulty()
 	GameState.load_scenario(dir)
 	GameState.ai_seed = randi() % 1000000 + 1
 	Scenarios.resume = false
@@ -231,7 +264,7 @@ func start_new(dir := "") -> void:
 
 ## A new game of the first scenario with the tutorial to follow the choice of a nation.
 func start_tutorial() -> void:
-	start_new(TUTORIAL_SCENARIO)
+	start_new(TUTORIAL_SCENARIO, Difficulty.DEFAULT)
 	Tutorial.requested = true
 
 

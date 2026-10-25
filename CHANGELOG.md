@@ -6,6 +6,13 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.5.4
+
+- Difficulty: Historical, Challenging or Sandbox, chosen on the New game page and saved with the game. A preset only retunes
+  how the AI nations and the crisis generator behave; it gives no one anything the rules do not.
+- Coalition AI: allies keep off each other's targets, a nation stays in the war with its allies unless its people or its
+  fortunes are failing, and allies that all want peace take it together at a conference.
+
 ## 0.5.3
 
 - Staff tools: a Supply variant of the Military map mode (green where your armies are supplied from home, amber to red as

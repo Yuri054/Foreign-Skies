@@ -19,6 +19,7 @@ Settings  F10 · Save and load  F6 · Menu  Esc"
 var _root := Control.new()
 var _was_paused := false
 var _open := false
+var _hard := Label.new()
 
 
 func _ready() -> void:
@@ -66,6 +67,9 @@ func _ready() -> void:
 	_button(box, "Main menu", to_main_menu)
 	_button(box, "Quit", func() -> void: get_tree().quit())
 	box.add_child(HSeparator.new())
+	_hard.modulate = Fmt.DIM
+	_hard.mouse_filter = Control.MOUSE_FILTER_PASS
+	box.add_child(_hard)
 	var keys := Label.new()
 	keys.text = KEYS
 	keys.modulate = Fmt.DIM
@@ -90,6 +94,8 @@ func is_open() -> bool:
 
 
 func open() -> void:
+	_hard.text = "Difficulty: %s" % Difficulty.label(GameState.difficulty)
+	_hard.tooltip_text = Difficulty.text(GameState.difficulty)
 	if _open:
 		return
 	_open = true

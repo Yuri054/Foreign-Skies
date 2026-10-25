@@ -203,6 +203,8 @@ var standings_history: Array[Dictionary] = []
 var relation_projects: Array[Dictionary] = []
 ## Money each nation has recently gifted another, "from>to": {amount}; fades monthly (see Diplomacy.gift_effect).
 var gift_memory: Dictionary = {}
+## The difficulty of this game (see Difficulty), chosen before it starts and saved with it.
+var difficulty := "historical"
 ## A counter-offer from a conference waiting for the player (see Conference): {from, enemy, entries, day}, or {}.
 var conference_counter: Dictionary = {}
 ## The history of the run (see History): what happened, every change of owner, and a row of figures a month.
@@ -362,6 +364,8 @@ func load_scenario(dir: String) -> void:
 	AI.load_config()
 	Pressure.load_config()
 	Crisis.load_config()
+	Difficulty.load_config()
+	Difficulty.apply(self)
 	command_log.clear()
 	wars.clear()
 	war_history.clear()
@@ -461,6 +465,8 @@ func load_game(path: String) -> String:
 ## What a loaded game needs to run: tables worked out from the saved state, and no cache
 ## filled by the game that was there before.
 func finish_load() -> void:
+	# The saved difficulty retunes the AI (a save from before difficulties plays as historical).
+	Difficulty.apply(self)
 	Diplomacy.invalidate_treaties()
 	owner_version += 1
 	_rebuild_nation_provinces()

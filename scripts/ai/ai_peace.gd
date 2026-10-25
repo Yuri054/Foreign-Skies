@@ -188,7 +188,18 @@ static func overtures(gs: Node) -> void:
 			var p := proposal(gs, tag, war)
 			if p.is_empty():
 				continue
-			var result := Peace.propose(gs, tag, war.other(tag), p.mode, p.demands)
+			var enemy := war.other(tag)
+			# Allies fighting on: a nation that wants to win terms takes them to the table together, if they all want peace
+			# too; otherwise it stays in the war with them unless it is strained.
+			var group := AICoalition.joint_partners(gs, tag, war)
+			if not group.is_empty() and p.mode == "demand" and enemy != gs.player_tag:
+				var joint := Conference.propose(gs, tag, enemy, p.demands, group)
+				if joint.ok and joint.accepted != false:
+					break
+				continue
+			if AICoalition.hold(gs, tag, war):
+				continue
+			var result := Peace.propose(gs, tag, enemy, p.mode, p.demands)
 			if result.ok and result.accepted != false:
 				break
 
