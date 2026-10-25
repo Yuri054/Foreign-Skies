@@ -14,6 +14,10 @@ func _initialize() -> void:
 	var gs = root.get_node("GameState")
 	var clock = root.get_node("Clock")
 	var AI = load("res://scripts/ai/ai.gd")
+	AudioServer.set_bus_mute(0, true)   # a silent game: no sound events, and the music players have nothing to do
+	for p in root.get_node("Audio")._players:
+		p.stop()
+	root.get_node("Audio").set_process(false)
 	var job: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(OS.get_cmdline_user_args()[0]))
 	gs.load_scenario(job.get("scenario", "res://data/scenarios/july_1914/"))
 	gs.ai_enabled = true
