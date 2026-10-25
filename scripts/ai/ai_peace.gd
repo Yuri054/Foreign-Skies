@@ -93,8 +93,11 @@ static func accepts(gs: Node, offer: Dictionary) -> bool:
 	# I am offered terms by the one who gives.
 	if white:
 		return u >= -float(c.white_tolerance)
+	# The ground a loser can hand over is all it can give: battles won add to the score but not to what is on the table.
 	# (A little slack: an offer built to be exactly the share of the score must not fail on rounding.)
-	return offer.cost >= float(c.accept_share) * maxf(0.0, score) - 0.000001 or u >= float(c.seek_threshold)
+	var parts := Peace.score_parts(gs, war, me)
+	var ground := maxf(0.0, float(parts.occupation) + float(parts.capital))
+	return offer.cost >= float(c.accept_share) * minf(maxf(0.0, score), ground) - 0.000001 or u >= float(c.seek_threshold)
 
 
 ## Whether a nation can carry the indemnities in a set of demands on top of those it pays.

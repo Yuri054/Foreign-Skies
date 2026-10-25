@@ -207,6 +207,7 @@ func start_new(dir := "") -> void:
 	if dir.is_empty():
 		return
 	GameState.load_scenario(dir)
+	GameState.ai_seed = randi() % 1000000 + 1
 	Scenarios.resume = false
 	_open_map()
 

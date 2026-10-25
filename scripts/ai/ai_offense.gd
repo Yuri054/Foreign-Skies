@@ -12,23 +12,48 @@ extends RefCounted
 
 
 static func in_campaign(gs: Node, tag: String, army_id: int) -> bool:
+	for c: Dictionary in campaigns(gs, tag):
+		if army_id in c.armies:
+			return true
+	return AILanding.involves(gs, tag, army_id)
+
+
+## Every campaign the nation has running: the main one (GameState.ai_campaign) and the others it runs at the same
+## time against other enemies (ai_campaign_extra).
+static func campaigns(gs: Node, tag: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	var c: Variant = gs.ai_campaign.get(tag)
-	return (c != null and army_id in c.armies) or AILanding.involves(gs, tag, army_id)
+	if c != null:
+		out.append(c)
+	for e: Dictionary in gs.ai_campaign_extra.get(tag, []):
+		out.append(e)
+	return out
 
 
 static func step(gs: Node, tag: String) -> void:
-	var c: Variant = gs.ai_campaign.get(tag)
-	if c != null and not _alive(gs, tag, c):
-		gs.ai_campaign.erase(tag)
-		c = null
+	for c: Dictionary in campaigns(gs, tag):
+		if not _alive(gs, tag, c):
+			_drop(gs, tag, c)
+	for c: Dictionary in campaigns(gs, tag):
+		_run(gs, tag, c)
+	if campaigns(gs, tag).size() >= int(AI.cfg.offense.max_campaigns) or Clock.days_elapsed < gs.ai_campaign_wait.get(tag, 0):
+		return
+	var c: Variant = _start(gs, tag)
 	if c == null:
-		if Clock.days_elapsed < gs.ai_campaign_wait.get(tag, 0):
-			return
-		c = _start(gs, tag)
-		if c == null:
-			gs.ai_campaign_wait[tag] = Clock.days_elapsed + int(AI.cfg.offense.retry_days)
-			return
+		gs.ai_campaign_wait[tag] = Clock.days_elapsed + int(AI.cfg.offense.retry_days)
+		return
 	_run(gs, tag, c)
+
+
+## Removes a campaign from the nation's books (the main one or one of the others).
+static func _drop(gs: Node, tag: String, c: Dictionary) -> void:
+	if gs.ai_campaign.get(tag) == c:
+		gs.ai_campaign.erase(tag)
+		return
+	var rest: Array = gs.ai_campaign_extra.get(tag, [])
+	rest.erase(c)
+	if rest.is_empty():
+		gs.ai_campaign_extra.erase(tag)
 
 
 ## Drops dead armies; false if the campaign is over (no armies, or the war is).
@@ -86,6 +111,16 @@ static func _resistance(gs: Node, tag: String, target: int) -> float:
 	return AIDefense._defence_at(gs, tag, target) + float(AI.cfg.offense.reinforce_weight) * around
 
 
+## The odds the nation wants before it attacks this enemy: its temperament's, less what an offensive plan against
+## the enemy asks it to risk (`plan_odds_factor`).
+static func odds_against(gs: Node, tag: String, enemy: String) -> float:
+	var odds := AI.required_odds(gs, tag)
+	for plan: Dictionary in gs.ai_plans:
+		if plan.nation == tag and plan.enemy == enemy and plan.posture == "offensive":
+			return odds * float(AI.cfg.offense.plan_odds_factor)
+	return odds
+
+
 ## What a plan wants: the heaviest objective against this enemy, less the nearer it is the more.
 static func _plan_weight(gs: Node, tag: String, enemy: String, target: int) -> float:
 	var best := 0.0
@@ -123,7 +158,7 @@ static func _worth(gs: Node, tag: String, enemy: String, target: int) -> float:
 ## the provinces to consider.
 static func _best_target(gs: Node, tag: String, enemy: String, candidates: Array[int], armies: Array[Army], budget: float, exact: bool) -> Dictionary:
 	var w: Dictionary = AI.cfg.offense
-	var odds := AI.required_odds(gs, tag)
+	var odds := odds_against(gs, tag, enemy)
 	var best := {}
 	for target in candidates:
 		if not AI.supplied(gs, tag, target):
@@ -140,7 +175,7 @@ static func _best_target(gs: Node, tag: String, enemy: String, candidates: Array
 			days = maxf(days, (_km(a.province, staging) + _km(staging, target)) / a.speed())
 		var margin := clampf(picked.power / required - 1.0, 0.0, 2.0)
 		var cost: float = float(w.w_days) * days + float(w.w_supply) * Military.supply_cost(gs, tag, target)
-		var utility := _worth(gs, tag, enemy, target) + float(w.w_margin) * margin - cost
+		var utility := _worth(gs, tag, enemy, target) + float(w.w_margin) * margin - cost + float(AI.cfg.variety.target) * AI.noise(gs, "%s%d_%d" % [tag, target, Clock.days_elapsed / 30])
 		if best.is_empty() or utility > best.utility + 0.000001:
 			best = {"target": target, "staging": staging, "utility": utility, "armies": picked.armies}
 	return best
@@ -153,7 +188,8 @@ static func _pick_force(gs: Node, tag: String, target: int, armies: Array[Army],
 	var reach := AI.hops_from(target, int(AI.cfg.offense.reach_hops))
 	var near: Array[Army] = []
 	for a in armies:
-		if reach.has(a.province):
+		# Only armies that can be there before the gathering times out are worth waiting for.
+		if reach.has(a.province) and (exact or _km(a.province, target) / a.speed() <= float(AI.cfg.offense.gather_days) * float(AI.cfg.offense.gather_eta_share)):
 			near.append(a)
 	near.sort_custom(func(x: Army, y: Army) -> bool:
 		var dx := _km(x.province, target)
@@ -194,20 +230,23 @@ static func _staging(gs: Node, tag: String, target: int, force: Array[Army]) -> 
 ## front. Strongest first.
 static func _available(gs: Node, tag: String) -> Array[Army]:
 	var reserve: int = gs.ai_reserve.get(tag, 0)
-	var left := {}
+	var power := {}
+	var need := {}
 	for f: Front in gs.fronts.values():
 		if f.tag == tag:
-			left[f.id] = f.army_ids.size()
+			power[f.id] = AIDefense._power_on(gs, f)
+			need[f.id] = AIDefense._need(gs, f)
 	var out: Array[Army] = []
 	var all := Military.armies_of(gs, tag)
 	all.sort_custom(func(x: Army, y: Army) -> bool: return x.power() > y.power() or (x.power() == y.power() and x.id < y.id))
 	for a in all:
-		if a.id == reserve or not a.path.is_empty() or a.fighting or a.embarked() or gs.province_controller[a.province] != tag or AILanding.involves(gs, tag, a.id):
+		if a.id == reserve or not a.path.is_empty() or a.fighting or a.embarked() or gs.province_controller[a.province] != tag or in_campaign(gs, tag, a.id):
 			continue
-		if a.front_id != 0:
-			if left.get(a.front_id, 0) < 2:
+		if a.front_id != 0 and power.has(a.front_id):
+			# An army may leave its front while the rest still cover `front_min_cover` of what it faces.
+			if (power[a.front_id] - a.power()) < float(AI.cfg.offense.front_min_cover) * need[a.front_id]:
 				continue
-			left[a.front_id] -= 1
+			power[a.front_id] -= a.power()
 		out.append(a)
 	return out
 
@@ -219,13 +258,20 @@ static func _start(gs: Node, tag: String) -> Variant:
 	var total := 0.0
 	for a in Military.armies_of(gs, tag):
 		total += a.power()
-	var budget := total * float(AI.temperament(gs, tag).aggression) * float(AI.cfg.offense.max_share)
+	var committed := 0.0
+	var busy := {}
+	for c: Dictionary in campaigns(gs, tag):
+		busy[c.enemy] = true
+		for id in c.armies:
+			if gs.armies.has(id):
+				committed += gs.armies[id].power()
+	var budget := total * float(AI.temperament(gs, tag).aggression) * float(AI.cfg.offense.max_share) - committed
 	if budget <= 0.0:
 		return null
 	var best := {}
 	var best_enemy := ""
 	for enemy in AI.enemies(gs, tag):
-		if _defensive(gs, tag, enemy):
+		if busy.has(enemy) or _defensive(gs, tag, enemy):
 			continue
 		var pick := _best_target(gs, tag, enemy, _frontier(gs, tag, enemy), armies, budget, false)
 		if not pick.is_empty() and (best.is_empty() or pick.utility > best.utility + 0.000001):
@@ -238,7 +284,12 @@ static func _start(gs: Node, tag: String) -> Variant:
 		ids.append(a.id)
 	var c := {"enemy": best_enemy, "target": best.target, "staging": best.staging, "armies": ids,
 			"phase": "gather", "started": Clock.days_elapsed}
-	gs.ai_campaign[tag] = c
+	if gs.ai_campaign.has(tag):
+		if not gs.ai_campaign_extra.has(tag):
+			gs.ai_campaign_extra[tag] = []
+		gs.ai_campaign_extra[tag].append(c)
+	else:
+		gs.ai_campaign[tag] = c
 	return c
 
 
@@ -249,7 +300,7 @@ static func _end(gs: Node, tag: String, c: Dictionary) -> void:
 	if c.has("line"):
 		c.done = true
 		return
-	gs.ai_campaign.erase(tag)
+	_drop(gs, tag, c)
 	gs.ai_campaign_wait[tag] = Clock.days_elapsed + int(AI.cfg.offense.retry_days)
 
 
@@ -276,7 +327,7 @@ static func _power(armies: Array[Army]) -> float:
 
 
 static func _run(gs: Node, tag: String, c: Dictionary) -> void:
-	var odds := AI.required_odds(gs, tag)
+	var odds := odds_against(gs, tag, c.enemy)
 	var armies := _army_list(gs, c)
 	if gs.province_controller[c.target] == tag:
 		_next(gs, tag, c, armies)

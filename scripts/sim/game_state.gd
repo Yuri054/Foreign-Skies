@@ -216,6 +216,11 @@ var ai_reserve: Dictionary = {}
 ## The AI's campaign by nation (see AIOffense), and the day before which it will not look
 ## for a new one.
 var ai_campaign: Dictionary = {}
+## A number chosen when a new game starts (0 in tests and for a scenario loaded bare): it varies the AI's temperaments
+## and choices from game to game, while the same seed always plays out the same.
+var ai_seed := 0
+## tag -> the other campaigns it runs at once against other enemies (the main one is in ai_campaign).
+var ai_campaign_extra: Dictionary = {}
 var ai_campaign_wait: Dictionary = {}
 ## Front id -> the day the AI last chose where the front masses its armies (see AIDefense).
 var ai_anchor_stamp: Dictionary = {}

@@ -35,10 +35,12 @@ static func load_scenario(gs: Node) -> void:
 	gs.ai_ambition_wait.clear()
 	gs.ai_reserve.clear()
 	gs.ai_campaign.clear()
+	gs.ai_campaign_extra.clear()
 	gs.ai_diplo_stamp.clear()
 	gs.ai_budget_stamp.clear()
 	gs.ai_campaign_wait.clear()
 	gs.ai_anchor_stamp.clear()
+	gs.ai_seed = 0
 	gs.ai_navy.clear()
 	gs.ai_landing.clear()
 	gs.ai_landing_wait.clear()
@@ -85,17 +87,30 @@ static func is_ai(gs: Node, tag: String) -> bool:
 	return n != null and tag != gs.player_tag and not n.provinces.is_empty()
 
 
-## The nation's temperament: the default, with the scenario's overrides.
-## The same without tension's push: for how readily a nation makes peace, which a tense Europe does not change.
+## A repeatable number between -1 and 1 for a key, from the game's seed (0 without one): the same seed and key always
+## give the same number, another seed gives another.
+static func noise(gs: Node, key: String) -> float:
+	if gs.ai_seed == 0:
+		return 0.0
+	return float(("%d|%s" % [gs.ai_seed, key]).hash() % 20001) / 10000.0 - 1.0
+
+
+## The nation's own temperament: the default, or the scenario's, bent a little by the game's seed so each game
+## gives each nation its own character (`variety.temperament`).
 static func base_temperament(gs: Node, tag: String) -> Dictionary:
-	return gs.ai_traits.get(tag, cfg.temperament.default)
-
-
-static func temperament(gs: Node, tag: String) -> Dictionary:
 	var t: Dictionary = gs.ai_traits.get(tag, cfg.temperament.default)
+	if gs.ai_seed == 0:
+		return t
+	var v := float(cfg.variety.temperament)
+	return {"aggression": clampf(float(t.aggression) + v * noise(gs, tag + "agg"), 0.0, 1.0),
+			"caution": clampf(float(t.caution) + v * noise(gs, tag + "cau"), 0.0, 1.0)}
+
+
+## The same, with tension's push (a tense Europe makes every nation bolder and less careful; see Pressure).
+static func temperament(gs: Node, tag: String) -> Dictionary:
+	var t: Dictionary = base_temperament(gs, tag)
 	if gs.tension_bonus <= 0.0:
 		return t
-	# Tension makes every nation bolder and less careful (see Pressure).
 	return {"aggression": clampf(float(t.aggression) + gs.tension_bonus, 0.0, 1.0), "caution": clampf(float(t.caution) - gs.tension_bonus * 0.5, 0.0, 1.0)}
 
 

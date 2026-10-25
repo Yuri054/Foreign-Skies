@@ -206,7 +206,7 @@ static func _assign(gs: Node, tag: String, fronts: Array[Front]) -> void:
 	var t := _tables(gs, fronts)
 	var batches := {}
 	for a in pool:
-		var f := _weakest(gs, fronts, t[0], t[1])
+		var f := _front_for(gs, a, fronts, t[0], t[1])
 		t[1][f.id] += a.power()
 		if not batches.has(f.id):
 			batches[f.id] = [] as Array[int]
@@ -215,6 +215,19 @@ static func _assign(gs: Node, tag: String, fronts: Array[Front]) -> void:
 	ids.sort()
 	for fid: int in ids:
 		gs.issue_quiet(AssignToFront.new(tag, fid, batches[fid]))
+
+
+## The front an unassigned army should join: the least covered, but an army does not march across the country
+## to a line that is only a little worse covered than one beside it (`near_km` of distance count as one cover).
+static func _front_for(gs: Node, a: Army, fronts: Array[Front], needs: Dictionary, powers: Dictionary) -> Front:
+	var best: Front = null
+	var best_score := INF
+	for f in fronts:
+		var score: float = powers[f.id] / needs[f.id] + _km_to_line(a, f) / float(AI.cfg.defense.near_km)
+		if score < best_score - 0.000001:
+			best = f
+			best_score = score
+	return best
 
 
 ## Moves the smallest army of the best-covered front to the worst-covered one when the cover
@@ -237,15 +250,31 @@ static func _rebalance(gs: Node, tag: String, fronts: Array[Front]) -> void:
 	var worst_cover: float = t[1][worst.id] / t[0][worst.id]
 	if best_cover < worst_cover * float(AI.cfg.defense.rebalance_ratio):
 		return
+	# The donor is the army nearest the line that needs it, if that is not too far to march.
 	var smallest: Army = null
+	var best_km := INF
 	for id in best.army_ids:
 		var a: Army = gs.armies.get(id)
-		if a != null and a.path.is_empty() and not a.fighting and (smallest == null or a.power() < smallest.power() or (a.power() == smallest.power() and a.id < smallest.id)):
+		if a == null or not a.path.is_empty() or a.fighting:
+			continue
+		var km := _km_to_line(a, worst)
+		if km < best_km - 0.000001 or (absf(km - best_km) <= 0.000001 and smallest != null and a.id < smallest.id):
 			smallest = a
+			best_km = km
+	if smallest == null or best_km > float(AI.cfg.defense.rebalance_max_km):
+		return
 	# Only if the donor stays better covered than the receiver will be.
-	if smallest == null or (t[1][best.id] - smallest.power()) / t[0][best.id] < (t[1][worst.id] + smallest.power()) / t[0][worst.id]:
+	if (t[1][best.id] - smallest.power()) / t[0][best.id] < (t[1][worst.id] + smallest.power()) / t[0][worst.id]:
 		return
 	gs.issue_quiet(AssignToFront.new(tag, worst.id, [smallest.id] as Array[int]))
+
+
+## How far an army stands from the provinces a front masses on.
+static func _km_to_line(a: Army, f: Front) -> float:
+	var km := INF
+	for p in (f.anchors if not f.anchors.is_empty() else f.provinces):
+		km = minf(km, (MapData.provinces[a.province].center as Vector2).distance_to(MapData.provinces[p].center) * Military.KM_PER_PX)
+	return km
 
 
 # --- Retaking home ground ------------------------------------------------------------------------

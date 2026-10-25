@@ -26,7 +26,7 @@
 		"stakes": 4.0
 	},
 	"defense": {
-		"_note": "reserve_share: share of a nation's power kept back as a reserve (scaled up by caution); needs reserve_min_armies armies. reserve_stay: the reserve moves only when another province is this many times more threatened than where it stands. merge_max_units: the most units in a stack the AI will form by merging. rebalance_ratio: an army changes front when one front is this many times better covered than another. retake_hops and retake_eta_spread: armies within that many hops, arriving within that many days of each other, may retake home ground. A front masses its armies on anchor provinces, one for every anchor_armies armies (at most anchor_max): the provinces with most threat plus anchor_value_weight times their value, chosen again every anchor_days.",
+		"_note": "reserve_share: share of a nation's power kept back as a reserve (scaled up by caution); needs reserve_min_armies armies. reserve_stay: the reserve moves only when another province is this many times more threatened than where it stands. merge_max_units: the most units in a stack the AI will form by merging. rebalance_ratio: an army changes front when one front is this many times better covered than another. retake_hops and retake_eta_spread: armies within that many hops, arriving within that many days of each other, may retake home ground. A front masses its armies on anchor provinces, one for every anchor_armies armies (at most anchor_max): the provinces with most threat plus anchor_value_weight times their value, chosen again every anchor_days. near_km: an unassigned army counts every near_km of distance to a front's anchors as one point of cover when choosing its front. rebalance_max_km: an army is moved to a worse-covered front only if it stands within this many km of it.",
 		"reserve_share": 0.2,
 		"reserve_min_armies": 3,
 		"reserve_stay": 1.5,
@@ -38,10 +38,12 @@
 		"anchor_armies": 4,
 		"anchor_max": 3,
 		"anchor_days": 20,
-		"anchor_value_weight": 100.0
+		"anchor_value_weight": 100.0,
+		"near_km": 400.0,
+		"rebalance_max_km": 500.0
 	},
 	"offense": {
-		"_note": "max_share: share of a nation's power an aggression of 1 puts on offence. Target utility = w_plan * plan weight + w_value * AI.value + w_score * war score share + w_margin * (power over required odds, up to 2) - w_days * days to arrive - w_supply * supply hops; a target below min_utility is not attacked. retry_days: wait after finding nothing to attack. gather_days: give up if the force is not ready by then. fall_back_morale (scaled by 0.5 + caution) and fall_back_ratio (own power over the enemy's around the target): below them the stack falls back. plan_hops: how far an objective's weight reaches. reach_hops: armies this near may be sent, and reinforce_weight: the share of the power of enemy armies within support_hops that counts against an attack.",
+		"_note": "max_share: share of a nation's power an aggression of 1 puts on offence. Target utility = w_plan * plan weight + w_value * AI.value + w_score * war score share + w_margin * (power over required odds, up to 2) - w_days * days to arrive - w_supply * supply hops; a target below min_utility is not attacked. retry_days: wait after finding nothing to attack. gather_days: give up if the force is not ready by then. fall_back_morale (scaled by 0.5 + caution) and fall_back_ratio (own power over the enemy's around the target): below them the stack falls back. plan_hops: how far an objective's weight reaches. reach_hops: armies this near may be sent, and reinforce_weight: the share of the power of enemy armies within support_hops that counts against an attack. max_campaigns: campaigns run at once, against different enemies. plan_odds_factor: an offensive plan against an enemy lowers the odds wanted against it to this share. gather_eta_share: only armies that can reach the staging province within this share of gather_days are picked. front_min_cover: an army may leave its front while the others on it still cover this share of the front's need.",
 		"max_share": 1.0,
 		"w_plan": 3.0,
 		"w_value": 2.0,
@@ -50,6 +52,10 @@
 		"w_days": 0.05,
 		"w_supply": 0.2,
 		"min_utility": 0.0,
+		"max_campaigns": 2,
+		"plan_odds_factor": 0.8,
+		"gather_eta_share": 0.8,
+		"front_min_cover": 0.4,
 		"retry_days": 6,
 		"gather_days": 20,
 		"fall_back_morale": 0.4,
@@ -212,6 +218,11 @@
 		"indemnity_max_share": 0.25,
 		"indemnity_months": 12,
 		"afford_share": 0.4
+	},
+	"variety": {
+		"_note": "What the game's seed (GameState.ai_seed, chosen when a new game starts) varies. temperament: each nation's aggression and caution move by up to this much. target: the utility of each target an offence weighs moves by up to this much (fresh every month). Seed 0 varies nothing.",
+		"temperament": 0.15,
+		"target": 1.0
 	},
 	"unjustified_share_max": 0.15,
 	"ambition": {

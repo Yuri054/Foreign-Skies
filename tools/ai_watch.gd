@@ -1,6 +1,6 @@
 extends SceneTree
 ## Watches the AI fight: every month a line per great power (armies, what they are doing, campaign, ground held/taken).
-## godot --headless --path . -s res://tools/ai_watch.gd -- [scenario_dir] [months] [bystander] [tags comma separated]
+## godot --headless --path . -s res://tools/ai_watch.gd -- [scenario_dir] [months] [bystander] [tags comma separated] [seed] [every n months]
 func _initialize() -> void:
 	await process_frame
 	var gs = root.get_node("GameState")
@@ -13,6 +13,9 @@ func _initialize() -> void:
 	gs.ai_enabled = true
 	gs.set_player(args[2] if args.size() > 2 else "ESP")
 	var months := int(args[1]) if args.size() > 1 else 8
+	gs.ai_seed = int(args[4]) if args.size() > 4 else 0
+	var every := int(args[5]) if args.size() > 5 else 1
+	var count := -1
 	var tags: PackedStringArray = (args[3] if args.size() > 3 else "GER,FRA,AUH,RUS,GBR,ITA").split(",")
 	var last := -1
 	for d in months * 31:
@@ -20,6 +23,9 @@ func _initialize() -> void:
 		if clock.month == last:
 			continue
 		last = clock.month
+		count += 1
+		if count % every != 0:
+			continue
 		for tag in tags:
 			var n = gs.nations[tag]
 			if gs.wars_of(tag).is_empty():
