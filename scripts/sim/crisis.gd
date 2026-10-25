@@ -99,6 +99,9 @@ static func step_month(gs: Node) -> void:
 		return
 	if gs.crisis_cooldown.get("_any", -1) > Clock.days_elapsed:
 		return
+	# Europe already at war has no attention for new quarrels.
+	if gs.wars.size() > int(cfg.gate.max_wars):
+		return
 	var opened := 0
 	while opened < int(cfg.gate.per_month) and gs.crises.size() < int(cfg.gate.max_active):
 		var found := best_candidate(gs)

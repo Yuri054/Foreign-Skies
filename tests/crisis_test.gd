@@ -185,6 +185,14 @@ func _initialize() -> void:
 	_check(gs.crises.size() == 1, "with a low bar the monthly search opens one crisis (%d)" % gs.crises.size())
 	C.step_month(gs)
 	_check(gs.crises.size() == 1, "and not another at once (the gap between crises)")
+	gs.crises.clear()
+	gs.crisis_cooldown.clear()
+	gs.set_war("GER", "FRA", true, "none")
+	gs.set_war("GER", "RUS", true, "none")
+	gs.set_war("GER", "GBR", true, "none")
+	gs.set_war("AUH", "ITA", true, "none")
+	C.step_month(gs)
+	_check(gs.crises.is_empty(), "no crisis opens while Europe is at war (%d wars)" % gs.wars.size())
 	C.cfg.gate.min_score = gate
 	C.cfg.gate.start_days = start
 
