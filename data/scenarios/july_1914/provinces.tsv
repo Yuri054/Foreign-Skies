@@ -354,76 +354,76 @@ id	name	population
 353	Wicklow	90700
 354	Wiltshire	101500
 355	Worcestershire	53900
-356	Baden-Württemberg 1	4509500
-357	Baden-Württemberg 2	368800
-358	Baden-Württemberg 3	748800
-359	Baden-Württemberg 4	413000
+356	Baden-Württemberg 1	4571100
+357	Baden-Württemberg 2	395300
+358	Baden-Württemberg 3	682700
+359	Baden-Württemberg 4	391000
 360	Bas-Rhin	666100
-361	Bayern 1	612700
-362	Bayern 2	625300
-363	Bayern 3	659600
-364	Bayern 4	1336800
-365	Bayern 5	2052600
-366	Bayern 6	844100
-367	Bayern 7	765000
+361	Bayern 1	1968400
+362	Bayern 2	452400
+363	Bayern 3	577400
+364	Bayern 4	900600
+365	Bayern 5	1787300
+366	Bayern 6	600700
+367	Bayern 7	609400
 368	Berlin	1993200
-369	Brandenburg 1	262800
-370	Brandenburg 2	393100
-371	Brandenburg 3	582700
-372	Brandenburg 4	648100
+369	Brandenburg 1	296400
+370	Brandenburg 2	423100
+371	Brandenburg 3	632500
+372	Brandenburg 4	534600
 373	Bremen	885600
-374	Greater Poland 1	354400
-375	Greater Poland 2	1005400
-376	Greater Poland 3	329600
-377	Greater Poland 4	298100
+374	Greater Poland 1	335300
+375	Greater Poland 2	951200
+376	Greater Poland 3	363000
+377	Greater Poland 4	338000
 378	Hamburg	1262000
-379	Hessen 1	757000
-380	Hessen 2	422100
-381	Hessen 3	2592800
-382	Kuyavian-Pomeranian 1	1145700
-383	Kuyavian-Pomeranian 2	445800
-384	Lower Silesian 1	907200
-385	Lower Silesian 2	353800
-386	Lower Silesian 3	252000
-387	Lubusz 1	321900
-388	Lubusz 2	528000
-389	Mecklenburg-Vorpommern 1	734500
-390	Mecklenburg-Vorpommern 2	358300
-391	Mecklenburg-Vorpommern 3	598200
+379	Hessen 1	611500
+380	Hessen 2	425700
+381	Hessen 3	2734700
+382	Kuyavian-Pomeranian 1	1159800
+383	Kuyavian-Pomeranian 2	431700
+384	Lower Silesian 1	378300
+385	Lower Silesian 2	219600
+386	Lower Silesian 3	915100
+387	Lubusz 1	336300
+388	Lubusz 2	513600
+389	Mecklenburg-Vorpommern 1	738100
+390	Mecklenburg-Vorpommern 2	416700
+391	Mecklenburg-Vorpommern 3	536200
 392	Moselle	710400
-393	Niedersachsen 1	377100
-394	Niedersachsen 2	665200
-395	Niedersachsen 3	418700
-396	Niedersachsen 4	1014300
-397	Niedersachsen 5	688800
-398	Niedersachsen 6	942900
-399	Nordrhein-Westfalen 1	777200
-400	Nordrhein-Westfalen 2	3531500
-401	Nordrhein-Westfalen 3	358400
-402	Nordrhein-Westfalen 4	3521100
+393	Niedersachsen 1	385400
+394	Niedersachsen 2	740300
+395	Niedersachsen 3	392800
+396	Niedersachsen 4	1037500
+397	Niedersachsen 5	661900
+398	Niedersachsen 6	889100
+399	Nordrhein-Westfalen 1	800500
+400	Nordrhein-Westfalen 2	2651800
+401	Nordrhein-Westfalen 3	1560800
+402	Nordrhein-Westfalen 4	3175100
 403	Opole	619900
-404	Pomeranian 1	679200
-405	Pomeranian 2	1000700
-406	Pomeranian 3	279300
-407	Rheinland-Pfalz 1	628100
-408	Rheinland-Pfalz 2	292100
-409	Rheinland-Pfalz 3	613900
+404	Pomeranian 1	660800
+405	Pomeranian 2	624300
+406	Pomeranian 3	674100
+407	Rheinland-Pfalz 1	785800
+408	Rheinland-Pfalz 2	267500
+409	Rheinland-Pfalz 3	480800
 410	Saarland	806400
-411	Sachsen 1	910400
-412	Sachsen 2	1419100
-413	Sachsen-Anhalt 1	645500
-414	Sachsen-Anhalt 2	276400
-415	Sachsen-Anhalt 3	336700
-416	Schleswig-Holstein 1	541100
-417	Schleswig-Holstein 2	1027000
-418	Silesian 1	1447500
-419	Silesian 2	1969400
-420	Thüringen 1	712500
-421	Thüringen 2	631400
+411	Sachsen 1	914800
+412	Sachsen 2	1414700
+413	Sachsen-Anhalt 1	226800
+414	Sachsen-Anhalt 2	725900
+415	Sachsen-Anhalt 3	305900
+416	Schleswig-Holstein 1	601800
+417	Schleswig-Holstein 2	966300
+418	Silesian 1	1412900
+419	Silesian 2	2004000
+420	Thüringen 1	637800
+421	Thüringen 2	706100
 422	Warmian-Masurian	1199800
-423	West Pomeranian 1	682900
-424	West Pomeranian 2	318000
-425	West Pomeranian 3	772200
+423	West Pomeranian 1	621400
+424	West Pomeranian 2	321400
+425	West Pomeranian 3	830200
 426	Łódź 1	1514100
 427	Łódź 2	585900
 428	Agrigento	211700
@@ -717,8 +717,8 @@ id	name	population
 716	Đakovica	156500
 717	Šumadijski	148400
 718	Klaipedos	140000
-719	Konigsberg 1	652300
-720	Konigsberg 2	697700
+719	Konigsberg 1	631700
+720	Konigsberg 2	718300
 721	Adygea	160400
 722	Alytaus	168500
 723	Arkhangelsk 1	693200

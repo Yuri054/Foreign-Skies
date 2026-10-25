@@ -1252,7 +1252,7 @@
 			"factory": 1,
 			"railway": 2
 		},
-		"Lower Silesian 1": {
+		"Lower Silesian 3": {
 			"factory": 1,
 			"railway": 2
 		},
@@ -1272,7 +1272,7 @@
 			"factory": 1,
 			"railway": 2
 		},
-		"Nordrhein-Westfalen 2": {
+		"Nordrhein-Westfalen 3": {
 			"factory": 1,
 			"railway": 2
 		},
@@ -1304,7 +1304,7 @@
 			"factory": 1,
 			"railway": 2
 		},
-		"Bayern 4": {
+		"Bayern 1": {
 			"factory": 1,
 			"railway": 1
 		},
@@ -1328,7 +1328,7 @@
 			"factory": 1,
 			"railway": 1
 		},
-		"Sachsen-Anhalt 1": {
+		"Sachsen-Anhalt 2": {
 			"factory": 1,
 			"railway": 1
 		},
@@ -1369,6 +1369,10 @@
 			"railway": 1
 		},
 		"Saratov 1": {
+			"factory": 1,
+			"railway": 1
+		},
+		"Nordrhein-Westfalen 2": {
 			"factory": 1,
 			"railway": 1
 		},
@@ -1429,7 +1433,7 @@
 			"factory": 1,
 			"railway": 1
 		},
-		"Pomeranian 2": {
+		"Pomeranian 3": {
 			"railway": 1
 		},
 		"Attica": {
