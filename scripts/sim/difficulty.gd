@@ -43,17 +43,20 @@ static func apply(gs: Node) -> void:
 	AI.load_config()
 	Crisis.load_config()
 	for e: Dictionary in preset.get("ai", []):
-		_scale(AI.cfg, e.path, float(e.mul))
+		_change(AI.cfg, e)
 	for e: Dictionary in preset.get("crisis", []):
-		_scale(Crisis.cfg, e.path, float(e.mul))
+		_change(Crisis.cfg, e)
 
 
-## Multiplies the number at a dotted path (an integer stays one).
-static func _scale(root: Dictionary, path: String, mul: float) -> void:
+## Applies one entry: multiplies the number at its dotted path (an integer stays one), or sets the value there.
+static func _change(root: Dictionary, e: Dictionary) -> void:
 	var node: Dictionary = root
-	var keys := path.split(".")
+	var keys: PackedStringArray = str(e.path).split(".")
 	for i in keys.size() - 1:
 		node = node[keys[i]]
 	var leaf: String = keys[keys.size() - 1]
+	if e.has("set"):
+		node[leaf] = e.set
+		return
 	var v: Variant = node[leaf]
-	node[leaf] = roundi(v * mul) if v is int else v * mul
+	node[leaf] = roundi(v * float(e.mul)) if v is int else v * float(e.mul)

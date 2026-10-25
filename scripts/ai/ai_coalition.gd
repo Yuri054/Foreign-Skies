@@ -1,7 +1,7 @@
 class_name AICoalition
 extends RefCounted
 ## Nations on one side of a war act as a coalition (data/ai.json, coalition). Allies do not aim campaigns at the same province;
-## a nation does not make a separate peace while its allies fight on unless it is strained; and the nations of a side that all
+## a nation does not make a separate peace while its allies fight on unless it is strained (only when the `hold` setting is on: it is, in the Challenging difficulty); and the nations of a side that all
 ## want out make peace together, at a conference (see Conference). Static, like the rest of the AI.
 
 

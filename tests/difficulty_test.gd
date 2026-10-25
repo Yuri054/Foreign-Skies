@@ -37,6 +37,7 @@ func _initialize() -> void:
 	_check(is_equal_approx(AI.cfg.odds.bold, shipped.odds.bold * 0.9), "Challenging asks the AI for worse odds (%.3f)" % AI.cfg.odds.bold)
 	_check(is_equal_approx(AI.cfg.peace.seek_threshold, shipped.peace.seek_threshold * 1.25), "and makes it slower to seek peace")
 	_check(Cr.cfg.gate.min_score < shipped_crisis.gate.min_score, "and crises come sooner")
+	_check(AI.cfg.coalition.hold == true and shipped.coalition.hold == false, "and allies stand by each other (a separate peace is held back)")
 	Diff.apply(gs)
 	_check(is_equal_approx(AI.cfg.odds.bold, shipped.odds.bold * 0.9), "applying again does not compound it")
 	_check(AI.cfg.forces.war_multiplier is float and typeof(AI.cfg.offense.max_campaigns) == typeof(shipped.offense.max_campaigns), "numbers keep their type")

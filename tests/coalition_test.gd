@@ -58,7 +58,8 @@ func _initialize() -> void:
 	_check(not K.claimed(gs, "GER").has(777), "but not against Germany itself")
 	_check(K.claimed(gs, "ESP").is_empty(), "and nothing is claimed against a nation that fights no one")
 
-	# --- Holding --------------------------------------------------------------------------------
+	# --- Holding (a setting that is off in Historical: these tests turn it on) --------------------------------
+	AI_cfg_hold(true)
 	_war()
 	var war: War = gs.war_between("GER", "FRA")
 	gs.nations["GER"].war_support = 70.0
@@ -69,7 +70,6 @@ func _initialize() -> void:
 	gs.province_controller[gs.nations["GER"].capital] = "FRA"
 	_check(not K.hold(gs, "GER", war), "or its capital is lost")
 	gs.province_controller[gs.nations["GER"].capital] = "GER"
-	var cfg_hold: bool = AI_cfg_hold(true)
 	AI_cfg_hold(false)
 	_check(not K.hold(gs, "GER", war), "the rule can be switched off in the data")
 	AI_cfg_hold(true)
@@ -90,6 +90,8 @@ func _initialize() -> void:
 	war = gs.war_between("GER", "FRA")
 	_check(K.joint_partners(gs, "GER", war).is_empty(), "an ally that is the player cannot be spoken for")
 	_check(K.hold(gs, "GER", war), "so the nation stays bound to it")
+
+	AI_cfg_hold(false)
 
 	# The monthly overtures: both nations want out and France has no will left, so they make peace together.
 	_war()

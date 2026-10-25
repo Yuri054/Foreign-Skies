@@ -253,9 +253,9 @@
 		"start_delay_days": 365
 	},
 	"coalition": {
-		"_note": "Nations on one side of a war act as a coalition (scripts/ai/ai_coalition.gd). claim_penalty: utility an offence loses when an ally already aims a campaign at the same province, so allies do not crowd one front. hold: an AI nation does not make a separate peace while allies fight on, unless it is strained (war support at or below strain_support, its capital lost, or a war score at or below minus strain_score). partner_urge: the share of seek_threshold an ally's wish for peace must reach for it to join a joint peace (a conference) the nation proposes.",
+		"_note": "Nations on one side of a war act as a coalition (scripts/ai/ai_coalition.gd). claim_penalty: utility an offence loses when an ally already aims a campaign at the same province, so allies do not crowd one front. hold (off in Historical, on in the Challenging difficulty): an AI nation does not make a separate peace while allies fight on, unless it is strained (war support at or below strain_support, its capital lost, or a war score at or below minus strain_score). partner_urge: the share of seek_threshold an ally's wish for peace must reach for it to join a joint peace (a conference) the nation proposes.",
 		"claim_penalty": 3.0,
-		"hold": true,
+		"hold": false,
 		"strain_support": 30,
 		"strain_score": 20,
 		"partner_urge": 0.6

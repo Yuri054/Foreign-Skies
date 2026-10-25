@@ -10,8 +10,8 @@ the Windows build the CI attaches to each release.
 
 - Difficulty: Historical, Challenging or Sandbox, chosen on the New game page and saved with the game. A preset only retunes
   how the AI nations and the crisis generator behave; it gives no one anything the rules do not.
-- Coalition AI: allies keep off each other's targets, a nation stays in the war with its allies unless its people or its
-  fortunes are failing, and allies that all want peace take it together at a conference.
+- Coalition AI: allies keep off each other's targets, and allies that all want peace take it together at a conference. On
+  Challenging a nation also stays in the war with its allies unless its people or its fortunes are failing.
 
 ## 0.5.3
 
