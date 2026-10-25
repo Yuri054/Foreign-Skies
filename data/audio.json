@@ -21,10 +21,13 @@
 		"tracks": [
 			{"id": "diplomatic_silence", "title": "Diplomatic Silence", "file": "music/diplomatic_silence.mp3"},
 			{"id": "marche_imperiale", "title": "Marche Impériale", "file": "music/marche_imperiale.mp3"},
-			{"id": "diplomacy_of_steel", "title": "Diplomacy of Steel", "file": "music/diplomacy_of_steel.mp3"}
+			{"id": "diplomacy_of_steel", "title": "Diplomacy of Steel", "file": "music/diplomacy_of_steel.mp3"},
+			{"id": "ein_letzter_tanzschritt", "title": "Ein letzter Tanzschritt", "file": "music/ein_letzter_tanzschritt.mp3"},
+			{"id": "mechanical_march", "title": "Mechanical March", "file": "music/mechanical_march.mp3"},
+			{"id": "brandschaftsmarsch", "title": "Brandschaftsmarsch", "file": "music/brandschaftsmarsch.mp3"}
 		],
 		"menu": ["diplomatic_silence"],
-		"peace": ["diplomatic_silence", "marche_imperiale"],
-		"war": ["diplomacy_of_steel", "marche_imperiale"]
+		"peace": ["diplomatic_silence", "ein_letzter_tanzschritt", "marche_imperiale"],
+		"war": ["diplomacy_of_steel", "mechanical_march", "brandschaftsmarsch", "marche_imperiale"]
 	}
 }

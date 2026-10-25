@@ -5,6 +5,11 @@ Versions are `major.minor.patch`. Each step of `PLAN.md` that changes how the ga
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.4.1
+
+- Three more pieces: *Ein letzter Tanzschritt* joins the peace rotation, *Mechanical March* and *Brandschaftsmarsch* the war
+  rotation; they fade in and out like the rest and show in the music player's list.
+
 ## 0.4.0
 
 - Cabinet briefing on the Overview: the three things to look at now, worst first, each with the reason and a button to

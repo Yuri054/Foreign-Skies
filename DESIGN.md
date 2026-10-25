@@ -80,7 +80,7 @@ Output grows about 3% a year for the larger economies (building effects and base
 
 ## Sound
 
-The `Audio` autoload (`scripts/audio.gd`, `data/audio.json`) has buses Master, Music, Effects and Interface and plays three pieces (`data/audio/music/`): *Diplomatic Silence* (the menu theme and peace), *Marche Imperiale* and *Diplomacy of Steel* (war). Music follows the game (menu, peace, or war when the player's nation is fighting) with a crossfade, or the player picks a piece, pauses, skips or repeats. Volume, mute and the music settings are saved with the UI settings; they sit under Settings in the main menu and in the Settings window, and the pause menu has a compact player.
+The `Audio` autoload (`scripts/audio.gd`, `data/audio.json`) has buses Master, Music, Effects and Interface and plays six pieces (`data/audio/music/`): *Diplomatic Silence* (the menu theme and peace), *Ein letzter Tanzschritt* (peace), *Marche Impériale* (peace and war), and *Diplomacy of Steel*, *Mechanical March* and *Brandschaftsmarsch* (war). Music follows the game (menu, peace, or war when the player's nation is fighting) with a crossfade, or the player picks a piece, pauses, skips or repeats. Volume, mute and the music settings are saved with the UI settings; they sit under Settings in the main menu and in the Settings window, and the pause menu has a compact player.
 
 ## Not in the game
 

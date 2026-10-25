@@ -33,7 +33,7 @@ func _initialize() -> void:
 			missing += 1
 			printerr("  unresolved: ", e)
 	_check(not audio.events.is_empty() and missing == 0, "every manifest entry resolves to a file and a bus (%d events)" % audio.events.size())
-	_check(audio.tracks().size() == 3, "the soundtrack has three pieces")
+	_check(audio.tracks().size() == 6, "the soundtrack has six pieces")
 	var every_file := true
 	for t in audio.tracks():
 		every_file = every_file and ResourceLoader.exists("res://data/audio/" + t.file)
@@ -128,17 +128,17 @@ func _initialize() -> void:
 	audio._process(1.0)
 	_check(audio.current_track() == "diplomatic_silence", "at peace again it goes back")
 	audio._on_music_finished(audio._players[audio._front])
-	_check(audio.current_track() == "marche_imperiale", "when a piece ends the next of the list follows")
+	_check(audio.current_track() == "ein_letzter_tanzschritt", "when a piece ends the next of the list follows")
 	audio.step_track(1)
-	_check(audio.current_track() == "diplomacy_of_steel" and not audio.music_auto, "Next goes on through the soundtrack and leaves Auto")
+	_check(audio.current_track() == "mechanical_march" and not audio.music_auto, "Next goes on through the soundtrack and leaves Auto")
 	audio.step_track(-1)
-	_check(audio.current_track() == "marche_imperiale", "and Previous goes back")
+	_check(audio.current_track() == "ein_letzter_tanzschritt", "and Previous goes back")
 	gs.wars[player + "|" + other] = true
 	audio._process(1.0)
-	_check(audio.current_track() == "marche_imperiale", "out of Auto the music no longer follows the war")
+	_check(audio.current_track() == "ein_letzter_tanzschritt", "out of Auto the music no longer follows the war")
 	audio.set_music_repeat(true)
 	audio._on_music_finished(audio._players[audio._front])
-	_check(audio.current_track() == "marche_imperiale", "with Repeat a piece starts over")
+	_check(audio.current_track() == "ein_letzter_tanzschritt", "with Repeat a piece starts over")
 	audio.set_music_repeat(false)
 	audio.set_music_paused(true)
 	_check(audio._players[audio._front].stream_paused, "Pause holds the music")
