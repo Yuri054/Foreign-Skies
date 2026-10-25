@@ -735,12 +735,27 @@ static func step_fronts(gs: Node) -> void:
 			var t2 := Time.get_ticks_usec() if profile else 0
 			var route := find_path(gs, a.tag, a.speed(), a.province, slot)
 			_note("front_path", t2)
-			if route.is_empty():
+			if route.is_empty() or _route_blocked(gs, a, route):
+				# Nothing to walk, or the way is held by a stack that would crush the army: wait and look again.
 				f.retry[id] = Clock.days_elapsed + 10
 				continue
 			a.move_days_left = move_days(gs, a.tag, a.speed(), a.province, route[0])
 			a.path = route
 			a.still_days = 0
+
+
+## Whether a route runs through a province where enemy armies, together, are stronger than this one. A front
+## only holds ground: it never walks into a battle it would lose (orders to attack are another matter).
+static func _route_blocked(gs: Node, a: Army, route: Array[int]) -> bool:
+	var mine := a.power()
+	for province in route:
+		var theirs := 0.0
+		for b: Army in armies_at(gs, province):
+			if gs.at_war(a.tag, b.tag):
+				theirs += b.power()
+		if theirs > mine:
+			return true
+	return false
 
 
 ## Gives every army a province of the line to hold, keeping the men spread evenly.
