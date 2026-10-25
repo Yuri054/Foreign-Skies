@@ -78,6 +78,11 @@ static func _need(gs: Node, f: Front) -> float:
 	var total := 0.0
 	for p in f.provinces:
 		total += AI.threat(gs, f.tag, p)
+	# The theatre an offensive plan aims at is the main effort: it gets a larger share of the army.
+	for plan: Dictionary in gs.ai_plans:
+		if plan.nation == f.tag and plan.enemy == f.against and plan.posture == "offensive":
+			total *= float(AI.cfg.defense.plan_need)
+			break
 	return maxf(total, float(AI.cfg.defense.min_need))
 
 
@@ -205,8 +210,16 @@ static func _assign(gs: Node, tag: String, fronts: Array[Front]) -> void:
 	pool.sort_custom(func(x: Army, y: Army) -> bool: return x.power() > y.power() or (x.power() == y.power() and x.id < y.id))
 	var t := _tables(gs, fronts)
 	var batches := {}
+	# Armies far from every line wait a few days after a new war starts: the other fronts may not be drawn yet, and
+	# an army sent to the first one would march across the country just as the war on the other side begins.
+	var newest := INF
+	for w: War in gs.wars_of(tag):
+		newest = minf(newest, float(w.days_lasted(Clock.days_elapsed)))
+	var settled: bool = newest >= float(AI.cfg.defense.settle_days)
 	for a in pool:
 		var f := _front_for(gs, a, fronts, t[0], t[1])
+		if not settled and _km_to_line(a, f) > float(AI.cfg.defense.rebalance_max_km):
+			continue
 		t[1][f.id] += a.power()
 		if not batches.has(f.id):
 			batches[f.id] = [] as Array[int]

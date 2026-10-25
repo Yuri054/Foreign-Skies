@@ -144,7 +144,8 @@ static func move_days(gs: Node, tag: String, speed: float, from: int, to: int) -
 	var km := (MapData.provinces[from].center as Vector2).distance_to(MapData.provinces[to].center) * KM_PER_PX
 	var days: float = km / speed * terrain_of(to).move
 	if gs.province_controller[to] == tag and railway_ok(gs, tag):
-		days /= 1.0 + cfg.movement.railway_speedup * gs.province_buildings[to].get("railway", 0)
+		# Built railways, and over everything an industrial nation owns a network of lesser lines.
+		days /= 1.0 + cfg.movement.railway_speedup * gs.province_buildings[to].get("railway", 0) + cfg.movement.home_rail * gs.nations[tag].development
 	var link: String = MapData.sea_links.get(Vector2i(mini(from, to), maxi(from, to)), "")
 	if link == "sea":
 		days += cfg.movement.sea_link_days

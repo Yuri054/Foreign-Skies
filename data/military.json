@@ -148,6 +148,7 @@
 	"movement": {
 		"min_days": 1,
 		"railway_speedup": 0.6,
+		"home_rail": 1.5,
 		"strait_days": 2,
 		"sea_link_days": 4
 	},

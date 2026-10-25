@@ -17,6 +17,9 @@ func _initialize() -> void:
 	var every := int(args[5]) if args.size() > 5 else 1
 	var count := -1
 	var tags: PackedStringArray = (args[3] if args.size() > 3 else "GER,FRA,AUH,RUS,GBR,ITA").split(",")
+	var tally := [0, 0, 0]
+	gs.battle_fought.connect(func(_p: int, _t: Array) -> void: tally[0] += 1)
+	gs.province_controller_changed.connect(func(_i: int, _o: String, _n: String) -> void: tally[1] += 1)
 	var last := -1
 	for d in months * 31:
 		clock.advance_day()
@@ -26,6 +29,9 @@ func _initialize() -> void:
 		count += 1
 		if count % every != 0:
 			continue
+		print("%d-%02d == since last line: %d battle days, %d provinces changed hands, %d wars" % [clock.year, clock.month, tally[0], tally[1], gs.wars.size()])
+		tally[0] = 0
+		tally[1] = 0
 		for tag in tags:
 			var n = gs.nations[tag]
 			if gs.wars_of(tag).is_empty():

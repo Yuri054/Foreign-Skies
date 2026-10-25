@@ -189,7 +189,7 @@ static func _pick_force(gs: Node, tag: String, target: int, armies: Array[Army],
 	var near: Array[Army] = []
 	for a in armies:
 		# Only armies that can be there before the gathering times out are worth waiting for.
-		if reach.has(a.province) and (exact or _km(a.province, target) / a.speed() <= float(AI.cfg.offense.gather_days) * float(AI.cfg.offense.gather_eta_share)):
+		if reach.has(a.province) and (exact or _eta(gs, tag, a, target) <= float(AI.cfg.offense.gather_days) * float(AI.cfg.offense.gather_eta_share)):
 			near.append(a)
 	near.sort_custom(func(x: Army, y: Army) -> bool:
 		var dx := _km(x.province, target)
@@ -208,6 +208,12 @@ static func _pick_force(gs: Node, tag: String, target: int, armies: Array[Army],
 	if out.is_empty() or power < required or (not exact and power > budget and out.size() > 1):
 		return {}
 	return {"armies": out, "power": power}
+
+
+## Roughly how many days an army needs to reach a province: the road over home ground goes faster by the nation's
+## own railway net (see Military.move_days).
+static func _eta(gs: Node, tag: String, a: Army, target: int) -> float:
+	return _km(a.province, target) / a.speed() / (1.0 + float(Military.cfg.movement.home_rail) * gs.nations[tag].development)
 
 
 ## A province we hold next to the target, nearest to the force.
@@ -231,11 +237,11 @@ static func _staging(gs: Node, tag: String, target: int, force: Array[Army]) -> 
 static func _available(gs: Node, tag: String) -> Array[Army]:
 	var reserve: int = gs.ai_reserve.get(tag, 0)
 	var power := {}
-	var need := {}
+	var floor := {}
 	for f: Front in gs.fronts.values():
 		if f.tag == tag:
 			power[f.id] = AIDefense._power_on(gs, f)
-			need[f.id] = AIDefense._need(gs, f)
+			floor[f.id] = float(AI.cfg.offense.front_keep) * power[f.id]
 	var out: Array[Army] = []
 	var all := Military.armies_of(gs, tag)
 	all.sort_custom(func(x: Army, y: Army) -> bool: return x.power() > y.power() or (x.power() == y.power() and x.id < y.id))
@@ -243,8 +249,8 @@ static func _available(gs: Node, tag: String) -> Array[Army]:
 		if a.id == reserve or not a.path.is_empty() or a.fighting or a.embarked() or gs.province_controller[a.province] != tag or in_campaign(gs, tag, a.id):
 			continue
 		if a.front_id != 0 and power.has(a.front_id):
-			# An army may leave its front while the rest still cover `front_min_cover` of what it faces.
-			if (power[a.front_id] - a.power()) < float(AI.cfg.offense.front_min_cover) * need[a.front_id]:
+			# An army may leave its front while the rest keep `front_keep` of what the front stood on.
+			if power[a.front_id] - a.power() < floor[a.front_id]:
 				continue
 			power[a.front_id] -= a.power()
 		out.append(a)

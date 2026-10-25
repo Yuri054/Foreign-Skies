@@ -25,6 +25,10 @@ func _initialize() -> void:
 	var t = A.temperament(gs, tag)
 	var budget: float = total * float(t.aggression) * float(A.cfg.offense.max_share)
 	print("power ", int(total), " available ", av.size(), " budget ", int(budget), " odds ", A.required_odds(gs, tag))
+	var AID = load("res://scripts/ai/ai_defense.gd")
+	for f in gs.fronts.values():
+		if f.tag == tag:
+			print("  front vs ", f.against, ": ", f.army_ids.size(), " armies, power ", int(AID._power_on(gs, f)), " need ", int(AID._need(gs, f)), " anchors ", f.anchors.map(func(i): return map.provinces[i].name))
 	for a in Mil.armies_of(gs, tag):
 		print("  army ", a.id, " ", int(a.men() / 1000.0), "k power ", int(a.power()), " at ", map.provinces[a.province].name, " front ", a.front_id, " path ", a.path.size(), " avail ", av.has(a))
 	for enemy in A.enemies(gs, tag):
@@ -32,7 +36,7 @@ func _initialize() -> void:
 		print("enemy ", enemy, " plan-defensive ", AIO._defensive(gs, tag, enemy), " frontier ", fr.size())
 		for target in fr:
 			var res: float = AIO._resistance(gs, tag, target)
-			var req: float = A.required_odds(gs, tag) * res
+			var req: float = AIO.odds_against(gs, tag, enemy) * res
 			var picked = AIO._pick_force(gs, tag, target, av, req, budget, false)
 			print("   target ", map.provinces[target].name, " supplied ", A.supplied(gs, tag, target), " resistance ", int(res), " required ", int(req), " picked ", (int(picked.power) if not picked.is_empty() else -1), " utility ", snappedf(AIO._worth(gs, tag, enemy, target), 0.01))
 	quit()
