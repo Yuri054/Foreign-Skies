@@ -735,6 +735,12 @@ func _show_diplomacy_tip(id: int) -> void:
 		_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_tip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_tip_label.add_theme_font_size_override("font_size", 12)
+		var box := StyleBoxFlat.new()
+		box.bg_color = Color(0.05, 0.07, 0.1, 0.92)
+		box.border_color = Color(0.5, 0.45, 0.3)
+		box.set_border_width_all(1)
+		box.set_content_margin_all(6)
+		_tip.add_theme_stylebox_override("panel", box)
 		_tip.add_child(_tip_label)
 		_tip_layer.add_child(_tip)
 	_tip_label.text = text

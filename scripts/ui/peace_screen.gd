@@ -79,7 +79,7 @@ func _ready() -> void:
 	_mode.add_item("Demand terms from the enemy")
 	_mode.add_item("Offer terms to the enemy")
 	_mode.focus_mode = Control.FOCUS_NONE
-		_mode.tooltip_text = "Demand: the enemy gives up what you pick. Offer: you give up what you pick to end the war."
+	_mode.tooltip_text = "Demand: the enemy gives up what you pick. Offer: you give up what you pick to end the war."
 	_mode.item_selected.connect(func(_i: int) -> void: _rebuild_terms())
 	mode_row.add_child(_mode)
 	_compose.add_child(mode_row)
@@ -96,12 +96,12 @@ func _ready() -> void:
 	var prov_row := HBoxContainer.new()
 	_held_button.text = "Select held ground"
 	_held_button.focus_mode = Control.FOCUS_NONE
-		_held_button.tooltip_text = "Ticks every province you already occupy: the cheapest ground to ask for."
+	_held_button.tooltip_text = "Ticks every province you already occupy: the cheapest ground to ask for."
 	_held_button.pressed.connect(_select_held)
 	prov_row.add_child(_held_button)
 	_clear_button.text = "Clear"
 	_clear_button.focus_mode = Control.FOCUS_NONE
-		_clear_button.tooltip_text = "Unpick every province."
+	_clear_button.tooltip_text = "Unpick every province."
 	_clear_button.pressed.connect(func() -> void:
 		_provinces.deselect_all()
 		_refresh_cost()
@@ -111,7 +111,7 @@ func _ready() -> void:
 
 	_indemnity.text = "Indemnity"
 	_indemnity.focus_mode = Control.FOCUS_NONE
-		_indemnity.tooltip_text = "A share of the loser's output paid to the winner each year for a number of months."
+	_indemnity.tooltip_text = "A share of the loser's output paid to the winner each year for a number of months."
 	_indemnity.toggled.connect(func(_on: bool) -> void: _refresh_cost())
 	_share.min_value = 5
 	_share.max_value = 50
@@ -132,7 +132,7 @@ func _ready() -> void:
 
 	_release.text = "End its ties with"
 	_release.focus_mode = Control.FOCUS_NONE
-		_release.tooltip_text = "Tears up the loser's treaties with the nation picked, such as an alliance or a guarantee."
+	_release.tooltip_text = "Tears up the loser's treaties with the nation picked, such as an alliance or a guarantee."
 	_release.toggled.connect(func(_on: bool) -> void: _refresh_cost())
 	_release_picker.focus_mode = Control.FOCUS_NONE
 	_release_picker.item_selected.connect(func(_i: int) -> void: _refresh_cost())
@@ -143,7 +143,7 @@ func _ready() -> void:
 
 	_disarm.text = "Withdraw its border armies"
 	_disarm.focus_mode = Control.FOCUS_NONE
-		_disarm.tooltip_text = "The loser may keep no armies near the winner's border for the years chosen."
+	_disarm.tooltip_text = "The loser may keep no armies near the winner's border for the years chosen."
 	_disarm.toggled.connect(func(_on: bool) -> void: _refresh_cost())
 	_years.min_value = 1
 	_years.max_value = 10
@@ -158,7 +158,7 @@ func _ready() -> void:
 	_compose.add_child(dis_row)
 
 	_cost_bar.custom_minimum_size = Vector2(0, 18)
-		_cost_bar.tooltip_text = "How much of the war score the terms use. Terms that cost more than the score are refused."
+	_cost_bar.tooltip_text = "How much of the war score the terms use. Terms that cost more than the score are refused."
 	_cost_bar.show_percentage = false
 	_compose.add_child(_cost_bar)
 	_cost_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -170,7 +170,7 @@ func _ready() -> void:
 	_compose_row.add_theme_constant_override("separation", 8)
 	_propose.text = "Propose peace"
 	_propose.focus_mode = Control.FOCUS_NONE
-		_propose.tooltip_text = "Sends the terms. The other side accepts if it has lost enough to want peace and the terms are fair for the war score."
+	_propose.tooltip_text = "Sends the terms. The other side accepts if it has lost enough to want peace and the terms are fair for the war score."
 	_propose.pressed.connect(_on_propose)
 	_compose_row.add_child(_propose)
 	_close.text = "Close"
@@ -182,12 +182,12 @@ func _ready() -> void:
 	_incoming_row.add_theme_constant_override("separation", 8)
 	_accept.text = "Accept"
 	_accept.focus_mode = Control.FOCUS_NONE
-		_accept.tooltip_text = "Ends the war on these terms."
+	_accept.tooltip_text = "Ends the war on these terms."
 	_accept.pressed.connect(func() -> void: _answer(true))
 	_incoming_row.add_child(_accept)
 	_refuse.text = "Refuse"
 	_refuse.focus_mode = Control.FOCUS_NONE
-		_refuse.tooltip_text = "The war goes on."
+	_refuse.tooltip_text = "The war goes on."
 	_refuse.pressed.connect(func() -> void: _answer(false))
 	_incoming_row.add_child(_refuse)
 	box.add_child(_incoming_row)

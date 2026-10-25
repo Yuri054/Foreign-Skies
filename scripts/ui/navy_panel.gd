@@ -84,18 +84,18 @@ func _build_yard_tab() -> void:
 		_type_picker.add_item(def.name)
 		_type_picker.set_item_metadata(_type_picker.item_count - 1, type)
 	_type_picker.focus_mode = Control.FOCUS_NONE
-		_type_picker.tooltip_text = "The kind of ship. Bigger ships fight better but cost more IC and take longer."
+	_type_picker.tooltip_text = "The kind of ship. Bigger ships fight better but cost more IC and take longer."
 	_type_picker.item_selected.connect(func(_i: int) -> void: _refresh_yard())
 	_yard_box.add_child(_row("Build", _type_picker))
 	_count.min_value = 1
 	_count.max_value = 8
 	_count.value = 1
-		_count.tooltip_text = "How many squadrons to lay down at once. Ships are paid in industry (IC), not money."
+	_count.tooltip_text = "How many squadrons to lay down at once. Ships are paid in industry (IC), not money."
 	_count.value_changed.connect(func(_v: float) -> void: _refresh_yard())
 	_yard_box.add_child(_row("Squadrons", _count))
 	_build.text = "Build"
 	_build.focus_mode = Control.FOCUS_NONE
-		_build.tooltip_text = "Starts the ships in the selected port. They are paid from the daily IC and come out when finished."
+	_build.tooltip_text = "Starts the ships in the selected port. They are paid from the daily IC and come out when finished."
 	_build.pressed.connect(_on_build)
 	_yard_box.add_child(_build)
 	_build_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
