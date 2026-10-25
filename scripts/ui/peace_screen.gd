@@ -13,6 +13,8 @@ var _title := Label.new()
 var _flag_a := FlagIcon.new()
 var _flag_b := FlagIcon.new()
 var _score := Label.new()
+var _goal := Label.new()
+var _goal_button := Button.new()
 var _mode := OptionButton.new()
 var _compose := VBoxContainer.new()
 var _provinces := ItemList.new()
@@ -66,6 +68,9 @@ func _ready() -> void:
 	box.add_child(head)
 	_score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_score)
+	_goal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_goal.modulate = Fmt.DIM
+	box.add_child(_goal)
 
 	_incoming_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_incoming_text)
@@ -99,6 +104,11 @@ func _ready() -> void:
 	_held_button.tooltip_text = "Ticks every province you already occupy: the cheapest ground to ask for."
 	_held_button.pressed.connect(_select_held)
 	prov_row.add_child(_held_button)
+	_goal_button.text = "Select goal"
+	_goal_button.focus_mode = Control.FOCUS_NONE
+	_goal_button.tooltip_text = "Ticks the provinces the war is being fought for. A war goal makes its own terms half price and everything else dearer."
+	_goal_button.pressed.connect(_select_goal)
+	prov_row.add_child(_goal_button)
 	_clear_button.text = "Clear"
 	_clear_button.focus_mode = Control.FOCUS_NONE
 	_clear_button.tooltip_text = "Unpick every province."
@@ -312,9 +322,13 @@ func _rebuild_terms() -> void:
 	_flag_a.tag = _me()
 	_flag_b.tag = _enemy()
 	_title.text = "Peace between %s and %s" % [me_name, enemy_name]
+	_goal.text = WarGoal.line(GameState, _war)
+	_goal.visible = _goal.text != ""
+	var goal: Dictionary = _war.goal if taker == _war.a else {}
+	_goal_button.disabled = goal.is_empty() or not goal.has("ids")
 	var entries: Array = []
 	for id: int in GameState.nations[giver].provinces:
-		entries.append([id, Peace.province_price(GameState, id, taker, giver), GameState.province_controller[id] == taker])
+		entries.append([id, Peace.province_price(GameState, id, taker, giver) * WarGoal.price_factor(_war, taker, {"kind": "province"}, id), GameState.province_controller[id] == taker])
 	entries.sort_custom(func(a: Array, b: Array) -> bool:
 		if a[2] != b[2]:
 			return a[2]
@@ -324,7 +338,8 @@ func _rebuild_terms() -> void:
 	_province_ids.clear()
 	for e: Array in entries:
 		var held := "held by %s" % GameState.nations[taker].display_name if e[2] else ""
-		_provinces.add_item("%s · %.1f %s" % [MapData.provinces[e[0]].name, e[1], held])
+		var is_goal: bool = goal.has("ids") and e[0] in goal.ids
+		_provinces.add_item("%s · %.1f %s%s" % [MapData.provinces[e[0]].name, e[1], held, "  (goal)" if is_goal else ""])
 		_province_ids.append(e[0])
 	_indemnity.button_pressed = false
 	_release.button_pressed = false
@@ -342,6 +357,15 @@ func _rebuild_terms() -> void:
 	_release.disabled = partners.is_empty()
 	_release_picker.disabled = partners.is_empty()
 	_updating = false
+	_refresh_cost()
+
+
+func _select_goal() -> void:
+	if _war == null or _taker() != _war.a or not _war.goal.has("ids"):
+		return
+	for i in _province_ids.size():
+		if _province_ids[i] in _war.goal.ids:
+			_provinces.select(i, false)
 	_refresh_cost()
 
 

@@ -193,6 +193,9 @@ func _refresh() -> void:
 	else:
 		for w: War in wars:
 			_box.add_child(_line("At war with %s since %s." % [GameState.nations[w.other(n.tag)].display_name, w.start_date], Fmt.BAD))
+			var why := WarGoal.line(GameState, w)
+			if why != "":
+				_box.add_child(_line(why, Fmt.DIM))
 
 	_box.add_child(HSeparator.new())
 	_box.add_child(_heading("Focus"))

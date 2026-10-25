@@ -477,6 +477,9 @@ func _refresh_detail() -> void:
 	var war := GameState.war_between(me, _selected)
 	if war != null:
 		lines.append("At war since %s. War score: %s %+.1f." % [war.start_date, _who(me), Peace.war_score(GameState, war, me)])
+		var why := WarGoal.line(GameState, war)
+		if why != "":
+			lines.append(why)
 	_detail.text = "\n".join(lines)
 	_refresh_actions()
 	_fit_height.call_deferred()
@@ -527,7 +530,8 @@ func _refresh_actions() -> void:
 	_cb_ids.clear()
 	if not at_war:
 		for cb in Diplomacy.casus_belli_options(GameState, me, tag):
-			_cb_picker.add_item(Diplomacy.cfg.war.casus_belli[cb].label)
+			var goal := WarGoal.for_declaration(GameState, me, tag, cb)
+			_cb_picker.add_item(Diplomacy.cfg.war.casus_belli[cb].label + ("  ·  %s" % WarGoal.describe(GameState, goal) if not goal.is_empty() else ""))
 			_cb_ids.append(cb)
 		_cb_picker.select(clampi(previous, 0, _cb_ids.size() - 1))
 	_cb_picker.visible = not at_war
@@ -586,7 +590,8 @@ func _refresh_actions() -> void:
 			reasons.append("Justify war: %s" % JUSTIFY_BLOCKS.get(jblock, BLOCKS.get(jblock, jblock)))
 	elif jpoor:
 		reasons.append("Justify war: not enough diplomacy points (need %d)." % int(jcost))
-	_justify.tooltip_text = "Spend %d points and %d days to fabricate a casus belli against them. Declaring war on it costs less prestige and goodwill than a war with no cause. The target resents the effort; the claim lasts %d years." % [int(jcost), int(Diplomacy.cfg.war.justify.days), int(Diplomacy.cfg.war.cb_years)]
+	_justify.text = _justify.text.replace("Justify war (%d)" % int(jcost), "Justify war…")
+	_justify.tooltip_text = "Choose what the war is for (provinces to win, or a concession), then spend diplomacy points and some weeks building the case, from about %d points. The target and its friends hear of it at once and resent it. A war fought for a goal has its goal at half price at peace; the claim lasts %d years." % [int(jcost), int(Diplomacy.cfg.war.cb_years)]
 	_why.text = "\n".join(reasons)
 	_why.visible = not reasons.is_empty()
 	_improve.tooltip_text = (BLOCKS.get(improve_block, "") if improve_block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(improve_cost), roundi(Diplomacy.points(GameState, me))] if improve_poor else "")) + "\n" + "For a year, each month the two nations think better of each other (+%d, and part of it lasts). %d points; up to %d efforts at a time." % [int(Diplomacy.cfg.points.improve.monthly), int(Diplomacy.cost_of("improve_relations")), int(Diplomacy.cfg.points.improve.max_active)]
@@ -685,14 +690,16 @@ func _on_rename() -> void:
 	_refresh()
 
 
+## Opens the goal picker: the case is begun there, once the player has said what the war is for.
 func _on_justify() -> void:
-	var cmd := JustifyWar.new(GameState.player_tag, _selected)
-	if GameState.issue(cmd):
-		_status.text = "You begin to build a case against %s." % GameState.nations[_selected].display_name
-		_status.modulate = Fmt.GOOD
-	else:
-		_status.text = JUSTIFY_BLOCKS.get(cmd.reason, BLOCKS.get(cmd.reason, "That is not possible."))
+	if Diplomacy.justify_block(GameState, GameState.player_tag, _selected) != "":
+		_status.text = JUSTIFY_BLOCKS.get(Diplomacy.justify_block(GameState, GameState.player_tag, _selected), "That is not possible.")
 		_status.modulate = Fmt.BAD
+		return
+	get_tree().call_group("goal_picker", "open", _selected)
+
+
+func refresh_now() -> void:
 	_refresh()
 
 
