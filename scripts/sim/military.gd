@@ -634,6 +634,12 @@ static func prune_groups(gs: Node) -> void:
 
 
 ## What an army's power is multiplied by for the marshal over its group.
+## What a nation's training and leadership make of its soldiers' fighting power (Nation.army_quality).
+static func quality_mult(tag: String) -> float:
+	var n: Nation = GameState.nations.get(tag)
+	return n.army_quality if n != null else 1.0
+
+
 static func marshal_mult(a: Army) -> float:
 	if a.group_id == 0:
 		return 1.0

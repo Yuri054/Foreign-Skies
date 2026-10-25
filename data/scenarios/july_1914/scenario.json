@@ -13,6 +13,7 @@
 	"_note": "Economic and military figures are rough estimates (GBP millions) meant to be refined. development, agri_yield and intensity are calibrated so default revenue, food self-sufficiency and 1913 coal, iron and timber consumption match estimates.",
 	"nations": {
 		"GBR": {
+			"army_quality": 1.08,
 			"pop_growth": 0.009,
 			"war_support": 55,
 			"capital": 314,
@@ -24,6 +25,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"FRA": {
+			"army_quality": 1.0,
 			"pop_growth": 0.002,
 			"war_support": 65,
 			"capital": 233,
@@ -35,6 +37,7 @@
 			"government": "republic"
 		},
 		"GER": {
+			"army_quality": 1.2,
 			"pop_growth": 0.012,
 			"war_support": 70,
 			"capital": 368,
@@ -46,6 +49,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"BEL": {
+			"army_quality": 0.95,
 			"pop_growth": 0.009,
 			"war_support": 70,
 			"capital": 83,
@@ -87,6 +91,7 @@
 			"government": "republic"
 		},
 		"ITA": {
+			"army_quality": 0.92,
 			"pop_growth": 0.007,
 			"war_support": 40,
 			"capital": 493,
@@ -128,6 +133,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"AUH": {
+			"army_quality": 0.9,
 			"pop_growth": 0.009,
 			"war_support": 60,
 			"capital": 72,
@@ -169,6 +175,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"BUL": {
+			"army_quality": 1.0,
 			"pop_growth": 0.013,
 			"capital": 625,
 			"development": 0.637,
@@ -179,6 +186,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"GRE": {
+			"army_quality": 0.9,
 			"pop_growth": 0.01,
 			"capital": 638,
 			"development": 0.726,
@@ -199,6 +207,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"OTT": {
+			"army_quality": 0.8,
 			"pop_growth": 0.008,
 			"capital": 659,
 			"development": 0.455,
@@ -209,6 +218,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"ROM": {
+			"army_quality": 0.9,
 			"pop_growth": 0.014,
 			"capital": 667,
 			"development": 0.652,
@@ -219,6 +229,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"SRB": {
+			"army_quality": 1.05,
 			"pop_growth": 0.012,
 			"war_support": 75,
 			"capital": 689,
@@ -230,6 +241,7 @@
 			"government": "constitutional_monarchy"
 		},
 		"RUS": {
+			"army_quality": 0.9,
 			"pop_growth": 0.015,
 			"war_support": 55,
 			"capital": 831,

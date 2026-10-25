@@ -38,6 +38,8 @@ var starving := false
 # Economy (rules in Economy; constants in data/economy.json).
 ## Output multiplier: how productive this nation's economy is relative to the baseline.
 var development := 1.0
+## How well trained and led its soldiers are: multiplies the fighting power of its armies (1.0 is the average).
+var army_quality := 1.0
 ## Food yield multiplier (farmland quality, techniques).
 var agri_yield := 1.0
 ## Share of GDP taken as tax.
@@ -105,6 +107,7 @@ func _init(p_tag: String, static_data: Dictionary, scenario_data: Dictionary) ->
 	war_support = scenario_data.get("war_support", WarSupport.start_value(government))
 	war_support_base = war_support
 	development = scenario_data.get("development", 1.0)
+	army_quality = float(scenario_data.get("army_quality", 1.0))
 	agri_yield = scenario_data.get("agri_yield", 1.0)
 	tax_rate = scenario_data.get("tax_rate", Economy.cfg.default_tax_rate)
 	mobilization = scenario_data.get("mobilization", 0.0)
