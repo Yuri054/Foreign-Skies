@@ -186,7 +186,7 @@ func _test_dynamics() -> void:
 	gs.nations["FRA"].war_support = 50.0
 	gs.nations["GER"].war_support = 50.0
 	W.on_battle(gs, {"winner": "FRA", "loser": "GER", "province": fra_home})
-	_check(gs.nations["FRA"].war_support == 53.0 and gs.nations["GER"].war_support == 48.5, "a victory at home lifts the winner by 3 and lowers the loser by 1.5")
+	_check(gs.nations["FRA"].war_support == 53.0 and gs.nations["GER"].war_support == 49.0, "a victory at home lifts the winner by 3 and lowers the loser by 1")
 	W.on_battle(gs, {"winner": "FRA", "loser": "GER", "province": ger_home})
 	_check(gs.nations["FRA"].war_support == 55.0, "a victory abroad lifts it by 2")
 	W.on_battle(gs, {"winner": "", "loser": "", "province": ger_home})
