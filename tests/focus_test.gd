@@ -53,10 +53,10 @@ func _initialize() -> void:
 
 	# Starting, requirements, one at a time.
 	var n = gs.nations["FRA"]
-	var cmd = Set.new("FRA", "heavy_industry")
+	var cmd = Set.new("FRA", "lorraine_iron")
 	_check(not gs.issue(cmd) and cmd.reason == "locked", "a focus whose requirement is not done is locked")
 	_check(gs.issue(Set.new("FRA", "industrial_drive")), "France starts the industrial drive")
-	_check(not gs.issue(Set.new("FRA", "agrarian_reform")) and F.block(gs, "FRA", "agrarian_reform") == "busy", "only one at a time")
+	_check(not gs.issue(Set.new("FRA", "revanche")) and F.block(gs, "FRA", "revanche") == "busy", "only one at a time")
 	var days: int = n.focus.days_left
 	clock.advance_day()
 	_check(n.focus.days_left == days - 1, "a day passes on it")
@@ -67,22 +67,24 @@ func _initialize() -> void:
 	var gdp: float = n.budget.gdp
 	_finish("FRA", "industrial_drive")
 	_check("industrial_drive" in n.focus_done and n.focus.is_empty(), "the focus is done after its days")
-	_check(n.budget.gdp > gdp * 1.03, "output rises (%.1f to %.1f)" % [gdp, n.budget.gdp])
+	_check(n.budget.gdp > gdp * 1.01, "output rises (%.1f to %.1f)" % [gdp, n.budget.gdp])
 	_check(F.block(gs, "FRA", "industrial_drive") == "done", "and cannot be taken again")
 	var ic: float = n.budget.construction_points
-	_finish("FRA", "heavy_industry")
-	_check(n.budget.construction_points >= ic + 6.0, "heavy industry adds construction capacity (%.0f to %.0f)" % [ic, n.budget.construction_points])
+	_finish("FRA", "lorraine_iron")
+	_finish("FRA", "creusot_and_schneider")
+	_check(n.budget.construction_points >= ic + 5.0, "the arms works add construction capacity (%.0f to %.0f)" % [ic, n.budget.construction_points])
 	var food: float = n.budget.food_production
-	_finish("FRA", "agrarian_reform")
-	_check(n.budget.food_production > food * 1.05, "agrarian reform feeds more people")
+	_finish("FRA", "laic_republic")
+	_finish("FRA", "small_farms")
+	_check(n.budget.food_production > food * 1.03, "the small farms feed more people (%.0f to %.0f)" % [food, n.budget.food_production])
 	var income: float = D.point_income(gs, "FRA")
-	_finish("FRA", "army_reform")
-	_finish("FRA", "diplomatic_corps")
-	_check(D.point_income(gs, "FRA") >= income + 0.99, "the diplomatic corps adds a point a month")
+	_finish("FRA", "franco_russian_alliance")
+	_check(D.point_income(gs, "FRA") >= income + 0.49, "the alliance's diplomacy adds half a point a month")
 	# One-off effects.
 	var prestige: float = n.prestige
-	_finish("FRA", "great_power_standing")
-	_check(n.prestige > prestige + 7.0, "great-power standing adds prestige")
+	_finish("FRA", "entente_cordiale")
+	_finish("FRA", "moroccan_protectorate")
+	_check(n.prestige > prestige + 7.0, "the entente and Morocco add prestige")
 	_fresh()
 	n = gs.nations["SRB"]
 	var army: int = n.peacetime_army
@@ -94,10 +96,9 @@ func _initialize() -> void:
 	_check(n.war_support > support, "and war support")
 	_fresh()
 	var rel: float = D.relation(gs, "RUS", "SRB")
-	_finish("RUS", "army_reform")
-	_finish("RUS", "diplomatic_corps")
-	_finish("RUS", "pan_slav_patron")
-	_check(D.relation(gs, "RUS", "SRB") > rel + 20.0, "patronage warms Serbia (%.0f to %.0f)" % [rel, D.relation(gs, "RUS", "SRB")])
+	_finish("RUS", "pan_slav_cause")
+	_finish("RUS", "balkan_league_patron")
+	_check(D.relation(gs, "RUS", "SRB") > rel + 17.0, "patronage warms Serbia (%.0f to %.0f)" % [rel, D.relation(gs, "RUS", "SRB")])
 	_fresh()
 	var pts: float = gs.nations["BEL"].diplomacy_points
 	F.apply_effects(gs, "BEL", {"points": 12, "treasury": 3.0})
@@ -140,11 +141,11 @@ func _initialize() -> void:
 	win.toggle()
 	await process_frame
 	_check(win._buttons.size() == F.tree_of("GBR").size(), "the window shows every focus of the tree (%d)" % win._buttons.size())
-	win.select("industrial_drive")
+	win.select("imperial_preference")
 	_check(not win._start.disabled, "an open focus can be started from it")
 	win._on_start()
-	_check(not gs.nations["GBR"].focus.is_empty() and gs.nations["GBR"].focus.id == "industrial_drive", "Start begins it")
-	win.select("heavy_industry")
+	_check(not gs.nations["GBR"].focus.is_empty() and gs.nations["GBR"].focus.id == "imperial_preference", "Start begins it")
+	win.select("colonial_office")
 	_check(win._start.disabled and win._detail.text.contains("Needs"), "a locked one says what it needs")
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

@@ -4,8 +4,8 @@ extends FloatingWindow
 ## need, the focus in hand with its progress, and the chosen focus's effects with a Start button.
 ## Open with the Focus button in the top bar, or O.
 
-const CELL := Vector2(160, 70)
-const GAP := Vector2(14, 22)
+const CELL := Vector2(146, 64)
+const GAP := Vector2(8, 16)
 
 var _title := Label.new()
 var _current := Label.new()
@@ -34,26 +34,31 @@ func _ready() -> void:
 	_progress.show_percentage = false
 	_progress.custom_minimum_size = Vector2(0, 8)
 	box.add_child(_progress)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(700, 200)
-	_canvas.draw.connect(_draw_links)
-	scroll.add_child(_canvas)
-	box.add_child(scroll)
+	# What the chosen focus does, and the buttons for it, sit above the tree so they never scroll out of sight.
+	var info := HBoxContainer.new()
+	info.add_theme_constant_override("separation", 10)
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail.custom_minimum_size = Vector2(640, 56)
-	box.add_child(_detail)
-	var row := HBoxContainer.new()
+	_detail.custom_minimum_size = Vector2(420, 48)
+	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_child(_detail)
+	var buttons := VBoxContainer.new()
 	_start.text = "Start focus"
 	_start.focus_mode = Control.FOCUS_NONE
 	_start.pressed.connect(_on_start)
-	row.add_child(_start)
+	buttons.add_child(_start)
 	_cancel.text = "Drop current focus"
 	_cancel.focus_mode = Control.FOCUS_NONE
 	_cancel.tooltip_text = "Progress on it is lost."
 	_cancel.pressed.connect(_on_cancel)
-	row.add_child(_cancel)
-	box.add_child(row)
+	buttons.add_child(_cancel)
+	info.add_child(buttons)
+	box.add_child(info)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(700, 300)
+	_canvas.draw.connect(_draw_links)
+	scroll.add_child(_canvas)
+	box.add_child(scroll)
 	setup_window("National focus", true, Vector2(740, 480), 6)
 	GameState.focus_changed.connect(func(_t: String) -> void: _mark())
 	GameState.player_changed.connect(func(_t: String) -> void: _mark())

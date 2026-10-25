@@ -25,8 +25,12 @@ static func tree_of(tag: String) -> Array:
 		return _trees[tag]
 	var spec: Dictionary = cfg.nations.get(tag, {"template": "minor", "extra": []})
 	var out: Array = []
-	out.append_array(cfg.templates[spec.template])
-	out.append_array(spec.extra)
+	if spec.has("tree"):
+		# A nation with a tree of its own (the great powers) uses it whole.
+		out.append_array(spec.tree)
+	else:
+		out.append_array(cfg.templates[spec.template])
+		out.append_array(spec.extra)
 	_trees[tag] = out
 	return out
 
@@ -95,6 +99,8 @@ static func complete(gs: Node, tag: String) -> void:
 	if id in n.focus_done:
 		return
 	var f := find(tag, id)
+	if f.is_empty():
+		return  # a focus an older save knew and this tree does not
 	if f.get("repeatable", false):
 		n.focus_count[id] = int(n.focus_count.get(id, 0)) + 1
 		if n.focus_count[id] >= int(f.get("max", 1)):

@@ -1,5 +1,5 @@
 {
-	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci. A focus with repeatable and max can be taken again after finishing, up to max times in all (Nation.focus_count); its effects apply each time.",
+	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci. A focus with repeatable and max can be taken again after finishing, up to max times in all (Nation.focus_count); its effects apply each time. nations.<TAG>.tree, where present, is the nation's whole tree and replaces its template (the great powers have one of their own, written by tools/make_focus_trees.py).",
 	"templates": {
 		"major": [
 			{
@@ -259,98 +259,767 @@
 	},
 	"nations": {
 		"GBR": {
-			"template": "major",
-			"extra": [
+			"tree": [
 				{
 					"id": "imperial_preference",
 					"name": "Imperial preference",
-					"desc": "Favour trade inside the Empire.",
-					"x": 3,
+					"desc": "Tariffs that bind the empire's trade.",
+					"x": 0,
 					"y": 0,
 					"days": 80,
+					"requires": [],
+					"effects": {
+						"trade": 0.008,
+						"gdp": 0.01
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "colonial_office",
+					"name": "The Colonial Office",
+					"desc": "Governors, garrisons and the maps in Whitehall.",
+					"x": 0,
+					"y": 1,
+					"days": 80,
 					"requires": [
-						"industrial_drive"
+						"imperial_preference"
 					],
 					"effects": {
-						"trade": 0.012,
-						"gdp": 0.02
+						"prestige": 4,
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "suez_and_the_routes",
+					"name": "Suez and the sea routes",
+					"desc": "Coaling stations from Gibraltar to Singapore.",
+					"x": 0,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"colonial_office"
+					],
+					"effects": {
+						"trade": 0.006,
+						"construction": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "imperial_federation",
+					"name": "Imperial federation",
+					"desc": "The dominions at the council table.",
+					"x": 0,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"suez_and_the_routes"
+					],
+					"effects": {
+						"prestige": 5,
+						"relation": [
+							[
+								"FRA",
+								3
+							]
+						],
+						"war_support": 3
 					},
 					"ai": 1.0
 				},
 				{
 					"id": "two_power_standard",
-					"name": "Two-power standard",
-					"desc": "Keep the navy a match for the next two combined.",
-					"x": 3,
+					"name": "The two-power standard",
+					"desc": "A navy as big as the next two together.",
+					"x": 1,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"construction": 6
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "dreadnought_programme",
+					"name": "The dreadnought programme",
+					"desc": "All-big-gun ships, as fast as the yards can lay them.",
+					"x": 1,
 					"y": 1,
-					"days": 100,
+					"days": 110,
 					"requires": [
-						"heavy_industry"
+						"two_power_standard"
 					],
 					"effects": {
 						"construction": 6,
-						"prestige": 4
+						"war_support": 2,
+						"prestige": 3,
+						"relation": [
+							[
+								"GER",
+								-6
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "room_forty",
+					"name": "Naval intelligence",
+					"desc": "Codebreakers and a map of every fleet.",
+					"x": 1,
+					"y": 2,
+					"days": 80,
+					"requires": [
+						"dreadnought_programme"
+					],
+					"effects": {
+						"points": 10,
+						"diplomacy": 0.3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "city_of_london",
+					"name": "The City of London",
+					"desc": "The world's banker.",
+					"x": 2,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"gdp": 0.014,
+						"treasury": 6
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "industrial_modernisation",
+					"name": "Industrial modernisation",
+					"desc": "Newer mills, better yards.",
+					"x": 2,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"city_of_london"
+					],
+					"effects": {
+						"industry": 0.04
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "shipyards_of_the_clyde",
+					"name": "The yards of the Clyde and Tyne",
+					"desc": "Merchant and warship hulls alike.",
+					"x": 2,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"industrial_modernisation"
+					],
+					"effects": {
+						"industry": 0.03,
+						"construction": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "liberal_reforms",
+					"name": "Liberal reforms",
+					"desc": "Pensions and insurance for the working man.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"war_support": 4,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "education_acts",
+					"name": "Education for all",
+					"desc": "Schools and a literate workforce.",
+					"x": 3,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"liberal_reforms"
+					],
+					"effects": {
+						"gdp": 0.01,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "home_front",
+					"name": "The people's budget",
+					"desc": "A fairer tax that pays for the fleet.",
+					"x": 3,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"education_acts"
+					],
+					"effects": {
+						"treasury": 8,
+						"war_support": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "haldane_reforms",
+					"name": "The Haldane reforms",
+					"desc": "A small, modern army and a territorial reserve behind it.",
+					"x": 4,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"army_size": 0.08
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "expeditionary_force",
+					"name": "The Expeditionary Force",
+					"desc": "Six divisions that can be in France in a fortnight.",
+					"x": 4,
+					"y": 1,
+					"days": 100,
+					"requires": [
+						"haldane_reforms"
+					],
+					"effects": {
+						"army_size": 0.06,
+						"war_support": 2
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "entente_policy",
+					"name": "Entente policy",
+					"desc": "Friendship with France, and then with Russia.",
+					"x": 4,
+					"y": 2,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"relation": [
+							[
+								"FRA",
+								12
+							],
+							[
+								"RUS",
+								8
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "balance_of_power",
+					"name": "The balance of power",
+					"desc": "Britain stands against whoever would rule the continent.",
+					"x": 4,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"entente_policy"
+					],
+					"effects": {
+						"prestige": 5,
+						"diplomacy": 0.5,
+						"relation": [
+							[
+								"GER",
+								-5
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "splendid_isolation",
+					"name": "Splendid isolation",
+					"desc": "Free of all commitments, and proud of it.",
+					"x": 3,
+					"y": 3,
+					"days": 80,
+					"requires": [
+						"home_front"
+					],
+					"effects": {
+						"gdp": 0.008,
+						"diplomacy": 0.3,
+						"relation": [
+							[
+								"GER",
+								4
+							]
+						]
 					},
 					"ai": 1.0
 				}
 			]
 		},
 		"FRA": {
-			"template": "major",
-			"extra": [
+			"tree": [
+				{
+					"id": "industrial_drive",
+					"name": "Industrial drive",
+					"desc": "Subsidise the factories and the railways that feed them.",
+					"x": 0,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"gdp": 0.012
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "lorraine_iron",
+					"name": "Lorraine iron and Nord coal",
+					"desc": "The basins that feed the forges.",
+					"x": 0,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"industrial_drive"
+					],
+					"effects": {
+						"industry": 0.04
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "creusot_and_schneider",
+					"name": "Creusot and Schneider",
+					"desc": "Guns, locomotives and steel.",
+					"x": 0,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"lorraine_iron"
+					],
+					"effects": {
+						"industry": 0.03,
+						"construction": 5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "paris_exposition",
+					"name": "The Paris Exposition",
+					"desc": "A showcase that sells French goods and French taste.",
+					"x": 0,
+					"y": 3,
+					"days": 80,
+					"requires": [
+						"industrial_drive"
+					],
+					"effects": {
+						"trade": 0.006,
+						"prestige": 3
+					},
+					"ai": 1.0
+				},
 				{
 					"id": "revanche",
 					"name": "Revanche",
-					"desc": "Keep the lost provinces in view.",
-					"x": 3,
+					"desc": "The lost provinces are not forgotten.",
+					"x": 1,
 					"y": 0,
 					"days": 90,
+					"requires": [],
+					"effects": {
+						"war_support": 6
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "plan_xvii",
+					"name": "Plan XVII",
+					"desc": "The offensive that will take Alsace-Lorraine back.",
+					"x": 1,
+					"y": 1,
+					"days": 100,
 					"requires": [
-						"army_reform"
+						"revanche"
+					],
+					"effects": {
+						"army_size": 0.06,
+						"war_support": 3
+					},
+					"ai": 1.0,
+					"min_aggression": 0.4
+				},
+				{
+					"id": "lost_provinces",
+					"name": "The lost provinces",
+					"desc": "France will have them back.",
+					"x": 1,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"plan_xvii"
 					],
 					"effects": {
 						"claim": [
 							"GER"
-						],
-						"war_support": 6
+						]
 					},
-					"ai": 0.6,
-					"min_aggression": 0.5
+					"ai": 1.0,
+					"min_aggression": 0.55
+				},
+				{
+					"id": "three_year_law",
+					"name": "The Three-Year Law",
+					"desc": "Keep the conscripts longer, to match Germany's numbers.",
+					"x": 2,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"army_size": 0.08,
+						"war_support": -2
+					},
+					"ai": 1.0
 				},
 				{
 					"id": "colonial_army",
-					"name": "Colonial army",
-					"desc": "Raise troops in the empire.",
-					"x": 3,
+					"name": "The colonial army",
+					"desc": "African and Asian troops for the metropolitan army.",
+					"x": 2,
 					"y": 1,
 					"days": 90,
 					"requires": [
-						"army_reform"
+						"three_year_law"
 					],
 					"effects": {
-						"army_size": 0.08,
-						"prestige": 2
+						"army_size": 0.06
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "fortress_line",
+					"name": "The eastern forts",
+					"desc": "Verdun, Toul, Epinal and Belfort.",
+					"x": 2,
+					"y": 2,
+					"days": 100,
+					"requires": [
+						"colonial_army"
+					],
+					"effects": {
+						"construction": 8,
+						"war_support": 2
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "laic_republic",
+					"name": "The secular republic",
+					"desc": "A state above its quarrels with the Church.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"war_support": 3,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "small_farms",
+					"name": "The small farms",
+					"desc": "Peasant France feeds itself.",
+					"x": 3,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"laic_republic"
+					],
+					"effects": {
+						"food": 0.1
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "savings_and_loans",
+					"name": "The savers' loans",
+					"desc": "French savings, lent abroad for French influence.",
+					"x": 3,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"small_farms"
+					],
+					"effects": {
+						"treasury": 8,
+						"diplomacy": 0.3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "franco_russian_alliance",
+					"name": "The Franco-Russian alliance",
+					"desc": "Russian numbers behind French guns.",
+					"x": 4,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"relation": [
+							[
+								"RUS",
+								12
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "entente_cordiale",
+					"name": "The Entente Cordiale",
+					"desc": "A friendship across the Channel.",
+					"x": 4,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"franco_russian_alliance"
+					],
+					"effects": {
+						"relation": [
+							[
+								"GBR",
+								14
+							]
+						],
+						"prestige": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "moroccan_protectorate",
+					"name": "The Moroccan question",
+					"desc": "France's claim to rule in Morocco.",
+					"x": 4,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"entente_cordiale"
+					],
+					"effects": {
+						"prestige": 5,
+						"relation": [
+							[
+								"GER",
+								-6
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "diplomatic_net",
+					"name": "A web of friends",
+					"desc": "Spain, Italy and the small states, one by one.",
+					"x": 4,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"moroccan_protectorate"
+					],
+					"effects": {
+						"diplomacy": 0.8,
+						"relation": [
+							[
+								"ITA",
+								8
+							],
+							[
+								"ESP",
+								6
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "civil_service",
+					"name": "A civil service of merit",
+					"desc": "The prefects and the grandes ecoles.",
+					"x": 3,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"savings_and_loans"
+					],
+					"effects": {
+						"gdp": 0.012,
+						"growth": 0.002
 					},
 					"ai": 1.0
 				}
 			]
 		},
 		"GER": {
-			"template": "major",
-			"extra": [
+			"tree": [
+				{
+					"id": "industrial_drive",
+					"name": "Industrial drive",
+					"desc": "Subsidise the factories and the railways that feed them.",
+					"x": 0,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"gdp": 0.012
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "chemical_industry",
+					"name": "Chemicals and electricity",
+					"desc": "Dyes, fertilisers, dynamos: the new industries.",
+					"x": 0,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"industrial_drive"
+					],
+					"effects": {
+						"industry": 0.04
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "steel_cartels",
+					"name": "Steel and coal cartels",
+					"desc": "Krupp, Thyssen and the Ruhr, working to one plan.",
+					"x": 0,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"chemical_industry"
+					],
+					"effects": {
+						"industry": 0.03,
+						"construction": 6
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "research_universities",
+					"name": "Universities and research",
+					"desc": "The laboratories that the world copies.",
+					"x": 0,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"steel_cartels"
+					],
+					"effects": {
+						"gdp": 0.012,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "naval_laws",
+					"name": "The Navy Laws",
+					"desc": "Tirpitz's fleet, voted ship by ship.",
+					"x": 1,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"prestige": 4,
+						"construction": 3
+					},
+					"ai": 1.0
+				},
 				{
 					"id": "weltpolitik",
 					"name": "Weltpolitik",
-					"desc": "A place in the sun.",
-					"x": 3,
-					"y": 0,
+					"desc": "A place in the sun, in every ocean.",
+					"x": 1,
+					"y": 1,
 					"days": 90,
 					"requires": [
-						"heavy_industry"
+						"naval_laws"
 					],
 					"effects": {
 						"prestige": 6,
-						"industry": 0.05
+						"diplomacy": 0.5,
+						"relation": [
+							[
+								"GBR",
+								-8
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "high_seas_fleet",
+					"name": "The High Seas Fleet",
+					"desc": "A fleet that makes Britain think twice.",
+					"x": 1,
+					"y": 2,
+					"days": 110,
+					"requires": [
+						"weltpolitik"
+					],
+					"effects": {
+						"construction": 5,
+						"war_support": 3,
+						"relation": [
+							[
+								"GBR",
+								-8
+							]
+						]
+					},
+					"ai": 1.0,
+					"min_aggression": 0.4
+				},
+				{
+					"id": "army_reform",
+					"name": "Army reform",
+					"desc": "More corps, better drilled.",
+					"x": 2,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"army_size": 0.06
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "general_staff",
+					"name": "The Great General Staff",
+					"desc": "Moltke's school of war, and its maps.",
+					"x": 2,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"army_size": 0.05,
+						"war_support": 3
 					},
 					"ai": 1.0
 				},
@@ -358,183 +1027,1413 @@
 					"id": "rail_mobilisation",
 					"name": "Railway mobilisation",
 					"desc": "Timetables and marshalling yards for the great plan.",
-					"x": 3,
-					"y": 1,
+					"x": 2,
+					"y": 2,
 					"days": 100,
 					"requires": [
-						"heavy_industry"
+						"general_staff"
 					],
 					"effects": {
 						"construction": 10
 					},
 					"ai": 1.0
+				},
+				{
+					"id": "schlieffen_readiness",
+					"name": "The plan is ready",
+					"desc": "Every corps knows its train.",
+					"x": 2,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"rail_mobilisation"
+					],
+					"effects": {
+						"army_size": 0.06,
+						"war_support": 4
+					},
+					"ai": 1.0,
+					"min_aggression": 0.45
+				},
+				{
+					"id": "insurance_state",
+					"name": "The insurance state",
+					"desc": "Sickness, accident and old-age insurance win the workers.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"war_support": 4,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "imperial_unity",
+					"name": "Imperial unity",
+					"desc": "Reichstag, Bundesrat and the Kaiser, in step.",
+					"x": 3,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"insurance_state"
+					],
+					"effects": {
+						"war_support": 5,
+						"diplomacy": 0.3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "agrarian_compromise",
+					"name": "Farmers and factories",
+					"desc": "Tariffs that keep both the Junkers and the Ruhr content.",
+					"x": 3,
+					"y": 2,
+					"days": 80,
+					"requires": [
+						"imperial_unity"
+					],
+					"effects": {
+						"food": 0.1,
+						"trade": 0.004
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "dual_alliance",
+					"name": "Tend the Dual Alliance",
+					"desc": "Vienna is Germany's one sure friend.",
+					"x": 4,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"relation": [
+							[
+								"AUH",
+								10
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "baghdad_railway",
+					"name": "The Baghdad Railway",
+					"desc": "Rails to the Gulf, and a friend at Constantinople.",
+					"x": 4,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"dual_alliance"
+					],
+					"effects": {
+						"relation": [
+							[
+								"OTT",
+								15
+							]
+						],
+						"trade": 0.006,
+						"prestige": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "mitteleuropa",
+					"name": "Mitteleuropa",
+					"desc": "A customs union of the central powers.",
+					"x": 4,
+					"y": 2,
+					"days": 100,
+					"requires": [
+						"baghdad_railway"
+					],
+					"effects": {
+						"relation": [
+							[
+								"AUH",
+								8
+							],
+							[
+								"ITA",
+								6
+							]
+						],
+						"gdp": 0.012,
+						"trade": 0.004
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "place_in_the_sun",
+					"name": "A place in the sun",
+					"desc": "Colonies, concessions and coaling stations.",
+					"x": 4,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"mitteleuropa",
+						"weltpolitik"
+					],
+					"effects": {
+						"prestige": 6,
+						"trade": 0.006
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "revision_of_the_map",
+					"name": "Revision of the map",
+					"desc": "Germany's claim to a European peace on its own terms.",
+					"x": 3,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"imperial_unity",
+						"schlieffen_readiness"
+					],
+					"effects": {
+						"claim": [
+							"FRA"
+						],
+						"prestige": 3
+					},
+					"ai": 1.0,
+					"min_aggression": 0.55
 				}
 			]
 		},
 		"AUH": {
-			"template": "major",
-			"extra": [
+			"tree": [
+				{
+					"id": "ausgleich_economy",
+					"name": "Common market of the Dual Monarchy",
+					"desc": "Austria and Hungary, one customs area.",
+					"x": 0,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"gdp": 0.012
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "skoda_and_steyr",
+					"name": "Skoda and Steyr",
+					"desc": "Arms and machines from Bohemia and Styria.",
+					"x": 0,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"ausgleich_economy"
+					],
+					"effects": {
+						"industry": 0.04
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "danube_trade",
+					"name": "The Danube and Trieste",
+					"desc": "River barges and Adriatic freight.",
+					"x": 0,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"skoda_and_steyr"
+					],
+					"effects": {
+						"trade": 0.006,
+						"construction": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "hungarian_wheat",
+					"name": "The Hungarian plain",
+					"desc": "Wheat for the whole monarchy.",
+					"x": 0,
+					"y": 3,
+					"days": 80,
+					"requires": [
+						"ausgleich_economy"
+					],
+					"effects": {
+						"food": 0.12
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "army_modernisation",
+					"name": "Army modernisation",
+					"desc": "A common army, newer guns.",
+					"x": 1,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"army_size": 0.06
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "conrad_plans",
+					"name": "Conrad's plans",
+					"desc": "A war plan for the south and a war plan for the east.",
+					"x": 1,
+					"y": 1,
+					"days": 100,
+					"requires": [
+						"army_modernisation"
+					],
+					"effects": {
+						"army_size": 0.05,
+						"war_support": 3
+					},
+					"ai": 1.0,
+					"min_aggression": 0.4
+				},
+				{
+					"id": "balkan_garrisons",
+					"name": "The Balkan garrisons",
+					"desc": "Troops and forts on the Serbian border.",
+					"x": 1,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"conrad_plans"
+					],
+					"effects": {
+						"construction": 6,
+						"war_support": 2
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "viribus_unitis",
+					"name": "Viribus Unitis",
+					"desc": "Dreadnoughts for the Adriatic.",
+					"x": 1,
+					"y": 3,
+					"days": 110,
+					"requires": [
+						"balkan_garrisons"
+					],
+					"effects": {
+						"construction": 6,
+						"prestige": 3,
+						"relation": [
+							[
+								"ITA",
+								-5
+							]
+						]
+					},
+					"ai": 1.0
+				},
 				{
 					"id": "dual_monarchy_reform",
 					"name": "Dual-monarchy reform",
-					"desc": "Smooth the Compromise's quarrels over the common budget.",
-					"x": 3,
+					"desc": "Make the two halves work together.",
+					"x": 2,
 					"y": 0,
 					"days": 90,
+					"requires": [],
+					"effects": {
+						"gdp": 0.01,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "languages_and_peoples",
+					"name": "Many peoples, one state",
+					"desc": "Language laws and schools for each nation.",
+					"x": 2,
+					"y": 1,
+					"days": 90,
 					"requires": [
-						"civil_service"
+						"dual_monarchy_reform"
 					],
 					"effects": {
-						"gdp": 0.03,
-						"growth": 0.002
+						"war_support": 5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "emperors_jubilee",
+					"name": "The Emperor's jubilee",
+					"desc": "Sixty years on the throne; the dynasty is the glue.",
+					"x": 2,
+					"y": 2,
+					"days": 80,
+					"requires": [
+						"languages_and_peoples"
+					],
+					"effects": {
+						"war_support": 4,
+						"prestige": 3
 					},
 					"ai": 1.0
 				},
 				{
 					"id": "south_slav_question",
 					"name": "The South Slav question",
-					"desc": "Press the case against Serbia.",
-					"x": 3,
-					"y": 1,
+					"desc": "Trialism, or the sword.",
+					"x": 2,
+					"y": 3,
 					"days": 90,
 					"requires": [
-						"army_reform"
-					],
-					"effects": {
-						"claim": [
-							"SRB"
-						],
-						"war_support": 5
-					},
-					"ai": 0.6,
-					"min_aggression": 0.5
-				}
-			]
-		},
-		"RUS": {
-			"template": "major",
-			"extra": [
-				{
-					"id": "great_programme",
-					"name": "Great Programme",
-					"desc": "The army's rearmament plan.",
-					"x": 3,
-					"y": 0,
-					"days": 100,
-					"requires": [
-						"army_reform"
-					],
-					"effects": {
-						"army_size": 0.12,
-						"construction": 10
-					},
-					"ai": 1.0
-				},
-				{
-					"id": "pan_slav_patron",
-					"name": "Patron of the Slavs",
-					"desc": "Stand behind Serbia and Montenegro.",
-					"x": 3,
-					"y": 1,
-					"days": 70,
-					"requires": [
-						"diplomatic_corps"
+						"emperors_jubilee"
 					],
 					"effects": {
 						"relation": [
 							[
 								"SRB",
-								25
+								-6
+							]
+						],
+						"war_support": 2
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "german_alliance",
+					"name": "The German alliance",
+					"desc": "Berlin's backing, and its price.",
+					"x": 3,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"relation": [
+							[
+								"GER",
+								12
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "triple_alliance_renewal",
+					"name": "Renew the Triple Alliance",
+					"desc": "Keep Italy in the alliance.",
+					"x": 3,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"german_alliance"
+					],
+					"effects": {
+						"relation": [
+							[
+								"ITA",
+								10
+							],
+							[
+								"GER",
+								4
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "bosnia",
+					"name": "Bosnia and Herzegovina",
+					"desc": "Make the occupation a part of the state.",
+					"x": 3,
+					"y": 2,
+					"days": 100,
+					"requires": [
+						"triple_alliance_renewal"
+					],
+					"effects": {
+						"prestige": 5,
+						"relation": [
+							[
+								"SRB",
+								-8
+							],
+							[
+								"RUS",
+								-5
+							]
+						]
+					},
+					"ai": 1.0,
+					"min_aggression": 0.4
+				},
+				{
+					"id": "punish_serbia",
+					"name": "Settle with Serbia",
+					"desc": "A small state that will not be kept down.",
+					"x": 3,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"bosnia",
+						"balkan_garrisons"
+					],
+					"effects": {
+						"claim": [
+							"SRB"
+						]
+					},
+					"ai": 1.0,
+					"min_aggression": 0.55
+				},
+				{
+					"id": "balkan_diplomacy",
+					"name": "Balkan diplomacy",
+					"desc": "Romania, Bulgaria and Greece, kept near.",
+					"x": 4,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"relation": [
+							[
+								"ROM",
+								8
+							],
+							[
+								"BUL",
+								8
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "railways_to_salonika",
+					"name": "Railways to Salonika",
+					"desc": "A line to the Aegean.",
+					"x": 4,
+					"y": 1,
+					"days": 100,
+					"requires": [
+						"balkan_diplomacy"
+					],
+					"effects": {
+						"construction": 6,
+						"trade": 0.004
+					},
+					"ai": 1.0
+				}
+			]
+		},
+		"RUS": {
+			"tree": [
+				{
+					"id": "witte_system",
+					"name": "The Witte system",
+					"desc": "State railways and state loans to build an industry.",
+					"x": 0,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"gdp": 0.012,
+						"construction": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "trans_siberian",
+					"name": "The Trans-Siberian",
+					"desc": "A railway across a continent.",
+					"x": 0,
+					"y": 1,
+					"days": 100,
+					"requires": [
+						"witte_system"
+					],
+					"effects": {
+						"construction": 8,
+						"trade": 0.004
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "donbas_and_baku",
+					"name": "Donbas coal and Baku oil",
+					"desc": "The fuel of a modern state.",
+					"x": 0,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"trans_siberian"
+					],
+					"effects": {
+						"industry": 0.04
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "putilov_works",
+					"name": "The Putilov works",
+					"desc": "Guns and locomotives from St Petersburg.",
+					"x": 0,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"donbas_and_baku"
+					],
+					"effects": {
+						"industry": 0.03,
+						"construction": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "army_reform",
+					"name": "Army reform",
+					"desc": "A bigger army after the Japanese lesson.",
+					"x": 1,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"army_size": 0.08
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "great_programme",
+					"name": "The Great Programme",
+					"desc": "A vast scheme of corps and railways to the frontier.",
+					"x": 1,
+					"y": 1,
+					"days": 110,
+					"requires": [
+						"army_reform"
+					],
+					"effects": {
+						"army_size": 0.1,
+						"construction": 10
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "steamroller",
+					"name": "The steamroller",
+					"desc": "A reserve of millions, ready to roll.",
+					"x": 1,
+					"y": 2,
+					"days": 100,
+					"requires": [
+						"great_programme"
+					],
+					"effects": {
+						"army_size": 0.08,
+						"war_support": 3
+					},
+					"ai": 1.0,
+					"min_aggression": 0.4
+				},
+				{
+					"id": "stolypin_reforms",
+					"name": "The Stolypin reforms",
+					"desc": "Peasants made owners of their land.",
+					"x": 2,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"food": 0.12,
+						"growth": 0.003
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "duma_and_order",
+					"name": "The Duma and order",
+					"desc": "A parliament of limited powers, a state of firm ones.",
+					"x": 2,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"stolypin_reforms"
+					],
+					"effects": {
+						"war_support": 5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "grain_exports",
+					"name": "Grain for the world",
+					"desc": "Odessa's elevators and the ports of the Baltic.",
+					"x": 2,
+					"y": 2,
+					"days": 80,
+					"requires": [
+						"duma_and_order"
+					],
+					"effects": {
+						"trade": 0.006,
+						"gdp": 0.01
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "zemstvo_schools",
+					"name": "Schools and zemstvos",
+					"desc": "Literacy in the villages.",
+					"x": 2,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"grain_exports"
+					],
+					"effects": {
+						"gdp": 0.01,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "pan_slav_cause",
+					"name": "The Pan-Slav cause",
+					"desc": "Patron of the Orthodox and the Slavs.",
+					"x": 3,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"prestige": 4,
+						"relation": [
+							[
+								"SRB",
+								10
+							],
+							[
+								"BUL",
+								6
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "balkan_league_patron",
+					"name": "Patron of the Balkan League",
+					"desc": "The small kingdoms bound to St Petersburg.",
+					"x": 3,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"pan_slav_cause"
+					],
+					"effects": {
+						"relation": [
+							[
+								"SRB",
+								8
+							],
+							[
+								"GRE",
+								6
 							],
 							[
 								"MNE",
-								25
+								8
 							]
 						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "the_straits",
+					"name": "The Straits",
+					"desc": "Constantinople, and the gate to the Mediterranean.",
+					"x": 3,
+					"y": 2,
+					"days": 110,
+					"requires": [
+						"balkan_league_patron"
+					],
+					"effects": {
+						"claim": [
+							"OTT"
+						],
 						"prestige": 3
+					},
+					"ai": 1.0,
+					"min_aggression": 0.55
+				},
+				{
+					"id": "franco_russian_ties",
+					"name": "Ties with France",
+					"desc": "French money, French guns, French friendship.",
+					"x": 4,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"relation": [
+							[
+								"FRA",
+								12
+							]
+						],
+						"treasury": 8
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "anglo_russian_entente",
+					"name": "The Anglo-Russian Convention",
+					"desc": "Persia and Afghanistan settled, and a friend found.",
+					"x": 4,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"franco_russian_ties"
+					],
+					"effects": {
+						"relation": [
+							[
+								"GBR",
+								12
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "baltic_fleet",
+					"name": "The Baltic and Black Sea fleets",
+					"desc": "Rebuilt after Tsushima.",
+					"x": 4,
+					"y": 2,
+					"days": 100,
+					"requires": [
+						"anglo_russian_entente"
+					],
+					"effects": {
+						"construction": 6,
+						"prestige": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "slav_congress",
+					"name": "A Slav congress",
+					"desc": "A family of peoples looks to Russia.",
+					"x": 4,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"baltic_fleet",
+						"balkan_league_patron"
+					],
+					"effects": {
+						"points": 12,
+						"diplomacy": 0.5
 					},
 					"ai": 1.0
 				}
 			]
 		},
 		"ITA": {
-			"template": "major",
-			"extra": [
+			"tree": [
 				{
-					"id": "irredentism",
-					"name": "Irredentism",
-					"desc": "Trento and Trieste are still Italian.",
-					"x": 3,
+					"id": "northern_industry",
+					"name": "The industrial triangle",
+					"desc": "Milan, Turin and Genoa.",
+					"x": 0,
 					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"gdp": 0.012,
+						"industry": 0.02
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "ansaldo_and_fiat",
+					"name": "Ansaldo and Fiat",
+					"desc": "Ships, guns and motor cars.",
+					"x": 0,
+					"y": 1,
 					"days": 90,
 					"requires": [
-						"army_reform"
+						"northern_industry"
+					],
+					"effects": {
+						"industry": 0.04
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "hydroelectric_power",
+					"name": "Power from the Alps",
+					"desc": "Water turned into current.",
+					"x": 0,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"ansaldo_and_fiat"
+					],
+					"effects": {
+						"industry": 0.03,
+						"construction": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "southern_question",
+					"name": "The southern question",
+					"desc": "Bring the Mezzogiorno into the nation.",
+					"x": 0,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"northern_industry"
+					],
+					"effects": {
+						"growth": 0.003,
+						"food": 0.08
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "army_of_the_north",
+					"name": "The army of the north",
+					"desc": "Alpine troops and frontier forts.",
+					"x": 1,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"army_size": 0.06
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "regia_marina",
+					"name": "The Regia Marina",
+					"desc": "A fleet for two seas.",
+					"x": 1,
+					"y": 1,
+					"days": 100,
+					"requires": [
+						"army_of_the_north"
+					],
+					"effects": {
+						"construction": 6,
+						"prestige": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "mare_nostrum",
+					"name": "Mare nostrum",
+					"desc": "The Mediterranean as an Italian lake.",
+					"x": 1,
+					"y": 2,
+					"days": 110,
+					"requires": [
+						"regia_marina"
+					],
+					"effects": {
+						"prestige": 4,
+						"relation": [
+							[
+								"AUH",
+								-4
+							]
+						]
+					},
+					"ai": 1.0,
+					"min_aggression": 0.4
+				},
+				{
+					"id": "giolitti_era",
+					"name": "The Giolitti era",
+					"desc": "Reform and compromise at home.",
+					"x": 2,
+					"y": 0,
+					"days": 80,
+					"requires": [],
+					"effects": {
+						"war_support": 4,
+						"growth": 0.002
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "universal_suffrage",
+					"name": "Wider suffrage",
+					"desc": "A bigger electorate, a steadier state.",
+					"x": 2,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"giolitti_era"
+					],
+					"effects": {
+						"war_support": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "emigrants_remittances",
+					"name": "The emigrants' money",
+					"desc": "Millions abroad send money home.",
+					"x": 2,
+					"y": 2,
+					"days": 80,
+					"requires": [
+						"universal_suffrage"
+					],
+					"effects": {
+						"treasury": 6,
+						"gdp": 0.008
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "risorgimento_spirit",
+					"name": "The spirit of the Risorgimento",
+					"desc": "A nation that finished one war of unity and wants another.",
+					"x": 2,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"emigrants_remittances"
+					],
+					"effects": {
+						"war_support": 5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "triple_alliance_ties",
+					"name": "The Triple Alliance",
+					"desc": "Berlin and Vienna as partners, with reservations.",
+					"x": 3,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"relation": [
+							[
+								"GER",
+								8
+							],
+							[
+								"AUH",
+								6
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "french_understanding",
+					"name": "The understanding with France",
+					"desc": "A secret promise: no attack on France.",
+					"x": 3,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"triple_alliance_ties"
+					],
+					"effects": {
+						"relation": [
+							[
+								"FRA",
+								12
+							],
+							[
+								"GBR",
+								6
+							]
+						],
+						"diplomacy": 0.5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "libya",
+					"name": "Tripoli",
+					"desc": "A colony across the sea.",
+					"x": 3,
+					"y": 2,
+					"days": 100,
+					"requires": [
+						"french_understanding",
+						"regia_marina"
+					],
+					"effects": {
+						"prestige": 6,
+						"gdp": 0.008,
+						"relation": [
+							[
+								"OTT",
+								-10
+							]
+						]
+					},
+					"ai": 1.0,
+					"min_aggression": 0.4
+				},
+				{
+					"id": "irredenta",
+					"name": "Italia irredenta",
+					"desc": "Trento and Trieste are Italian.",
+					"x": 3,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"libya"
 					],
 					"effects": {
 						"claim": [
 							"AUH"
 						],
-						"war_support": 5
+						"war_support": 3
 					},
-					"ai": 0.6,
+					"ai": 1.0,
 					"min_aggression": 0.5
 				},
 				{
-					"id": "libyan_development",
-					"name": "Libyan development",
-					"desc": "Settle and exploit the new colony.",
-					"x": 3,
+					"id": "balkan_ambitions",
+					"name": "Ambitions across the Adriatic",
+					"desc": "Albania and the Dalmatian coast.",
+					"x": 4,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"prestige": 3,
+						"relation": [
+							[
+								"SRB",
+								-3
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "diplomatic_service",
+					"name": "A larger diplomatic service",
+					"desc": "More envoys, more favours.",
+					"x": 4,
 					"y": 1,
 					"days": 80,
 					"requires": [
-						"industrial_drive"
+						"balkan_ambitions"
 					],
 					"effects": {
-						"gdp": 0.03
+						"diplomacy": 0.8
 					},
 					"ai": 1.0
 				}
 			]
 		},
 		"OTT": {
-			"template": "major",
-			"extra": [
+			"tree": [
 				{
-					"id": "young_turk_reforms",
-					"name": "Young Turk reforms",
-					"desc": "Modernise the state, the schools and the courts.",
-					"x": 3,
+					"id": "tanzimat_reforms",
+					"name": "The reform of the state",
+					"desc": "Taxes, courts and a ministry that works.",
+					"x": 0,
 					"y": 0,
-					"days": 90,
-					"requires": [
-						"civil_service"
-					],
+					"days": 80,
+					"requires": [],
 					"effects": {
-						"gdp": 0.04,
+						"gdp": 0.014,
 						"growth": 0.002
 					},
 					"ai": 1.0
 				},
 				{
-					"id": "german_mission",
-					"name": "German military mission",
-					"desc": "Officers and rifles from Berlin.",
-					"x": 3,
+					"id": "hejaz_and_baghdad_rail",
+					"name": "Railways of the empire",
+					"desc": "The Hejaz line and the Baghdad railway.",
+					"x": 0,
 					"y": 1,
-					"days": 80,
+					"days": 100,
 					"requires": [
-						"army_reform"
+						"tanzimat_reforms"
 					],
 					"effects": {
-						"army_size": 0.1,
+						"construction": 8,
+						"trade": 0.004
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "anatolian_agriculture",
+					"name": "Anatolian farming",
+					"desc": "Better yields on the plateau.",
+					"x": 0,
+					"y": 2,
+					"days": 80,
+					"requires": [
+						"tanzimat_reforms"
+					],
+					"effects": {
+						"food": 0.12
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "public_debt_settlement",
+					"name": "Settle the public debt",
+					"desc": "Foreign bondholders paid, credit won back.",
+					"x": 0,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"hejaz_and_baghdad_rail"
+					],
+					"effects": {
+						"treasury": 6,
+						"diplomacy": 0.3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "young_turk_revolution",
+					"name": "Young Turk reforms",
+					"desc": "A constitution and a modern state.",
+					"x": 1,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"gdp": 0.012,
+						"war_support": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "army_of_the_empire",
+					"name": "The reformed army",
+					"desc": "German-trained officers, new rifles.",
+					"x": 1,
+					"y": 1,
+					"days": 90,
+					"requires": [
+						"young_turk_revolution"
+					],
+					"effects": {
+						"army_size": 0.08
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "german_military_mission",
+					"name": "The German military mission",
+					"desc": "Officers from Berlin in every corps.",
+					"x": 1,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"army_of_the_empire"
+					],
+					"effects": {
+						"army_size": 0.06,
 						"relation": [
 							[
 								"GER",
-								25
+								10
+							],
+							[
+								"RUS",
+								-6
 							]
 						]
 					},
 					"ai": 1.0
+				},
+				{
+					"id": "naval_programme",
+					"name": "The new ships",
+					"desc": "Dreadnoughts ordered abroad.",
+					"x": 1,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"german_military_mission"
+					],
+					"effects": {
+						"construction": 5,
+						"prestige": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "ottomanism",
+					"name": "Ottomanism",
+					"desc": "One citizenship for all the sultan's peoples.",
+					"x": 2,
+					"y": 0,
+					"days": 90,
+					"requires": [],
+					"effects": {
+						"war_support": 5
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "the_holy_cities",
+					"name": "Guardian of the holy cities",
+					"desc": "The Caliph's prestige across the Muslim world.",
+					"x": 2,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"ottomanism"
+					],
+					"effects": {
+						"prestige": 5,
+						"diplomacy": 0.3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "provincial_loyalty",
+					"name": "Hold the provinces",
+					"desc": "Albanians, Arabs and Macedonians kept in line.",
+					"x": 2,
+					"y": 2,
+					"days": 100,
+					"requires": [
+						"the_holy_cities"
+					],
+					"effects": {
+						"war_support": 3,
+						"construction": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "balkan_question",
+					"name": "The Balkan question",
+					"desc": "Macedonia and Thrace must stay Ottoman.",
+					"x": 2,
+					"y": 3,
+					"days": 90,
+					"requires": [
+						"provincial_loyalty"
+					],
+					"effects": {
+						"relation": [
+							[
+								"BUL",
+								-4
+							],
+							[
+								"SRB",
+								-4
+							],
+							[
+								"GRE",
+								-4
+							]
+						],
+						"war_support": 3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "sick_man_diplomacy",
+					"name": "The sick man's diplomacy",
+					"desc": "Play the great powers against each other.",
+					"x": 3,
+					"y": 0,
+					"days": 70,
+					"requires": [],
+					"effects": {
+						"diplomacy": 0.5,
+						"relation": [
+							[
+								"GBR",
+								5
+							],
+							[
+								"FRA",
+								5
+							]
+						]
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "german_friendship",
+					"name": "Friendship with Germany",
+					"desc": "A patron, with a price.",
+					"x": 3,
+					"y": 1,
+					"days": 80,
+					"requires": [
+						"sick_man_diplomacy"
+					],
+					"effects": {
+						"relation": [
+							[
+								"GER",
+								12
+							]
+						],
+						"diplomacy": 0.3
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "russian_fear",
+					"name": "Hold off Russia",
+					"desc": "The old enemy to the north.",
+					"x": 3,
+					"y": 2,
+					"days": 90,
+					"requires": [
+						"german_friendship"
+					],
+					"effects": {
+						"war_support": 4,
+						"construction": 4
+					},
+					"ai": 1.0
+				},
+				{
+					"id": "lost_lands",
+					"name": "The lost lands",
+					"desc": "Thessaly, Crete and the islands are not forgotten.",
+					"x": 3,
+					"y": 3,
+					"days": 100,
+					"requires": [
+						"russian_fear",
+						"balkan_question"
+					],
+					"effects": {
+						"claim": [
+							"GRE"
+						]
+					},
+					"ai": 1.0,
+					"min_aggression": 0.55
 				}
 			]
 		},
