@@ -6,3 +6,4 @@
 export_presets.cfg
 export/
 .mono/
+tools/ai_training/jobs/
