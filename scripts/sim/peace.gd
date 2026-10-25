@@ -286,7 +286,14 @@ static func surrender_terms(gs: Node, war: War, loser: String, winner: String) -
 		if spent + price <= budget:
 			ids.append(id)
 			spent += price
-	return [] if ids.is_empty() else [{"kind": "province", "ids": ids}]
+	if ids.is_empty():
+		return []
+	var terms: Array = [{"kind": "province", "ids": ids}]
+	# A loser that has little ground left to give offers an indemnity for the rest of what it can be made to pay.
+	var ind: Dictionary = AIPeace.indemnity_for(gs, winner, loser, budget - spent)
+	if not ind.is_empty():
+		terms.append(ind)
+	return terms
 
 
 # --- Making peace --------------------------------------------------------------------------

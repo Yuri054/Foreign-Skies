@@ -186,12 +186,21 @@ static func price_terms(gs: Node, taker: String, giver: String, war: War) -> Arr
 	var terms: Array = []
 	if not ids.is_empty():
 		terms.append({"kind": "province", "ids": ids})
-	var left := budget - spent
+	var ind := indemnity_for(gs, taker, giver, budget - spent)
+	if not ind.is_empty() and not ids.is_empty():
+		terms.append(ind)
+	return terms
+
+
+## An indemnity worth up to `left` of war score that the giver can carry, as a demand ({} if none fits).
+static func indemnity_for(gs: Node, taker: String, giver: String, left: float) -> Dictionary:
+	var c := cfg()
 	var per_year: float = Diplomacy.cfg.peace.price.indemnity_points_per_year
 	var months := int(c.indemnity_months)
 	var share := minf(float(c.indemnity_max_share), left / (per_year * months / 12.0))
-	if share >= 0.01 and not ids.is_empty():
-		var ind := {"kind": "indemnity", "share": snappedf(share, 0.01), "months": months}
-		if Peace.demand_cost(gs, taker, giver, ind) >= 0.0 and _affordable(gs, giver, [ind]):
-			terms.append(ind)
-	return terms
+	if share < 0.01:
+		return {}
+	var ind := {"kind": "indemnity", "share": snappedf(share, 0.01), "months": months}
+	if Peace.demand_cost(gs, taker, giver, ind) >= 0.0 and _affordable(gs, giver, [ind]):
+		return ind
+	return {}

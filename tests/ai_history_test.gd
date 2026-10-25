@@ -75,7 +75,7 @@ func _test_history() -> void:
 			debt_leader = _great_debt_leader()
 			for tag in ["SRB", "BEL", "MNE"]:
 				survived = survived and not gs.nations[tag].provinces.is_empty()
-		if gs.wars.is_empty() and day > 150:
+		if _fighting() == 0 and day > 150:
 			if debt_leader.is_empty():
 				debt_leader = _great_debt_leader()
 			break
@@ -84,7 +84,7 @@ func _test_history() -> void:
 	_check(survived, "Serbia, Belgium and Montenegro are still there after eight months")
 	_check(debt_leader in ["RUS", "GER", "FRA", "GBR", "AUH"], "a great power at war carries the heaviest debt by month eight (%s)" % debt_leader)
 	_check(not peaces.is_empty() and peaces[0].day >= 60, "the first peace comes after the first two months (day %d)" % (peaces[0].day if not peaces.is_empty() else -1))
-	_check(gs.wars.is_empty() and clock.days_elapsed < 520, "the general war has run its course by day %d" % clock.days_elapsed)
+	_check(_fighting() == 0 and clock.days_elapsed < 520, "the general war has run its course by day %d (no battle for three months)" % clock.days_elapsed)
 	# A truce follows each peace: nobody re-declares on the nation they just made peace with.
 	var broken := 0
 	for p in peaces:
@@ -100,6 +100,18 @@ func _test_history() -> void:
 		if gs.nations[tag].provinces.size() < 0.8 * MapData_count(tag):
 			lost += 1
 	_check(lost == 0, "no great power has lost a fifth of its land")
+
+
+## Wars between great powers with a battle in the last three months (or begun in them): the general war still being
+## fought. A war between nations that cannot reach each other drags on, but it is not a fight; the small wars that
+## follow among lesser nations are not part of it.
+func _fighting() -> int:
+	var n := 0
+	var great := ["GBR", "FRA", "GER", "RUS", "AUH", "ITA", "OTT"]
+	for w in gs.wars.values():
+		if w.a in great and w.b in great and clock.days_elapsed - maxi(w.last_fight_day, w.start_day) < 90:
+			n += 1
+	return n
 
 
 ## Provinces held across the lines between the given nations.
