@@ -10,6 +10,7 @@ var K
 var D
 var C
 var AP
+var hold_on := false
 
 
 func _check(cond: bool, msg: String) -> void:
@@ -39,6 +40,7 @@ func _war(player := "ESP") -> void:
 		gs.province_controller[fra[i]] = "GER"
 	for i in 3:
 		gs.province_controller[fra[4 + i]] = "AUH"
+	AI_cfg_hold(hold_on)
 
 
 func _initialize() -> void:
@@ -59,7 +61,7 @@ func _initialize() -> void:
 	_check(K.claimed(gs, "ESP").is_empty(), "and nothing is claimed against a nation that fights no one")
 
 	# --- Holding (a setting that is off in Historical: these tests turn it on) --------------------------------
-	AI_cfg_hold(true)
+	hold_on = true
 	_war()
 	var war: War = gs.war_between("GER", "FRA")
 	gs.nations["GER"].war_support = 70.0
@@ -91,6 +93,7 @@ func _initialize() -> void:
 	_check(K.joint_partners(gs, "GER", war).is_empty(), "an ally that is the player cannot be spoken for")
 	_check(K.hold(gs, "GER", war), "so the nation stays bound to it")
 
+	hold_on = false
 	AI_cfg_hold(false)
 
 	# The monthly overtures: both nations want out and France has no will left, so they make peace together.
