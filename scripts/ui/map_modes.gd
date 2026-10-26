@@ -13,8 +13,11 @@ const MapView := preload("res://scripts/map/map_view.gd")
 ## The key is the number that picks the group.
 var _groups: Array[Dictionary] = []
 var map_view: Sprite2D
+## The cosmetic Storm mode lives on the 3D map; the palette only toggles it.
+var map_3d: Node
 
 var _buttons: Array[Button] = []
+var _storm := Button.new()
 var _chips: Dictionary = {}
 var _last: Dictionary = {}
 var _active := 0
@@ -58,9 +61,12 @@ func _ready() -> void:
 	_panel_style = UiTheme.frame()
 	theme = UiTheme.parchment(UiTheme.compact())
 
+	map_3d = get_tree().get_first_node_in_group("map_3d")
 	_build_legend()
 	_build_strip()
 	_build_palette()
+	if map_3d != null:
+		map_3d.storm_mode_changed.connect(func(on: bool) -> void: _storm.set_pressed_no_signal(on))
 
 	map_view.mode_changed.connect(func(_m: int, _s: String) -> void: _sync())
 	map_view.viewpoint_changed.connect(func(_t: String) -> void: _sync_view())
@@ -165,6 +171,20 @@ func _build_palette() -> void:
 		b.pressed.connect(func() -> void: pick_group(i))
 		row.add_child(b)
 		_buttons.append(b)
+	# Not a map mode, and deliberately outside the button group: the Storm toggle calls a cosmetic
+	# lightning strike on the 3D map. It changes nothing in the game.
+	_storm.text = "Storm"
+	_storm.toggle_mode = true
+	_storm.focus_mode = Control.FOCUS_NONE
+	_storm.custom_minimum_size = Vector2(72, 22)
+	_storm.tooltip_text = "Call lightning (L).\nA cosmetic strike on the 3D map; it changes nothing."
+	_storm.pressed.connect(func() -> void:
+		if map_3d == null:
+			map_3d = get_tree().get_first_node_in_group("map_3d")
+		if map_3d != null:
+			map_3d.set_storm_mode(not map_3d.storm_mode)
+	)
+	row.add_child(_storm)
 	var panel := PanelContainer.new()
 	_boxed(row, panel)
 
