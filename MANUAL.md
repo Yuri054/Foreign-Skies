@@ -55,7 +55,8 @@ way is out of supply and what you can see of an enemy there (a range from your i
 odds on men alone: terrain and trenches are not counted). An army out of supply loses men; the **Supply** map variant shows
 where your armies are fed (green), where supply thins (amber) and where it ends (red). Armies dig in the longer they stand
 still; defenders in trenches and on rough ground are hard to dislodge, and an attacking division that enters an undefended
-province takes it at once. After a war, **Send home** (the command panel) sends an army's men back to the reserve and its
+province takes it at once; cavalry takes ground after a battle in half the time and cuts down a beaten army as it falls
+back. After a war, **Send home** (the command panel) sends an army's men back to the reserve and its
 upkeep stops; the guns go last. It works in peace only.
 
 **Fronts** are lines of provinces armies hold. Hand armies to a front (the command panel, C, or the Military tab) and they
@@ -81,7 +82,7 @@ Better to have a goal:
   price and everything else dearer, so a war for Liège is easy to end with Liège and hard to end with Brussels.
 
 **Crises** also arise by themselves between rivals when tension and grievances build: a demand with a deadline. If it concerns
-you, you are asked at once. If it does not, you may **mediate** (a chance from your prestige and the goodwill you hold with
+you, you are asked at once. If it does not, you may **mediate**, once (a chance from your prestige and the goodwill you hold with
 both; success eases tension and earns prestige) or **back** a side. A war with many nations fought at once is closed at a
 **conference**: your allies at war with the same enemy sit with you, each asks what its own goal and score pay for, and the
 enemy takes the whole package or refuses (it may offer less, for a month).

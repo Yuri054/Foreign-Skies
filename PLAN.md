@@ -57,7 +57,7 @@ against the baseline in `docs/baseline.md`.
 | 3c | Small economies, materials and food, the economy on screen | M | done (v0.8.0) |
 | 4 | After the war: revanche, post-war crises and events, repeatable foci | L | done (v0.9.0); post-war wars and tension carried to step 7 |
 | 5 | Peacetime decisions: demands replace justification, one public stand, small nations, ambitions | M | done (v0.10.0) |
-| 6 | Leftovers: mediation, cavalry | S | |
+| 6 | Leftovers: mediation, cavalry | S | done (v0.10.1) |
 | 7 | Retrain the AI under the new rules | L | |
 | 8 | Docs, versions and playtests | S | |
 
@@ -275,6 +275,10 @@ three parts, in order; each part ends green and measured.
 - **Cavalry.** Occupies at twice the speed and harries a retreating enemy (`military.json`, `Military._fight`), or is
   cut.
 - Tests: extend `crisis_test` and `combat_test`.
+- **Result:** a nation mediates a crisis once (`crisis_test`); cavalry takes ground after a battle in half the terrain's
+  time and adds up to 15% to a routed army's loss by its share of the victors (`cavalry_test`; kept, not cut). From July
+  1914 the great powers' wars run 6.2 months (median; 7.2 before), the worst single loss 9% (7.5%), no capital or cut-off
+  province ceded.
 
 ### 7. Retrain the AI (F11)
 - Fitness: the soldier term from 30 to about 5, plus the change in provinces held, less a little for each month at war

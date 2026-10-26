@@ -6,6 +6,12 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.10.1
+
+- Cavalry has a role: it takes ground after a battle in half the time and harries a beaten army as it falls back (up to
+  15% more of it lost).
+- A nation may try to mediate a crisis only once.
+
 ## 0.10.0
 
 - Justify war is gone: a demand does its work. Make a demand (Diplomacy tab) opens the picker, where you choose what you

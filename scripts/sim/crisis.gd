@@ -510,11 +510,15 @@ static func act(gs: Node, id: int, tag: String, action: String) -> bool:
 		return false
 	if action != "mediate" and backs(c, tag) != "":
 		return false
+	# A nation tries its hand as mediator once in a crisis.
+	if action == "mediate" and tag in c.get("mediators_tried", []):
+		return false
 	var cost: float = cfg.mediate.cost_points if action == "mediate" else cfg.back.cost_points
 	if not Diplomacy.can_afford(gs, tag, cost):
 		return false
 	Diplomacy.spend(gs, tag, cost)
 	if action == "mediate":
+		c["mediators_tried"] = c.get("mediators_tried", []) + [tag]
 		if _succeeds(gs, c, tag):
 			_compromise(gs, c, tag)
 		else:

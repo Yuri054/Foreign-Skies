@@ -131,10 +131,16 @@ func _initialize() -> void:
 	var pr: float = gs.nations["GBR"].prestige
 	_check(gs.issue(Action.new("GBR", c.id, "mediate")) and gs.nations["GBR"].prestige < pr and not C.find(gs, c.id).is_empty(), "a failed mediation costs prestige and the crisis goes on")
 	C.cfg.mediate.threshold = -5.0
-	pr = gs.nations["GBR"].prestige
-	_check(gs.issue(Action.new("GBR", c.id, "mediate")), "a mediation that succeeds")
+	_check(not gs.issue(Action.new("GBR", c.id, "mediate")), "a nation tries its hand as mediator once in a crisis")
+	var other := ""
+	for t: String in ["ITA", "RUS", "FRA", "AUH"]:
+		if other == "" and t not in [c.a, c.b]:
+			other = t
+	gs.nations[other].diplomacy_points = 100.0
+	pr = gs.nations[other].prestige
+	_check(gs.issue(Action.new(other, c.id, "mediate")), "another's mediation that succeeds")
 	C.cfg.mediate.threshold = thr
-	_check(_outcome(c.id) == "mediated" and gs.nations["GBR"].prestige > pr, "ends the crisis and earns the mediator prestige")
+	_check(_outcome(c.id) == "mediated" and gs.nations[other].prestige > pr, "ends the crisis and earns the mediator prestige")
 	var paid := false
 	for ind: Dictionary in gs.indemnities:
 		paid = paid or (ind.payer == "GER" and ind.receiver == "FRA")

@@ -110,6 +110,8 @@
 		"morale_regain": 0.02,
 		"rout_morale": 0.25,
 		"routed_loss": 0.1,
+		"pursuit": 1.0,
+		"pursuit_max": 0.15,
 		"min_strength": 0.01,
 		"max_entrenchment": 5,
 		"entrench_days_per_level": 4,
@@ -159,7 +161,8 @@
 	},
 	"occupation": {
 		"mop_up_days": 5,
-		"income_share": 0.25
+		"income_share": 0.25,
+		"cavalry_mult": 0.5
 	},
 	"army_group": {
 		"marshal_share": 0.5

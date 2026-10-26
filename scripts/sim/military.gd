@@ -1133,14 +1133,41 @@ static func _retreat(gs: Node, a: Army, at: Dictionary) -> void:
 	_battle_event(gs, a.province, "%s's %s routed and fell back to %s." % [
 			gs.nations[a.tag].display_name, a.display_name, MapData.provinces[best].name])
 	var before := a.men()
+	var loss: float = float(cfg.combat.routed_loss) + pursuit(gs, a, at)
 	for u in a.units:
-		u.strength *= 1.0 - cfg.combat.routed_loss
+		u.strength *= 1.0 - loss
 	_add_loss(gs, a.tag, enemies, before - a.men(), "losses")
 	a.province = best
 	a.path.clear()
 	a.still_days = 0
 	a.attacking = false
 	a.fighting = false
+
+
+## The extra share a routed army loses to the pursuit: combat.pursuit times the share of the victors' men there that are
+## cavalry, at most combat.pursuit_max.
+static func pursuit(gs: Node, a: Army, at: Dictionary) -> float:
+	var men := 0.0
+	var horse := 0.0
+	for b: Army in at.get(a.province, []):
+		if gs.at_war(a.tag, b.tag):
+			for u in b.units:
+				men += u.men()
+				if u.type == "cavalry":
+					horse += u.men()
+	if men <= 0.0:
+		return 0.0
+	return minf(float(cfg.combat.pursuit) * horse / men, float(cfg.combat.pursuit_max))
+
+
+## Whether the armies of `tag` among `armies` have cavalry.
+static func _has_cavalry(armies: Array, tag: String) -> bool:
+	for a: Army in armies:
+		if a.tag == tag:
+			for u in a.units:
+				if u.type == "cavalry":
+					return true
+	return false
 
 
 static func _enemy_tags(gs: Node, a: Army, at: Dictionary) -> Array:
@@ -1415,7 +1442,11 @@ static func _upkeep_and_occupy(gs: Node) -> bool:
 		# An army that walks into a province nobody defends takes it the same day; where a battle was just fought it
 		# takes the terrain's time to hold it (the mopping up).
 		var mopping: bool = Clock.days_elapsed - int(gs.last_battle_day.get(id, -1000)) <= int(cfg.occupation.mop_up_days)
-		if progress.days >= (terrain_of(id).occupy_days if mopping else 1):
+		var need: int = terrain_of(id).occupy_days if mopping else 1
+		# Cavalry sweeps the ground in a fraction of the time.
+		if need > 1 and _has_cavalry(here, occupier):
+			need = maxi(1, ceili(need * float(cfg.occupation.cavalry_mult)))
+		if progress.days >= need:
 			gs.occupation.erase(id)
 			gs.set_controller(id, occupier)
 			captured = true
