@@ -15,6 +15,8 @@ extends Node
 ## back to where they were.
 
 signal toggled(on: bool)
+## The Storm mode went on or off (the map-mode palette follows it).
+signal storm_mode_changed(on: bool)
 
 ## How many times the window's size the off-screen picture is (so that top-down it is sharp).
 const SCALE := 1.5
@@ -43,6 +45,11 @@ const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
 const GRID := Vector2i(260, 146)
 
 var enabled := false
+## Storm mode: the next left click on the map calls a cosmetic lightning strike (see Lightning).
+var storm_mode := false
+## The strikes still alive, oldest first, so a burst cannot fill the scene.
+var _strikes: Array[Node3D] = []
+const MAX_STRIKES := 8
 ## The angle of the camera above the horizon, in degrees: 90 looks straight down.
 var tilt := DEFAULT_TILT
 ## How far the map is turned round, in degrees: 0 has north at the top of the screen.
@@ -120,6 +127,50 @@ func set_enabled(on: bool) -> void:
 	toggled.emit(enabled)
 
 
+## Turns the cosmetic Storm mode on or off. Turning it on also turns the 3D map on, since that is
+## where the lightning falls.
+func set_storm_mode(on: bool) -> void:
+	if on and not enabled:
+		set_enabled(true)
+	if storm_mode == on:
+		return
+	storm_mode = on
+	Input.set_default_cursor_shape(Input.CURSOR_CROSS if on else Input.CURSOR_ARROW)
+	if on:
+		get_tree().call_group("event_feed", "say", "Storm: click the map to strike. L or right-click to stop.", Fmt.WARN)
+	storm_mode_changed.emit(on)
+
+
+## Calls one strike at a point of the screen. Returns false if the point is off the 3D picture.
+func strike_at(screen: Vector2) -> bool:
+	if _sub == null or _scene == null or _camera == null:
+		return false
+	var at := to_picture(screen)
+	if at.x < 0.0 or at.y < 0.0:
+		return false
+	var uv := at / Vector2(_sub.size)
+	var ground := Vector3((uv.x - 0.5) * _plane_size.x, height_units(uv), (uv.y - 0.5) * _plane_size.y)
+	var ui: CanvasLayer = main.get("ui")
+	# Drop effects that have already freed themselves, so the cap counts live strikes only.
+	for i in range(_strikes.size() - 1, -1, -1):
+		if not is_instance_valid(_strikes[i]):
+			_strikes.remove_at(i)
+	_strikes.append(Lightning.strike(_scene, ground, _camera, ui))
+	while _strikes.size() > MAX_STRIKES:
+		var old: Node3D = _strikes.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
+	return true
+
+
+## Frees every strike still alive (the tests use this; turning the 3D map off frees them with it).
+func clear_strikes() -> void:
+	for effect in _strikes:
+		if is_instance_valid(effect):
+			effect.queue_free()
+	_strikes.clear()
+
+
 # ------------------------------------------------------------------ geometry (pure)
 
 ## Where a camera ray meets the flat plane (which lies in the XZ plane, `plane_size` units across),
@@ -189,6 +240,10 @@ func _enter() -> void:
 
 func _leave() -> void:
 	OS.low_processor_usage_mode = true
+	storm_mode = false
+	_strikes.clear()
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	storm_mode_changed.emit(false)
 	_watch_layers(false)
 	_set_layers_to_markers(false)
 	_set_city_markers(false)
@@ -745,6 +800,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
 		return
+	if event.keycode == KEY_L:
+		set_storm_mode(not storm_mode)
+		get_viewport().set_input_as_handled()
+		return
 	if event.keycode == KEY_V:
 		toggle()
 		get_viewport().set_input_as_handled()
@@ -776,6 +835,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not enabled or _sub == null:
 		return
+	if storm_mode and event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if strike_at(event.position):
+				get_viewport().set_input_as_handled()
+				return
+		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			set_storm_mode(false)
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventKey:
 		_sub.push_input(event.duplicate())
 		return

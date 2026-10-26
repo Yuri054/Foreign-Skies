@@ -30,6 +30,7 @@ Saves and settings are written to Godot's user folder (`user://saves/`, `user://
 | C | Show or hide the command panel (armies and fleets as cards along the bottom) |
 | N | The Nation screen, on its Overview. Its tabs have their own letters: E Economy, B Build, M Military, Y Navy, F Diplomacy, O Focus, R Rankings (a letter opens the screen on that tab and, pressed again, closes it) |
 | V | Switch the 3D map on or off. Page Up and Page Down tilt it, `[` and `]` turn it, Home resets; Settings has the 3D map's quality |
+| L | Storm mode on the 3D map: click to call a cosmetic lightning strike (it changes nothing) |
 | F5, Shift+F5, F6 | Quick save, quick load, save and load window |
 | F10, Ctrl and `+` `-` | Settings, UI scale |
 | Esc | Clear a selection, otherwise the pause menu (which also lists the keys) |
