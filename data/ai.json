@@ -255,6 +255,15 @@
 		"start_delay_days": 365,
 		"w_neutral": 1.0
 	},
+	"munitions": {
+		"_note": "AIBudget's arms share (see scripts/sim/munitions.gd): peace_share plus peace_per_tension times tension (0..1) in calm years, crisis_share when mobilized, in a crisis or with a case built against it, war_share at war. At war it buys munitions abroad when its stockpile would last fewer than min_days of all-out war, spending at most buy_treasury_share of its treasury a month.",
+		"peace_share": 0.03,
+		"peace_per_tension": 0.1,
+		"crisis_share": 0.2,
+		"war_share": 0.5,
+		"min_days": 60,
+		"buy_treasury_share": 0.2
+	},
 	"coalition": {
 		"_note": "Nations on one side of a war act as a coalition (scripts/ai/ai_coalition.gd). claim_penalty: utility an offence loses when an ally already aims a campaign at the same province, so allies do not crowd one front. hold (off in Historical, on in the Challenging difficulty): an AI nation does not make a separate peace while allies fight on, unless it is strained (war support at or below strain_support, its capital lost, or a war score at or below minus strain_score). partner_urge: the share of seek_threshold an ally's wish for peace must reach for it to join a joint peace (a conference) the nation proposes.",
 		"claim_penalty": 3.0,

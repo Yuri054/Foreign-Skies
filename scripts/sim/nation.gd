@@ -89,6 +89,13 @@ var focus_done: Array[String] = []
 var focus_fx: Dictionary = {}
 ## Times each repeatable focus has been finished: focus id -> count.
 var focus_count: Dictionary = {}
+## Munitions (see Munitions): the stockpile in IC, the share of each day's IC put into it, the share of yesterday's need
+## the guns got (1: all of it), and what was burnt this month and last.
+var munitions := 0.0
+var arms_share := 0.0
+var shell_ratio := 1.0
+var munitions_used_month := 0.0
+var munitions_used_last := 0.0
 ## Latest figures from Economy.recompute (annual GBP millions unless stated).
 var budget: Dictionary = {}
 

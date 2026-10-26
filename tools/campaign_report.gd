@@ -24,6 +24,10 @@ extends SceneTree
 ##   general_war         year.month when four or more great powers were first at war at once, or 0
 ##   neutral_attacks_early  wars declared with no casus belli on a nation that stood apart (Diplomacy.is_neutral), before 1912
 ##   crisis_min_odds     the weakest odds of the two sides (no backers) at which a crisis opened
+##   shells_short_after  months from the general war's start (or the first great-power war's) to the first day a great
+##                       power at war got less than its guns needed, or null if none did
+##   shells_short_days   days great powers at war spent short of shells, in all
+##   stock_days_at_war   median days of war the great powers' stockpiles held when the first great-power war began
 ##   bystander_decisions decisions put to the bystander a year
 
 const POST_FROM := 1922
@@ -59,6 +63,11 @@ func _initialize() -> void:
 	var general_war := [0.0]
 	var neutral_early := [0]
 	var crisis_odds := [INF]
+	var Mun = load("res://scripts/sim/munitions.gd")
+	var war_start_day := [-1]
+	var first_short_day := [-1]
+	var short_days := [0]
+	var stock_days: Array = []
 	var declarations := {}
 	var crises := {}
 	var decisions := [0]
@@ -71,6 +80,10 @@ func _initialize() -> void:
 			neutral_early[0] += 1
 		if a in great and b in great and first_gp_war[0] == 0.0:
 			first_gp_war[0] = clock.year + clock.month / 100.0
+			war_start_day[0] = clock.days_elapsed
+			for g: String in great:
+				if gs.nations.has(g):
+					stock_days.append(minf(Mun.days_left(gs, g), 3650.0))
 		if verbose:
 			print("%d-%02d war %s -> %s" % [clock.year, clock.month, a, b]))
 	gs.crisis_opened.connect(func(c: Dictionary) -> void:
@@ -103,6 +116,11 @@ func _initialize() -> void:
 		changes.clear()
 		clock.advance_day()
 		_answer(gs, me, Pr, Cr, AD, AP, AnswerEv, AnswerJn, AnswerPc)
+		for g: String in great:
+			if gs.nations.has(g) and gs.nations[g].shell_ratio < 0.99 and not gs.wars_of(g).is_empty():
+				short_days[0] += 1
+				if first_short_day[0] < 0 and war_start_day[0] >= 0:
+					first_short_day[0] = clock.days_elapsed
 		if general_war[0] == 0.0:
 			var fighting := 0
 			for g: String in great:
@@ -110,6 +128,7 @@ func _initialize() -> void:
 					fighting += 1
 			if fighting >= 4:
 				general_war[0] = clock.year + clock.month / 100.0
+				war_start_day[0] = clock.days_elapsed
 		if not changes.is_empty():
 			_measure_changes(gs, Mil, changes, owners_before, capitals, counts, great, capitals_ceded, detached, worst_loss, verbose, clock)
 		if clock.day == 1:
@@ -157,6 +176,8 @@ func _initialize() -> void:
 		"focus_idle_max": idle_max[0], "focus_idle_who": idle_max[1],
 		"bystander_decisions": snappedf(decisions[0] / float(years), 0.01),
 		"general_war": general_war[0], "neutral_attacks_early": neutral_early[0],
+		"shells_short_after": snappedf((first_short_day[0] - war_start_day[0]) / 30.4, 0.1) if first_short_day[0] >= 0 else null,
+		"shells_short_days": short_days[0], "stock_days_at_war": roundi(_median(stock_days)) if not stock_days.is_empty() else null,
 		"crisis_min_odds": snappedf(crisis_odds[0], 0.01) if crisis_odds[0] < INF else null,
 		"wars_by_year": declarations, "crises_by_year": crises,
 	}

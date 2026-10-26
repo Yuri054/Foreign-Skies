@@ -17,6 +17,7 @@ static func step(gs: Node, tag: String) -> void:
 		return
 	gs.ai_budget_stamp[tag] = stamp
 	_taxes(gs, tag)
+	_arms(gs, tag)
 	_buildings(gs, tag)
 	AINavy.build(gs, tag)
 	_points(gs, tag)
@@ -52,6 +53,38 @@ static func _taxes(gs: Node, tag: String) -> void:
 	var rate := wanted_tax(gs, tag)
 	if not is_equal_approx(rate, gs.nations[tag].tax_rate):
 		gs.issue_quiet(SetEconomyPolicy.new(tag, "tax_rate", rate))
+
+
+# --- Munitions ---------------------------------------------------------------------------------------
+
+## The arms share the nation wants: a little in calm years, more as tension rises, a good deal in a crisis or when
+## mobilized, most of its industry at war (data/ai.json, "munitions").
+static func wanted_arms_share(gs: Node, tag: String) -> float:
+	var c: Dictionary = AI.cfg.munitions
+	var n: Nation = gs.nations[tag]
+	if not gs.wars_of(tag).is_empty():
+		return float(c.war_share)
+	var crisis: bool = n.mobilization >= float(Diplomacy.cfg.crisis.alarm_level) or not Crisis.of(gs, tag).is_empty()
+	for j: Dictionary in gs.justifications:
+		crisis = crisis or j.target == tag
+	if crisis:
+		return float(c.crisis_share)
+	return clampf(float(c.peace_share) + float(c.peace_per_tension) * gs.tension / 100.0, 0.0, 1.0)
+
+
+static func _arms(gs: Node, tag: String) -> void:
+	var c: Dictionary = AI.cfg.munitions
+	var n: Nation = gs.nations[tag]
+	var share := wanted_arms_share(gs, tag)
+	if absf(share - n.arms_share) > 0.005:
+		gs.issue_quiet(SetEconomyPolicy.new(tag, "arms_share", share))
+	# At war, a stockpile running low is filled from abroad while the treasury can bear it.
+	if gs.wars_of(tag).is_empty() or Munitions.days_left(gs, tag) >= float(c.min_days):
+		return
+	var want := (float(c.min_days) * Munitions.expected_daily(gs, tag) - n.munitions) * float(Munitions.cfg().import_price)
+	var spend := minf(want, maxf(0.0, n.treasury) * float(c.buy_treasury_share))
+	if spend > 0.1:
+		gs.issue_quiet(BuyMunitions.new(tag, spend))
 
 
 # --- Buildings ---------------------------------------------------------------------------------------

@@ -6,6 +6,16 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.8.0
+
+- Munitions: industry now arms the guns. An Arms production slider puts a share of each day's industry into a stockpile of
+  munitions before buildings and ships; it costs a little output, and the stockpile ages and costs money to keep. In battle
+  the guns burn munitions every day (and a line facing the enemy burns some), and guns without shells fight much weaker. In
+  a war you can buy munitions abroad, if the sea is open. The great powers start the July 1914 war with about four months
+  in store: the shell crisis comes by itself.
+- The staff report, the army cards and the cabinet briefing say when the guns are short of shells or the stockpile is low.
+- Saves carry format version 3; older saves load with the usual arms share and an empty stockpile.
+
 ## 0.7.0
 
 - The road to 1914: in the 1900 game the AI starts no war of its own while Europe is calm (its war gate falls from tension

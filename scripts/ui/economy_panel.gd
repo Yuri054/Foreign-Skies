@@ -16,6 +16,11 @@ var _people := VBoxContainer.new()
 var _mob_slider := HSlider.new()
 var _mob_label := Label.new()
 var _mob_note := Label.new()
+var _arms_slider := HSlider.new()
+var _arms_label := Label.new()
+var _arms_note := Label.new()
+var _arms := VBoxContainer.new()
+var _buy := Button.new()
 var _updating := false
 var _province := 0
 
@@ -28,6 +33,7 @@ func _ready() -> void:
 	column.add_child(_heading("Money"))
 	column.add_child(_build_money())
 	column.add_child(_heading("Industry"))
+	column.add_child(_build_arms())
 	column.add_child(_industry)
 	column.add_child(_heading("People"))
 	column.add_child(_build_people())
@@ -108,6 +114,53 @@ func _build_money() -> Control:
 	_budget.add_theme_constant_override("separation", 14)
 	box.add_child(_budget)
 	return box
+
+
+## Arms production: the share of the day's IC that goes to munitions, the stockpile, and munitions bought abroad.
+func _build_arms() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 5)
+	_arms_slider.min_value = 0.0
+	_arms_slider.max_value = 1.0
+	_arms_slider.value_changed.connect(func(v: float) -> void:
+		if not _updating:
+			GameState.issue(SetEconomyPolicy.new(GameState.player_tag, "arms_share", v))
+	)
+	_arms_note.modulate = Fmt.DIM
+	box.add_child(_slider_row("Arms", _arms_slider, _arms_label, _arms_note,
+			"The share of each day's industry (IC) that makes munitions for the guns, before buildings and ships. The factories making shells are not making the people's goods, so output falls a little. In battle the guns burn munitions; without them they fight weaker."))
+	_buy.focus_mode = Control.FOCUS_NONE
+	_buy.pressed.connect(func() -> void:
+		GameState.issue(BuyMunitions.new(GameState.player_tag, _buy_amount()))
+		_refresh()
+	)
+	box.add_child(_arms)
+	box.add_child(_buy)
+	return box
+
+
+## What one press of the buy button spends: a month of revenue, at least £1M.
+func _buy_amount() -> float:
+	var n: Nation = GameState.get_player()
+	return maxf(1.0, roundf(Fmt.monthly(float(n.budget.get("revenue", 12.0)))))
+
+
+func _refresh_arms(n: Nation) -> void:
+	var b := n.budget
+	_updating = true
+	_arms_slider.set_value_no_signal(n.arms_share)
+	_updating = false
+	_arms_label.text = "%d%%" % roundi(n.arms_share * 100.0)
+	var pool: float = b.get("construction_points", 0.0)
+	_arms_note.text = "%d IC a day into munitions; output %d%% lower for it. %s" % [roundi(pool * n.arms_share), roundi((1.0 - float(b.get("arms_mult", 1.0))) * 100.0), Munitions.line(GameState, n.tag)]
+	_clear(_arms)
+	if n.shell_ratio < 0.99 and not GameState.wars_of(n.tag).is_empty():
+		_arms.add_child(_status("Short of shells: the guns got %d%% of what they needed yesterday." % roundi(n.shell_ratio * 100.0), Fmt.BAD))
+	var amount := _buy_amount()
+	var got := Munitions.bought_for(n, amount)
+	_buy.text = "Buy munitions abroad: £%.0fM for %s IC" % [amount, Fmt.thousands(roundi(got))]
+	_buy.tooltip_text = "Shells and guns bought from foreign firms, at £%.2fM a thousand. A blockade cuts what arrives (now %d%%)." % [float(Munitions.cfg().import_price) * 1000.0, roundi(n.blockade * 100.0)]
+	_buy.disabled = n.treasury < amount
 
 
 func _build_people() -> Control:
@@ -204,6 +257,7 @@ func _refresh() -> void:
 	if n == null or n.budget.is_empty() or not visible:
 		return
 	_refresh_money(n)
+	_refresh_arms(n)
 	_refresh_industry(n)
 	_refresh_people(n)
 
@@ -273,6 +327,9 @@ func _refresh_money(n: Nation) -> void:
 	if imports > 0.04:
 		_cell(spend, "Imports", 0, Color.WHITE, "Food £%.1fM, raw materials £%.1fM." % [Fmt.monthly(b.food_imports), Fmt.monthly(b.materials_cost)])
 		_cell(spend, Fmt.money(-imports, true), 1)
+	if b.get("munitions_storage", 0.0) > 0.04:
+		_cell(spend, "Arms in store", 0, Color.WHITE, "Keeping the stockpile of munitions.")
+		_cell(spend, Fmt.money(-Fmt.monthly(b.munitions_storage), true), 1)
 	if b.interest > 0.04:
 		_cell(spend, "Interest", 0, Color.WHITE, "On the debt.")
 		_cell(spend, Fmt.money(-Fmt.monthly(b.interest), true), 1)

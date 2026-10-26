@@ -346,7 +346,9 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 	var materials_mult := maxf(float(cfg.materials.floor), float(mats.ratio))
 
 	var output_mult: float = mob_mult * (1.0 - cfg.famine_output_penalty * food_shortage)
-	var gdp_scale: float = output_mult * (1.0 - cfg.blockade_trade_loss * n.blockade) * lerpf(1.0, materials_mult, 0.4)
+	# Factories making munitions are not making the people's goods.
+	var arms_mult: float = 1.0 - clampf(n.arms_share, 0.0, 1.0) * float(cfg.munitions.output_penalty)
+	var gdp_scale: float = output_mult * (1.0 - cfg.blockade_trade_loss * n.blockade) * lerpf(1.0, materials_mult, 0.4) * arms_mult
 	var industry_scale: float = output_mult * materials_mult * worker_share(n)
 	var gdp: float = raw.gdp * gdp_scale
 	var industry: float = raw.industry * industry_scale
@@ -363,7 +365,8 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 	# The whole economy buys the food; the treasury only carries its share (subsidies, duties).
 	var food_imports: float = food_imported * cfg.food_import_cost * cfg.food_state_share / 1e6
 	var interest: float = maxf(0.0, -n.treasury) * float(cfg.debt.interest)
-	var expenses: float = civil + army + naval + food_imports + float(mats.cost) + interest
+	var munitions_storage: float = Munitions.storage_cost(n)
+	var expenses: float = civil + army + naval + food_imports + float(mats.cost) + interest + munitions_storage
 
 	var pool: float = raw.pool
 	var peace := minf(n.peacetime_army, pool)
@@ -385,6 +388,8 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 		"food_imports": food_imports,
 		"materials_cost": mats.cost,
 		"interest": interest,
+		"munitions_storage": munitions_storage,
+		"arms_mult": arms_mult,
 		"tax_strain": tax_strain(n),
 		"expenses": expenses,
 		"net": revenue - expenses,
@@ -447,13 +452,14 @@ static func step_day(gs: Node) -> void:
 	var finished := false
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
-		if n.construction.is_empty() and n.shipbuilding.is_empty():
-			n.construction_used = 0.0
-			continue
-		# The queue is served in order: each project takes what it can use of the day's capacity.
-		# Hulls on the slips come first, then the buildings.
 		var pool: float = n.budget.get("construction_points", cfg.construction.base_ic)
-		var left := pool
+		# Munitions first, by the arms share; then the queue is served in order, each project taking what it can use
+		# of what is left. Hulls on the slips come first, then the buildings.
+		var arms := Munitions.produce(n, pool)
+		if n.construction.is_empty() and n.shipbuilding.is_empty():
+			n.construction_used = arms
+			continue
+		var left := pool - arms
 		for job in n.shipbuilding:
 			var give := minf(minf(job.rate, left), job.points_left)
 			left -= give
@@ -507,6 +513,7 @@ static func _pressures(gs: Node) -> void:
 ## Monthly update: pays the budget, grows the economy and refills manpower toward its cap.
 static func step_month(gs: Node) -> void:
 	Population.step_month(gs)
+	Munitions.step_month(gs)
 	for tag in gs.nations:
 		clamp_mobilization(gs, gs.nations[tag])
 	Military.refresh_men(gs)

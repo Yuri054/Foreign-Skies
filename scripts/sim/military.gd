@@ -961,6 +961,18 @@ static func _fight(gs: Node) -> void:
 	var armies: Array = gs.armies.values()
 	var at := _by_province(armies)
 	var routed: Array[Army] = []
+	# The day's munitions: every army in a battle burns its guns' need first (see Munitions).
+	var in_battle := {}
+	for id: int in at:
+		var here: Array = at[id]
+		if here.size() < 2:
+			continue
+		for a: Army in here:
+			for b: Army in here:
+				if a.tag != b.tag and gs.at_war(a.tag, b.tag):
+					in_battle[a] = true
+					break
+	var shells := Munitions.burn(gs, in_battle, at)
 	for id: int in at:
 		var here: Array = at[id]
 		if here.size() < 2:
@@ -981,7 +993,7 @@ static func _fight(gs: Node) -> void:
 			incoming[a] = 0.0
 			parts[a] = {}
 		for b in foes:
-			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) / foes[b].size()
+			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, shells.get(b.tag, 1.0)) / foes[b].size()
 			var shelling: float = b.shelling_share()
 			for a in foes[b]:
 				var dealt: float = share * (1.0 - works_reduction(gs, a, shelling))
@@ -1051,7 +1063,7 @@ static func battle_forecast(gs: Node, province: int, tweaks := {}) -> Dictionary
 	for a in foes:
 		incoming[a] = 0.0
 	for b in foes:
-		var share: float = b.power() * float(power_mult.get(b.tag, 1.0)) * WarSupport.morale_mult(gs, b.tag) / foes[b].size()
+		var share: float = b.power() * float(power_mult.get(b.tag, 1.0)) * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, gs.nations[b.tag].shell_ratio) / foes[b].size()
 		var shelling: float = b.shelling_share()
 		for a in foes[b]:
 			incoming[a] += share * (1.0 - works_reduction(gs, a, shelling))

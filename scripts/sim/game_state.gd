@@ -428,6 +428,8 @@ func load_scenario(dir: String) -> void:
 	materials_k = 0.0
 	Military.deploy_starting(self)
 	Navy.deploy_starting(self, dir)
+	# Arms shares and stockpiles before the first budget, so that the calibration counts them.
+	Munitions.load_scenario(self)
 	Economy.absorb_works(self)
 	Economy.recompute(self)
 

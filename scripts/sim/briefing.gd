@@ -30,6 +30,13 @@ static func issues(gs: Node, tag: String) -> Array[Dictionary]:
 	for w: War in gs.wars_of(tag):
 		if w.a == tag and not w.goal.is_empty() and WarGoal.progress(gs, w) < 0.5 and w.days_lasted(Clock.days_elapsed) > 120:
 			_add(out, "goal_" + w.b, 45.0, "The war on %s is not reaching its goal" % gs.nations[w.b].display_name, "%s Take the ground or make a limited peace." % WarGoal.line(gs, w), "Military")
+	# Munitions for the guns.
+	if at_war:
+		var days := Munitions.days_left(gs, tag)
+		if n.shell_ratio < 0.99:
+			_add(out, "shells", 84.0, "The guns are short of shells", "They got %d%% of what they needed. Raise arms production or buy munitions abroad." % roundi(n.shell_ratio * 100.0), "Economy")
+		elif days < 60.0:
+			_add(out, "shells", 72.0, "Munitions for about %d days of war" % roundi(days), "At the present rate the stockpile runs out. Raise arms production or buy abroad.", "Economy")
 	# Money and supply.
 	if not b.is_empty():
 		if n.treasury < 0.0:

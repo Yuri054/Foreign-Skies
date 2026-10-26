@@ -157,6 +157,17 @@
 		}
 	},
 	"_calibration": "At the start of a scenario each nation's civil spending is scaled (Nation.civil_mult) so that its budget just balances, whatever its army, navy and imports cost: the 1914 budgets were about even. After that the multiplier is a fixed fact of the nation, saved with it.",
+	"munitions": {
+		"_note": "Munitions (scripts/sim/munitions.gd). A nation puts arms_share of each day's IC into a stockpile (in IC) before the hulls and buildings; the share also costs output_penalty times itself of the output (the factories making shells do not make the people's goods). The stock loses decay_per_year a year and costs storage_cost GBP millions a year a unit to keep. In battle an army burns per_gun_power a day for each point of its guns' power (artillery's power, see military.json shells); an army of a nation at war standing next to an enemy army burns idle_share of that (a line facing another). A nation short of the day's need fights with its guns weakened by military.json combat.shell_penalty times the share missing. Munitions bought abroad cost import_price GBP millions a unit, cut by the blockade. A stockpile's days of war are counted at the expected daily use: last month's, or engaged_share of what every army would burn fighting at once. default_share is the arms share a scenario starts with unless it says (scenario munitions.share; munitions.days is the stockpile, in days of war at the expected use).",
+		"default_share": 0.05,
+		"output_penalty": 0.25,
+		"decay_per_year": 0.1,
+		"storage_cost": 0.00005,
+		"per_gun_power": 4.0,
+		"engaged_share": 0.15,
+		"idle_share": 0.25,
+		"import_price": 0.0012
+	},
 	"reserve_upkeep": 0.2,
 	"_reserve_upkeep": "Share of a soldier's upkeep that a recruit still in the reserve (not in a unit) costs."
 }

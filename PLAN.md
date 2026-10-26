@@ -52,7 +52,7 @@ against the baseline in `docs/baseline.md`.
 | 0 | Housekeeping and the measuring tools | S | done |
 | 1 | War resolution: forced peace, connected annexation, conferences | L | done (v0.6.0); France-Germany length carried to step 7 |
 | 2 | The road to 1914: war gate, temperaments, neutrals, crisis odds | M | done (v0.7.0) |
-| 3a | Munitions: industry arms the guns | L | |
+| 3a | Munitions: industry arms the guns | L | done |
 | 3b | Money, taxes, mobilization and demobilization | M | |
 | 3c | Small economies, materials and food, the economy on screen | M | |
 | 4 | After the war: revanche, post-war crises and events, repeatable foci | L | |
@@ -162,6 +162,12 @@ three parts, in order; each part ends green and measured.
   stockpile and one at 20% with at least 6 months of general war, at a GDP cost of at least 5%, so building and arming
   pull against each other; with the AI on (`tools/campaign.py`), a great power runs short of shells within the first 6
   months of the general war in at least 5 of 10 seeds.
+- **Result:** Germany 1900-1914, building everything: at arms share 0 it reaches 1914 with 11 days of war in store, at
+  20% with 860, for 6% of GDP and £216M of its treasury (Italy the same: 6%). From July 1914, a great power runs short of
+  shells within 6 months in 10 of 10 seeds (median 3.5 months; Germany and Russia in December 1914 in seed 0). Calibrating
+  on what armies actually burn (only a share of them is in contact on a day) took the burn per gun from 0.75 to 4 and
+  counts a stockpile's days at the expected use, not at every army fighting at once; the "dug in" burn is an army next
+  to an enemy army, since the AI's armies are seldom on formal fronts.
 
 #### 3b. Money, taxes, mobilization and demobilization (F4, F5, E3-E5)
 - **Taxes.** The strain rises evenly above the default (not squared) and its growth cost counts at 20%; under the

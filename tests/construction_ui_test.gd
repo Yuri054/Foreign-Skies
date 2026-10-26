@@ -63,6 +63,19 @@ func _test_open_and_colours() -> void:
 	_check(panel.picked() == "factory" and panel._rows["factory"].button_pressed, "the first building is picked and lit")
 	var eco_panel: Node = get_first_node_in_group("economy_panel")
 	_check(eco_panel._tax_slider.is_inside_tree() and eco_panel._industry.is_inside_tree() and eco_panel._mob_slider.is_inside_tree(), "the Economy window is one page of Money, Industry and People")
+	# Arms production: the slider sets the share by command, and the page says what it makes and costs.
+	eco_panel.visible = true
+	eco_panel._refresh()
+	_check(eco_panel._arms_slider.is_inside_tree(), "Industry has an Arms production slider")
+	eco_panel._arms_slider.value = 0.3
+	_check(is_equal_approx(_ger().arms_share, 0.3) and gs.command_log.back().policy == "arms_share", "moving it sets the arms share by command")
+	gs.economy_updated.emit()
+	_check(eco_panel._arms_label.text == "30%" and eco_panel._arms_note.text.contains("IC a day into munitions") and eco_panel._arms_note.text.contains("days of war"), "and the page says what it makes, what it costs and how long the stock lasts: %s" % eco_panel._arms_note.text)
+	_ger().treasury = 100.0
+	var stock: float = _ger().munitions
+	eco_panel._buy.pressed.emit()
+	_check(_ger().munitions > stock and _ger().treasury < 100.0 and eco_panel._buy.text.contains("Buy munitions abroad"), "the buy button spends money on munitions from abroad (%s)" % eco_panel._buy.text)
+	eco_panel.visible = false
 
 	var free := 0
 	var full := 0

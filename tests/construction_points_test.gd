@@ -46,6 +46,8 @@ func _fresh() -> void:
 	gs.ai_enabled = false
 	for tag in ["GER", "SRB", "BEL"]:
 		gs.nations[tag].treasury = 100000.0
+		# The queue alone: no IC set aside for munitions (munitions_test covers the arms share).
+		gs.nations[tag].arms_share = 0.0
 
 
 func _free_province(tag: String, skip := [], type := "factory") -> int:

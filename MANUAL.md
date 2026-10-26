@@ -30,6 +30,9 @@ One window, a tab for each part of running the nation:
   the tab that deals with it), your figures, Europe's tension (what it is made of, the worst rivalries, a chart of two years)
   and your wars with what each is being fought for.
 - **Economy (E)**: money, taxes, spending, industry, food, raw materials. Money pays the army, interest and what the state buys.
+  **Arms production** puts a share of your industry into munitions for the guns, before buildings: it costs a little output
+  and the stockpile costs money to keep, but in a war guns without shells fight much weaker. The page says how many days of
+  war the stockpile lasts; in a war you can also buy munitions abroad, if the sea is open.
 - **Build (B)**: pick a building, then click a green province. **Buildings cost industry (IC), not money**: the nation has a
   number of IC a day, projects are served in order and wait when the day's IC runs out, so the treasury never moves when you
   build. The queue shows why a project is "stalled" (no IC reaches it).

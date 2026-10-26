@@ -14,7 +14,9 @@ extends RefCounted
 ## alone, and add the step to `_migrate`. A save of OLDEST up to VERSION is read; anything else is refused.
 ##   1  the first format
 ##   2  wars carry a goal (War.goal); a version 1 save loads with every war goalless
-const VERSION := 2
+##   3  nations have munitions (Nation.munitions, arms_share): a version 2 save starts each at the default arms share
+##      and an empty stockpile
+const VERSION := 3
 const OLDEST := 1
 ## Where saves live; tests point it somewhere else.
 static var dir := "user://saves/"
@@ -140,6 +142,13 @@ static func _migrate(state: Dictionary, from: int) -> void:
 		match v:
 			1:
 				pass   # 1 -> 2: War.goal is new; an old war has none, which is its default
+			2:
+				# 2 -> 3: munitions. An empty stockpile is the default; the arms share is the scenarios' usual one.
+				var flat: Array = state.get("nations", {}).get("@m", [])
+				for i in range(1, flat.size(), 2):
+					var props: Dictionary = flat[i].get("p", {})
+					if not props.has("arms_share"):
+						props["arms_share"] = float(Economy.cfg.munitions.default_share)
 		v += 1
 
 

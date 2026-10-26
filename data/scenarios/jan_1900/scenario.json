@@ -1050,6 +1050,10 @@
 		"from": 1900,
 		"to": 1912
 	},
+	"munitions": {
+		"share": 0.05,
+		"days": 45
+	},
 	"rivalries": [
 		{
 			"holder": "FRA",

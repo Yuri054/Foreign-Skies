@@ -4,7 +4,7 @@ extends SceneTree
 ## grid of nations and policies and prints the table.
 ## Run: godot --headless --path . -s res://tools/economy_policies.gd -- tag years policy [scenario_dir]
 ## policy: a comma list of passive, fact, rail, port, all (the three in turn), focus (economic foci first), tax=X,
-## mob=X. Prints "RESULT {...}": GDP, IC and revenue a month at the end and their change, treasury, net, development
+## mob=X, arms=X (the arms share; otherwise the scenario's). Prints "RESULT {...}": GDP, IC and revenue a month at the end and their change, treasury, net, development
 ## and war support, and the levels built.
 
 
@@ -32,6 +32,8 @@ func _initialize() -> void:
 			gs.issue(Policy.new(tag, "tax_rate", float(p.get_slice("=", 1))))
 		elif p.begins_with("mob="):
 			gs.issue(Policy.new(tag, "mobilization", float(p.get_slice("=", 1))))
+		elif p.begins_with("arms="):
+			gs.issue(Policy.new(tag, "arms_share", float(p.get_slice("=", 1))))
 		elif p == "fact":
 			types.append("factory")
 		elif p == "rail":
@@ -88,5 +90,6 @@ func _initialize() -> void:
 		"revenue": snappedf(b.revenue / 12.0, 0.01), "net": snappedf(b.net / 12.0, 0.01), "treasury": roundi(n.treasury),
 		"development": snappedf(n.development / start.dev - 1.0, 0.001), "war_support": roundi(n.war_support),
 		"built": built, "foci": n.focus_done.size(),
+		"munitions": roundi(n.munitions), "stock_days": roundi(minf(load("res://scripts/sim/munitions.gd").days_left(gs, tag), 99999.0)),
 	}))
 	quit()

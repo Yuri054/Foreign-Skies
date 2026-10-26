@@ -125,6 +125,8 @@ out = {
     },
     # The long game does not reach for war in its first years: the AI's war gate falls from 48 in 1900 to 35 by 1912.
     "ai_war_gate": {"start": 48, "end": 35, "from": 1900, "to": 1912},
+    # Arms in store in 1900: a modest share of industry, and stocks for a short war.
+    "munitions": {"share": 0.05, "days": 45},
     # Old quarrels that fade slowly: holder resents target at least this much, less fade a year (Diplomacy rivalries).
     "rivalries": [
         {"holder": "FRA", "target": "GER", "grievance": 40, "note": "Alsace-Lorraine"},

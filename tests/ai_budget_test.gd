@@ -46,6 +46,11 @@ func _fresh() -> void:
 	A.cfg.budget.enabled = true
 
 
+## Tax changes in the command log (the monthly step sets the arms share by the same command).
+func _tax_commands() -> int:
+	return gs.command_log.filter(func(c: Dictionary) -> bool: return c.type == "SetEconomyPolicy" and c.policy == "tax_rate").size()
+
+
 func _log_count(kind: String) -> int:
 	return gs.command_log.filter(func(c: Dictionary) -> bool: return c.type == kind).size()
 
@@ -77,9 +82,9 @@ func _test_taxes() -> void:
 	n.treasury = -50.0
 	n.budget["net"] = -24.0
 	B.step(gs, "FRA")
-	_check(is_equal_approx(n.tax_rate, 0.1 + A.cfg.budget.tax_step) and _log_count("SetEconomyPolicy") == 1, "the monthly step makes the change by command")
+	_check(is_equal_approx(n.tax_rate, 0.1 + A.cfg.budget.tax_step) and _tax_commands() == 1, "the monthly step makes the change by command")
 	B.step(gs, "FRA")
-	_check(_log_count("SetEconomyPolicy") == 1, "once a month")
+	_check(_tax_commands() == 1, "once a month")
 
 
 func _test_buildings() -> void:
