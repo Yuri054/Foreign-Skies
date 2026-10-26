@@ -6,6 +6,14 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.10.2
+
+- The tutorial teaches demands, how a war ends (war score and peace) and arms production.
+- A great power gives up at most a quarter of its provinces at one peace (a beaten Britain could lose nearly half).
+- The AI was trained again under the new rules; the new numbers made wars shorter and broke the shell shortage of 1914,
+  so the old ones stay (DESIGN.md has the account).
+- The README and the demand picker's screenshot follow the new rules.
+
 ## 0.10.1
 
 - Cavalry has a role: it takes ground after a battle in half the time and harries a beaten army as it falls back (up to

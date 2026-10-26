@@ -1,5 +1,5 @@
 extends SceneTree
-## The goal picker and the peace screen with a goal: godot --path . --resolution 1600x900 --rendering-driver opengl3 -s res://tools/screenshot_goal_picker.gd -- out_dir
+## The demand picker (the goal picker) and the peace screen with a goal: godot --path . --resolution 1600x900 --rendering-driver opengl3 -s res://tools/screenshot_goal_picker.gd -- out_dir
 func _initialize() -> void:
 	await process_frame
 	load("res://scripts/ui/ui_settings.gd").path = "user://shot_goal_settings.cfg"
@@ -24,7 +24,6 @@ func _initialize() -> void:
 		await process_frame
 	picker.open("BEL")
 	picker._provinces.select(0, false)
-	picker._provinces.select(1, false)
 	picker._refresh()
 	for i in 4:
 		await process_frame

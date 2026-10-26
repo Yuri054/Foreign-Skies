@@ -52,7 +52,7 @@ func _initialize() -> void:
 	_C_Military = load("res://scripts/sim/military.gd")
 
 	var steps: Array = load("res://scripts/ui/tutorial.gd").load_steps()
-	_check(steps.size() >= 10 and steps.size() <= 15, "the tutorial has about fourteen steps (%d)" % steps.size())
+	_check(steps.size() >= 10 and steps.size() <= 16, "the tutorial has about sixteen steps (%d)" % steps.size())
 	var ok := true
 	for s in steps:
 		ok = ok and s.has("id") and s.has("title") and s.has("text") and s.has("done")
@@ -157,6 +157,14 @@ func _do(step: Dictionary) -> bool:
 		"ImproveRelations":
 			for other in gs.nations:
 				if other != tag and gs.issue(_C_ImproveRelations.new(tag, other)):
+					return true
+			return false
+		"PressDemand":
+			var C = load("res://scripts/sim/crisis.gd")
+			var goal: Dictionary = load("res://scripts/sim/war_goal.gd").concession_goal({"kind": "indemnity", "share": 0.05, "months": 6})
+			nation.diplomacy_points = maxf(nation.diplomacy_points, 100.0)
+			for other in load("res://scripts/sim/diplomacy.gd").neighbor_nations(gs, tag):
+				if gs.issue(load("res://scripts/sim/press_demand.gd").new(tag, other, "", {"demand": C.demand_for(goal), "goal": goal})):
 					return true
 			return false
 		"MoveFleet":

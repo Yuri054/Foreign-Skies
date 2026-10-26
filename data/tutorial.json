@@ -41,8 +41,8 @@
 		},
 		{
 			"id": "taxes",
-			"title": "Set the taxes",
-			"text": "On the Economy tab (E) the Money section shows what comes in and goes out each month. Move the tax rate: more tax fills the treasury but slows growth and wears down the people's support.",
+			"title": "Set the taxes and the arms",
+			"text": "On the Economy tab (E) the Money section shows what comes in and goes out each month. Move the tax rate: more tax fills the treasury but slows growth and wears down the people's support. Below it, Arms production puts a share of your industry into shells for the guns: guns without shells fight much weaker, so a nation that expects war arms before it.",
 			"highlight": {
 				"button": "Nation"
 			},
@@ -103,6 +103,17 @@
 			}
 		},
 		{
+			"id": "demand",
+			"title": "Make a demand",
+			"text": "Also on the Diplomacy tab: Make a demand. Choose what you ask of a nation (provinces, or a concession such as reparations) and it has weeks to answer. If it refuses, you hold a casus belli with that demand as the goal of the war. Try one on a weak neighbour, for a small concession.",
+			"highlight": {
+				"button": "Nation"
+			},
+			"done": {
+				"command": "PressDemand"
+			}
+		},
+		{
 			"id": "focus",
 			"title": "Choose a national focus",
 			"text": "On the Focus tab (O) start a focus: a few weeks of national effort that grows the economy, enlarges the army or earns prestige and claims. One at a time; the tree shows what each needs.",
@@ -119,6 +130,17 @@
 			"text": "The flame in the top bar is Europe's tension, from 0 to 100. It rises with the arms race, mobilization and rivalry, and with crises like those of 1905, 1908 and 1911. When a crisis concerns you, time stops and you choose how to answer. The higher it gets, the bolder the other powers become. Nothing says the war must come.",
 			"highlight": {
 				"group": "top_bar"
+			},
+			"done": {
+				"ack": true
+			}
+		},
+		{
+			"id": "peace",
+			"title": "How a war ends",
+			"text": "In a war, battles and the ground you hold earn war score. At peace you pay for what you take in score, and your war's goal costs half; land must touch your own. A nation whose people will not fight on, or that has lost most of its ground, gives more. The peace screen (Diplomacy tab, at war) shows it all.",
+			"highlight": {
+				"button": "Nation"
 			},
 			"done": {
 				"ack": true

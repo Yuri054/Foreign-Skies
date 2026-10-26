@@ -59,7 +59,7 @@ against the baseline in `docs/baseline.md`.
 | 5 | Peacetime decisions: demands replace justification, one public stand, small nations, ambitions | M | done (v0.10.0) |
 | 6 | Leftovers: mediation, cavalry | S | done (v0.10.1) |
 | 7 | Retrain the AI under the new rules | L | done: trained and declined; the carried checks stay open |
-| 8 | Docs, versions and playtests | S | |
+| 8 | Docs, versions and playtests | S | docs and versions done (v0.10.2); releases and playtests left to people |
 
 ## Steps in detail
 
@@ -313,6 +313,10 @@ three parts, in order; each part ends green and measured.
   in July 1914 holding the Marne (the front tools, and the shell shortage); Russia told to take Berlin by 1905 (the step
   1 snowball, against a human); a first-time player after the tutorial alone (the first hour); Belgium for two hours
   (small-nation interest). A result that contradicts the runs sends its step back.
+- **Result:** DESIGN, MANUAL, README and the CHANGELOG were kept with each step (0.6.0 to 0.10.2 on `project.godot`);
+  the tutorial has steps for demands, how a war ends and arms production (16 steps, `tutorial_test`); the demand
+  picker's screenshot is new. Not done here: the releases (they are public and are published from the main branch, so
+  that is the owner's call once this branch is merged) and the playtests, which need people.
 
 ## Quality gates
 

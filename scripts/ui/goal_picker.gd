@@ -143,7 +143,7 @@ func _refresh() -> void:
 	var invalid := Crisis.custom_problem(GameState, me, _target, {"demand": Crisis.demand_for(goal), "goal": goal})
 	var cost := Crisis.press_cost(GameState, me, goal)
 	var poor := not Diplomacy.can_afford(GameState, me, cost)
-	_info.text = "To ask %s: %d diplomacy points. %s has %d days to answer; if it refuses, you hold a casus belli with this as the goal." % [
+	_info.text = "To ask for %s: %d diplomacy points. %s has %d days to answer; if it refuses, you hold a casus belli with this as the goal." % [
 			Peace.describe_demand(GameState, Crisis.demand_for(goal)), int(cost), GameState.nations[_target].display_name, int(Crisis.cfg.gate.deadline_days)]
 	_start.text = "Press the demand (%d)" % int(cost)
 	_start.disabled = invalid != "" or block != "" or poor

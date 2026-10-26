@@ -3,8 +3,9 @@
 A real-time historical-pressure sandbox on a map of Europe (flat, or in 3D with real terrain relief).
 Start in January 1900, at peace, or in July 1914 with the crisis already under way. Pick any of 22 nations,
 run its economy, armies, navy, diplomacy and national focus, and steer through the crises that pushed the
-great powers toward war. Europe's tension rises with the arms race and rivalry; events put choices to you; the
-AI plays every other nation. There is no score and no ending: it is an open sandbox, and whether the great war comes is up to you and them. The design is
+great powers toward war. Europe's tension rises with the arms race and rivalry; demands with a deadline give wars
+their reasons; the guns need the shells your industry makes; events put choices to you, small nation or great power;
+and after a great war the world goes on, with old losses to avenge. The AI plays every other nation. There is no score and no ending: it is an open sandbox, and whether the great war comes is up to you and them. The design is
 in [DESIGN.md](DESIGN.md); [MANUAL.md](MANUAL.md) is a player's guide, and [CHANGELOG.md](CHANGELOG.md) lists what changed.
 
 ![The political map, July 1914](docs/screenshots/map.jpg)
@@ -12,7 +13,7 @@ in [DESIGN.md](DESIGN.md); [MANUAL.md](MANUAL.md) is a player's guide, and [CHAN
 | | |
 |---|---|
 | ![Armies and fronts at war](docs/screenshots/war.jpg) | ![The cabinet briefing](docs/screenshots/briefing.jpg) |
-| ![Choosing what a war is for](docs/screenshots/war-goals.jpg) | ![Peace talks with a war goal](docs/screenshots/peace-talks.jpg) |
+| ![Choosing what to demand](docs/screenshots/war-goals.jpg) | ![Peace talks with a war goal](docs/screenshots/peace-talks.jpg) |
 
 ## Running it
 
@@ -68,7 +69,7 @@ cost of a day; `tools/ai_report.gd` plays the whole AI war and prints a month-by
 
 ## Training the AI
 
-The AI's numbers (`data/ai.json`) were tuned by self-play, with no scripted plans: `python tools/ai_train.py run 10` trains from the saved state in `tools/ai_training/` (set `GODOT`, and `WORKERS` for the games played at once), `python tools/ai_train.py test 16` plays the trained numbers against the starting ones on fresh seeds, and `apply` writes them into `data/ai.json`. `tools/ai_watch.gd`, `ai_wars.gd`, `ai_battles.gd`, `ai_scoreboard.gd` and `war_length.gd` show what the AI is doing.
+The AI's numbers (`data/ai.json`) were tuned by self-play, with no scripted plans: `python tools/ai_train.py run 10` trains (from `tools/ai_training/state.json`, or afresh from `data/ai.json`; past rounds are kept in `round1/` to `round3/`) (set `GODOT`, and `WORKERS` for the games played at once), `python tools/ai_train.py test 16` plays the trained numbers against the starting ones on fresh seeds, and `apply` writes them into `data/ai.json`. `tools/ai_watch.gd`, `ai_wars.gd`, `ai_battles.gd`, `ai_scoreboard.gd` and `war_length.gd` show what the AI is doing.
 
 ## Layout
 
