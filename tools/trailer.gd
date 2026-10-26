@@ -28,7 +28,16 @@ func _s(seconds: float) -> int:
 
 func _wait(frames: int) -> void:
 	for i in frames:
+		_clear_events()
 		await process_frame
+
+
+## The trailer is not played: whatever the game asks (an event, a crisis) is answered with its first option, out of sight.
+func _clear_events() -> void:
+	var pressure = load("res://scripts/sim/pressure.gd")
+	for d: Dictionary in gs.pending_events.duplicate():
+		pressure.answer(gs, d.id, 0)
+	clock.paused = true
 
 
 func _initialize() -> void:
@@ -118,6 +127,7 @@ func _days(n: int, per_frame: int, camera_to := Vector2.ZERO, zoom_to := 0.0) ->
 	for i in frames:
 		for k in per_frame:
 			clock.advance_day()
+		_clear_events()
 		if zoom_to > 0.0:
 			var t := smoothstep(0.0, 1.0, float(i + 1) / frames)
 			cam.position = p0.lerp(camera_to, t)
