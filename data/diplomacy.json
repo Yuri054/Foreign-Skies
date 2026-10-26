@@ -193,7 +193,13 @@
 	},
 	"peace": {
 		"conference_prestige": 3,
-		"_note": "War score and peace (scripts/sim/peace.gd). Score is -100..100 from a nation's side of one pairwise war: ground held (occupation_points times the share of the other nation's population and GDP, weighted), the capital, and battles won (battle_per_kmen points per thousand men the loser lost, scaled by how lopsided, capped; they fade by decay_per_month). The side that takes terms pays for them in score: a province costs province_scale times its share (half if the taker already holds it, doubled for a capital); an indemnity costs indemnity_points_per_year times its share of revenue times its years; the clauses have flat prices. A nation that has lost its capital to the taker pays nothing. ai: when an AI nation answers or proposes is decided by AIPeace (data/ai.json, the peace block); a losing AI offers the ground held, up to surrender_budget_share of the enemy's score; a refused proposer waits refuse_cooldown_days; making peace alone costs separate_peace_relations with those still fighting.",
+		"counter_days": 30,
+		"forced": {
+			"_note": "When a beaten nation can be made to give more than the score pays for (Peace.is_forced): its war support is at war_support.surrender_at, or the taker holds its capital and its support is at war_support.floor or under, or the taker occupies occupied_share of it (people and output). It then gives up to budget_mult times the taker's score, and only the ground the taker holds, the war's goal and money (Peace.check_terms).",
+			"occupied_share": 0.6,
+			"budget_mult": 1.5
+		},
+		"_note": "War score and peace (scripts/sim/peace.gd). Score is -100..100 from a nation's side of one pairwise war: ground held (occupation_points times the share of the other nation's population and GDP, weighted), the capital, and battles won (battle_per_kmen points per thousand men the loser lost, scaled by how lopsided, capped; they fade by decay_per_month). The side that takes terms pays for them in score: a province costs province_scale times its share (half if the taker already holds it, doubled for a capital); an indemnity costs indemnity_points_per_year times its share of revenue times its years (the AI does not ask for one under indemnity_min_monthly GBP millions a month); the clauses have flat prices. Ceded provinces must touch the taker's land (or a sea it holds or has a coast on), and a capital goes only with the whole nation (Peace.province_problem). A beaten nation gives more (see forced). ai: when an AI nation answers or proposes is decided by AIPeace (data/ai.json, the peace block); a losing AI offers the ground held, up to surrender_budget_share of the enemy's score; a refused proposer waits refuse_cooldown_days; making peace alone costs separate_peace_relations with those still fighting. conference_prestige: what the chair of a joint peace gains; counter_days: how long a conference's counter-offer waits for the player.",
 		"score": {
 			"max": 100,
 			"occupation_points": 100,
@@ -211,6 +217,7 @@
 			"occupied_discount": 0.5,
 			"capital_multiplier": 2.0,
 			"indemnity_points_per_year": 20,
+			"indemnity_min_monthly": 0.1,
 			"max_share": 0.5,
 			"max_months": 60,
 			"release_ally": 10,

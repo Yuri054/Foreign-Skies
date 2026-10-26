@@ -61,10 +61,30 @@ func _war() -> Object:
 	return gs.war_between("FRA", "GER")
 
 
-## `by` takes control of the first `count` provinces `owner` holds (never the capital).
+## `by` takes control of `count` provinces `owner` holds, from the border inward (never the capital).
 func _occupy(owner: String, by: String, count: int) -> Array:
 	var ids: Array = []
+	# From the border inward, so the ground held hangs together as a front would leave it.
+	var Mil_ = load("res://scripts/sim/military.gd")
+	var order: Array = []
+	var queue: Array = []
 	for id: int in gs.nations[owner].provinces:
+		for n: int in Mil_.neighbors(id):
+			if gs.province_owner[n] == by:
+				queue.append(id)
+				break
+	while not queue.is_empty():
+		var p: int = queue.pop_front()
+		if p in order:
+			continue
+		order.append(p)
+		for n: int in Mil_.neighbors(p):
+			if gs.province_owner[n] == owner and n not in order:
+				queue.append(n)
+	for id: int in gs.nations[owner].provinces:
+		if id not in order:
+			order.append(id)
+	for id: int in order:
 		if ids.size() >= count:
 			break
 		if id != gs.nations[owner].capital:
@@ -73,11 +93,14 @@ func _occupy(owner: String, by: String, count: int) -> Array:
 	return ids
 
 
-## The least valuable province a nation owns, apart from its capital.
-func _cheapest(owner: String) -> int:
+## The least valuable province a nation owns on its border with `by`, apart from its capital.
+func _cheapest(owner: String, by: String) -> int:
 	var best := 0
 	for id: int in gs.nations[owner].provinces:
-		if id != gs.nations[owner].capital and (best == 0 or P.province_share(gs, id, owner) < P.province_share(gs, best, owner)):
+		var on_border := false
+		for n: int in Mil.neighbors(id):
+			on_border = on_border or gs.province_owner[n] == by
+		if on_border and id != gs.nations[owner].capital and (best == 0 or P.province_share(gs, id, owner) < P.province_share(gs, best, owner)):
 			best = id
 	return best
 
@@ -88,7 +111,7 @@ func _test_score() -> void:
 	_check(gs.nations["GER"].capital == 368 and gs.nations["FRA"].capital == 233, "nations have capitals")
 	var taken := _occupy("GER", "FRA", 20)
 	var pts: float = P.occupation_points(gs, "FRA", "GER")
-	_check(pts > 0.0 and pts < 30.0, "holding 20 German provinces earns France some points (%.1f)" % pts)
+	_check(pts > 0.0 and pts < 50.0, "holding 20 German provinces earns France some points (%.1f)" % pts)
 	_check(is_equal_approx(P.war_score(gs, war, "FRA"), pts) and is_equal_approx(P.war_score(gs, war, "GER"), -pts), "the score is the same number from both sides, signed")
 	for id: int in taken:
 		gs.set_controller(id, "GER")
@@ -159,7 +182,7 @@ func _test_ai_answers() -> void:
 	var war = _war()
 	var r: Dictionary = P.propose(gs, "FRA", "GER", "demand", [{"kind": "release_ally", "nation": "AUH"}])
 	_check(r.reason == "too_expensive", "no score, no terms")
-	var cheap := _cheapest("GER")
+	var cheap := _cheapest("GER", "FRA")
 	gs.set_controller(cheap, "FRA")
 	var small: Array = [{"kind": "province", "ids": [cheap]}]
 	_check(P.check(gs, "FRA", "GER", "demand", small).ok, "a small win pays for one province")
@@ -293,26 +316,56 @@ func _test_clauses() -> void:
 
 func _test_capital() -> void:
 	var war = _war()
-	_occupy("GER", "FRA", 1)
+	var held := _occupy("GER", "FRA", 1)
 	gs.set_controller(368, "FRA")
 	_check(P.capital_taken_by(gs, "GER") == "FRA", "France holds Berlin")
-	var dear: Array = [{"kind": "indemnity", "share": 0.5, "months": 60}, {"kind": "province", "ids": [368]}]
+	var dear: Array = [{"kind": "indemnity", "share": 0.5, "months": 60}]
 	var c: Dictionary = P.check(gs, "FRA", "GER", "demand", dear)
-	_check(c.ok and c.forced and c.cost > P.war_score(gs, war, "FRA"), "a nation that has lost its capital can be made to pay more than the score")
-	var r: Dictionary = P.propose(gs, "FRA", "GER", "demand", dear)
-	_check(r.accepted == true and gs.province_owner[368] == "FRA", "and gives in at once, even though it is not losing by much")
-	_check(gs.nations["GER"].capital != 368 and gs.province_owner[gs.nations["GER"].capital] == "GER", "Germany moves its capital (%d)" % gs.nations["GER"].capital)
-	_check(P.capital_taken_by(gs, "GER") == "", "and holds it")
+	_check(not c.forced and c.reason == "too_expensive", "a capital alone does not let the winner dictate: Germany still fights (%s)" % c.reason)
+	_check(P.check(gs, "FRA", "GER", "demand", [{"kind": "province", "ids": [368]}]).reason == "capital", "and the capital is never ceded on its own")
+
+	# Once its people's will is spent as well, Germany is beaten: more than the score pays, but only what is held.
+	gs.nations["GER"].war_support = float(D.cfg.war_support.floor)
+	var score: float = P.war_score(gs, war, "FRA")
+	var modest: Array = [{"kind": "province", "ids": held}, {"kind": "indemnity", "share": 0.4, "months": 48}]
+	c = P.check(gs, "FRA", "GER", "demand", modest)
+	_check(c.ok and c.forced and c.cost > score and c.cost <= c.budget, "a beaten nation gives more than the score (%.1f of %.1f, up to %.1f)" % [c.cost, score, c.budget])
+	_check(P.check(gs, "FRA", "GER", "demand", dear).reason == "too_expensive", "but not without limit")
+	var not_held := 0
+	for id: int in gs.nations["GER"].provinces:
+		if gs.province_controller[id] != "FRA" and id != 368 and P.province_problem(gs, "FRA", "GER", [id]) == "":
+			not_held = id
+			break
+	_check(not_held > 0 and P.check(gs, "FRA", "GER", "demand", [{"kind": "province", "ids": [not_held]}]).reason == "forced_terms", "and only the ground France holds or fights for")
+	var r: Dictionary = P.propose(gs, "FRA", "GER", "demand", modest)
+	_check(r.accepted == true and gs.province_owner[held[0]] == "FRA", "Germany gives in at once")
+	_check(gs.province_owner[368] == "GER" and gs.province_controller[368] == "GER", "and Berlin goes back to it")
+
+	# Most of the country held is defeat too, whatever the people feel.
+	war = _war()
+	_occupy("GER", "FRA", 200)
+	_check(P.occupied_share(gs, "FRA", "GER") >= float(P.cfg().forced.occupied_share) and P.is_forced(gs, "FRA", "GER"), "holding most of Germany beats it (%.2f)" % P.occupied_share(gs, "FRA", "GER"))
+
+	# Ground that would not touch the taker's land cannot be taken.
+	war = _war()
+	var far := 0
+	for id: int in gs.nations["GER"].provinces:
+		if id != 368 and not P.detached(gs, "FRA", [id]).is_empty():
+			far = id
+			break
+	gs.set_controller(far, "FRA")
+	_check(far > 0 and P.check(gs, "FRA", "GER", "demand", [{"kind": "province", "ids": [far]}]).reason == "detached", "a province cut off from France's land cannot be ceded to it (%d)" % far)
+	_check(P.detached(gs, "FRA", [far]) == [far], "and the screen can say which")
 
 
 func _test_player() -> void:
 	var war = _war()
 	gs.set_player("GER")
-	_occupy("GER", "FRA", 60)
+	var held := _occupy("GER", "FRA", 60)
 	var events := []
 	gs.peace_offered.connect(func(o: Dictionary) -> void: events.append("offered"))
 	gs.peace_resolved.connect(func(o: Dictionary, accepted: bool) -> void: events.append(accepted))
-	var terms: Array = [{"kind": "province", "ids": [gs.nations["GER"].provinces[3]]}]
+	var terms: Array = [{"kind": "province", "ids": [held[0]]}]
 	var cmd = ProposeC.new("FRA", "GER", "demand", terms)
 	_check(gs.issue(cmd) and cmd.result.accepted == null, "an offer to the player waits")
 	_check(gs.pending_offers.size() == 1 and events == ["offered"], "and the player is told")

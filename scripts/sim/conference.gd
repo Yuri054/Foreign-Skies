@@ -51,13 +51,26 @@ static func offer_of(gs: Node, entry: Dictionary, enemy: String) -> Dictionary:
 			"demands": entry.demands.duplicate(true), "cost": c.cost, "forced": c.forced, "day": Clock.days_elapsed}
 
 
-## Whether every entry can be made and the enemy (an AI) would take each of them.
+## Whether every entry can be made and the enemy (an AI) would take the package whole: each entry on its own, the
+## cost of all of them together against its strongest wish for peace (what a beaten nation must give aside), and every
+## indemnity together against what it can carry.
 static func acceptable(gs: Node, entries: Array, enemy: String) -> bool:
+	var total := 0.0
+	var urge := -INF
+	var indemnities: Array = []
 	for e: Dictionary in entries:
 		var offer := offer_of(gs, e, enemy)
 		if offer.is_empty() or not AIPeace.accepts(gs, offer):
 			return false
-	return true
+		if not offer.forced:
+			total += float(offer.cost)
+		urge = maxf(urge, AIPeace.urge(gs, enemy, gs.war_between(e.tag, enemy)))
+		for d: Dictionary in e.demands:
+			if d.get("kind", "") == "indemnity":
+				indemnities.append(d)
+	if entries.size() > 1 and total > 0.0 and total > urge:
+		return false
+	return indemnities.is_empty() or AIPeace.affordable(gs, enemy, indemnities)
 
 
 ## The nation that chairs: the partner (or proposer) with the highest war score against the enemy.
@@ -101,11 +114,20 @@ static func counter(gs: Node, entries: Array, enemy: String) -> Dictionary:
 		if pick.entry < 0:
 			return {}
 		var d: Dictionary = trimmed[pick.entry].demands[pick.demand]
-		# A demand for several provinces loses its dearest province first; any other is struck out.
+		# A demand for several provinces loses its dearest province first (one whose loss leaves the rest takeable);
+		# any other is struck out.
 		if d.get("kind", "") == "province" and d.ids.size() > 1:
+			var tag: String = trimmed[pick.entry].tag
 			var ids: Array = d.ids.duplicate()
-			ids.sort_custom(func(x: int, y: int) -> bool: return Peace.province_price(gs, x, trimmed[pick.entry].tag, enemy) > Peace.province_price(gs, y, trimmed[pick.entry].tag, enemy))
-			ids.remove_at(0)
+			ids.sort_custom(func(x: int, y: int) -> bool: return Peace.province_price(gs, x, tag, enemy) > Peace.province_price(gs, y, tag, enemy))
+			var drop := 0
+			for k in ids.size():
+				var rest := ids.duplicate()
+				rest.remove_at(k)
+				if Peace.province_problem(gs, tag, enemy, rest) == "":
+					drop = k
+					break
+			ids.remove_at(drop)
 			trimmed[pick.entry].demands[pick.demand] = {"kind": "province", "ids": ids}
 		else:
 			trimmed[pick.entry].demands.remove_at(pick.demand)
@@ -160,19 +182,32 @@ static func propose(gs: Node, tag: String, enemy: String, own: Array, included: 
 	# Refused: the proposer may be offered less.
 	var c := counter(gs, entries, enemy)
 	if not c.is_empty() and tag == gs.player_tag:
-		gs.conference_counter = {"from": tag, "enemy": enemy, "entries": c.entries, "day": Clock.days_elapsed}
+		gs.conference_counter = {"from": tag, "enemy": enemy, "entries": c.entries, "day": Clock.days_elapsed,
+				"until_day": Clock.days_elapsed + int(Peace.cfg().counter_days)}
 	gs.peace_cooldown[Diplomacy.pair_key(tag, enemy)] = Clock.days_elapsed + Peace.cfg().ai.refuse_cooldown_days
 	return result
 
 
-## The player's answer to a counter-offer. Returns false if none is waiting or it can no longer be made.
-static func answer_counter(gs: Node, accept: bool) -> bool:
+## The counter-offer waiting for the player, or {} if there is none or it has lapsed (an old one is dropped).
+static func waiting_counter(gs: Node) -> Dictionary:
 	var c: Dictionary = gs.conference_counter
+	if c.is_empty():
+		return c
+	if Clock.days_elapsed > int(c.get("until_day", int(c.get("day", 0)) + int(Peace.cfg().counter_days))) or gs.war_between(c.from, c.enemy) == null:
+		gs.conference_counter = {}
+		return {}
+	return c
+
+
+## The player's answer to a counter-offer. Returns false if none is waiting, it has lapsed, or the enemy would no
+## longer take it (the war has moved on since it was made).
+static func answer_counter(gs: Node, accept: bool) -> bool:
+	var c := waiting_counter(gs)
 	if c.is_empty():
 		return false
 	gs.conference_counter = {}
 	if not accept:
 		return true
-	if gs.war_between(c.from, c.enemy) == null:
+	if not acceptable(gs, c.entries, c.enemy):
 		return false
 	return not execute(gs, c.entries, c.enemy).is_empty()

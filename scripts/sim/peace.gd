@@ -49,6 +49,32 @@ static func occupation_points(gs: Node, holder: String, owner: String) -> float:
 	return share * c.occupation_points
 
 
+## The share of `owner`'s weight (people and output) that `holder` occupies, 0..1.
+static func occupied_share(gs: Node, holder: String, owner: String) -> float:
+	return occupation_points(gs, holder, owner) / float(cfg().score.occupation_points)
+
+
+static func _owned_by(gs: Node, ids: Array, tag: String) -> bool:
+	if ids.is_empty():
+		return false
+	for id in ids:
+		if not (id is int) or id < 1 or id >= gs.province_owner.size() or gs.province_owner[id] != tag:
+			return false
+	return true
+
+
+## Whether `giver` is beaten badly enough that `taker` may dictate terms (see check): its people will not fight on,
+## or the taker holds its capital and its war support is at the floor, or the taker holds most of it.
+static func is_forced(gs: Node, taker: String, giver: String) -> bool:
+	var support: float = gs.nations[giver].war_support
+	var ws: Dictionary = Diplomacy.cfg.war_support
+	if support <= float(ws.surrender_at):
+		return true
+	if capital_taken_by(gs, giver) == taker and support <= float(ws.floor):
+		return true
+	return occupied_share(gs, taker, giver) >= float(cfg().forced.occupied_share)
+
+
 ## Who holds a nation's capital if it is not the nation itself, else "".
 static func capital_taken_by(gs: Node, tag: String) -> String:
 	var n: Nation = gs.nations[tag]
@@ -107,6 +133,96 @@ static func province_price(gs: Node, id: int, taker: String, giver: String) -> f
 	return price
 
 
+static func _sea_link(gs: Node, taker: String, id: int) -> bool:
+	var pz: Dictionary = MapData.port_zones.get(id, {})
+	for zone: int in [int(pz.get("zone", 0)), int(pz.get("zone2", 0))]:
+		if zone <= 0:
+			continue
+		if Blockade.holds(gs, taker, zone):
+			return true
+		for q: int in MapData.ports_in_zone(zone):
+			if gs.province_owner[q] == taker:
+				return true
+	return false
+
+
+## The provinces of `ids` that would not touch the taker's land, by land or by a sea it holds or opens on: one search
+## outward from those that touch it directly, through the rest of `ids`.
+static func detached(gs: Node, taker: String, ids: Array) -> Array:
+	var wanted := {}
+	for id: int in ids:
+		wanted[id] = true
+	var reached := {}
+	var queue: Array = []
+	for id: int in ids:
+		if _touches(gs, taker, id):
+			reached[id] = true
+			queue.append(id)
+	while not queue.is_empty():
+		var p: int = queue.pop_back()
+		for n: int in Military.neighbors(p):
+			if wanted.has(n) and not reached.has(n):
+				reached[n] = true
+				queue.append(n)
+	var out: Array = []
+	for id: int in ids:
+		if not reached.has(id):
+			out.append(id)
+	return out
+
+
+## Whether a province touches the taker's own land, or a sea it holds or has a coast on.
+static func _touches(gs: Node, taker: String, id: int) -> bool:
+	for n: int in Military.neighbors(id):
+		if gs.province_owner[n] == taker:
+			return true
+	return _sea_link(gs, taker, id)
+
+
+## Why a set of the giver's provinces cannot be taken ("" if it can): "detached" (some would not touch the taker's
+## land) or "capital" (the capital, without the whole nation).
+static func province_problem(gs: Node, taker: String, giver: String, ids: Array) -> String:
+	var cap: int = gs.nations[giver].capital
+	if cap in ids and ids.size() < gs.nations[giver].provinces.size():
+		return "capital"
+	if not detached(gs, taker, ids).is_empty():
+		return "detached"
+	return ""
+
+
+## Whether `id` could join `chosen`, a set of the giver's provinces that can already be taken, and keep it so: it
+## touches the taker's land or one of `chosen`, and it is not the capital unless it completes the nation.
+static func can_add(gs: Node, taker: String, giver: String, id: int, chosen: Array) -> bool:
+	if id == gs.nations[giver].capital and chosen.size() + 1 < gs.nations[giver].provinces.size():
+		return false
+	if _touches(gs, taker, id):
+		return true
+	for n: int in Military.neighbors(id):
+		if n in chosen:
+			return true
+	return false
+
+
+## Picks from `candidates` (the giver's provinces, best first) what `budget` pays for at `price_of(id)` and can be
+## taken together (see province_problem): passes over the list until nothing more fits, since a province can only join
+## once one between it and the taker's land has. Returns {ids, spent}.
+static func pick_takeable(gs: Node, taker: String, giver: String, candidates: Array, price_of: Callable, budget: float) -> Dictionary:
+	var ids: Array = []
+	var spent := 0.0
+	var added := true
+	while added:
+		added = false
+		for id: int in candidates:
+			if id in ids:
+				continue
+			var price: float = price_of.call(id)
+			if spent + price <= budget and can_add(gs, taker, giver, id, ids):
+				ids.append(id)
+				spent += price
+				added = true
+	return {"ids": ids, "spent": spent}
+
+
 ## What one demand costs the taker in score, or -1 if it cannot be made.
 static func demand_cost(gs: Node, taker: String, giver: String, d: Dictionary) -> float:
 	var p: Dictionary = cfg().price
@@ -122,6 +238,8 @@ static func demand_cost(gs: Node, taker: String, giver: String, d: Dictionary) -
 				if id < 1 or id >= gs.province_owner.size() or gs.province_owner[id] != giver:
 					return -1.0
 				total += province_price(gs, id, taker, giver) * WarGoal.price_factor(war, taker, d, id)
+			if province_problem(gs, taker, giver, ids) != "":
+				return -1.0
 			return total
 		"indemnity":
 			var share: float = d.get("share", 0.0)
@@ -167,9 +285,11 @@ static func _release_treaties(gs: Node, giver: String, other: String) -> Array[T
 	return out
 
 
-## Checks a proposal. Returns {ok, reason, cost, taker, giver, forced, war}. Reasons: no_war,
-## pending (an offer is already waiting in this war), cooldown, invalid (a demand cannot be
-## made), too_expensive (the taker's score does not pay for it).
+## Checks a proposal. Returns {ok, reason, cost, budget, taker, giver, forced, war}. Reasons: no_war,
+## pending (an offer is already waiting in this war), cooldown, detached (a province would not touch the taker's
+## land), capital (the capital without the whole nation), invalid (another demand cannot be made), forced_terms (a
+## beaten nation is asked for ground the taker neither holds nor fights for), too_expensive (the taker's score, or
+## a beaten nation's larger budget, does not pay for it).
 static func check(gs: Node, from: String, to: String, mode: String, demands: Array) -> Dictionary:
 	var out := {"ok": false, "reason": "", "cost": 0.0, "taker": "", "giver": "", "forced": false, "war": null}
 	var war: War = gs.war_between(from, to)
@@ -186,19 +306,44 @@ static func check(gs: Node, from: String, to: String, mode: String, demands: Arr
 	if gs.peace_cooldown.get(Diplomacy.pair_key(from, to), -1) > Clock.days_elapsed and from != gs.player_tag:
 		out.reason = "cooldown"
 		return out
+	var terms := check_terms(gs, war, out.taker, out.giver, demands)
+	for k: String in terms:
+		out[k] = terms[k]
+	out.ok = terms.reason == ""
+	return out
+
+
+## The part of check that looks at the terms alone: {reason, cost, budget, forced}, reason "" when they can be made.
+static func check_terms(gs: Node, war: War, taker: String, giver: String, demands: Array) -> Dictionary:
+	var out := {"reason": "", "cost": 0.0, "budget": 0.0, "forced": false, "taker": taker, "giver": giver}
 	var cost := 0.0
 	for d: Dictionary in demands:
 		var c := demand_cost(gs, out.taker, out.giver, d)
 		if c < 0.0:
 			out.reason = "invalid"
+			if d.get("kind", "") == "province" and _owned_by(gs, d.get("ids", []), out.giver):
+				var problem := province_problem(gs, out.taker, out.giver, d.ids)
+				if problem != "":
+					out.reason = problem
 			return out
 		cost += c
 	out.cost = cost
-	out.forced = capital_taken_by(gs, out.giver) == out.taker or gs.nations[out.giver].war_support <= Diplomacy.cfg.war_support.surrender_at
-	if cost > 0.0 and cost > war_score(gs, war, out.taker) and not out.forced:
+	out.forced = is_forced(gs, out.taker, out.giver)
+	var score := war_score(gs, war, out.taker)
+	out.budget = score
+	if out.forced:
+		# A beaten nation gives more than the score pays for, but only the ground the taker holds, the war's goal and money.
+		out.budget = maxf(score, 0.0) * float(cfg().forced.budget_mult)
+		var goal_ids: Array = war.goal.get("ids", []) if war.a == out.taker else []
+		for d: Dictionary in demands:
+			if d.get("kind", "") != "province":
+				continue
+			for id: int in d.ids:
+				if gs.province_controller[id] != out.taker and id not in goal_ids:
+					out.reason = "forced_terms"
+					return out
+	if cost > 0.0 and cost > out.budget:
 		out.reason = "too_expensive"
-		return out
-	out.ok = true
 	return out
 
 
@@ -250,7 +395,7 @@ static func check_offer_still_valid(gs: Node, offer: Dictionary) -> bool:
 	for d: Dictionary in offer.demands:
 		if demand_cost(gs, offer.taker, offer.giver, d) < 0.0:
 			return false
-	return offer.forced or offer.cost <= war_score(gs, war, offer.taker)
+	return check_terms(gs, war, offer.taker, offer.giver, offer.demands).reason == ""
 
 
 static func _resolve(gs: Node, offer: Dictionary, accepted: bool) -> void:
@@ -281,13 +426,9 @@ static func surrender_terms(gs: Node, war: War, loser: String, winner: String) -
 		if gs.province_controller[id] == winner:
 			held.append(id)
 	held.sort_custom(func(x: int, y: int) -> bool: return province_price(gs, x, winner, loser) > province_price(gs, y, winner, loser))
-	var ids: Array = []
-	var spent := 0.0
-	for id: int in held:
-		var price := province_price(gs, id, winner, loser)
-		if spent + price <= budget:
-			ids.append(id)
-			spent += price
+	var picked := pick_takeable(gs, winner, loser, held, func(id: int) -> float: return province_price(gs, id, winner, loser), budget)
+	var ids: Array = picked.ids
+	var spent: float = picked.spent
 	if ids.is_empty():
 		return []
 	var terms: Array = [{"kind": "province", "ids": ids}]

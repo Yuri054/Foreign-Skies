@@ -147,6 +147,12 @@ func _refresh() -> void:
 	if invalid == "count":
 		_status.text = "At most %d provinces." % int(WarGoal.cfg().max_provinces)
 		_status.modulate = Fmt.WARN
+	elif invalid == "detached":
+		_status.text = "Every province must touch your land, or the others you claim, or a sea you have a coast on."
+		_status.modulate = Fmt.WARN
+	elif invalid == "capital":
+		_status.text = "The capital cannot be claimed on its own."
+		_status.modulate = Fmt.WARN
 	elif block != "":
 		_status.text = PanelScript.JUSTIFY_BLOCKS.get(block, PanelScript.BLOCKS.get(block, block))
 		_status.modulate = Fmt.WARN

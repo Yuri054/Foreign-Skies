@@ -57,7 +57,27 @@ func _war() -> Object:
 
 func _occupy(owner: String, by: String, count: int) -> Array:
 	var ids: Array = []
+	# From the border inward, so the ground held hangs together as a front would leave it.
+	var Mil_ = load("res://scripts/sim/military.gd")
+	var order: Array = []
+	var queue: Array = []
 	for id: int in gs.nations[owner].provinces:
+		for n: int in Mil_.neighbors(id):
+			if gs.province_owner[n] == by:
+				queue.append(id)
+				break
+	while not queue.is_empty():
+		var p: int = queue.pop_front()
+		if p in order:
+			continue
+		order.append(p)
+		for n: int in Mil_.neighbors(p):
+			if gs.province_owner[n] == owner and n not in order:
+				queue.append(n)
+	for id: int in gs.nations[owner].provinces:
+		if id not in order:
+			order.append(id)
+	for id: int in order:
 		if ids.size() >= count:
 			break
 		if id != gs.nations[owner].capital:
@@ -104,7 +124,11 @@ func _test_winner_names_price() -> void:
 		all_held = all_held and gs.province_controller[id] == "FRA" and gs.province_owner[id] == "GER"
 	_check(all_held, "it asks only for ground it holds")
 	# War aims come first.
-	var aim: int = ids[ids.size() - 1]
+	# The cheapest held province on the border: it can be taken on its own, and only an aim would put it first.
+	var aim := 0
+	for id: int in ids:
+		if P.province_problem(gs, "FRA", "GER", [id]) == "" and (aim == 0 or P.province_price(gs, id, "FRA", "GER") < P.province_price(gs, aim, "FRA", "GER")):
+			aim = id
 	gs.ai_plans.append({"nation": "FRA", "enemy": "GER", "posture": "offensive", "objectives": [{"province": aim, "weight": 5.0}]})
 	var terms: Array = AP.price_terms(gs, "FRA", "GER", war)
 	_check(terms[0].ids[0] == aim, "the provinces it set out to take come first")

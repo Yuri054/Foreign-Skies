@@ -162,6 +162,11 @@ static func _accepts(gs: Node, offer: Dictionary) -> bool:
 
 
 ## Whether a nation can carry the indemnities in a set of demands on top of those it pays.
+## Whether `giver` can carry the indemnities in `demands` on top of those it already pays.
+static func affordable(gs: Node, giver: String, demands: Array) -> bool:
+	return _affordable(gs, giver, demands)
+
+
 static func _affordable(gs: Node, giver: String, demands: Array) -> bool:
 	var revenue := maxf(float(gs.nations[giver].budget.get("revenue", 0.0)), 0.001)
 	var committed := 0.0
@@ -196,7 +201,9 @@ static func overtures(gs: Node) -> void:
 				var joint := Conference.propose(gs, tag, enemy, p.demands, group)
 				if joint.ok and joint.accepted != false:
 					break
-				continue
+				if joint.ok:
+					continue
+				# The table could not be set (a partner's terms cannot be made now): the nation goes on alone.
 			if AICoalition.hold(gs, tag, war):
 				continue
 			var result := Peace.propose(gs, tag, enemy, p.mode, p.demands)
@@ -264,11 +271,11 @@ static func price_terms(gs: Node, taker: String, giver: String, war: War) -> Arr
 		if cost >= 0.0 and cost <= budget and (goal.demand.kind != "indemnity" or _affordable(gs, giver, [goal.demand])):
 			terms.append(goal.demand.duplicate(true))
 			spent += cost
-	for id: int in held:
-		var price := Peace.province_price(gs, id, taker, giver) * WarGoal.price_factor(war, taker, {"kind": "province"}, id)
-		if spent + price <= budget:
-			ids.append(id)
-			spent += price
+	var picked := Peace.pick_takeable(gs, taker, giver, held,
+			func(id: int) -> float: return Peace.province_price(gs, id, taker, giver) * WarGoal.price_factor(war, taker, {"kind": "province"}, id),
+			budget - spent)
+	ids = picked.ids
+	spent += picked.spent
 	if not ids.is_empty():
 		terms.append({"kind": "province", "ids": ids})
 	var ind := indemnity_for(gs, taker, giver, budget - spent)
@@ -290,6 +297,9 @@ static func indemnity_for(gs: Node, taker: String, giver: String, left: float) -
 	if share < 0.01:
 		return {}
 	var ind := {"kind": "indemnity", "share": snappedf(share, 0.01), "months": months}
+	# An indemnity too small to notice is no term at all.
+	if ind.share * float(gs.nations[giver].budget.get("revenue", 0.0)) / 12.0 < float(Diplomacy.cfg.peace.price.indemnity_min_monthly):
+		return {}
 	if Peace.demand_cost(gs, taker, giver, ind) >= 0.0 and _affordable(gs, giver, [ind]):
 		return ind
 	return {}

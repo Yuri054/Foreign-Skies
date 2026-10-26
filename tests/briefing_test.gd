@@ -81,7 +81,12 @@ func _initialize() -> void:
 	# A case being built against the nation.
 	gs.nations["FRA"].diplomacy_points = 200.0
 	var Justify = load("res://scripts/sim/justify_war.gd")
-	gs.issue(Justify.new("FRA", "GER", G.provinces_goal([gs.nations["GER"].provinces[0]])))
+	var near := 0
+	for id: int in gs.nations["GER"].provinces:
+		if load("res://scripts/sim/peace.gd").province_problem(gs, "FRA", "GER", [id]) == "":
+			near = id
+			break
+	gs.issue(Justify.new("FRA", "GER", G.provinces_goal([near])))
 	var case: Array = B.issues(gs, "GER").filter(func(i: Dictionary) -> bool: return i.id == "case_FRA")
 	_check(case.size() == 1 and case[0].page == "Diplomacy", "a case against the nation is an issue pointing to Diplomacy")
 	_check(B.issues(gs, "FRA").filter(func(i: Dictionary) -> bool: return i.id == "case_FRA").is_empty(), "and not an issue for the one building it")

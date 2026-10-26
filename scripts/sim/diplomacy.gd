@@ -720,8 +720,7 @@ static func declare_war(gs: Node, a: String, b: String, cb := "none", group := 0
 	if not can_declare(gs, a, b, cb):
 		return false
 	var rules: Dictionary = cfg.war.casus_belli[cb]
-	gs.set_war(a, b, true, cb, group)
-	gs.war_between(a, b).goal = WarGoal.for_declaration(gs, a, b, cb)
+	gs.set_war(a, b, true, cb, group, WarGoal.for_declaration(gs, a, b, cb))
 	var conflict: Dictionary = _open_group(gs, a, b, gs.war_between(a, b).war_group)
 	# A dated casus belli is used up.
 	for held: Dictionary in gs.casus_belli.duplicate():

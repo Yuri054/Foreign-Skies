@@ -282,7 +282,7 @@ func _show_next_offer() -> void:
 	else:
 		_incoming_text.text = "%s demands %s." % [other_name, "; ".join(terms)]
 	if offer.forced and offer.giver == me:
-		_incoming_text.text += "\nYour war support is gone or your capital is lost: you cannot refuse without cost."
+		_incoming_text.text += "\nYou are beaten: your people will not fight on, or the enemy holds your capital and your war support is spent, or most of the country is occupied. You cannot refuse without cost."
 	_result.text = ""
 	visible = true
 	_fit.call_deferred()
@@ -434,9 +434,12 @@ func _refresh_cost() -> void:
 	else:
 		_cost_label.text = "Terms cost %.1f of the %.1f score %s can spend." % [check.cost, maxf(score, 0.0), who.to_lower() if who != "You" else "you"]
 	if check.get("forced", false) and not demands.is_empty():
-		_cost_label.text += " %s has lost its capital or its will, so anything may be asked." % GameState.nations[_giver()].display_name
+		_cost_label.text += " %s is beaten: it gives up to %.1f, but only the ground you hold, your goal and money." % [GameState.nations[_giver()].display_name, check.get("budget", 0.0)]
 	var reasons := {
 		"too_expensive": "The score does not pay for these terms.",
+		"detached": "%s would not touch your land: take the provinces between, or hold the sea beside them." % _detached_names(demands),
+		"capital": "The capital goes only with the whole country.",
+		"forced_terms": "A beaten enemy gives only the ground you hold and your goal.",
 		"invalid": "One of the terms cannot be made.",
 		"pending": "An offer is already waiting in this war.",
 		"cooldown": "Wait before asking again.",
@@ -448,6 +451,16 @@ func _refresh_cost() -> void:
 		_cost_label.modulate = Fmt.WARN
 	else:
 		_cost_label.modulate = Color.WHITE
+
+
+## The names of the asked-for provinces that would not touch the taker's land (see Peace.detached).
+func _detached_names(demands: Array) -> String:
+	var names: Array[String] = []
+	for d: Dictionary in demands:
+		if d.get("kind", "") == "province":
+			for id: int in Peace.detached(GameState, _taker(), d.ids):
+				names.append(MapData.provinces[id].name)
+	return ", ".join(names.slice(0, 3)) + (" and others" if names.size() > 3 else "") if not names.is_empty() else "A province"
 
 
 ## The allies on the player's side at war with the same enemy, each with what it would ask: a joint peace offers them all
@@ -485,7 +498,7 @@ func _refresh_conference() -> void:
 		if not _conf_button.pressed.is_connected(_on_joint):
 			_conf_button.pressed.connect(_on_joint)
 		_conf_box.add_child(_conf_button)
-	var counter: Dictionary = GameState.conference_counter
+	var counter: Dictionary = Conference.waiting_counter(GameState)
 	_counter_box.visible = not counter.is_empty() and counter.from == _me() and counter.enemy == _enemy()
 	if _counter_box.visible:
 		var lines: PackedStringArray = []
@@ -516,7 +529,12 @@ func _on_joint() -> void:
 
 
 func _answer_counter(accept: bool) -> void:
-	GameState.issue(AnswerConference.new(accept))
+	var done := GameState.issue(AnswerConference.new(accept))
+	if accept and not done:
+		_result.text = "Too late: the war has moved on and the counter-offer no longer stands."
+		_result.modulate = Fmt.BAD
+		_refresh_conference()
+		return
 	_result.text = "The counter-offer is accepted: peace is made." if accept else "You refuse the counter-offer."
 	_result.modulate = Fmt.GOOD if accept else Fmt.DIM
 	if accept:

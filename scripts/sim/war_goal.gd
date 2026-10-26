@@ -57,7 +57,7 @@ static func for_declaration(gs: Node, a: String, b: String, cb: String) -> Dicti
 	return {}
 
 
-## Why `goal` cannot be pursued by `a` against `b` ("" if it can): kind, provinces, count, demand.
+## Why `goal` cannot be pursued by `a` against `b` ("" if it can): kind, provinces, count, detached, capital, demand.
 static func invalid(gs: Node, a: String, b: String, goal: Dictionary) -> String:
 	match goal.get("kind", ""):
 		"provinces":
@@ -69,6 +69,10 @@ static func invalid(gs: Node, a: String, b: String, goal: Dictionary) -> String:
 			for id: int in ids:
 				if id < 1 or id >= gs.province_owner.size() or gs.province_owner[id] != b:
 					return "provinces"
+			# A goal must be ground that could be handed over at peace (see Peace.province_problem).
+			var problem := Peace.province_problem(gs, a, b, ids)
+			if problem != "":
+				return problem
 			return ""
 		"concession":
 			var d: Dictionary = goal.get("demand", {})

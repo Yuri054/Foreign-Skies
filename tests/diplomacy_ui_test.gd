@@ -58,7 +58,27 @@ func _quiet(player: String) -> void:
 
 func _occupy(owner: String, by: String, count: int) -> void:
 	var done := 0
+	# From the border inward, so the ground held hangs together as a front would leave it.
+	var Mil_ = load("res://scripts/sim/military.gd")
+	var order: Array = []
+	var queue: Array = []
 	for id: int in gs.nations[owner].provinces:
+		for n: int in Mil_.neighbors(id):
+			if gs.province_owner[n] == by:
+				queue.append(id)
+				break
+	while not queue.is_empty():
+		var p: int = queue.pop_front()
+		if p in order:
+			continue
+		order.append(p)
+		for n: int in Mil_.neighbors(p):
+			if gs.province_owner[n] == owner and n not in order:
+				queue.append(n)
+	for id: int in gs.nations[owner].provinces:
+		if id not in order:
+			order.append(id)
+	for id: int in order:
 		if done >= count:
 			break
 		if id != gs.nations[owner].capital:
@@ -183,7 +203,7 @@ func _test_map_mode() -> void:
 func _test_peace_screen() -> void:
 	_quiet("FRA")
 	gs.set_war("FRA", "GER", true)
-	_occupy("GER", "FRA", 60)
+	_occupy("GER", "FRA", 30)
 	var screen: Node = get_first_node_in_group("peace_screen")
 	var mil: Node = get_first_node_in_group("military_panel")
 	mil.toggle()

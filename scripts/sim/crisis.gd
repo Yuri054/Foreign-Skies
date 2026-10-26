@@ -182,10 +182,16 @@ static func demand_options(gs: Node, a: String, b: String) -> Array[Dictionary]:
 	if cb != "":
 		var goal := WarGoal.for_declaration(gs, a, b, cb)
 		if goal.has("ids") and not goal.ids.is_empty():
-			options.append({"kind": "claim", "demand": {"kind": "province", "ids": goal.ids}, "goal": goal})
+			# Only what could be handed over: the claimed ground that touches the demander's, never the capital alone.
+			var ids: Array = Peace.pick_takeable(gs, a, b, goal.ids, func(_id: int) -> float: return 0.0, INF).ids
+			if not ids.is_empty():
+				goal.ids = ids
+				options.append({"kind": "claim", "demand": {"kind": "province", "ids": ids}, "goal": goal})
 	var border: Dictionary = cfg.kinds.border
 	var edge: Array = []
 	for id: int in gs.nations[b].provinces:
+		if id == gs.nations[b].capital:
+			continue
 		for n: int in Military.neighbors(id):
 			if gs.province_owner[n] == a:
 				var share := Peace.province_share(gs, id, b)

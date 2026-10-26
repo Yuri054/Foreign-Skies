@@ -62,7 +62,27 @@ func _war() -> Object:
 
 func _occupy(owner: String, by: String, count: int) -> Array:
 	var ids: Array = []
+	# From the border inward, so the ground held hangs together as a front would leave it.
+	var Mil_ = load("res://scripts/sim/military.gd")
+	var order: Array = []
+	var queue: Array = []
 	for id: int in gs.nations[owner].provinces:
+		for n: int in Mil_.neighbors(id):
+			if gs.province_owner[n] == by:
+				queue.append(id)
+				break
+	while not queue.is_empty():
+		var p: int = queue.pop_front()
+		if p in order:
+			continue
+		order.append(p)
+		for n: int in Mil_.neighbors(p):
+			if gs.province_owner[n] == owner and n not in order:
+				queue.append(n)
+	for id: int in gs.nations[owner].provinces:
+		if id not in order:
+			order.append(id)
+	for id: int in order:
 		if ids.size() >= count:
 			break
 		if id != gs.nations[owner].capital:
@@ -246,7 +266,7 @@ func _test_forced_peace() -> void:
 
 
 func _test_terms() -> void:
-	# At zero support a nation can be made to give anything.
+	# At zero support a nation is beaten: it gives more than the score pays for, though not without limit.
 	var war = _war()
 	_occupy("GER", "FRA", 1)
 	var dear: Array = [{"kind": "indemnity", "share": 0.5, "months": 60}]
@@ -254,13 +274,20 @@ func _test_terms() -> void:
 	_check(not c.ok and c.reason == "too_expensive", "a modest lead does not pay for a heavy indemnity")
 	gs.nations["GER"].war_support = 0.0
 	c = P.check(gs, "FRA", "GER", "demand", dear)
-	_check(c.ok and c.forced, "but a nation with no support left must pay it anyway")
+	var score: float = P.war_score(gs, war, "FRA")
+	_check(c.forced and c.budget > score, "a nation with no support left is beaten: France may ask more than its score (%.1f of %.1f)" % [c.budget, score])
+	var months := 12
+	var share := snappedf(c.budget * 0.9 / (float(P.cfg().price.indemnity_points_per_year) * months / 12.0), 0.01)
+	var more: Array = [{"kind": "indemnity", "share": share, "months": months}]
+	var m: Dictionary = P.check(gs, "FRA", "GER", "demand", more)
+	_check(m.ok and m.cost > score, "and must pay more than the score pays for (%.1f)" % m.cost)
+	_check(not c.ok, "but not a heavy indemnity a small war never earned")
 
 	# At the floor an AI takes terms it can afford even when it is not losing.
 	war = _war()
 	var cheap := 0
 	for id: int in gs.nations["GER"].provinces:
-		if id != gs.nations["GER"].capital and (cheap == 0 or P.province_share(gs, id, "GER") < P.province_share(gs, cheap, "GER")):
+		if P.province_problem(gs, "FRA", "GER", [id]) == "" and (cheap == 0 or P.province_share(gs, id, "GER") < P.province_share(gs, cheap, "GER")):
 			cheap = id
 	gs.set_controller(cheap, "FRA")
 	var terms: Array = [{"kind": "province", "ids": [cheap]}]

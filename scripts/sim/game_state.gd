@@ -543,13 +543,15 @@ func at_war(a: String, b: String) -> bool:
 
 
 ## `a` starts the war when value is true. A new war joins the conflict `group` (0 starts a new one).
-func set_war(a: String, b: String, value: bool, cb := "", group := 0) -> void:
+## `goal` is what `a` fights for (see WarGoal); it is on the war before war_changed is sent, so a listener sees it.
+func set_war(a: String, b: String, value: bool, cb := "", group := 0, goal := {}) -> void:
 	if a == b or at_war(a, b) == value:
 		return
 	if value:
 		var war := War.new(next_war_id, a, b, Clock.days_elapsed, Clock.date_string())
 		next_war_id += 1
 		war.casus_belli = cb
+		war.goal = goal.duplicate(true)
 		if group == 0:
 			group = next_war_group
 			next_war_group += 1

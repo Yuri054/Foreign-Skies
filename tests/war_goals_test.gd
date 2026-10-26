@@ -34,6 +34,14 @@ func _province(owner: String, index := 0) -> int:
 	return gs.nations[owner].provinces[index]
 
 
+## A province of `owner` that `taker` could take on its own (it touches the taker's land), not one of `besides`.
+func _takeable(owner: String, taker: String, besides := []) -> int:
+	for id: int in gs.nations[owner].provinces:
+		if id not in besides and P.province_problem(gs, taker, owner, [id]) == "":
+			return id
+	return 0
+
+
 func _initialize() -> void:
 	await process_frame
 	gs = root.get_node("GameState")
@@ -49,7 +57,8 @@ func _initialize() -> void:
 	# --- A justified province claim --------------------------------------------------------
 	_fresh()
 	gs.nations["GER"].diplomacy_points = 200.0
-	var belgian: Array = gs.nations["BEL"].provinces
+	# Belgian ground Germany could take: on its border first (a goal must touch the claimant's land).
+	var belgian: Array = P.pick_takeable(gs, "GER", "BEL", Array(gs.nations["BEL"].provinces), func(_id: int) -> float: return 1.0, 6.0).ids
 	var one: Array = [belgian[0]]
 	var two: Array = [belgian[0], belgian[1]]
 	_check(not gs.issue(Justify.new("GER", "BEL", G.provinces_goal([]))), "a goal with no provinces is refused")
@@ -76,7 +85,14 @@ func _initialize() -> void:
 	_check(not held.is_empty() and held.goal.ids == two, "the finished claim carries the goal")
 	_check(G.for_declaration(gs, "GER", "BEL", "fabricated_claim").ids == two, "and a declaration on it takes the goal")
 	gs.nations["GER"].diplomacy_points = 200.0
+	var seen_goal: Array = []
+	var listen := func(a: String, b: String, at_war: bool) -> void:
+		if at_war and a == "GER" and b == "BEL":
+			seen_goal.append(gs.war_between(a, b).goal.duplicate(true))
+	gs.war_changed.connect(listen)
 	_check(gs.issue(Declare.new("GER", "BEL", "fabricated_claim")), "Germany declares war on it")
+	gs.war_changed.disconnect(listen)
+	_check(seen_goal.size() == 1 and seen_goal[0].get("ids", []) == two, "whoever hears of the war hears its goal with it")
 	var war: War = gs.war_between("GER", "BEL")
 	_check(war.goal.kind == "provinces" and war.goal.ids == two, "the war is fought for those provinces")
 	_check(G.line(gs, war).contains("fights"), "and the why line says so: %s" % G.line(gs, war))
@@ -84,11 +100,12 @@ func _initialize() -> void:
 
 	# --- Peace terms priced by the goal ----------------------------------------------------
 	var goal_id: int = two[0]
+	# A province beyond the goal, priced as part of a demand that reaches it through the goal's ground.
 	var other_id: int = belgian[2]
 	var base_goal: float = P.province_price(gs, goal_id, "GER", "BEL")
 	var base_other: float = P.province_price(gs, other_id, "GER", "BEL")
 	var c_goal: float = P.demand_cost(gs, "GER", "BEL", {"kind": "province", "ids": [goal_id]})
-	var c_other: float = P.demand_cost(gs, "GER", "BEL", {"kind": "province", "ids": [other_id]})
+	var c_other: float = P.demand_cost(gs, "GER", "BEL", {"kind": "province", "ids": two + [other_id]}) - P.demand_cost(gs, "GER", "BEL", {"kind": "province", "ids": two})
 	_check(absf(c_goal - base_goal * float(G.cfg().discount)) < 0.0001, "a goal province costs the discount (%.2f of %.2f)" % [c_goal, base_goal])
 	_check(absf(c_other - base_other * float(G.cfg().premium)) < 0.0001, "another province costs the premium (%.2f of %.2f)" % [c_other, base_other])
 	var ind := {"kind": "indemnity", "share": 0.1, "months": 12}
@@ -109,8 +126,9 @@ func _initialize() -> void:
 	gs.issue(Declare.new("GER", "BEL", "none"))
 	war = gs.war_between("GER", "BEL")
 	_check(war != null and war.goal.is_empty(), "a war with no casus belli has no goal")
-	var plain: float = P.province_price(gs, _province("BEL"), "GER", "BEL")
-	_check(absf(P.demand_cost(gs, "GER", "BEL", {"kind": "province", "ids": [_province("BEL")]}) - plain * float(G.cfg().none_premium)) < 0.0001, "and every term costs the premium for it")
+	var near: int = _takeable("BEL", "GER")
+	var plain: float = P.province_price(gs, near, "GER", "BEL")
+	_check(absf(P.demand_cost(gs, "GER", "BEL", {"kind": "province", "ids": [near]}) - plain * float(G.cfg().none_premium)) < 0.0001, "and every term costs the premium for it")
 	_check(G.line(gs, war).contains("no casus belli"), "the why line says it: %s" % G.line(gs, war))
 
 	# --- A scenario claim gives its goal ---------------------------------------------------
@@ -131,7 +149,8 @@ func _initialize() -> void:
 	war.goal = defence
 	var dprice: float = P.demand_cost(gs, "FRA", "GER", {"kind": "indemnity", "share": 0.1, "months": 12})
 	_check(absf(dprice - P.cfg().price.indemnity_points_per_year * 0.1 * float(G.cfg().discount)) < 0.0001, "a defender's indemnity costs the discount")
-	_check(P.demand_cost(gs, "FRA", "GER", {"kind": "province", "ids": [_province("GER")]}) > P.province_price(gs, _province("GER"), "FRA", "GER"), "but land costs more")
+	var border: int = _takeable("GER", "FRA")
+	_check(P.demand_cost(gs, "FRA", "GER", {"kind": "province", "ids": [border]}) > P.province_price(gs, border, "FRA", "GER"), "but land costs more")
 
 	# --- A concession -----------------------------------------------------------------------
 	_fresh()

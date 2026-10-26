@@ -359,7 +359,10 @@ static func choose_goal(gs: Node, tag: String, target: String) -> Dictionary:
 	if not wanted.is_empty():
 		var ids: Array = wanted.keys()
 		ids.sort_custom(func(x: int, y: int) -> bool: return wanted[x] > wanted[y] or (wanted[x] == wanted[y] and x < y))
-		return WarGoal.provinces_goal(ids.slice(0, limit))
+		# Only ground that could be handed over at peace: touching its own, and never the capital alone.
+		var takeable: Array = Peace.pick_takeable(gs, tag, target, ids, func(_id: int) -> float: return 1.0, float(limit)).ids
+		if not takeable.is_empty():
+			return WarGoal.provinces_goal(takeable)
 	var c: Dictionary = WarGoal.cfg().concession
 	return WarGoal.concession_goal({"kind": "indemnity", "share": c.indemnity_share, "months": c.indemnity_months})
 
