@@ -83,8 +83,8 @@ static func monthly_changes(gs: Node, tag: String) -> Dictionary:
 	var n: Nation = gs.nations[tag]
 	var strain := Economy.tax_strain(n)
 	if gs.wars_of(tag).is_empty():
-		# Heavy taxes lower the level the people settle at.
-		var settle: float = n.war_support_base - Economy.cfg.tax_strain.support_penalty * strain
+		# Heavy taxes lower the level the people settle at; light ones raise it a little.
+		var settle: float = n.war_support_base - Economy.cfg.tax_strain.support_penalty * strain + float(Economy.cfg.tax_relief.support_bonus) * Economy.tax_relief(n)
 		return {"settling back": clampf(settle - n.war_support, -c.recovery_per_month, c.recovery_per_month)}
 	var lost := n.men_lost_month / maxf(float(n.total_men()) + n.men_lost_month, 1.0)
 	var debt: float = maxf(-n.treasury, 0.0) / maxf(n.budget.get("revenue", 1.0), 1.0)

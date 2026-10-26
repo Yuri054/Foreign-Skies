@@ -85,6 +85,7 @@ func _test_history() -> void:
 	var german_port := 0.0
 	var german_seen := 0.0
 	var blockade_by_day := {}
+	var blockade_late := 0.0
 	var britain_worst := 0.0
 	for day in 400:
 		_day()
@@ -100,11 +101,14 @@ func _test_history() -> void:
 			german_port += ships.port
 			german_seen += ships.port + ships.sea
 		britain_worst = maxf(britain_worst, gs.nations["GBR"].blockade)
+		if day >= 240:
+			blockade_late += gs.nations["GER"].blockade / 160.0
 		if day == 120 or day == 240 or day == 399:
 			blockade_by_day[day] = gs.nations["GER"].blockade
 	_check(gs.at_war("GBR", "GER"), "Britain and Germany are still at war after 400 days")
 	_check(blockade_by_day[120] > 0.02, "the British blockade starts to bite within months (Swedish ore over the Baltic cushions it) (%.2f at day 120)" % blockade_by_day[120])
-	_check(maxf(blockade_by_day[120], blockade_by_day[240]) > 0.3 and blockade_by_day[399] > 0.15, "and comes back (%.2f at day 240, %.2f at day 399)" % [blockade_by_day[240], blockade_by_day[399]])
+	# The High Seas Fleet's sorties lift it for days at a time, so the last months are judged on average, not on one day.
+	_check(maxf(blockade_by_day[120], blockade_by_day[240]) > 0.3 and blockade_late > 0.2, "and holds (%.2f at day 240, %.2f on average from day 240 to 399)" % [blockade_by_day[240], blockade_late])
 	_check(gs.nations["GER"].blockade > britain_worst, "Germany is cut off harder than Britain ever is (%.2f against %.2f)" % [gs.nations["GER"].blockade, britain_worst])
 	var share := german_port / maxf(german_seen, 1.0)
 	_check(share > 0.65, "the High Seas Fleet is mostly in harbour (%d%% of German ship strength in port)" % roundi(share * 100.0))

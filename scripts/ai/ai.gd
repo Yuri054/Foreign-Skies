@@ -167,6 +167,7 @@ static func _think(gs: Node, tag: String) -> void:
 		_timed("landing", func() -> void: AILanding.step(gs, tag))
 	else:
 		_timed("rebuild", func() -> void: AIForces.rebuild(gs, tag))
+		_timed("demobilize", func() -> void: AIForces.demobilize(gs, tag))
 	_timed("diplomacy", func() -> void: AIDiplomacy.step(gs, tag))
 	_timed("budget", func() -> void: AIBudget.step(gs, tag))
 	_timed("focus", func() -> void: AIFocus.step(gs, tag))

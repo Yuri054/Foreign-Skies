@@ -65,20 +65,22 @@ func _test_pool() -> void:
 	_check(is_equal_approx(ger.budget.construction_points, expected), "Germany's %.1f IC a day come from its industry (£%.0fM a year)" % [expected, ger.budget.industry])
 	_check(ger.budget.construction_points > cfg.base_ic * 4.0, "a great industry gives far more than the base")
 	_check(gs.nations["BEL"].budget.construction_points < ger.budget.construction_points / 3.0, "Belgium has far fewer")
-	_check(gs.nations["SRB"].budget.construction_points >= cfg.base_ic, "even a tiny nation has the base points")
+	var srb = gs.nations["SRB"]
+	_check(srb.budget.construction_points >= cfg.base_ic_min and srb.budget.construction_points < cfg.base_ic, "a tiny nation has a share of the base points for its size, never under the floor (%.1f)" % srb.budget.construction_points)
 
 
 func _test_single_project() -> void:
 	var ger = gs.nations["GER"]
 	var id := _free_province("GER")
 	var days: int = Eco.cfg.buildings.factory.min_days
-	var rate: float = Eco.cfg.buildings.factory.ic / float(days)
+	var cost: float = Eco.level_cost(gs, id, "factory")
+	var rate: float = cost / float(days)
 	var f0: int = gs.province_buildings[id].get("factory", 0)
 	_check(gs.issue(Build.new("GER", id, "factory")), "a factory is queued")
 	var job: Dictionary = ger.construction[0]
-	_check(is_equal_approx(job.points_total, Eco.cfg.buildings.factory.ic), "it needs the building's IC")
+	_check(is_equal_approx(job.points_total, cost) and cost <= Eco.cfg.buildings.factory.ic, "it needs the building's IC, for the province's size")
 	Clock.advance_day()
-	_check(is_equal_approx(job.given, rate) and job.days_left == days - 1, "with ample points it gets its full rate: %d days left" % job.days_left)
+	_check(is_equal_approx(job.given, rate) and job.days_left == days - 1, "with ample points it gets its full rate: %d days left (%.2f of %.2f given)" % [job.days_left, job.given, rate])
 	_check(is_equal_approx(ger.construction_used, rate), "and the day's use is counted")
 	for i in days - 2:
 		Clock.advance_day()
@@ -125,7 +127,9 @@ func _test_priority() -> void:
 	_check(not gs.issue(Prioritize.new("SRB", b, "factory")), "it is not moved if it is first already")
 	_check(not gs.issue(Prioritize.new("SRB", a, "railway")) and not gs.issue(Prioritize.new("GER", a, "factory")), "nothing happens for a project that is not queued")
 	Clock.advance_day()
-	_check(srb.construction[0].given > 0.0 and srb.construction[1].given == 0.0, "the first in the queue is served first")
+	var first: Dictionary = srb.construction[0]
+	var left: float = maxf(0.0, srb.budget.construction_points - first.rate)
+	_check(is_equal_approx(first.given, minf(first.rate, srb.budget.construction_points)) and srb.construction[1].given <= left + 0.001, "the first in the queue is served first, the next from what is left")
 
 
 func _test_occupation() -> void:

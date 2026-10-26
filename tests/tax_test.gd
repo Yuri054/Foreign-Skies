@@ -50,7 +50,7 @@ func _test_strain() -> void:
 	fra.tax_rate = Eco.cfg.max_tax_rate
 	_check(is_equal_approx(Eco.tax_strain(fra), 1.0), "full strain at the top rate")
 	fra.tax_rate = (Eco.cfg.default_tax_rate + Eco.cfg.max_tax_rate) / 2.0
-	_check(is_equal_approx(Eco.tax_strain(fra), 0.25), "a quarter of it half way up (squared)")
+	_check(is_equal_approx(Eco.tax_strain(fra), 0.5), "half of it half way up (it rises evenly)")
 
 
 func _test_growth() -> void:
@@ -67,7 +67,7 @@ func _test_growth() -> void:
 	var g_fra: float = fra.development / dev_fra - 1.0
 	var g_ger: float = ger.development / dev_ger - 1.0
 	_check(g_ger > 0.01, "a lightly taxed economy grows (%.3f in a year)" % g_ger)
-	_check(g_fra < 0.0 and g_fra < g_ger - 0.03, "a heavily taxed one shrinks (%.3f in a year)" % g_fra)
+	_check(g_fra < 0.0 and g_fra < g_ger - Eco.cfg.tax_strain.growth_penalty + 0.001, "a heavily taxed one shrinks (%.3f in a year)" % g_fra)
 
 
 func _test_support() -> void:

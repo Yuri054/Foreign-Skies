@@ -42,6 +42,8 @@ var development := 1.0
 var agri_yield := 1.0
 ## Share of GDP taken as tax.
 var tax_rate := 0.10
+## State investment, GBP millions a month, put into development (see Economy.investment_growth).
+var investment := 0.0
 ## 0 = peacetime army only, 1 = the whole manpower pool is called up.
 var mobilization := 0.0
 ## Buildings under construction, in the order they are served: {province, type, points_total,

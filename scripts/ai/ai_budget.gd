@@ -44,8 +44,9 @@ static func wanted_tax(gs: Node, tag: String) -> float:
 	if short:
 		return minf(rate + float(c.tax_step), top)
 	var rich: bool = net_m > 0.0 and n.treasury > _monthly_expenses(n) * float(c.rich_months)
-	if rich and rate > float(Economy.cfg.default_tax_rate) + 0.0001:
-		return maxf(rate - float(c.tax_step), float(Economy.cfg.default_tax_rate))
+	# A rich nation in surplus eases its taxes, under the default too (light taxes help growth), down to tax_min.
+	if rich and rate > float(c.get("tax_min", Economy.cfg.default_tax_rate)) + 0.0001:
+		return maxf(rate - float(c.tax_step), float(c.get("tax_min", Economy.cfg.default_tax_rate)))
 	return minf(rate, top)
 
 
@@ -53,6 +54,22 @@ static func _taxes(gs: Node, tag: String) -> void:
 	var rate := wanted_tax(gs, tag)
 	if not is_equal_approx(rate, gs.nations[tag].tax_rate):
 		gs.issue_quiet(SetEconomyPolicy.new(tag, "tax_rate", rate))
+	var invest := wanted_investment(gs, tag)
+	if absf(invest - gs.nations[tag].investment) > 0.05:
+		gs.issue_quiet(SetEconomyPolicy.new(tag, "investment", invest))
+
+
+## What the nation puts into development a month: in peace, with a treasury past rich_months of its spending, a share
+## (invest_share) of its surplus before investment; nothing at war, in debt or short.
+static func wanted_investment(gs: Node, tag: String) -> float:
+	var c := cfg()
+	var n: Nation = gs.nations[tag]
+	if not gs.wars_of(tag).is_empty() or n.treasury <= 0.0:
+		return 0.0
+	var surplus := (float(n.budget.get("net", 0.0)) + float(n.budget.get("investment", 0.0))) / 12.0
+	if surplus <= 0.0 or n.treasury < _monthly_expenses(n) * float(c.rich_months):
+		return 0.0
+	return snappedf(surplus * float(c.get("invest_share", 0.0)), 0.1)
 
 
 # --- Munitions ---------------------------------------------------------------------------------------

@@ -33,9 +33,14 @@ One window, a tab for each part of running the nation:
   **Arms production** puts a share of your industry into munitions for the guns, before buildings: it costs a little output
   and the stockpile costs money to keep, but in a war guns without shells fight much weaker. The page says how many days of
   war the stockpile lasts; in a war you can also buy munitions abroad, if the sea is open.
+  **Taxes** above the usual 10% bring money and cost growth and the people's support, more with every point; under it they
+  bring less and the economy grows faster. **State investment** puts a sum a month into the country's development: the
+  first millions do the most. **Mobilization** calls up the reserve: the slider says what it costs a month before you move
+  it. Raw materials and food are bought abroad by themselves: they matter when a blockade cuts the sea.
 - **Build (B)**: pick a building, then click a green province. **Buildings cost industry (IC), not money**: the nation has a
   number of IC a day, projects are served in order and wait when the day's IC runs out, so the treasury never moves when you
-  build. The queue shows why a project is "stalled" (no IC reaches it).
+  build. The queue shows why a project is "stalled" (no IC reaches it). A small country has fewer IC, but its buildings cost
+  less: they are built to the size of the province.
 - **Military (M)**, **Navy (Y)**: armies, army groups, fronts, fleets, yards.
 - **Diplomacy (F)**: opinions, treaties, wars, gifts, justification, demands, peace.
 - **Focus (O)**: one national effort at a time, with lasting effects.
@@ -50,7 +55,8 @@ way is out of supply and what you can see of an enemy there (a range from your i
 odds on men alone: terrain and trenches are not counted). An army out of supply loses men; the **Supply** map variant shows
 where your armies are fed (green), where supply thins (amber) and where it ends (red). Armies dig in the longer they stand
 still; defenders in trenches and on rough ground are hard to dislodge, and an attacking division that enters an undefended
-province takes it at once.
+province takes it at once. After a war, **Send home** (the command panel) sends an army's men back to the reserve and its
+upkeep stops; the guns go last. It works in peace only.
 
 **Fronts** are lines of provinces armies hold. Hand armies to a front (the command panel, C, or the Military tab) and they
 spread along it and hold it; an order of your own takes an army off its front. Armies can be grouped under a field marshal.

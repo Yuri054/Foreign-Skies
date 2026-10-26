@@ -23,9 +23,19 @@
 		"death_share": 1.0,
 		"min_province": 1000
 	},
+	"tax_relief": {
+		"_note": "What light taxes give. The relief is how far the rate is below the default toward the minimum, 0 to 1: growth_bonus is added to the yearly growth at full relief, support_bonus to the level war support settles at in peace.",
+		"growth_bonus": 0.006,
+		"support_bonus": 5.0
+	},
+	"invest": {
+		"_note": "State investment (Nation.investment, GBP millions a month, a policy): paid as an expense, it adds to yearly growth growth_max * (1 - e^(-share / ref_share)), share being the yearly investment over the yearly output, so each further pound does less.",
+		"growth_max": 0.015,
+		"ref_share": 0.03
+	},
 	"tax_strain": {
-		"_note": "What heavy taxes cost beyond the revenue drag. The strain is how far the rate is above the default toward the maximum, 0 to 1, squared. growth_penalty is taken off the yearly growth of the economy at full strain, support_penalty off the level war support settles at in peace, and war_weariness off war support each month at war.",
-		"growth_penalty": 0.04,
+		"_note": "What heavy taxes cost beyond the revenue drag. The strain is how far the rate is above the default toward the maximum, 0 to 1, rising evenly. growth_penalty is taken off the yearly growth of the economy at full strain, support_penalty off the level war support settles at in peace, and war_weariness off war support each month at war.",
+		"growth_penalty": 0.03,
 		"support_penalty": 20.0,
 		"war_weariness": 1.0
 	},
@@ -59,8 +69,13 @@
 		"peace_max": 0.4
 	},
 	"construction": {
-		"_note": "Industry points (IC) a day: base_ic (small works everywhere) plus the nation's industrial output (GBP millions a year, after its supply of materials) times ic_per_industry. A project costs `ic` and takes in at most its cost over `min_days` a day.",
+		"_note": "Industry points (IC) a day: base_ic (small works everywhere; a share of it for an economy under base_ic_gdp_ref GBP millions a year, never under base_ic_min) plus the nation's industrial output (GBP millions a year, after its supply of materials) times ic_per_industry. A project costs `ic` (scaled to the province: one with less output than cost_ref_gdp GBP millions a year pays that share, never under cost_min_factor; a building with size_by \"industry\" is measured on the province's industry against cost_ref_industry) and takes in at most its cost over `min_days` a day.",
 		"base_ic": 20.0,
+		"base_ic_gdp_ref": 200.0,
+		"base_ic_min": 4.0,
+		"cost_ref_gdp": 15.0,
+		"cost_ref_industry": 20.0,
+		"cost_min_factor": 0.02,
 		"ic_per_industry": 0.35
 	},
 	"materials": {
@@ -107,6 +122,7 @@
 			"ic": 3000,
 			"ic_growth": 0.4,
 			"min_days": 120,
+			"size_by": "industry",
 			"effects": {
 				"industry": 0.06,
 				"gdp": 0.015

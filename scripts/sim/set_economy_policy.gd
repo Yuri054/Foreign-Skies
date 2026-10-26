@@ -1,7 +1,8 @@
 class_name SetEconomyPolicy
 extends Command
-## Sets one of a nation's economic policies: "tax_rate", "mobilization" or "arms_share" (the share of each day's IC
-## that goes to munitions, see Munitions). Mobilization stops at the most the nation may have now (see
+## Sets one of a nation's economic policies: "tax_rate", "mobilization", "arms_share" (the share of each day's IC
+## that goes to munitions, see Munitions) or "investment" (GBP millions a month into development, at most a tenth of
+## the month's output; see Economy.investment_growth). Mobilization stops at the most the nation may have now (see
 ## Economy.mobilization_range).
 
 var tag: String
@@ -26,6 +27,8 @@ func execute(gs: Node) -> bool:
 			n.mobilization = clampf(value, 0.0, Economy.mobilization_cap(gs, n))
 		"arms_share":
 			n.arms_share = clampf(value, 0.0, 1.0)
+		"investment":
+			n.investment = clampf(value, 0.0, float(n.budget.get("gdp", 0.0)) / 12.0 * 0.1)
 		_:
 			return false
 	return true

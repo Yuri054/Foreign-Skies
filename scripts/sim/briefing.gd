@@ -47,7 +47,7 @@ static func issues(gs: Node, tag: String) -> Array[Dictionary]:
 		if b.food_shortage > 0.0:
 			_add(out, "famine", 85.0, "Famine: %d%% of the food is missing" % roundi(b.food_shortage * 100.0), "People starve and growth falls. Import food or end a blockade.", "Economy")
 		if b.materials.ratio < 0.8:
-			_add(out, "materials", 55.0, "Raw materials are short (%d%% of the need)" % roundi(b.materials.ratio * 100.0), "Industry is cut by the same share. Build mines and railways or take the ground that has them.", "Economy")
+			_add(out, "materials", 55.0, "Raw materials are short (%d%% of the need)" % roundi(b.materials.ratio * 100.0), "Industry is cut by the same share. A blockade is cutting the imports: keep the sea open, or hold the provinces with coal, iron and timber.", "Economy")
 		if n.blockade > 0.1:
 			_add(out, "blockade", 55.0 + n.blockade * 20.0, "A blockade cuts %d%% of your imports" % roundi(n.blockade * 100.0), "Break it with your fleet or make peace with the nation enforcing it.", "Navy")
 		var used: float = n.construction_used

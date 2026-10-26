@@ -15,6 +15,19 @@ the Windows build the CI attaches to each release.
   in store: the shell crisis comes by itself.
 - The staff report, the army cards and the cabinet briefing say when the guns are short of shells or the stockpile is low.
 - Saves carry format version 3; older saves load with the usual arms share and an empty stockpile.
+- Taxes: above the usual 10% every point costs growth and support evenly (no free rate up to 20%); under it the economy
+  grows faster. The AI eases its taxes to 8% when rich.
+- State investment: a sum a month into the country's development, with a diminishing return. The AI invests a surplus.
+- Civil spending follows the output the state actually has, so a mobilized or blockaded country also spends less; the
+  mobilization slider says what it costs a month before you move it.
+- Send home: armies can be sent back to the reserve in peace, and their upkeep stops at once (the command panel). The AI
+  sends its men home some months after a war, down to about its peacetime army.
+- Small countries have an economy: the small works everywhere give IC in proportion to the economy, and buildings are
+  priced to the province (a factory by its industry), so a Serbian factory pays back its IC in about 16 years, not 357.
+- The Economy tab fits the window; raw materials and food stand under "Imports and the blockade", and the briefing no
+  longer says to build mines.
+- A project's days left no longer read one day too many.
+- A nation conquered while mobilized no longer keeps its neighbours mobilized for ever.
 
 ## 0.7.0
 

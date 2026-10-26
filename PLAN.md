@@ -52,9 +52,9 @@ against the baseline in `docs/baseline.md`.
 | 0 | Housekeeping and the measuring tools | S | done |
 | 1 | War resolution: forced peace, connected annexation, conferences | L | done (v0.6.0); France-Germany length carried to step 7 |
 | 2 | The road to 1914: war gate, temperaments, neutrals, crisis odds | M | done (v0.7.0) |
-| 3a | Munitions: industry arms the guns | L | done |
-| 3b | Money, taxes, mobilization and demobilization | M | |
-| 3c | Small economies, materials and food, the economy on screen | M | |
+| 3a | Munitions: industry arms the guns | L | done (v0.8.0) |
+| 3b | Money, taxes, mobilization and demobilization | M | done (v0.8.0); army size after a war carried to step 7 |
+| 3c | Small economies, materials and food, the economy on screen | M | done (v0.8.0) |
 | 4 | After the war: revanche, post-war crises and events, repeatable foci | L | |
 | 5 | Peacetime decisions: demands replace justification, one public stand, small nations, ambitions | M | |
 | 6 | Leftovers: mediation, cavalry | S | |
@@ -182,7 +182,8 @@ three parts, in order; each part ends green and measured.
 - **Demobilize.** A `DemobilizeUnits` command (an army, a count or "to peacetime"), in peace only: units go to the
   reserve and then back to the people, upkeep falls at once. A button on army cards and in the command panel.
   `AIForces` sheds units toward `peacetime_army` times `forces.demob_margin` once at peace and out of every truce, at
-  `forces.demob_per_month`, never below what its alarms need.
+  `forces.demob_share` of the excess a month from `forces.demob_after_days` after its last war, while not alarmed or
+  mobilized.
 - **The AI** taxes by the new curve, may go under the default when rich, and invests a surplus.
 - Tests: `demobilize_test`; extend `economy_test` (the tax curve both ways, civil spending on actual output,
   investment) and `ai_budget_test`.
@@ -190,6 +191,16 @@ three parts, in order; each part ends green and measured.
   twice the treasury of 10% for less than 10% of GDP; the mobilization slider's cost line matches the budget's change
   within 5%. With the AI on: great-power treasuries from 1922 at most 6 months of revenue (12-13.5 in the baseline); armies three years after a
   war at most 0.6 of their peak in it; `balance_run` growth about 3% a year.
+- **Result:** with the AI off, Germany 1900-1914: 5% gives +9% GDP and a £1.8bn debt, 15% £1.1bn for 7% of GDP, 20%
+  £2.0bn for 13% (and no growth at all), 30% £3.0bn for 24%, 40% £3.4bn for 34%: every rate differs, and over the years
+  each pound of tax costs about a pound of output (the plan's "twice the treasury of 10%" means little when 10% leaves
+  £80M). Mobilizing to 40% costs what the slider says within 5% (`demobilize_test`), £8.5M a month for Germany (£14.6M
+  before). With the AI on: great-power treasuries from 1922 hold 4.2 months of revenue from 1900 and 6.2 from July 1914
+  (13.5 and 12 before); growth 1901-1911 is 3.2% a year (median of the great powers). Armies three years after a war
+  stand at 0.75 of their peak in it from 1900 and 0.92 from 1914 (1.0 before): they come back to their peacetime size,
+  but the wars barely raise them above it (Germany's 1914 peak is its pre-war army), so 0.6 is out of reach until the AI
+  raises armies in a war (step 7). Measuring it found that a nation conquered while mobilized kept its neighbours
+  mobilized for ever (its alarms never lapsed), which held every post-war army at its war size: fixed.
 
 #### 3c. Small economies, materials and food, the economy on screen (E6, E8, E9)
 - **Industry by size.** The flat 20 IC a day becomes a floor that follows the economy (`construction.base_ic` times
@@ -202,6 +213,10 @@ three parts, in order; each part ends green and measured.
 - Tests: extend `economy_test` (IC by size); a UI test at both sizes that checks the right column is inside the window.
 - **Done when:** a small nation's best building pays back its IC within about 15 years (Serbia's factory: 357 today);
   the Economy tab shows every figure at 1280x720.
+- **Result:** Serbia's best factory pays back its IC in 15.8 years (357 before), Bulgaria's in 11, Belgium's and Italy's
+  in 16 (18 and 25 before), Germany's big-city one in 7 as before; a factory is priced by its province's industry, other
+  works by its output. Serbia building everything for 14 years ends with +14% GDP and +17% IC (nothing before). The
+  Nation screen fits 1280x720 (and, scaled, any window of that shape: `nation_fit_test`).
 
 ### 4. After the war (F2, F9, E7)
 - **Revanche.** A province ceded at a peace gives the loser a `reconquest` claim for `revanche_years` (new, about 25)
@@ -247,6 +262,9 @@ three parts, in order; each part ends green and measured.
 - Fitness: the soldier term from 30 to about 5, plus the change in provinces held, less a little for each month at war
   (`tools/ai_train.py`, `tools/ai_arena.gd`). The new numbers of steps 3 and 4 (arms share, buying, investment,
   demobilization) join the trained list.
+- War-time recruiting: in these runs a war barely raises a great power's army above its peacetime size, so there is
+  little to send home after it (step 3b's 0.6 of the peak). The AI should raise armies when a war goes long, and the
+  trained numbers should include how far.
 - 40 generations under the rules of steps 1 to 6, then 16 fresh seeds.
 - **Done when:** applied because it beats the shipped numbers *and* the checks of steps 1 to 4 hold, or declined with
   the evidence in DESIGN.md.

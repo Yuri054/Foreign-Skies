@@ -1172,6 +1172,10 @@ static func _step_alarms(gs: Node) -> void:
 	for tag: String in gs.nations:
 		var n: Nation = gs.nations[tag]
 		if n.provinces.is_empty():
+			# A nation gone from the map stands down: its alarms and the call-ups against it lapse, or its last
+			# mobilization would hold its neighbours mobilized for ever.
+			n.mobilization = 0.0
+			_clear_alarms(gs, tag)
 			continue
 		if n.mobilization >= c.alarm_level:
 			for other in neighbor_nations(gs, tag):
@@ -1184,12 +1188,17 @@ static func _step_alarms(gs: Node) -> void:
 				_call_up_allies(gs, other, tag)
 				gs.mobilization_alarm.emit(tag, other)
 		elif n.mobilization < c.alarm_clear_level:
-			for key: String in gs.alarms.keys():
-				if key.begins_with(tag + ">"):
-					gs.alarms.erase(key)
-			for key: String in gs.mobilization_calls.keys():
-				if gs.mobilization_calls[key].against == tag:
-					gs.mobilization_calls.erase(key)
+			_clear_alarms(gs, tag)
+
+
+## The alarms `tag` raised and the call-ups against it end.
+static func _clear_alarms(gs: Node, tag: String) -> void:
+	for key: String in gs.alarms.keys():
+		if key.begins_with(tag + ">"):
+			gs.alarms.erase(key)
+	for key: String in gs.mobilization_calls.keys():
+		if gs.mobilization_calls[key].against == tag:
+			gs.mobilization_calls.erase(key)
 
 
 ## The allies of an alarmed nation may call up too (they follow the threat, see below).

@@ -83,7 +83,7 @@ func _test_panels() -> void:
 	eco.toggle()
 	await process_frame
 	await process_frame
-	_check(_find_text(eco._industry, "Raw materials") and _find_text(eco._industry, "Own deposits"), "the Industry section says where the raw materials come from")
+	_check(_find_text(eco._industry, "raw materials") and _find_text(eco._industry, "Own deposits"), "the Industry section says where the raw materials come from")
 	var ger = gs.nations["GER"]
 	ger.war_support = 20.0
 	gs.set_war("GER", "FRA", true)

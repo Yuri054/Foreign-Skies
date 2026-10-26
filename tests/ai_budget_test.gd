@@ -77,7 +77,9 @@ func _test_taxes() -> void:
 	n.budget["net"] = 12.0
 	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), 0.2 - A.cfg.budget.tax_step), "a rich nation in surplus lowers its tax")
 	n.tax_rate = 0.1
-	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), 0.1), "but never below the default")
+	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), A.cfg.budget.tax_min), "under the default too (light taxes help growth)")
+	n.tax_rate = A.cfg.budget.tax_min
+	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), A.cfg.budget.tax_min), "but never below its floor")
 	n.tax_rate = 0.1
 	n.treasury = -50.0
 	n.budget["net"] = -24.0

@@ -51,6 +51,7 @@ var _front := MenuButton.new()
 var _release := Button.new()
 var _merge := Button.new()
 var _split := Button.new()
+var _home := Button.new()
 var _detach := MenuButton.new()
 var _halt := Button.new()
 var _board := Button.new()
@@ -169,6 +170,9 @@ func _ready() -> void:
 	_split.text = "Split"
 	_split.tooltip_text = "Divide the army in two, half of its units each."
 	_split.pressed.connect(_on_split)
+	_home.text = "Send home"
+	_home.tooltip_text = "In peace: send the selected armies' men back to the reserve, and from there to their homes. Their upkeep stops; guns go last."
+	_home.pressed.connect(_on_send_home)
 	_detach.text = "Detach"
 	_detach.tooltip_text = "Detach one unit of a type into a new army."
 	_detach.get_popup().about_to_popup.connect(_fill_detach)
@@ -204,7 +208,7 @@ func _ready() -> void:
 	_deselect.text = "Deselect"
 	_deselect.tooltip_text = "Clear the selection (Esc, or click empty ground)."
 	_deselect.pressed.connect(func() -> void: get_tree().call_group("military_panel", "clear_selection"))
-	for c: Control in [_front, _release, _merge, _split, _detach, _halt, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
+	for c: Control in [_front, _release, _merge, _split, _home, _detach, _halt, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
 		c.focus_mode = Control.FOCUS_NONE
 		_army_orders.add_child(c)
 
@@ -495,6 +499,7 @@ func _refresh_army_orders(armies: Array[Army]) -> void:
 	_release.disabled = not any_front
 	_merge.disabled = not together
 	_split.disabled = not (armies.size() == 1 and armies[0].units.size() >= 2 and not armies[0].embarked())
+	_home.disabled = armies.is_empty() or not GameState.wars_of(GameState.player_tag).is_empty()
 	_detach.disabled = not (armies.size() == 1 and armies[0].units.size() >= 2 and not armies[0].embarked())
 	_general.disabled = not (armies.size() == 1 and not armies[0].embarked())
 	_group.disabled = false
@@ -1009,6 +1014,12 @@ func _on_merge() -> void:
 		ids.append(a.id)
 	if GameState.issue(MergeArmies.new(GameState.player_tag, ids)):
 		_select([ids[0]] as Array[int])
+
+
+func _on_send_home() -> void:
+	for a in _armies():
+		GameState.issue(DemobilizeUnits.new(GameState.player_tag, a.id, a.units.size()))
+	_select([] as Array[int])
 
 
 func _on_split() -> void:

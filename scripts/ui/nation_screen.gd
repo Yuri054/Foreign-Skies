@@ -7,7 +7,8 @@ extends FloatingWindow
 ## Each tab has a letter that opens the screen on it, and that same letter closes it again. Hover
 ## a tab to see which. The country panel for other nations (right click) stays a window of its own.
 
-var _tabs_row := HBoxContainer.new()
+## The tabs wrap onto a second row when the window is narrow, so the screen never needs more width than the view has.
+var _tabs_row := HFlowContainer.new()
 var _stack := PanelContainer.new()
 ## [{page, title, key, button}] in tab order.
 var _pages: Array[Dictionary] = []
@@ -20,7 +21,8 @@ func _ready() -> void:
 	visible = false
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	_tabs_row.add_theme_constant_override("separation", 3)
+	_tabs_row.add_theme_constant_override("h_separation", 3)
+	_tabs_row.add_theme_constant_override("v_separation", 3)
 	box.add_child(_tabs_row)
 	var rule := HSeparator.new()
 	box.add_child(rule)
@@ -56,6 +58,16 @@ func _fit_to_view() -> void:
 	var room := maxf(view.y - TOP_CLEARANCE - 12.0 - 150.0, 300.0)
 	size = Vector2(minf(800.0, maxf(view.x - 40.0, 640.0)), minf(560.0, room))
 	position = Vector2(view.x - size.x - 16.0, TOP_CLEARANCE + 12.0)
+	_keep_inside.call_deferred()
+
+
+## A page that needs more width than the window had makes it grow to the right: this brings it back inside the view.
+func _keep_inside() -> void:
+	if not is_inside_tree():
+		return
+	var view := get_viewport_rect().size
+	size.x = minf(size.x, maxf(view.x - 16.0, get_combined_minimum_size().x))
+	position.x = clampf(position.x, 8.0, maxf(view.x - size.x - 8.0, 8.0))
 
 
 ## Adds a page as the next tab. `key` is the letter that opens it; the page is a FloatingWindow (embedded
@@ -110,6 +122,7 @@ func open_page(page: Variant) -> void:
 	# A page shows what is true now: its panel works its figures out when it comes up.
 	if target.has_method("_refresh"):
 		target.call_deferred("_refresh")
+	_keep_inside.call_deferred()
 
 
 func toggle_page(page: Control) -> void:

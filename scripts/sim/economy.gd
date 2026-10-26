@@ -80,11 +80,34 @@ static func new_job(province: int, type: String, ic: float, min_days: int) -> Di
 			"rate": rate, "given": 0.0, "days_total": min_days, "days_left": min_days}
 
 
-## How heavy the taxes are, 0 to 1: the rate's distance above the default toward the maximum,
-## squared, so a little above the default costs almost nothing and the top rate costs a lot.
+## How heavy the taxes are, 0 to 1: the rate's distance above the default toward the maximum. It rises evenly, so every
+## point of tax above the default costs growth and support.
 static func tax_strain(n: Nation) -> float:
 	var span: float = cfg.max_tax_rate - cfg.default_tax_rate
-	return pow(clampf((n.tax_rate - cfg.default_tax_rate) / span, 0.0, 1.0), 2.0)
+	return clampf((n.tax_rate - cfg.default_tax_rate) / span, 0.0, 1.0)
+
+
+## How light the taxes are, 0 to 1: the rate's distance below the default toward the minimum. Low taxes leave money in
+## the economy: growth gains (tax_relief.growth_bonus at the minimum) and the people's support settles a little higher.
+static func tax_relief(n: Nation) -> float:
+	var span: float = cfg.default_tax_rate - cfg.min_tax_rate
+	return clampf((cfg.default_tax_rate - n.tax_rate) / maxf(span, 0.0001), 0.0, 1.0)
+
+
+## The yearly growth of a nation's development from its policies: the baseline, its focus, the tax rate (a burden above
+## the default, a spur below it), and state investment.
+static func growth_rate(n: Nation) -> float:
+	return cfg.baseline_growth + modifiers({}, n.focus_fx).growth - cfg.tax_strain.growth_penalty * tax_strain(n) \
+			+ float(cfg.tax_relief.growth_bonus) * tax_relief(n) + investment_growth(n)
+
+
+## What state investment adds to yearly growth: invest.growth_max at most, approached as the share of output invested
+## grows past invest.ref_share (each further pound does less).
+static func investment_growth(n: Nation) -> float:
+	var gdp: float = maxf(float(n.budget.get("gdp", 0.0)), 1.0)
+	var share := n.investment * 12.0 / gdp
+	var c: Dictionary = cfg.invest
+	return float(c.growth_max) * (1.0 - exp(-share / float(c.ref_share)))
 
 
 ## The lowest and highest mobilization a nation may have now, as Vector2(min, max): in peace 0 to
@@ -93,6 +116,28 @@ static func mobilization_range(gs: Node, n: Nation) -> Vector2:
 	if gs.wars_of(n.tag).is_empty():
 		return Vector2(0.0, float(cfg.mobilization.peace_max))
 	return Vector2(float(Diplomacy.cfg.crisis.war_floor), 1.0)
+
+
+## What mobilizing to `level` costs a month, GBP millions, once its reserve is called up, against no mobilization: the
+## reservists' upkeep and the output lost (less the state's own spending, which follows the output). Worked out from the
+## budget at each level, changing nothing.
+static func mobilization_cost(gs: Node, n: Nation, level: float) -> float:
+	if gs.economy_sums.is_empty() or not gs.economy_sums.has(n.tag):
+		return 0.0
+	var keep_mob := n.mobilization
+	var keep_men := n.manpower
+	var raw: Dictionary = gs.economy_sums[n.tag]
+	var mult := WarSupport.economy_mult(gs, n.tag)
+	var pool: float = raw.pool
+	var peace := minf(float(n.peacetime_army), pool)
+	var nets: Array[float] = []
+	for l: float in [0.0, level]:
+		n.mobilization = l
+		n.manpower = maxi(0, int(peace + (pool - peace) * l) - n.men_in_units)
+		nets.append(float(nation_budget(gs, n, raw, mult).net))
+	n.mobilization = keep_mob
+	n.manpower = keep_men
+	return (nets[0] - nets[1]) / 12.0
 
 
 ## The highest mobilization a nation may have now.
@@ -133,7 +178,20 @@ static func infrastructure(gs: Node, id: int) -> float:
 static func level_cost(gs: Node, id: int, type: String) -> float:
 	var def: Dictionary = cfg.buildings[type]
 	var level: int = gs.province_buildings[id].get(type, 0)
-	return float(def.ic) * pow(1.0 + float(def.get("ic_growth", 0.0)), level)
+	return float(def.ic) * pow(1.0 + float(def.get("ic_growth", 0.0)), level) * size_factor(gs, id, type)
+
+
+## Works are built to the size of the place: a province with less output than construction.cost_ref_gdp (GBP millions a
+## year) pays that share of the cost, never under construction.cost_min_factor; a building that multiplies industry
+## (size_by "industry") is measured on the province's industry against cost_ref_industry instead, so a factory pays back
+## alike in a small country's town and a great power's. A big province pays the full price.
+static func size_factor(gs: Node, id: int, type := "") -> float:
+	var c: Dictionary = cfg.construction
+	if id < 1 or id >= gs.province_gdp.size():
+		return 1.0
+	var by_industry: bool = type != "" and str(cfg.buildings[type].get("size_by", "gdp")) == "industry"
+	var size: float = gs.province_industry[id] / float(c.cost_ref_industry) if by_industry else gs.province_gdp[id] / float(c.cost_ref_gdp)
+	return clampf(size, float(c.cost_min_factor), 1.0)
 
 
 ## Everything needed to start the next level of a building: its cost in IC, the fewest days it takes,
@@ -359,14 +417,16 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 	var revenue_per_gdp := n.tax_rate * tax_drag
 	var revenue: float = gdp * revenue_per_gdp * tax_mult + trade + float(mats.income)
 
-	var civil: float = raw.gdp * cfg.default_tax_rate * cfg.civil_share * n.civil_mult
+	# The state's own costs follow the output it governs, after mobilization, blockade and arms take their share.
+	var civil: float = gdp * cfg.default_tax_rate * cfg.civil_share * n.civil_mult
 	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep)) * cfg.soldier_upkeep / 1e6
 	var naval: float = n.naval_budget
 	# The whole economy buys the food; the treasury only carries its share (subsidies, duties).
 	var food_imports: float = food_imported * cfg.food_import_cost * cfg.food_state_share / 1e6
 	var interest: float = maxf(0.0, -n.treasury) * float(cfg.debt.interest)
 	var munitions_storage: float = Munitions.storage_cost(n)
-	var expenses: float = civil + army + naval + food_imports + float(mats.cost) + interest + munitions_storage
+	var investment: float = n.investment * 12.0
+	var expenses: float = civil + army + naval + food_imports + float(mats.cost) + interest + munitions_storage + investment
 
 	var pool: float = raw.pool
 	var peace := minf(n.peacetime_army, pool)
@@ -389,6 +449,8 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 		"materials_cost": mats.cost,
 		"interest": interest,
 		"munitions_storage": munitions_storage,
+		"investment": investment,
+		"tax_relief": tax_relief(n),
 		"arms_mult": arms_mult,
 		"tax_strain": tax_strain(n),
 		"expenses": expenses,
@@ -397,7 +459,7 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 		"food_need": food_need,
 		"food_imported": food_imported,
 		"food_shortage": food_shortage,
-		"construction_points": construction_points(n, industry),
+		"construction_points": construction_points(n, industry, gdp),
 		"manpower_pool": pool,
 		"manpower_max": peace + (pool - peace) * n.mobilization,
 	}
@@ -405,8 +467,17 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 
 ## Construction points (IC) a nation can spend in a day: the works everywhere, the focus's addition and
 ## the industrial output (after materials and workers) times ic_per_industry.
-static func construction_points(n: Nation, industry: float) -> float:
-	return float(cfg.construction.base_ic) + float(n.focus_fx.get("construction", 0.0)) + industry * float(cfg.construction.ic_per_industry)
+static func construction_points(n: Nation, industry: float, gdp := -1.0) -> float:
+	return base_ic(gdp) + float(n.focus_fx.get("construction", 0.0)) + industry * float(cfg.construction.ic_per_industry)
+
+
+## The small works everywhere: construction.base_ic for an economy of base_ic_gdp_ref (GBP millions a year) or more, a
+## share of it for a smaller one, never under base_ic_min. (A negative `gdp`: the full amount.)
+static func base_ic(gdp: float) -> float:
+	var c: Dictionary = cfg.construction
+	if gdp < 0.0:
+		return float(c.base_ic)
+	return maxf(float(c.base_ic_min), float(c.base_ic) * minf(1.0, gdp / float(c.base_ic_gdp_ref)))
 
 
 ## What each building type currently contributes to a nation, per year: levels, provinces, gdp, industry,
@@ -465,7 +536,7 @@ static func step_day(gs: Node) -> void:
 			left -= give
 			job.points_left -= give
 			job.given = give
-			job.days_left = ceili(job.points_left / give) if give > 0.0 and job.points_left > 0.0 else (0 if job.points_left <= 0.0 else 9999)
+			job.days_left = ceili(job.points_left / give - 0.0001) if give > 0.0 and job.points_left > 0.0 else (0 if job.points_left <= 0.0 else 9999)
 		for job in n.construction:
 			var give := minf(minf(job.rate, left), job.points_left)
 			left -= give
@@ -482,7 +553,7 @@ static func step_day(gs: Node) -> void:
 				finished = true
 			else:
 				var rate_now: float = job.given if job.given > 0.0 else 0.0
-				job.days_left = ceili(job.points_left / rate_now) if rate_now > 0.0 else 9999
+				job.days_left = ceili(job.points_left / rate_now - 0.0001) if rate_now > 0.0 else 9999
 	if finished:
 		recompute(gs)
 		gs.economy_updated.emit()
@@ -523,7 +594,7 @@ static func step_month(gs: Node) -> void:
 		var b := n.budget
 		n.treasury += b.net / 12.0
 
-		var growth: float = (cfg.baseline_growth + modifiers({}, n.focus_fx).growth - cfg.tax_strain.growth_penalty * tax_strain(n)) / 12.0
+		var growth: float = growth_rate(n) / 12.0
 		n.development *= 1.0 + growth
 		# The peacetime army of an AI nation grows with its people and its output (the player sets their own).
 		if tag != gs.player_tag and gs.wars_of(tag).is_empty():

@@ -16,6 +16,9 @@ var _people := VBoxContainer.new()
 var _mob_slider := HSlider.new()
 var _mob_label := Label.new()
 var _mob_note := Label.new()
+var _invest_slider := HSlider.new()
+var _invest_label := Label.new()
+var _invest_note := Label.new()
 var _arms_slider := HSlider.new()
 var _arms_label := Label.new()
 var _arms_note := Label.new()
@@ -111,6 +114,16 @@ func _build_money() -> Control:
 	_tax_note.modulate = Fmt.WARN
 	box.add_child(_slider_row("Tax rate", _tax_slider, _tax_label, _tax_note,
 			"Share of output taken as tax. Above %d%% less of it reaches the treasury, and heavy taxes slow growth and wear down the people's support." % roundi(Economy.cfg.default_tax_rate * 100.0)))
+	_invest_slider.min_value = 0.0
+	_invest_slider.max_value = 1.0
+	_invest_slider.value_changed.connect(func(v: float) -> void:
+		if not _updating:
+			var n := GameState.get_player()
+			GameState.issue(SetEconomyPolicy.new(GameState.player_tag, "investment", v * float(n.budget.get("gdp", 0.0)) / 12.0 * 0.1))
+	)
+	_invest_note.modulate = Fmt.DIM
+	box.add_child(_slider_row("Investment", _invest_slider, _invest_label, _invest_note,
+			"Money the state puts into roads, schools and credit each month: it is spent like any other cost and makes the economy grow faster, each further pound doing a little less."))
 	_budget.add_theme_constant_override("separation", 14)
 	box.add_child(_budget)
 	return box
@@ -174,7 +187,7 @@ func _build_people() -> Control:
 	)
 	_mob_note.modulate = Fmt.DIM
 	box.add_child(_slider_row("Mobilization", _mob_slider, _mob_label, _mob_note,
-			"How much of the manpower pool is called up. More men under arms means a stronger army and weaker factories and fields."))
+			"How much of the manpower pool is called up. More men under arms means a stronger army and weaker factories and fields; the reservists are paid, and the line below says what the level costs a month."))
 	box.add_child(_people)
 	return box
 
@@ -268,11 +281,28 @@ func _refresh_money(n: Nation) -> void:
 	_tax_slider.set_value_no_signal(n.tax_rate)
 	_updating = false
 	_tax_label.text = "%d%%" % roundi(n.tax_rate * 100.0)
+	var most: float = maxf(float(b.get("gdp", 0.0)) / 12.0 * 0.1, 0.001)
+	_updating = true
+	_invest_slider.set_value_no_signal(clampf(n.investment / most, 0.0, 1.0))
+	_updating = false
+	_invest_label.text = "£%.1fM" % n.investment
+	_invest_note.text = "Growth %.2f points a year higher for £%.1fM a month (at most £%.1fM, a tenth of the month's output)." % [Economy.investment_growth(n) * 100.0, n.investment, most]
 	var strain: float = b.get("tax_strain", 0.0)
-	_tax_note.visible = strain > 0.005
+	var relief: float = b.get("tax_relief", 0.0)
+	_tax_note.visible = true
 	var cost: Dictionary = Economy.cfg.tax_strain
-	_tax_note.text = "Heavy taxes: growth %.1f points a year lower, war support settles %d lower in peace, and %.1f a month is lost at war." % [
-			cost.growth_penalty * strain * 100.0, roundi(cost.support_penalty * strain), cost.war_weariness * strain]
+	var gift: Dictionary = Economy.cfg.tax_relief
+	if strain > 0.005:
+		_tax_note.text = "Heavy taxes: growth %.1f points a year lower, war support settles %d lower in peace, and %.1f a month is lost at war." % [
+				cost.growth_penalty * strain * 100.0, roundi(cost.support_penalty * strain), cost.war_weariness * strain]
+		_tax_note.modulate = Fmt.WARN
+	elif relief > 0.005:
+		_tax_note.text = "Light taxes: growth %.1f points a year higher and war support settles %d higher, for less in the treasury." % [
+				float(gift.growth_bonus) * relief * 100.0, roundi(float(gift.support_bonus) * relief)]
+		_tax_note.modulate = Fmt.GOOD
+	else:
+		_tax_note.text = "The usual rate. Higher fills the treasury but slows growth and wears on the people; lower spurs growth for less money."
+		_tax_note.modulate = Fmt.DIM
 
 	# Problems first, so they cannot be missed.
 	_clear(_alerts)
@@ -319,7 +349,7 @@ func _refresh_money(n: Nation) -> void:
 	_total_row(g, "Total income", Fmt.monthly(b.revenue), Color.WHITE)
 
 	_head_row(spend, "Spending")
-	_cell(spend, "Civil", 0, Color.WHITE, "Running the state: a fixed share of output.")
+	_cell(spend, "Civil", 0, Color.WHITE, "Running the state. It follows the output: as the economy grows, so does the state, and it takes about three quarters of what the extra output pays in tax.")
 	_cell(spend, Fmt.money(-Fmt.monthly(b.civil), true), 1)
 	_cell(spend, "Military", 0, Color.WHITE, "Army upkeep £%.1fM, navy £%.1fM." % [Fmt.monthly(b.army), Fmt.monthly(b.naval)])
 	_cell(spend, Fmt.money(-Fmt.monthly(b.army + b.naval), true), 1)
@@ -327,6 +357,9 @@ func _refresh_money(n: Nation) -> void:
 	if imports > 0.04:
 		_cell(spend, "Imports", 0, Color.WHITE, "Food £%.1fM, raw materials £%.1fM." % [Fmt.monthly(b.food_imports), Fmt.monthly(b.materials_cost)])
 		_cell(spend, Fmt.money(-imports, true), 1)
+	if b.get("investment", 0.0) > 0.04:
+		_cell(spend, "Investment", 0, Color.WHITE, "What the state puts into the economy's growth.")
+		_cell(spend, Fmt.money(-Fmt.monthly(b.investment), true), 1)
 	if b.get("munitions_storage", 0.0) > 0.04:
 		_cell(spend, "Arms in store", 0, Color.WHITE, "Keeping the stockpile of munitions.")
 		_cell(spend, Fmt.money(-Fmt.monthly(b.munitions_storage), true), 1)
@@ -344,14 +377,14 @@ func _refresh_industry(n: Nation) -> void:
 	_industry.add_child(_heading("Construction"))
 	var g := _grid(2)
 	_industry.add_child(g)
-	_cell(g, "Building capacity a day", 0, Color.WHITE, "The industry's output times %.2f, plus %d for small works everywhere, plus the national focus." % [Economy.cfg.construction.ic_per_industry, int(Economy.cfg.construction.base_ic)])
+	_cell(g, "Building capacity a day", 0, Color.WHITE, "The industry's output times %.2f, plus %d for small works everywhere (less in a small economy), plus the national focus." % [Economy.cfg.construction.ic_per_industry, roundi(Economy.base_ic(float(b.gdp)))])
 	_cell(g, Fmt.thousands(roundi(b.construction_points)), 1)
 	_cell(g, "Industrial output", 0, Color.WHITE, "Before the cuts below: £%.0fM a month." % Fmt.monthly(b.industry / maxf(b.industry_scale, 0.001)))
 	_cell(g, "£%.0fM a month" % Fmt.monthly(b.industry), 1)
 	_cell(g, "Workers left", 0, Color.WHITE, "After the men under arms, famine and war weariness.")
 	_cell(g, "%d%%" % roundi(Economy.worker_share(n) * 100.0), 1)
 	_industry.add_child(HSeparator.new())
-	_industry.add_child(_heading("Raw materials"))
+	_industry.add_child(_heading("Imports and the blockade: raw materials"))
 	var m := _grid(2)
 	_industry.add_child(m)
 	_cell(m, "Own deposits", 0, Color.WHITE, "Coal, iron and timber from your provinces.")
@@ -366,7 +399,7 @@ func _refresh_industry(n: Nation) -> void:
 		_cell(m, Fmt.kt(mats.exported), 1)
 	_cell(m, "Supplied", 0, Color.WHITE, "Industry is cut by what is short, never below %d%%." % roundi(Economy.cfg.materials.floor * 100.0))
 	_cell(m, "%d%%" % roundi(mats.ratio * 100.0), 1, Fmt.GOOD if mats.ratio >= 0.999 else Fmt.WARN)
-	_industry.add_child(_note("Buildings and ships all draw on the same points. Raise the output with factories, keep the sea open, and hold the iron and coal."))
+	_industry.add_child(_note("Munitions, ships and buildings all draw on the same points. What your own deposits do not give is bought abroad, so only a blockade leaves industry short: keep the sea open, and hold the iron and coal."))
 
 
 func _refresh_people(n: Nation) -> void:
@@ -378,7 +411,9 @@ func _refresh_people(n: Nation) -> void:
 	_mob_slider.set_value_no_signal(n.mobilization)
 	_updating = false
 	_mob_label.text = "%d%%" % roundi(n.mobilization * 100.0)
-	_mob_note.text = "May be between %d%% and %d%% %s." % [roundi(range.x * 100.0), roundi(range.y * 100.0), "at war" if not GameState.wars_of(n.tag).is_empty() else "in peace"]
+	var cost := Economy.mobilization_cost(GameState, n, n.mobilization)
+	_mob_note.text = "May be between %d%% and %d%% %s. %s" % [roundi(range.x * 100.0), roundi(range.y * 100.0), "at war" if not GameState.wars_of(n.tag).is_empty() else "in peace",
+			"At %d%%, once the reserve is called up, it costs about £%.1fM a month (reservists' pay and the output lost)." % [roundi(n.mobilization * 100.0), cost] if n.mobilization > 0.005 else "Each step costs reservists' pay and output: at %d%% about £%.1fM a month." % [roundi(range.y * 100.0), Economy.mobilization_cost(GameState, n, range.y)]]
 	_clear(_people)
 	var g := _grid(2)
 	_people.add_child(g)

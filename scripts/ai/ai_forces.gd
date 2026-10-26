@@ -5,7 +5,7 @@ extends RefCounted
 ## or hits a limit: recruits, the treasury floor (with a cushion against deficit), a share of
 ## its income for units in training, or the cap on units in training. The mix of unit types
 ## follows ai.json. Rebuilding a destroyed stack falls out of the war strength: when men are
-## lost the nation is below it again. Demobilizing is left to the mobilization rules.
+## lost the nation is below it again. After a war, a nation at ease sends men home (demobilize).
 
 
 static func step(gs: Node, tag: String) -> void:
@@ -44,6 +44,39 @@ static func rebuild(gs: Node, tag: String) -> void:
 			return
 		if not gs.issue_quiet(RaiseUnits.new(tag, n.capital, type, 1)):
 			return
+
+
+## In peace, some time after its last war, a nation that is not alarmed, not mobilized and not working toward a war sends
+## home a share of the men it has above its peacetime army (data/ai.json forces: demob_after_days, demob_margin,
+## demob_share a turn).
+static func demobilize(gs: Node, tag: String) -> void:
+	var f: Dictionary = AI.cfg.forces
+	var n: Nation = gs.nations[tag]
+	if n.mobilization >= float(Diplomacy.cfg.crisis.alarm_level) or gs.ai_ambition.has(tag):
+		return
+	var last_end := -1
+	for w: War in gs.war_history:
+		if w.a == tag or w.b == tag:
+			last_end = maxi(last_end, w.end_day)
+	if last_end >= 0 and Clock.days_elapsed - last_end < int(f.demob_after_days):
+		return
+	for key: String in gs.alarms:
+		if key.ends_with(">" + tag):
+			return
+	for j: Dictionary in gs.justifications:
+		if j.holder == tag or j.target == tag:
+			return
+	var excess := float(n.men_in_units) - float(n.peacetime_army) * float(f.demob_margin)
+	if excess <= 0.0:
+		return
+	var units := 0
+	for a: Army in Military.armies_of(gs, tag):
+		units += a.units.size()
+	if units == 0:
+		return
+	var per_unit := float(n.men_in_units) / units
+	var count := ceili(excess * float(f.demob_share) / maxf(per_unit, 1.0))
+	gs.issue_quiet(DemobilizeUnits.new(tag, 0, count))
 
 
 ## Whether there is a war to raise troops for: a front to hold, or home ground in enemy hands.
