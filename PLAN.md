@@ -49,8 +49,8 @@ against the baseline in `docs/baseline.md`.
 
 | Step | Work | Size | Status |
 |---|---|---|---|
-| 0 | Housekeeping and the measuring tools | S | in progress |
-| 1 | War resolution: forced peace, connected annexation, conferences | L | |
+| 0 | Housekeeping and the measuring tools | S | done |
+| 1 | War resolution: forced peace, connected annexation, conferences | L | in progress |
 | 2 | The road to 1914: war gate, temperaments, neutrals, crisis odds | M | |
 | 3a | Munitions: industry arms the guns | L | |
 | 3b | Money, taxes, mobilization and demobilization | M | |
@@ -171,7 +171,7 @@ three parts, in order; each part ends green and measured.
   investment) and `ai_budget_test`.
 - **Done when:** with the AI off, every tax rate from 5% to 40% gives a different result and no rate gives more than
   twice the treasury of 10% for less than 10% of GDP; the mobilization slider's cost line matches the budget's change
-  within 5%. With the AI on: great-power treasuries from 1922 at most 12 months of revenue; armies three years after a
+  within 5%. With the AI on: great-power treasuries from 1922 at most 6 months of revenue (12-13.5 in the baseline); armies three years after a
   war at most 0.6 of their peak in it; `balance_run` growth about 3% a year.
 
 #### 3c. Small economies, materials and food, the economy on screen (E6, E8, E9)
