@@ -14,14 +14,16 @@ extends SceneTree
 ##   detached_ceded      provinces that changed owner with no land path (through that day's other changes) to land
 ##                       the new owner held the day before
 ##   worst_gp_loss       the largest share of a great power's provinces lost on one day
-##   post_wars_per_year, post_crises_per_year, post_tension_sd   from post_from (1919) on: declarations and crises
-##                       opened a year, and the spread of January tension
-##   treasury_months     median treasury of the great powers at peace, in months of revenue (sampled monthly)
-##   army_ratio          median men in units over peacetime_army, great powers at peace three years after their last war
+##   post_wars_per_year, post_crises_per_year, post_tension_sd   from POST_FROM (1922, after the great war's tail) on:
+##                       declarations and crises opened a year, and the spread of January tension
+##   treasury_months     median treasury of the great powers at peace, in months of revenue (sampled monthly); and
+##   treasury_months_late the same from POST_FROM on
+##   demob_ratio         median men in units over the most men the nation had in its last war, great powers at peace
+##                       three years after it (1.0: nobody went home)
 ##   focus_idle_max      the longest run of months an AI nation spent with no focus (after its first year)
 ##   bystander_decisions decisions put to the bystander a year
 
-const POST_FROM := 1919
+const POST_FROM := 1922
 
 
 func _initialize() -> void:
@@ -73,7 +75,9 @@ func _initialize() -> void:
 	var detached := [0]
 	var worst_loss := [0.0, ""]
 	var treasury_samples: Array = []
+	var treasury_late: Array = []
 	var army_samples: Array = []
+	var war_peak := {}
 	var idle_run := {}
 	var idle_max := [0, ""]
 	var tension_jan := {}
@@ -93,7 +97,7 @@ func _initialize() -> void:
 		if clock.day == 1:
 			if clock.month == 1:
 				tension_jan[clock.year] = gs.tension
-			_sample_month(gs, me, great, clock, treasury_samples, army_samples, idle_run, idle_max, start_year)
+			_sample_month(gs, me, great, clock, treasury_samples, treasury_late, army_samples, war_peak, idle_run, idle_max, start_year)
 
 	var gp_months: Array = []
 	var fra_ger: Array = []
@@ -130,7 +134,8 @@ func _initialize() -> void:
 		"post_crises_per_year": snappedf(float(post_crises) / maxf(post_years, 1), 0.01) if post_years > 0 else null,
 		"post_tension_sd": snappedf(_sd(post_tension), 0.1) if post_tension.size() > 1 else null,
 		"treasury_months": snappedf(_median(treasury_samples), 0.1),
-		"army_ratio": snappedf(_median(army_samples), 0.01) if not army_samples.is_empty() else null,
+		"treasury_months_late": snappedf(_median(treasury_late), 0.1) if not treasury_late.is_empty() else null,
+		"demob_ratio": snappedf(_median(army_samples), 0.01) if not army_samples.is_empty() else null,
 		"focus_idle_max": idle_max[0], "focus_idle_who": idle_max[1],
 		"bystander_decisions": snappedf(decisions[0] / float(years), 0.01),
 		"wars_by_year": declarations, "crises_by_year": crises,
@@ -213,22 +218,34 @@ func _linked(Mil, id: int, gained: Array, owners_before: PackedStringArray, tag:
 	return false
 
 
-## Monthly samples: treasuries and armies of the great powers at peace, and the AI nations' idle foci.
-func _sample_month(gs: Node, me: String, great: Array, clock: Node, treasury_samples: Array, army_samples: Array,
-		idle_run: Dictionary, idle_max: Array, start_year: int) -> void:
+## Monthly samples: treasuries and armies of the great powers at peace, and the AI nations' idle foci. `war_peak` holds
+## each great power's most men in units during its current or last war.
+func _sample_month(gs: Node, me: String, great: Array, clock: Node, treasury_samples: Array, treasury_late: Array,
+		army_samples: Array, war_peak: Dictionary, idle_run: Dictionary, idle_max: Array, start_year: int) -> void:
 	for tag: String in great:
-		if not gs.nations.has(tag) or gs.nations[tag].provinces.is_empty() or not gs.wars_of(tag).is_empty():
+		if not gs.nations.has(tag) or gs.nations[tag].provinces.is_empty():
 			continue
 		var n = gs.nations[tag]
+		if not gs.wars_of(tag).is_empty():
+			var peak: Dictionary = war_peak.get(tag, {"men": 0, "at_war": false})
+			if not peak.at_war:
+				peak = {"men": 0, "at_war": true}
+			peak.men = maxi(peak.men, n.men_in_units)
+			war_peak[tag] = peak
+			continue
+		if war_peak.has(tag):
+			war_peak[tag].at_war = false
 		var monthly: float = float(n.budget.get("revenue", 0.0)) / 12.0
 		if monthly > 0.0:
 			treasury_samples.append(n.treasury / monthly)
+			if clock.year >= POST_FROM:
+				treasury_late.append(n.treasury / monthly)
 		var last_end := -1
 		for w in gs.war_history:
 			if w.a == tag or w.b == tag:
 				last_end = maxi(last_end, w.end_day)
-		if last_end >= 0 and clock.days_elapsed - last_end >= 3 * 365 and n.peacetime_army > 0:
-			army_samples.append(float(n.men_in_units) / float(n.peacetime_army))
+		if last_end >= 0 and clock.days_elapsed - last_end >= 3 * 365 and war_peak.has(tag) and war_peak[tag].men > 0:
+			army_samples.append(float(n.men_in_units) / float(war_peak[tag].men))
 	if clock.year <= start_year:
 		return
 	for tag: String in gs.nations:
