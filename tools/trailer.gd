@@ -3,7 +3,7 @@ extends SceneTree
 ## music). A minute and a quarter: the menu, 1900 in time lapse, the briefing and the war goals, the great war on the map, the 3D map,
 ## the history book, the title. Needs a display (xvfb-run on a server) and ffmpeg to make an mp4 of the avi.
 ##
-##   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --resolution 1280x720 \
+##   xvfb-run -a -s "-screen 0 1600x900x24" godot --path . --rendering-driver opengl3 --resolution 1600x900 \
 ##       --write-movie trailer.avi --fixed-fps 30 -s res://tools/trailer.gd [-- quick]
 ##   ffmpeg -i trailer.avi -c:v libx264 -crf 22 -pix_fmt yuv420p -c:a aac -b:a 160k trailer.mp4
 ##
@@ -35,7 +35,7 @@ func _wait(frames: int) -> void:
 ## The trailer is not played: whatever the game asks (an event, a crisis) is answered with its first option, out of sight.
 func _clear_events() -> void:
 	var pressure = load("res://scripts/sim/pressure.gd")
-	var watching := gs.player_tag
+	var watching: String = gs.player_tag
 	for d: Dictionary in gs.pending_events.duplicate():
 		# (An observer with no nation answers as some nation, for the account the answer writes.)
 		if watching == "":
@@ -53,6 +53,8 @@ func _initialize() -> void:
 	audio = root.get_node("Audio")
 	map_data = root.get_node("MapData")
 	load("res://scripts/ui/ui_settings.gd").path = "user://trailer_settings.cfg"
+	# No saves of the maker's show on the menu.
+	load("res://scripts/sim/save_game.gd").dir = "user://trailer_saves/"
 	_layer.layer = 100
 	root.add_child(_layer)
 	_fade.color = Color.BLACK

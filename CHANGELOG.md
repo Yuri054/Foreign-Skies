@@ -6,6 +6,10 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.5.7
+
+- `tools/trailer.gd` renders a one-minute trailer from the game itself (see the README).
+
 ## 0.5.6
 
 - A player's guide (MANUAL.md) and screenshots in the README; the pause menu's key list names the History tab.

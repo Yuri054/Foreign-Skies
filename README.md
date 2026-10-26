@@ -85,6 +85,13 @@ The AI's numbers (`data/ai.json`) were tuned by self-play, with no scripted plan
 Everything that can be a number is in `data/`. All changes to the world go through commands
 (`GameState.issue`), which is what makes saves, tests and the AI share one path.
 
+## The trailer
+
+`tools/trailer.gd` renders a one-minute trailer from the game itself with Godot's movie writer (every frame is the game's own, with
+its music): `xvfb-run -a -s "-screen 0 1600x900x24" godot --path . --rendering-driver opengl3 --resolution 1600x900 --write-movie
+trailer.avi --fixed-fps 30 -s res://tools/trailer.gd`, then `ffmpeg -i trailer.avi -c:v libx264 -crf 23 -pix_fmt yuv420p -c:a aac
+trailer.mp4`. It takes a few minutes; pass `-- quick` after the script for a short check run.
+
 ## Rebuilding generated data
 
 Python 3 scripts in `tools/` build the map tables and the stock sounds (`python tools/make_audio.py`
