@@ -243,8 +243,9 @@ three parts, in order; each part ends green and measured.
   desire (`w_refused`); ground lost at the peace after a war is a provocation (`w_revanche`). The arms base's drift and
   the conference on armaments wait for a great-power war to end, or they took the general war away from 4 of 10 1900
   runs; with that, the road to 1914 is as step 2 left it (first great-power war 1912.10, general war 1914.06 in 10 of
-  10). One 1900 seed has a beaten Serbia annexed by Germany in 1920, counted as detached by the report (land paths only;
-  the peace rule also accepts a held sea), not yet traced. The "minority" crisis is not built: the map has no peoples to
+  10). One 1900 seed has a beaten Serbia annexed by Germany in 1920, counted as detached by the report, which then looked at
+  land paths only; traced after step 7: every such cession in the 40-year runs goes across a sea the new owner holds or
+  has a port on, as the peace rule allows (the report now counts those apart, `sea_ceded`, and finds no detached one). The "minority" crisis is not built: the map has no peoples to
   protect. Wars after 1922 and the tension spread go to step 7, with the AI's appetite for war.
 
 ### 5. Peacetime decisions (F6, F7, F8)

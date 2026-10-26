@@ -22,6 +22,7 @@ COLUMNS = [
     ("fra_ger_months", "FRA-GER months"),
     ("capitals_ceded", "Capitals ceded"),
     ("detached_ceded", "Detached cessions"),
+    ("sea_ceded", "Ceded by sea"),
     ("worst_gp_loss", "Worst GP loss"),
     ("post_wars_per_year", "Wars/yr from 1922"),
     ("post_crises_per_year", "Crises/yr from 1922"),

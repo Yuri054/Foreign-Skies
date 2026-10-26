@@ -12,7 +12,8 @@ extends SceneTree
 ##   fra_ger_months      the same for France and Germany alone
 ##   capitals_ceded      capitals that changed owner while the nation kept other provinces
 ##   detached_ceded      provinces that changed owner with no land path (through that day's other changes) to land
-##                       the new owner held the day before
+##                       the new owner held the day before, nor a sea it holds or has a port on (sea_ceded: those
+##                       reached only by sea, as the peace rule allows)
 ##   worst_gp_loss       the largest share of a great power's provinces lost on one day
 ##   post_wars_per_year, post_crises_per_year, post_tension_sd   from POST_FROM (1922, after the great war's tail) on:
 ##                       declarations and crises opened a year, and the spread of January tension
@@ -96,7 +97,7 @@ func _initialize() -> void:
 	gs.province_owner_changed.connect(func(id: int, old: String, new: String) -> void: changes.append([id, old, new]))
 
 	var capitals_ceded := [0]
-	var detached := [0]
+	var detached := [0, 0]   # [cut off from the new owner, reached only across a sea it holds or has a port on]
 	var worst_loss := [0.0, ""]
 	var treasury_samples: Array = []
 	var treasury_late: Array = []
@@ -164,7 +165,7 @@ func _initialize() -> void:
 		"first_gp_war": first_gp_war[0],
 		"gp_war_months": gp_months, "gp_war_months_median": _median(gp_months),
 		"fra_ger_months": fra_ger,
-		"capitals_ceded": capitals_ceded[0], "detached_ceded": detached[0],
+		"capitals_ceded": capitals_ceded[0], "detached_ceded": detached[0], "sea_ceded": detached[1],
 		"worst_gp_loss": snappedf(worst_loss[0], 0.01), "worst_gp_loss_who": worst_loss[1],
 		"post_years": post_years,
 		"post_wars_per_year": snappedf(float(post_wars) / maxf(post_years, 1), 0.01) if post_years > 0 else null,
@@ -233,9 +234,11 @@ func _measure_changes(gs: Node, Mil, changes: Array, owners_before: PackedString
 		var ids: Array = by_new[new]
 		for id: int in ids:
 			if not _linked(Mil, id, ids, owners_before, new):
-				detached[0] += 1
+				# The peace rule (Peace._sea_link) also links ground across a sea the taker holds or has a port on.
+				var by_sea := _sea_linked(gs, Mil, id, ids, owners_before, new)
+				detached[1 if by_sea else 0] += 1
 				if verbose:
-					print("%d-%02d detached: province %d to %s" % [clock.year, clock.month, id, new])
+					print("%d-%02d %s: province %d to %s" % [clock.year, clock.month, "by sea" if by_sea else "detached", id, new])
 	for old: String in by_old:
 		if old in great and int(counts.get(old, 0)) > 0:
 			var share := float(by_old[old]) / float(counts[old])
@@ -245,6 +248,30 @@ func _measure_changes(gs: Node, Mil, changes: Array, owners_before: PackedString
 
 
 ## Whether `id` reaches land `tag` held before, by land, through the provinces it gained the same day.
+## Whether `id`, or the ground gained with it that it touches, opens on a sea zone `tag` holds or has a port on.
+func _sea_linked(gs: Node, Mil, id: int, gained: Array, owners_before: PackedStringArray, tag: String) -> bool:
+	var map: Node = root.get_node("MapData")
+	var Blockade = load("res://scripts/sim/blockade.gd")
+	var seen := {id: true}
+	var queue: Array = [id]
+	while not queue.is_empty():
+		var p: int = queue.pop_back()
+		var pz: Dictionary = map.port_zones.get(p, {})
+		for zone: int in [int(pz.get("zone", 0)), int(pz.get("zone2", 0))]:
+			if zone <= 0:
+				continue
+			if Blockade.holds(gs, tag, zone):
+				return true
+			for q: int in map.ports_in_zone(zone):
+				if owners_before[q] == tag:
+					return true
+		for n: int in Mil.neighbors(p):
+			if n in gained and not seen.has(n):
+				seen[n] = true
+				queue.append(n)
+	return false
+
+
 func _linked(Mil, id: int, gained: Array, owners_before: PackedStringArray, tag: String) -> bool:
 	var seen := {id: true}
 	var queue: Array = [id]
