@@ -58,7 +58,7 @@ against the baseline in `docs/baseline.md`.
 | 4 | After the war: revanche, post-war crises and events, repeatable foci | L | done (v0.9.0); post-war wars and tension carried to step 7 |
 | 5 | Peacetime decisions: demands replace justification, one public stand, small nations, ambitions | M | done (v0.10.0) |
 | 6 | Leftovers: mediation, cavalry | S | done (v0.10.1) |
-| 7 | Retrain the AI under the new rules | L | |
+| 7 | Retrain the AI under the new rules | L | done: trained and declined; the carried checks stay open |
 | 8 | Docs, versions and playtests | S | |
 
 ## Steps in detail
@@ -293,6 +293,17 @@ three parts, in order; each part ends green and measured.
 - 40 generations under the rules of steps 1 to 6, then 16 fresh seeds.
 - **Done when:** applied because it beats the shipped numbers *and* the checks of steps 1 to 4 hold, or declined with
   the evidence in DESIGN.md.
+- **Result:** declined (DESIGN.md, Training). The fitness is changed as planned (provinces held counted, soldiers 5 not
+  30, 0.2 off for each month at war) and step 3's numbers joined the list (67 in all). 40 generations under the rules of
+  steps 1 to 6 (`tools/ai_training/round3/`) beat the shipped numbers on all 16 fresh seeds (mean +8.0, standard error
+  0.9), mostly by making peace sooner (the fighting numbers alone: +3.7, 11 of 16). Applied in full or for the fighting
+  numbers only, they made the checks worse: from 1900 France and Germany fought 6 months, not 9.75, and the shells ran
+  short in the general war's first half year in 1 seed in 10, not 5. Measuring it found a broken step 1 check: a forced
+  peace let a great power lose 44% of its provinces at once; a great power now cedes at most a quarter in one treaty
+  (`Peace.max_cession`; worst loss 24%). Still open, and not for training to settle: France and Germany's war (9.75
+  months from 1900, 5.4 from July 1914, against 12), a war after 1922 (none), the tension spread from 1922 (2-3,
+  against 5), and armies after a war (0.7 and 0.96 of their peak, against 0.6). The trained peace-time numbers get no
+  signal in an arena that is all war; a peace-time arena would be needed to train them.
 
 ### 8. Docs, versions and playtests
 - DESIGN, MANUAL, README, the tutorial (demands, war score, peace, arms production) and the CHANGELOG as each step

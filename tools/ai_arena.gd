@@ -3,12 +3,20 @@ extends SceneTree
 ## the baseline's, and every nation's result is printed (one RESULT line of JSON). Nothing here knows any nation or
 ## any history: the war begins with the scenario's two alliance blocs at war (a neutral way to get fighting), and a nation's score is how
 ## much of Europe's people and output it controls at the end against what it controlled at the start (percentage
-## points), and its share of Europe's soldiers (scaled by 0.3).
+## points, W_VALUE), the change in its share of Europe's provinces (W_PROVINCES), its share of Europe's soldiers
+## (W_MEN: a little, so a nation is not rewarded for an army it never uses), less W_WAR_MONTH for each month it spent at
+## war (so a war ended well beats a war dragged on).
 ##   godot --headless --path . -s res://tools/ai_arena.gd -- job.json
 ## job.json: {"scenario": "res://data/scenarios/july_1914/", "days": 400, "seed": 3, "group_a": ["GER", ...],
 ##            "candidate": {"offense.odds_bold": 0.9}, "baseline": {}, "start": "blocs"}
 ## `candidate` and `baseline` map dotted paths in data/ai.json to numbers; group_a nations play the candidate, the rest
 ## the baseline. "start": "blocs" begins with the blocs at war, "peace" lets the scenario run as it is.
+const W_VALUE := 100.0
+const W_PROVINCES := 50.0
+const W_MEN := 5.0
+const W_WAR_MONTH := 0.2
+
+
 func _initialize() -> void:
 	await process_frame
 	var gs = root.get_node("GameState")
@@ -43,16 +51,22 @@ func _initialize() -> void:
 	var days := int(job.get("days", 400))
 	var battles := [0]
 	gs.battle_fought.connect(func(_p: int, _t: Array) -> void: battles[0] += 1)
+	var war_days := {}
 	for d in days:
 		clock.advance_day()
 		gs.pending_events.clear()
 		gs.pending_offers.clear()
 		gs.pending_joins.clear()
+		for tag in gs.nations:
+			if not gs.wars_of(tag).is_empty():
+				war_days[tag] = int(war_days.get(tag, 0)) + 1
 	var end := _state(gs)
 	var scores := {}
 	for tag in gs.nations:
-		var s: float = 100.0 * (end.value.get(tag, 0.0) - start.value.get(tag, 0.0))
-		s += 30.0 * (end.men.get(tag, 0.0) / maxf(end.men_total, 1.0) - start.men.get(tag, 0.0) / maxf(start.men_total, 1.0))
+		var s: float = W_VALUE * (end.value.get(tag, 0.0) - start.value.get(tag, 0.0))
+		s += W_PROVINCES * (end.provinces.get(tag, 0.0) - start.provinces.get(tag, 0.0))
+		s += W_MEN * (end.men.get(tag, 0.0) / maxf(end.men_total, 1.0) - start.men.get(tag, 0.0) / maxf(start.men_total, 1.0))
+		s -= W_WAR_MONTH * float(war_days.get(tag, 0)) / 30.0
 		if absf(s) > 0.0001:
 			scores[tag] = snappedf(s, 0.001)
 	print("RESULT ", JSON.stringify({"scores": scores, "battles": battles[0], "wars": gs.wars.size(), "seed": gs.ai_seed}))
@@ -79,13 +93,16 @@ func _state(gs: Node) -> Dictionary:
 		pop_total += gs.province_population[id]
 		out_total += gs.province_gdp[id] + gs.province_industry[id]
 	var value := {}
+	var provinces := {}
+	var count := float(gs.province_owner.size() - 1)
 	for id in range(1, gs.province_owner.size()):
 		var c: String = gs.province_controller[id]
 		var v: float = 0.5 * gs.province_population[id] / maxf(pop_total, 1.0) + 0.5 * (gs.province_gdp[id] + gs.province_industry[id]) / maxf(out_total, 1.0)
 		value[c] = value.get(c, 0.0) + v
+		provinces[c] = provinces.get(c, 0.0) + 1.0 / maxf(count, 1.0)
 	var men := {}
 	var men_total := 0.0
 	for a in gs.armies.values():
 		men[a.tag] = men.get(a.tag, 0.0) + a.men()
 		men_total += a.men()
-	return {"value": value, "men": men, "men_total": men_total}
+	return {"value": value, "provinces": provinces, "men": men, "men_total": men_total}

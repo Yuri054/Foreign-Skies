@@ -8,9 +8,9 @@
 How it works. The parameters are numbers in data/ai.json (the PARAMS table: path, lowest, highest). A generation
 samples candidates around the champion in mirrored pairs; each plays the champion for a handful of seeds in
 tools/ai_arena.gd, with half of Europe's nations under one set of numbers and half under the other, and then again with
-the halves swapped. A nation's score is what it gained in Europe's people and output (and share of soldiers); the
-candidate's fitness is how much better its nations did than the same nations under the champion. Nothing names a
-nation or a battle. The champion moves toward the candidates that did better (rank-weighted), and the step shrinks as
+the halves swapped. A nation's score is what it gained in Europe's people, output and provinces (and a little for its
+share of soldiers), less a little for each month at war (tools/ai_arena.gd); the candidate's fitness is how much
+better its nations did than the same nations under the champion. Nothing names a nation or a battle. The champion moves toward the candidates that did better (rank-weighted), and the step shrinks as
 it goes. Only the way the AI fights and makes peace is trained: the numbers that decide whether a nation goes to war
 at all are left alone, so training cannot make the AI warlike.
 """
@@ -65,6 +65,12 @@ PARAMS = [
     ("peace.aims_enough", 0.0, 1.0, False), ("peace.demand_budget_share", 0.3, 1.0, False),
     ("peace.indemnity_max_share", 0.0, 0.5, False), ("peace.k_quiet", 0.0, 14.0, False),
     ("peace.quiet_grace_months", 1, 12, True),
+    # Step 3's numbers: arming, buying abroad, investing and sending men home.
+    ("munitions.peace_share", 0.0, 0.2, False), ("munitions.peace_per_tension", 0.0, 0.3, False),
+    ("munitions.crisis_share", 0.05, 0.5, False), ("munitions.war_share", 0.1, 0.9, False),
+    ("munitions.min_days", 10, 180, True), ("munitions.buy_treasury_share", 0.0, 0.6, False),
+    ("budget.invest_share", 0.0, 1.0, False),
+    ("forces.demob_after_days", 30, 720, True), ("forces.demob_margin", 1.0, 1.6, False), ("forces.demob_share", 0.05, 0.6, False),
 ]
 
 
