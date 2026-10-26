@@ -16,7 +16,9 @@ extends RefCounted
 ##   2  wars carry a goal (War.goal); a version 1 save loads with every war goalless
 ##   3  nations have munitions (Nation.munitions, arms_share): a version 2 save starts each at the default arms share
 ##      and an empty stockpile
-const VERSION := 3
+##   4  war justification is gone (a demand does its work): a case being built in a version 3 save becomes the casus
+##      belli it would have made, with its goal
+const VERSION := 4
 const OLDEST := 1
 ## Where saves live; tests point it somewhere else.
 static var dir := "user://saves/"
@@ -149,6 +151,17 @@ static func _migrate(state: Dictionary, from: int) -> void:
 					var props: Dictionary = flat[i].get("p", {})
 					if not props.has("arms_share"):
 						props["arms_share"] = float(Economy.cfg.munitions.default_share)
+			3:
+				# 3 -> 4: each justification under way {holder, target, goal, done_day} becomes its casus belli, dated
+				# from the day the work would have been done.
+				var cbs: Array = state.get("casus_belli", [])
+				for item: Variant in state.get("justifications", []):
+					var j: Variant = _decode(item)
+					if j is Dictionary and j.has("holder") and j.has("target"):
+						cbs.append(_encode({"holder": j.holder, "target": j.target, "kind": "fabricated_claim", "goal": j.get("goal", {}),
+								"expires_day": int(j.get("done_day", 0)) + int(Diplomacy.cfg.war.cb_years * 365)}))
+				state["casus_belli"] = cbs
+				state.erase("justifications")
 		v += 1
 
 

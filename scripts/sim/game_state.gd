@@ -22,12 +22,10 @@ signal ship_sunk(tag: String, zone: int, type: String)
 signal blockade_changed(tag: String, value: float)
 signal focus_changed(tag: String)
 signal focus_completed(tag: String, id: String)
-signal casus_belli_ready(holder: String, target: String)
 ## A crisis opened, and ended with an outcome (yielded, refused, backed_down, mediated, lapsed).
 signal crisis_opened(crisis: Dictionary)
 signal crisis_ended(crisis: Dictionary, outcome: String)
 ## A nation began building a case for a war: the goal (see WarGoal) and who was told (the target, its allies and guarantors).
-signal justification_started(holder: String, target: String, goal: Dictionary, told: Array)
 signal ship_built(tag: String, province: int, type: String)
 signal war_changed(a: String, b: String, at_war: bool)
 ## A nation lost its last province and its armies broke up.
@@ -219,11 +217,11 @@ var history_months: Array[Dictionary] = []
 var history_counters: Dictionary = {}
 ## Crises under way and those finished (see Crisis), the next id, and the day before which a pair may not quarrel again.
 var crises: Array[Dictionary] = []
+## The player's ambition, a direction for the nation (see Ambition): {id, tag, since, state}, or {} for none.
+var ambition: Dictionary = {}
 var crisis_log: Array[Dictionary] = []
 var next_crisis_id := 1
 var crisis_cooldown: Dictionary = {}
-## War justifications under way: {holder, target, goal, done_day}.
-var justifications: Array[Dictionary] = []
 ## Every command issued so far, in order.
 var command_log: Array[Dictionary] = []
 ## AI temperament overrides by nation (aggression, caution), and the plans read from the
@@ -369,9 +367,11 @@ func load_scenario(dir: String) -> void:
 	AI.load_config()
 	Pressure.load_config()
 	Crisis.load_config()
+	Ambition.load_config()
 	Difficulty.load_config()
 	Difficulty.apply(self)
 	command_log.clear()
+	ambition = {}
 	wars.clear()
 	war_history.clear()
 	next_war_id = 1
@@ -676,6 +676,7 @@ func _on_month_ticked() -> void:
 	Pressure.step_month(self)
 	Crisis.step_month(self)
 	Standings.record(self)
+	Ambition.step_month(self)
 	History.step_month(self)
 	economy_updated.emit()
 	if autosave_enabled:

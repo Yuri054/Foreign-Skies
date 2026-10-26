@@ -9,7 +9,7 @@ extends RefCounted
 const LOG_MAX := 4000
 const TERRITORY_MAX := 3000
 const MONTHS_MAX := 1200
-const KINDS := {"war": "War", "peace": "Peace", "event": "Event", "crisis": "Crisis", "treaty": "Treaty", "collapse": "Collapse"}
+const KINDS := {"war": "War", "peace": "Peace", "event": "Event", "crisis": "Crisis", "treaty": "Treaty", "collapse": "Collapse", "ambition": "Ambition"}
 
 
 # --- Recording ---------------------------------------------------------------------------------

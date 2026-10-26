@@ -6,6 +6,23 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.10.0
+
+- Justify war is gone: a demand does its work. Make a demand (Diplomacy tab) opens the picker, where you choose what you
+  ask (provinces, or a concession, now also "no new warships"); the nation has a deadline to answer, and if it refuses,
+  you hold a casus belli with the demand as the war's goal. AI nations make demands where they used to build a case.
+  Saves with a case under way load with the casus belli it would have made (save format 4).
+- One public stand at a time for any nation: a call for calm weighs as much as the nation making it (a great power's,
+  when Europe is tense, as much as the old conference of the powers); rattling the sabre also costs the goodwill of your
+  neighbours. The conference and "on the brink" events are gone.
+- Small nations have something to decide: two or more events of their own for Denmark, Luxembourg, the Netherlands,
+  Romania, Switzerland, Norway, Sweden, Portugal, Spain and Albania, and, for a small nation you lead, a great power
+  courting you, a trade treaty and an incident on the border every year or two. Crises that concern you come a little
+  more often.
+- No event option does nothing any more.
+- Ambitions: set your nation a direction on the Overview (keep out of the great war, unify the nation, become a great
+  power); the History book records how it went.
+
 ## 0.9.0
 
 - After the war the world goes on. Land lost at a peace leaves the loser a claim to it for 25 years and a lasting

@@ -78,18 +78,21 @@ func _initialize() -> void:
 	n.war_support = 60.0
 	n.treasury = 500.0
 
-	# A case being built against the nation.
+	# A demand made of the nation.
 	gs.nations["FRA"].diplomacy_points = 200.0
-	var Justify = load("res://scripts/sim/justify_war.gd")
+	var C = load("res://scripts/sim/crisis.gd")
 	var near := 0
 	for id: int in gs.nations["GER"].provinces:
 		if load("res://scripts/sim/peace.gd").province_problem(gs, "FRA", "GER", [id]) == "":
 			near = id
 			break
-	gs.issue(Justify.new("FRA", "GER", G.provinces_goal([near])))
-	var case: Array = B.issues(gs, "GER").filter(func(i: Dictionary) -> bool: return i.id == "case_FRA")
-	_check(case.size() == 1 and case[0].page == "Diplomacy", "a case against the nation is an issue pointing to Diplomacy")
-	_check(B.issues(gs, "FRA").filter(func(i: Dictionary) -> bool: return i.id == "case_FRA").is_empty(), "and not an issue for the one building it")
+	var goal: Dictionary = G.provinces_goal([near])
+	gs.issue(load("res://scripts/sim/press_demand.gd").new("FRA", "GER", "", {"demand": C.demand_for(goal), "goal": goal}))
+	var made: Array = C.of(gs, "GER")
+	var crisis_key := "crisis_%d" % (made[0].id if not made.is_empty() else -1)
+	var case: Array = B.issues(gs, "GER").filter(func(i: Dictionary) -> bool: return i.id == crisis_key)
+	_check(case.size() == 1 and case[0].page == "Diplomacy", "a demand made of the nation is an issue pointing to Diplomacy")
+	_check(B.issues(gs, "FRA").filter(func(i: Dictionary) -> bool: return i.id == crisis_key).is_empty(), "and not an issue for the one making it")
 	_check(gs.nations.has("GER") and B.issues(gs, "XXX").is_empty(), "an unknown nation has none")
 
 	# Unspent points and no focus.

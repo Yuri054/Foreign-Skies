@@ -82,8 +82,6 @@ static func wanted_arms_share(gs: Node, tag: String) -> float:
 	if not gs.wars_of(tag).is_empty():
 		return float(c.war_share)
 	var crisis: bool = n.mobilization >= float(Diplomacy.cfg.crisis.alarm_level) or not Crisis.of(gs, tag).is_empty()
-	for j: Dictionary in gs.justifications:
-		crisis = crisis or j.target == tag
 	if crisis:
 		return float(c.crisis_share)
 	return clampf(float(c.peace_share) + float(c.peace_per_tension) * gs.tension / 100.0, 0.0, 1.0)

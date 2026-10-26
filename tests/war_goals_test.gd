@@ -1,6 +1,6 @@
 extends SceneTree
-## Headless test for war goals: a justification names what the war is for, the goal rides on the
-## casus belli onto the War, peace terms matching it cost half and the rest more, scenario claims
+## Headless test for war goals: a demand names what a war over it would be for, the goal rides on the
+## casus belli its refusal gives onto the War, peace terms matching it cost half and the rest more, scenario claims
 ## and defence give goals of their own, the AI picks and pursues goals, and a save keeps the goal.
 ## Run: godot --headless --path . -s res://tests/war_goals_test.gd
 
@@ -51,38 +51,37 @@ func _initialize() -> void:
 	P = load("res://scripts/sim/peace.gd")
 	AD = load("res://scripts/ai/ai_diplomacy.gd")
 	AP = load("res://scripts/ai/ai_peace.gd")
-	var Justify = load("res://scripts/sim/justify_war.gd")
+	var Press = load("res://scripts/sim/press_demand.gd")
+	var C = load("res://scripts/sim/crisis.gd")
 	var Declare = load("res://scripts/sim/declare_war.gd")
+	var demand := func(goal: Dictionary) -> bool: return gs.issue(Press.new("GER", "BEL", "", {"demand": C.demand_for(goal), "goal": goal}))
 
-	# --- A justified province claim --------------------------------------------------------
+	# --- A demand for provinces --------------------------------------------------------------
 	_fresh()
 	gs.nations["GER"].diplomacy_points = 200.0
 	# Belgian ground Germany could take: on its border first (a goal must touch the claimant's land).
 	var belgian: Array = P.pick_takeable(gs, "GER", "BEL", Array(gs.nations["BEL"].provinces), func(_id: int) -> float: return 1.0, 6.0).ids
 	var one: Array = [belgian[0]]
 	var two: Array = [belgian[0], belgian[1]]
-	_check(not gs.issue(Justify.new("GER", "BEL", G.provinces_goal([]))), "a goal with no provinces is refused")
-	_check(not gs.issue(Justify.new("GER", "BEL", G.provinces_goal([_province("FRA")]))), "so is one naming land the target does not own")
-	_check(not gs.issue(Justify.new("GER", "BEL", {"kind": "mystery"})), "and an unknown kind")
-	_check(D.justify_cost(gs, "GER", G.provinces_goal(two)) > D.justify_cost(gs, "GER", G.provinces_goal(one)), "each extra province makes the case dearer")
-	var told: Array = []
-	gs.justification_started.connect(func(_h: String, _t: String, _g: Dictionary, who: Array) -> void: told.assign(who))
+	_check(not demand.call(G.provinces_goal([])), "a demand for no provinces is refused")
+	_check(not demand.call(G.provinces_goal([_province("FRA")])), "so is one naming land the target does not own")
+	_check(not demand.call({"kind": "mystery"}), "and an unknown kind")
+	_check(C.press_cost(gs, "GER", G.provinces_goal(two)) > C.press_cost(gs, "GER", G.provinces_goal(one)), "each extra province makes the demand dearer")
 	var rel: float = D.relation(gs, "BEL", "GER")
 	var before: float = gs.nations["GER"].diplomacy_points
 	var goal: Dictionary = G.provinces_goal(two)
-	_check(gs.issue(Justify.new("GER", "BEL", goal)), "Germany starts a case for two Belgian provinces")
-	_check(absf((before - gs.nations["GER"].diplomacy_points) - D.justify_cost(gs, "GER", goal)) < 0.01 or before - gs.nations["GER"].diplomacy_points > 0.0, "it is paid for in diplomacy points")
-	_check("BEL" in told, "the target is told at once (%s)" % str(told))
-	_check(D.relation(gs, "BEL", "GER") < rel, "and thinks less of Germany for it")
-	var work: Dictionary = D.justifying(gs, "GER", "BEL")
-	_check(work.goal.kind == "provinces" and work.goal.ids == two, "the work holds the goal")
-	for i in G.days(goal) + 2:
-		clock.advance_day()
+	var cost: float = C.press_cost(gs, "GER", goal)
+	_check(demand.call(goal), "Germany demands two Belgian provinces")
+	_check(absf((before - gs.nations["GER"].diplomacy_points) - cost) < 0.01, "it is paid for in diplomacy points (%d)" % roundi(cost))
+	_check(D.relation(gs, "BEL", "GER") < rel, "and Belgium thinks less of Germany for it")
+	var crisis: Dictionary = C.of(gs, "BEL")[0]
+	_check(crisis.a == "GER" and crisis.goal.kind == "provinces" and crisis.goal.ids == two, "the crisis holds the goal")
+	C.respond(gs, crisis.id, "BEL", "refuse")
 	var held: Dictionary = {}
 	for cb: Dictionary in gs.casus_belli:
 		if cb.holder == "GER" and cb.target == "BEL":
 			held = cb
-	_check(not held.is_empty() and held.goal.ids == two, "the finished claim carries the goal")
+	_check(not held.is_empty() and held.goal.ids == two, "Belgium refuses, and the claim Germany holds carries the goal")
 	_check(G.for_declaration(gs, "GER", "BEL", "fabricated_claim").ids == two, "and a declaration on it takes the goal")
 	gs.nations["GER"].diplomacy_points = 200.0
 	var seen_goal: Array = []
@@ -158,8 +157,8 @@ func _initialize() -> void:
 	var cgoal: Dictionary = G.concession_goal({"kind": "indemnity", "share": 0.15, "months": 24})
 	_check(G.invalid(gs, "GER", "BEL", cgoal) == "", "an indemnity goal is valid")
 	_check(G.invalid(gs, "GER", "BEL", G.concession_goal({"kind": "release_ally", "nation": "ESP"})) == "demand", "ending ties that do not exist is not")
-	_check(gs.issue(Justify.new("GER", "BEL", cgoal)), "Germany starts a case for an indemnity")
-	_check(G.days(cgoal) == int(G.cfg().concession.days), "which takes the concession's days")
+	_check(demand.call(cgoal), "Germany demands an indemnity")
+	_check(C.of(gs, "BEL")[0].kind == "indemnity", "and the crisis is of that kind")
 
 	# --- The AI picks a goal ----------------------------------------------------------------
 	_fresh()

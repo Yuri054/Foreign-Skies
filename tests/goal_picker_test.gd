@@ -1,7 +1,7 @@
 extends SceneTree
-## Drives the goal picker through the main scene: Justify war opens it, it lists the target's
-## provinces (the border first), a goal prices the case, Start begins the work, and the news feed
-## and the peace screen show the goal.
+## Drives the demand picker (the goal picker) through the main scene: Make a demand opens it, it lists the target's
+## provinces (the border first) and the concessions, a choice prices the demand, pressing it opens the crisis, and the
+## peace screen shows a war's goal.
 ## Run: godot --headless --path . -s res://tests/goal_picker_test.gd
 
 var _failures := 0
@@ -43,16 +43,17 @@ func _initialize() -> void:
 	_check(not picker.visible, "the picker starts closed")
 	panel.show_nation("BEL")
 	await process_frame
-	panel._on_justify()
+	_check(panel._demand.text.begins_with("Make a demand") and not panel._demand.disabled, "the panel offers to make a demand: %s" % panel._demand.text)
+	panel._on_demand()
 	await process_frame
-	_check(picker.visible, "Justify war opens the picker")
-	_check(picker._start.disabled and picker.current_goal().is_empty(), "with nothing chosen, Start is off")
+	_check(picker.visible, "Make a demand opens the picker")
+	_check(picker._start.disabled and picker.current_goal().is_empty(), "with nothing chosen, it cannot be pressed")
 	_check(picker._province_ids.size() == gs.nations["BEL"].provinces.size(), "the target's provinces are listed")
 	picker._provinces.select(0, false)
 	picker._refresh()
 	var goal: Dictionary = picker.current_goal()
 	_check(goal.get("kind", "") == "provinces" and goal.ids.size() == 1, "ticking a province makes a province goal")
-	_check(not picker._start.disabled and picker._info.text.contains("diplomacy points"), "Start is on and says what it costs: %s" % picker._info.text)
+	_check(not picker._start.disabled and picker._info.text.contains("diplomacy points"), "it can be pressed and says what it costs: %s" % picker._info.text)
 	picker._kind.select(1)
 	picker._refresh()
 	_check(picker._concession.visible and not picker._provinces.visible, "the concession choice swaps the list")
@@ -62,12 +63,13 @@ func _initialize() -> void:
 	var news: Array = []
 	gs.news_posted.connect(func(t: String, _l: int) -> void: news.append(t))
 	picker._on_start()
-	_check(not picker.visible and Diplomacy_justifying("GER", "BEL"), "Start begins the case and closes the picker")
-	var work: Dictionary = gs.justifications[0]
-	_check(work.goal.kind == "provinces", "the work holds the goal")
+	var made: Array = load("res://scripts/sim/crisis.gd").of(gs, "BEL")
+	_check(not picker.visible and made.size() == 1 and made[0].a == "GER", "pressing it opens the crisis and closes the picker")
+	_check(made[0].goal.kind == "provinces" and made[0].demand.kind == "province", "the crisis asks for the province, and a war over it would be for it")
+	_check(not news.is_empty(), "and it is news")
 
 	# The peace screen shows the goal.
-	gs.justifications.clear()
+	gs.crises.clear()
 	gs.set_war("GER", "BEL", true, "fabricated_claim")
 	var war: War = gs.war_between("GER", "BEL")
 	war.goal = G.provinces_goal([gs.nations["BEL"].provinces[0]])
@@ -83,6 +85,3 @@ func _initialize() -> void:
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
 
-
-func Diplomacy_justifying(a: String, b: String) -> bool:
-	return load("res://scripts/sim/diplomacy.gd").justifying(gs, a, b) != null

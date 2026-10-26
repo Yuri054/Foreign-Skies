@@ -52,7 +52,6 @@ static func load_scenario(gs: Node) -> void:
 	gs.next_decision_id = 1
 	gs.pending_offers.clear()
 	gs.relation_projects.clear()
-	gs.justifications.clear()
 	gs.gift_memory.clear()
 	gs.next_offer_id = 1
 	gs.peace_cooldown.clear()
@@ -399,16 +398,10 @@ static func has_passage(gs: Node, host: String, mover: String) -> bool:
 ## propose (the treaty kind), cancel (the treaty kind) or gift.
 static func cost_of(action: String, detail := "") -> float:
 	var costs: Dictionary = cfg.points.costs
-	if action == "gift" or action == "improve_relations" or action == "justify":
+	if action == "gift" or action == "improve_relations":
 		return float(costs[action])
 	return float(costs.get(action, {}).get(detail, 0.0))
 
-
-## What a war justification costs `tag`: the base price, less what its prestige buys.
-static func justify_cost(gs: Node, tag: String, goal := {}) -> float:
-	var u: Dictionary = cfg.points.prestige_uses
-	var cut := clampf(gs.nations[tag].prestige * float(u.justify_discount), -float(u.justify_discount_max), float(u.justify_discount_max))
-	return cost_of("justify") * (1.0 - cut) * (WarGoal.cost_mult(goal) if not goal.is_empty() else 1.0)
 
 
 ## How much a nation's prestige adds to the regard others have of it when it offers a treaty.
@@ -654,7 +647,7 @@ static func gift_effect(gs: Node, from: String, to: String, amount: float) -> fl
 # --- Declaring war -------------------------------------------------------------------------
 
 ## Casus belli ids `a` could use against `b` today, best first. "none" is always last: a war
-## nobody would justify is allowed, at a price (see data/diplomacy.json, war.casus_belli).
+## with no reason at all is allowed, at a price (see data/diplomacy.json, war.casus_belli).
 static func casus_belli_options(gs: Node, a: String, b: String) -> Array[String]:
 	var out: Array[String] = []
 	if a == b or not gs.nations.has(a) or not gs.nations.has(b):
@@ -899,76 +892,6 @@ static func _step_grievance(gs: Node) -> void:
 		if c.expires_day <= today or not gs.nations.has(c.holder) or gs.nations[c.holder].provinces.is_empty():
 			return false
 		return c.ids.any(func(id: int) -> bool: return gs.province_owner[id] != c.holder))
-
-
-# --- War justification ---------------------------------------------------------------------
-
-## Why `a` cannot start justifying a war on `b` ("" if it can): unknown, at_war, allied, nap,
-## has_cause (a casus belli already in hand), active or limit.
-static func justify_block(gs: Node, a: String, b: String) -> String:
-	var why := declare_block(gs, a, b)
-	if why != "":
-		return why
-	for cb: Dictionary in gs.casus_belli:
-		if cb.holder == a and cb.target == b and cb.expires_day > Clock.days_elapsed:
-			return "has_cause"
-	if justifying(gs, a, b) != null:
-		return "active"
-	if justifications_of(gs, a).size() >= int(cfg.war.justify.max_active):
-		return "limit"
-	return ""
-
-
-static func justifying(gs: Node, a: String, b: String) -> Variant:
-	for j: Dictionary in gs.justifications:
-		if j.holder == a and j.target == b:
-			return j
-	return null
-
-
-static func justifications_of(gs: Node, a: String) -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	for j: Dictionary in gs.justifications:
-		if j.holder == a:
-			out.append(j)
-	return out
-
-
-## Starts the work (points are charged by JustifyWar). `goal` is what the war will be for (see
-## WarGoal; {} for a bare fabricated claim). The target and its friends hear of it at once.
-static func start_justification(gs: Node, a: String, b: String, goal := {}) -> bool:
-	if justify_block(gs, a, b) != "":
-		return false
-	if not goal.is_empty() and WarGoal.invalid(gs, a, b, goal) != "":
-		return false
-	var work_days: int = WarGoal.days(goal) if not goal.is_empty() else int(cfg.war.justify.days)
-	gs.justifications.append({"holder": a, "target": b, "goal": goal.duplicate(true), "done_day": Clock.days_elapsed + work_days})
-	add_grievance(gs, b, a, WarGoal.grievance(goal) if not goal.is_empty() else float(cfg.war.justify.grievance))
-	var notice: float = WarGoal.cfg().notice_relations
-	var told: Array[String] = [b]
-	for ward in allies_of(gs, b) + guarantors_of(gs, b):
-		if ward != a and ward not in told:
-			told.append(ward)
-	for tag in told:
-		change_relation(gs, tag, a, notice)
-	gs.justification_started.emit(a, b, goal, told)
-	return true
-
-
-## Daily: finished work becomes a dated casus belli; work against a nation the holder is now
-## at war with, allied to or bound to by a pact is dropped.
-static func _step_justifications(gs: Node) -> void:
-	if gs.justifications.is_empty():
-		return
-	var today: int = Clock.days_elapsed
-	for i in range(gs.justifications.size() - 1, -1, -1):
-		var j: Dictionary = gs.justifications[i]
-		if declare_block(gs, j.holder, j.target) != "":
-			gs.justifications.remove_at(i)
-		elif today >= j.done_day:
-			gs.justifications.remove_at(i)
-			gs.casus_belli.append({"holder": j.holder, "target": j.target, "kind": "fabricated_claim", "goal": j.get("goal", {}), "expires_day": today + int(cfg.war.cb_years * 365)})
-			gs.casus_belli_ready.emit(j.holder, j.target)
 
 
 static func _step_gifts(gs: Node) -> void:
@@ -1221,7 +1144,6 @@ static func violate_border(gs: Node, violator: String, victim: String) -> void:
 ## Daily: mobilization alarms neighbours, AI nations answer it, wars pull nations up to a
 ## war footing, and called nations that have mobilized enough enter their wars.
 static func step_day(gs: Node) -> void:
-	_step_justifications(gs)
 	_step_alarms(gs)
 	var changed := _step_mobilization(gs)
 	_step_join_calls(gs)

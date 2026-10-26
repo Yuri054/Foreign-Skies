@@ -55,10 +55,6 @@ static func issues(gs: Node, tag: String) -> Array[Dictionary]:
 		if pool > 0.0 and used < pool * 0.5 and n.construction.is_empty():
 			_add(out, "idle_industry", 35.0, "Your industry sits idle", "%d of %d IC a day are not used. Queue buildings." % [roundi(pool - used), roundi(pool)], "Build")
 	# Neighbours and Europe.
-	for j: Dictionary in gs.justifications:
-		if j.target == tag:
-			var aim: String = WarGoal.describe(gs, j.goal) if j.get("goal", {}).size() > 0 else "a pretext"
-			_add(out, "case_" + j.holder, 70.0, "%s is building a case against you" % gs.nations[j.holder].display_name, "Its aim: %s. Seek friends, a guarantee, or ease the quarrel before it is ready." % aim, "Diplomacy")
 	for key: String in gs.alarms:
 		if key.ends_with(">" + tag):
 			var other := key.get_slice(">", 0)

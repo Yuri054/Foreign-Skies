@@ -1,11 +1,11 @@
 class_name WarGoal
 extends RefCounted
 ## What a war is fought for. The aggressor's goal is a dictionary {kind, ids, demand, label}:
-##   provinces    named provinces of the target (a justified claim), `ids`
+##   provinces    named provinces of the target (a demand for them), `ids`
 ##   nationality  the provinces of a scenario claim (a national claim, reconquest or border claim), `ids`
-##   concession   one peace demand (`demand`: an indemnity, a border disarmament or a release of an ally)
+##   concession   one peace demand (`demand`: an indemnity, a border disarmament, a fleet limit or a release of an ally)
 ##   defence      defending a guarantee or an ally: it asks for no land, only for the aggressor to pay
-## The goal is held by a justification, kept in the casus belli it makes, and copied onto the War
+## The goal is what a demand asked (Crisis), kept in the casus belli its refusal gives, and copied onto the War
 ## when it is declared. At peace Peace.demand_cost prices what matches it at a discount and
 ## everything else at a premium (see data/diplomacy.json, war.goals).
 
@@ -88,22 +88,12 @@ static func invalid(gs: Node, a: String, b: String, goal: Dictionary) -> String:
 	return "kind"
 
 
-## The goal's price multiplier for the points to justify it.
+## The goal's price multiplier for the points to press it as a demand (Crisis.press_cost).
 static func cost_mult(goal: Dictionary) -> float:
 	var def: Dictionary = cfg().get(goal.get("kind", ""), {})
 	var m: float = def.get("cost_mult", 1.0)
 	m += float(def.get("cost_per_province", 0.0)) * maxi(goal.get("ids", []).size() - 1, 0)
 	return m
-
-
-static func days(goal: Dictionary) -> int:
-	var def: Dictionary = cfg().get(goal.get("kind", ""), {})
-	return int(def.get("days", Diplomacy.cfg.war.justify.days))
-
-
-static func grievance(goal: Dictionary) -> float:
-	var def: Dictionary = cfg().get(goal.get("kind", ""), {})
-	return float(def.get("grievance", Diplomacy.cfg.war.justify.grievance))
 
 
 ## The price multiplier for one peace demand `d` that `taker` makes against `giver` in `war`:

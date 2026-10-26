@@ -98,6 +98,10 @@ def check_events(events: dict, tags: set, problems: list):
                 picks = [choice] if isinstance(choice, int) else [choice.get("yes"), choice.get("no")] if isinstance(choice, dict) else [None]
                 if not all(isinstance(x, int) and 0 <= x < len(pool) for x in picks):
                     problems.append(f"events.json: {eid} {key} {choice!r} is not an option")
+        # No decision has an option that does nothing (step 5 of PLAN.md).
+        for i, o in enumerate(options + e.get("b_options", [])):
+            if not any(any(v != 0 and v != [] and v != {} and not (isinstance(v, list) and len(v) > 1 and v[-1] == 0) for v in fx.values()) for fx in o.get("effects", [])):
+                problems.append(f"events.json: {eid} option {i} ({o.get('label', '?')}) does nothing")
         for role, who in e.get("actors", {}).items():
             if isinstance(who, str) and not who.startswith("$") and who not in tags:
                 problems.append(f"events.json: {eid} names unknown nation {who} as {role}")
@@ -106,15 +110,24 @@ def check_events(events: dict, tags: set, problems: list):
         for key in e.get("condition", {}):
             if key not in CONDITIONS:
                 problems.append(f"events.json: {eid} has an unknown condition {key}")
+    # Every nation has at least two events of its own to answer (step 5 of PLAN.md: no nation sits through the game unasked).
+    named = {}
+    for e in items:
+        for who in set(v for v in e.get("actors", {}).values() if isinstance(v, str) and not v.startswith("$")):
+            named[who] = named.get(who, 0) + 1
+    for tag in sorted(tags):
+        if named.get(tag, 0) < 2:
+            problems.append(f"events.json: {tag} is in {named.get(tag, 0)} events (at least 2 wanted)")
     for tag in events.get("tension", {}).get("picks", {}).get("empires", []):
         if tag not in tags:
             problems.append(f"events.json: tension.picks.empires names unknown nation {tag}")
 
 
 # What Pressure._pick_role and Pressure._condition_ok read.
-PICKS = {"$player", "$lost_ground", "$winner", "$empire", "$most_armed", "$second_armed"}
-CONDITIONS = {"tension_min", "tension_max", "relation_above", "peace", "pressure_ai", "player_great_power", "no_great_war", "after_great_war",
-              "months_from_start"}
+PICKS = {"$player", "$lost_ground", "$winner", "$empire", "$most_armed", "$second_armed", "$suitor", "$trade_partner",
+         "$great_neighbour"}
+CONDITIONS = {"tension_min", "tension_max", "relation_above", "peace", "pressure_ai", "player_great_power", "player_minor",
+              "no_great_war", "after_great_war", "months_from_start"}
 
 
 def check_crises(crises: dict, problems: list):

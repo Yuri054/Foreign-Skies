@@ -76,7 +76,7 @@ func _test_tension() -> void:
 ## known effects.
 func _test_event_data() -> void:
 	var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/events.json"))
-	var known := ["tension", "relation", "treasury", "prestige", "war_support", "points", "manpower", "mobilize", "grievance", "treaty", "end_treaty", "war"]
+	var known := ["tension", "relation", "treasury", "revenue", "prestige", "war_support", "points", "manpower", "mobilize", "grievance", "treaty", "end_treaty", "war"]
 	var ids := {}
 	var bad := 0
 	for e: Dictionary in cfg.events:
@@ -116,7 +116,8 @@ func _test_ai_event() -> void:
 	var news: Array = []
 	gs.news_posted.connect(func(text: String, _l: int) -> void: news.append(text))
 	_advance_to(1900, 7)
-	_check(gs.pending_events.is_empty() and news.size() >= 1, "a nation not concerned reads the Boxer Rising as news")
+	# (A small nation's own events, a great power courting it, may wait for it; the Boxer Rising is not one of them.)
+	_check(gs.pending_events.filter(func(p: Dictionary) -> bool: return p.event == "boxer").is_empty() and news.size() >= 1, "a nation not concerned reads the Boxer Rising as news")
 	_check(gs.nations["GER"].prestige > 0.0, "and the AI's choice happened")
 
 

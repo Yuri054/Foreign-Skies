@@ -1,8 +1,8 @@
 extends FloatingWindow
-## Justify war: choose what the war will be for before work on the case starts. A province claim
-## (tick the provinces of the target to win; those on your border come first) or a concession
-## (an indemnity, a border disarmament, or an end to one of the target's ties). The cost and the
-## days follow the goal, and the target and its friends are told when the work begins.
+## Make a demand: choose what to ask of a nation before the crisis opens. Provinces (tick the target's provinces to ask
+## for; those on your border come first) or a concession (an indemnity, a border disarmament, no new warships, or an
+## end to one of the target's ties). The price in diplomacy points follows the demand; the nation then has a deadline
+## to answer, and if it refuses the demand becomes the goal of a war (Crisis.press).
 
 const PanelScript := preload("res://scripts/ui/diplomacy_panel.gd")
 
@@ -28,7 +28,7 @@ func _ready() -> void:
 	_title.add_theme_font_size_override("font_size", 16)
 	box.add_child(_title)
 	var hint := Label.new()
-	hint.text = "What will the war be for? At peace the goal costs half, everything else more."
+	hint.text = "What do you ask? If it is refused, it is what a war would be for: at peace the goal costs half, everything else more."
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.custom_minimum_size = Vector2(380, 0)
 	hint.modulate = Fmt.DIM
@@ -58,7 +58,7 @@ func _ready() -> void:
 	box.add_child(_start)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_status)
-	setup_window("Justify war", true, Vector2(420, 0), 1, true)
+	setup_window("Make a demand", true, Vector2(420, 0), 1, true)
 	GameState.player_changed.connect(func(_t: String) -> void: visible = false)
 
 
@@ -69,7 +69,7 @@ func open(target: String) -> void:
 		return
 	_target = target
 	_updating = true
-	_title.text = "A case against %s" % GameState.nations[target].display_name
+	_title.text = "A demand of %s" % GameState.nations[target].display_name
 	_status.text = ""
 	var entries: Array = []
 	for id: int in GameState.nations[target].provinces:
@@ -95,6 +95,10 @@ func open(target: String) -> void:
 	if not Military.border_provinces(GameState, target, me).is_empty():
 		_concession.add_item("Its border armies withdrawn for %d years" % int(c.disarm_years))
 		_concession.set_item_metadata(_concession.item_count - 1, {"kind": "disarm_border", "years": c.disarm_years})
+	if Navy.strength_of(GameState, target) > 0.0:
+		var years := int(Crisis.cfg.kinds.naval.years)
+		_concession.add_item("No new warships for %d years" % years)
+		_concession.set_item_metadata(_concession.item_count - 1, {"kind": "fleet_limit", "years": years})
 	var partners: Array[String] = []
 	for t in Diplomacy.treaties_of(GameState, target):
 		if t.kind == "alliance" or t.kind == "guarantee":
@@ -130,19 +134,18 @@ func _refresh() -> void:
 	_provinces.visible = provinces
 	_concession.visible = not provinces
 	var goal := current_goal()
-	var block := Diplomacy.justify_block(GameState, me, _target)
+	var block := Crisis.press_block(GameState, me, _target, true)
 	if goal.is_empty():
-		_info.text = "Tick the provinces to claim." if provinces else "Choose a concession."
-		_start.text = "Start building the case"
+		_info.text = "Tick the provinces to ask for." if provinces else "Choose a concession."
+		_start.text = "Press the demand"
 		_start.disabled = true
 		return
-	var invalid := WarGoal.invalid(GameState, me, _target, goal)
-	var cost := Diplomacy.justify_cost(GameState, me, goal)
+	var invalid := Crisis.custom_problem(GameState, me, _target, {"demand": Crisis.demand_for(goal), "goal": goal})
+	var cost := Crisis.press_cost(GameState, me, goal)
 	var poor := not Diplomacy.can_afford(GameState, me, cost)
-	_info.text = "To %s: %d diplomacy points and %d days. %s resents it, and so do its friends." % [
-			WarGoal.describe(GameState, goal).replace("to win ", "win ").replace("to force ", "force "), int(cost), WarGoal.days(goal),
-			GameState.nations[_target].display_name]
-	_start.text = "Start building the case (%d)" % int(cost)
+	_info.text = "To ask %s: %d diplomacy points. %s has %d days to answer; if it refuses, you hold a casus belli with this as the goal." % [
+			Peace.describe_demand(GameState, Crisis.demand_for(goal)), int(cost), GameState.nations[_target].display_name, int(Crisis.cfg.gate.deadline_days)]
+	_start.text = "Press the demand (%d)" % int(cost)
 	_start.disabled = invalid != "" or block != "" or poor
 	if invalid == "count":
 		_status.text = "At most %d provinces." % int(WarGoal.cfg().max_provinces)
@@ -153,8 +156,11 @@ func _refresh() -> void:
 	elif invalid == "capital":
 		_status.text = "The capital cannot be claimed on its own."
 		_status.modulate = Fmt.WARN
+	elif invalid == "demand":
+		_status.text = "That cannot be asked of them now."
+		_status.modulate = Fmt.WARN
 	elif block != "":
-		_status.text = PanelScript.JUSTIFY_BLOCKS.get(block, PanelScript.BLOCKS.get(block, block))
+		_status.text = PanelScript.DEMAND_BLOCKS.get(block, PanelScript.BLOCKS.get(block, block))
 		_status.modulate = Fmt.WARN
 	elif poor:
 		_status.text = "Not enough diplomacy points (need %d)." % int(cost)
@@ -165,7 +171,7 @@ func _refresh() -> void:
 
 func _on_start() -> void:
 	var goal := current_goal()
-	var cmd := JustifyWar.new(GameState.player_tag, _target, goal)
+	var cmd := PressDemand.new(GameState.player_tag, _target, "", {"demand": Crisis.demand_for(goal), "goal": goal})
 	if GameState.issue(cmd):
 		visible = false
 		get_tree().call_group("diplomacy_panel", "refresh_now")

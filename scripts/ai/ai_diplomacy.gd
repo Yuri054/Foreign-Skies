@@ -318,15 +318,16 @@ static func consider_war(gs: Node, tag: String) -> void:
 	if not option.is_empty():
 		gs.issue_quiet(DeclareWar.new(tag, option.target, option.cb))
 	else:
-		consider_justify(gs, tag)
+		consider_press(gs, tag)
 
 
-## A nation that has a plan against a neighbour, the temper for it and the odds, but no
-## casus belli, works to fabricate one instead of striking unjustified.
-static func consider_justify(gs: Node, tag: String) -> void:
+## A nation that has a plan against a neighbour, the temper for it and the odds, but no casus belli, makes a demand of
+## it instead of striking with no cause: if refused, it holds a casus belli with the demand as its goal.
+static func consider_press(gs: Node, tag: String) -> void:
 	var w: Dictionary = cfg().war
-	if not gs.justifications.is_empty() and not Diplomacy.justifications_of(gs, tag).is_empty():
-		return
+	for c: Dictionary in gs.crises:
+		if c.a == tag:
+			return
 	var temperament: Dictionary = AI.temperament(gs, tag)
 	if float(temperament.aggression) < float(w.unjustified_min_aggression):
 		return
@@ -334,7 +335,7 @@ static func consider_justify(gs: Node, tag: String) -> void:
 	var best_goal := {}
 	var best_desire := -INF
 	for target in Diplomacy.neighbor_nations(gs, tag):
-		if Diplomacy.justify_block(gs, tag, target) != "" or in_truce(gs, tag, target) or not has_plan(gs, tag, target):
+		if Crisis.press_block(gs, tag, target, true) != "" or in_truce(gs, tag, target) or not has_plan(gs, tag, target):
 			continue
 		var options := Diplomacy.casus_belli_options(gs, tag, target)
 		if options[0] != "none":
@@ -343,15 +344,17 @@ static func consider_justify(gs: Node, tag: String) -> void:
 		if desire < float(w.min_motive) or odds_against(gs, tag, target) < AI.required_odds(gs, tag) * float(w.odds_margin):
 			continue
 		var goal := choose_goal(gs, tag, target)
-		var cost := Diplomacy.justify_cost(gs, tag, goal) + Diplomacy.cost_of("declare_war", "fabricated_claim")
-		if goal.is_empty() or not Diplomacy.can_afford(gs, tag, cost):
+		if goal.is_empty() or Crisis.custom_problem(gs, tag, target, {"demand": Crisis.demand_for(goal), "goal": goal}) != "":
+			continue
+		var cost := Crisis.press_cost(gs, tag, goal) + Diplomacy.cost_of("declare_war", "fabricated_claim")
+		if not Diplomacy.can_afford(gs, tag, cost):
 			continue
 		if desire > best_desire:
 			best = target
 			best_goal = goal
 			best_desire = desire
 	if best != "":
-		gs.issue_quiet(JustifyWar.new(tag, best, best_goal))
+		gs.issue_quiet(PressDemand.new(tag, best, "", {"demand": Crisis.demand_for(best_goal), "goal": best_goal}))
 
 
 ## What `tag` would fight `target` for: the provinces its campaign plans aim at, else the
@@ -392,9 +395,9 @@ static func neediness(gs: Node, tag: String) -> float:
 		if Diplomacy.relation(gs, other, tag) < float(cfg().treaties.rival_relation):
 			worst = maxf(worst, side_power(gs, _side(gs, other)) / mine)
 	var need := clampf(worst, 0.0, 2.0) / 2.0
-	# A case being built against it makes a nation look for friends, whatever its neighbours' strength.
-	for j: Dictionary in gs.justifications:
-		if j.target == tag:
+	# A demand made of it makes a nation look for friends, whatever its neighbours' strength.
+	for c: Dictionary in gs.crises:
+		if c.b == tag:
 			need = maxf(need, 0.8)
 			break
 	return need

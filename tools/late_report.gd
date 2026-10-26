@@ -1,6 +1,6 @@
 extends SceneTree
-## Counts what the AI does in each year of a long run: wars begun, peaces, treaties signed,
-## justifications, foci finished. Run:
+## Counts what the AI does in each year of a long run: wars begun, peaces, treaties signed and
+## foci finished. Run:
 ##   godot --headless --path . -s res://tools/late_report.gd -- [years] [seed]
 var wars := 0
 var peaces := 0

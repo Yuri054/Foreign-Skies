@@ -117,7 +117,7 @@ func _test_panel() -> void:
 	await process_frame
 	_check(panel._selected == "GER", "clicking a German province selects Germany")
 	_check(panel._detail.text.contains("German Empire") and panel._detail.text.contains("opinion of you"), "the detail shows its opinion of you (%s)" % panel._detail.text.left(60))
-	_check(panel._cb_ids.has("reconquest") and panel._cb_ids.back() == "none", "France can pick reconquest, or no justification")
+	_check(panel._cb_ids.has("reconquest") and panel._cb_ids.back() == "none", "France can pick reconquest, or no casus belli")
 	_check(not panel._declare.disabled, "and declare with it")
 	panel._cb_picker.select(panel._cb_ids.size() - 1)
 	panel._refresh_actions()

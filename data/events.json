@@ -21,15 +21,18 @@
 		"ai_war_gate": 30,
 		"bloc_weight": 8,
 		"appeals": {
-			"_note": "Appeal (Pressure.appeal): a nation takes a public stand. cost is diplomacy points, tension what it adds to the lasting force of events, prestige and war_support what the nation gains, wait_days before the same nation may do either again.",
+			"_note": "Appeal (Pressure.appeal): a nation takes a public stand, one at a time (wait_days before it may take either again). cost is diplomacy points, prestige and war_support what the nation gains. A call for calm lowers tension by (tension + great_power for a great power + per_prestige times its prestige) times (0.5 + tension/100), at most tension_max (Pressure.appeal_tension); a rattled sabre adds its tension and costs neighbour_relation with every land neighbour.",
 			"wait_days": 180,
 			"calm": {
 				"label": "Appeal for calm",
 				"cost": 25,
-				"tension": -4,
+				"tension": 3,
+				"great_power": 4,
+				"per_prestige": 0.1,
+				"tension_max": 12,
 				"prestige": 1,
 				"war_support": 0,
-				"tip": "A speech and a note to the powers asking them to step back."
+				"tip": "A speech and a note to the powers asking them to step back. It carries as much weight as your nation does."
 			},
 			"rattle": {
 				"label": "Rattle the sabre",
@@ -37,7 +40,8 @@
 				"tension": 5,
 				"prestige": 2,
 				"war_support": 3,
-				"tip": "Parades, speeches and a hard line: your people cheer and Europe frowns."
+				"neighbour_relation": -5,
+				"tip": "Parades, speeches and a hard line: your people cheer, your neighbours take note and Europe frowns."
 			}
 		},
 		"picks": {
@@ -52,83 +56,6 @@
 		}
 	},
 	"events": [
-		{
-			"id": "concert",
-			"title": "A conference of the powers",
-			"text": "Europe is arming faster than anyone can say why. The powers look to you to call them together.",
-			"date": [
-				1900,
-				1
-			],
-			"actors": {
-				"a": "$player"
-			},
-			"options": [
-				{
-					"label": "Call a conference",
-					"text": "A show of good faith and a little less tension.",
-					"effects": [
-						{
-							"tension": -12
-						},
-						{
-							"prestige": [
-								"a",
-								2
-							]
-						},
-						{
-							"treasury": [
-								"a",
-								-1
-							]
-						}
-					]
-				},
-				{
-					"label": "Press on",
-					"text": "Let the others worry.",
-					"effects": [
-						{
-							"tension": 3
-						}
-					]
-				}
-			],
-			"ai_option": 1,
-			"repeat_months": 10,
-			"condition": {
-				"tension_min": 55,
-				"player_great_power": true,
-				"pressure_ai": true
-			}
-		},
-		{
-			"id": "brink",
-			"title": "Europe on the brink",
-			"text": "The armies are ready, the alliances are drawn, and every capital is waiting for someone else to blink.",
-			"date": [
-				1900,
-				1
-			],
-			"actors": {},
-			"options": [
-				{
-					"label": "The powers wait",
-					"text": "Nothing is settled, and nothing is safe.",
-					"effects": [
-						{
-							"tension": 0
-						}
-					]
-				}
-			],
-			"ai_option": 0,
-			"repeat_months": 6,
-			"condition": {
-				"tension_min": 80
-			}
-		},
 		{
 			"id": "boxer",
 			"title": "The Boxer Rising",
@@ -360,7 +287,21 @@
 				{
 					"label": "Decline",
 					"text": "Keep both hands free.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								3
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -523,7 +464,17 @@
 				{
 					"label": "Leave it to others",
 					"text": "Not worth the quarrel with America.",
-					"effects": []
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"tension": -1
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -576,7 +527,15 @@
 				{
 					"label": "Decline",
 					"text": "The cost and the quarrel are not worth it.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -790,7 +749,15 @@
 				{
 					"label": "Hold off",
 					"text": "Britain keeps its freedom of action.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-3
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -1408,7 +1375,15 @@
 				{
 					"label": "Let it lapse",
 					"text": "Ministers on both sides will not have it.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 1,
@@ -1865,7 +1840,14 @@
 				{
 					"label": "Send a token delegation",
 					"text": "Say yes, and do nothing.",
-					"effects": []
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 1,
@@ -1917,7 +1899,18 @@
 				{
 					"label": "Decline",
 					"text": "Keep free of continental quarrels.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						},
+						{
+							"tension": -1
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -2312,7 +2305,14 @@
 				{
 					"label": "Wait",
 					"text": "A better moment may come.",
-					"effects": []
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-3
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -2596,7 +2596,15 @@
 				{
 					"label": "Decline",
 					"text": "Loyal to Vienna and Berlin.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -2820,7 +2828,21 @@
 				{
 					"label": "Hold back",
 					"text": "The money is wanted for the army.",
-					"effects": []
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								2
+							]
+						}
+					]
 				}
 			],
 			"b_options": [
@@ -3103,7 +3125,14 @@
 				{
 					"label": "Refrain",
 					"text": "Keep the peace.",
-					"effects": []
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -3303,7 +3332,15 @@
 				{
 					"label": "Stay apart",
 					"text": "Keep out of it.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -3364,7 +3401,17 @@
 				{
 					"label": "Hold the line",
 					"text": "The army is large enough.",
-					"effects": []
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"tension": -1
+						}
+					]
 				}
 			],
 			"b_options": [
@@ -3490,7 +3537,15 @@
 				{
 					"label": "Decline",
 					"text": "Britain is not bound to anyone's fleet.",
-					"effects": []
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -3610,7 +3665,20 @@
 				{
 					"label": "Hold back",
 					"text": "Not yet.",
-					"effects": []
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-3
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
 				}
 			],
 			"ai_option": 0,
@@ -4472,6 +4540,1299 @@
 				"pressure_ai": true,
 				"months_from_start": 12,
 				"after_great_war": true
+			}
+		},
+		{
+			"id": "danish_west_indies",
+			"title": "The Danish West Indies",
+			"text": "Washington offers to buy St Thomas, St John and St Croix. The islands cost more than they bring, but they are Danish.",
+			"date": [
+				1902,
+				1
+			],
+			"actors": {
+				"a": "DEN"
+			},
+			"options": [
+				{
+					"label": "Sell the islands",
+					"text": "Money for the treasury, and a little less of a flag in the world.",
+					"effects": [
+						{
+							"revenue": [
+								"a",
+								2.0
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep them",
+					"text": "The Landsting will not sell Danes.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						},
+						{
+							"revenue": [
+								"a",
+								-0.3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1903,
+				1
+			]
+		},
+		{
+			"id": "copenhagen_defence",
+			"title": "The defence of Copenhagen",
+			"text": "The army wants the capital ringed with forts; the radicals say a small country's only defence is to offend no one, least of all {b}.",
+			"date": [
+				1909,
+				9
+			],
+			"actors": {
+				"a": "DEN",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Fortify Copenhagen",
+					"text": "Forts on land and sea, paid for over years.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								3
+							]
+						},
+						{
+							"revenue": [
+								"a",
+								-0.5
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-3
+							]
+						}
+					]
+				},
+				{
+					"label": "Rely on neutrality",
+					"text": "Give Berlin no reason to look north.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								4
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1910,
+				9
+			]
+		},
+		{
+			"id": "north_schleswig",
+			"title": "The optants of North Schleswig",
+			"text": "Berlin offers to settle the status of the Danes of North Schleswig, if Copenhagen drops its claim.",
+			"date": [
+				1907,
+				1
+			],
+			"actors": {
+				"a": "DEN",
+				"b": "GER"
+			},
+			"options": [
+				{
+					"label": "Sign the convention",
+					"text": "The Danes there get papers; the claim waits.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						},
+						{
+							"grievance": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"tension": -1
+						}
+					]
+				},
+				{
+					"label": "Keep the claim alive",
+					"text": "Schleswig is Danish.",
+					"effects": [
+						{
+							"grievance": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1908,
+				1
+			]
+		},
+		{
+			"id": "luxembourg_railways",
+			"title": "The Luxembourg railways",
+			"text": "The lease that lets the German railways run the Grand Duchy's lines comes up for renewal. Paris and Brussels offer to run them instead.",
+			"date": [
+				1902,
+				1
+			],
+			"actors": {
+				"a": "LUX",
+				"b": "GER",
+				"c": "FRA"
+			},
+			"options": [
+				{
+					"label": "Renew the German lease",
+					"text": "The trains keep running, and Berlin is pleased.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-4
+							]
+						},
+						{
+							"revenue": [
+								"a",
+								0.5
+							]
+						}
+					]
+				},
+				{
+					"label": "Turn to Paris and Brussels",
+					"text": "Less German, and less money.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								6
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1903,
+				1
+			]
+		},
+		{
+			"id": "grand_duchess",
+			"title": "A Grand Duchess",
+			"text": "The Grand Duke is dying and leaves a daughter. Some in the Chamber want the constitution changed first.",
+			"date": [
+				1912,
+				2
+			],
+			"actors": {
+				"a": "LUX"
+			},
+			"options": [
+				{
+					"label": "Crown Marie-Adelaide",
+					"text": "A young sovereign, and a Catholic one.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-2
+							]
+						}
+					]
+				},
+				{
+					"label": "Reform the constitution first",
+					"text": "Parliament before the throne.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								3
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1913,
+				2
+			]
+		},
+		{
+			"id": "aceh_war",
+			"title": "The end in Aceh",
+			"text": "Thirty years of war in northern Sumatra. Van Heutsz says one more campaign will finish it.",
+			"date": [
+				1903,
+				1
+			],
+			"actors": {
+				"a": "NED"
+			},
+			"options": [
+				{
+					"label": "Finish the war",
+					"text": "Columns into the hills, whatever it costs.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"revenue": [
+								"a",
+								-0.5
+							]
+						},
+						{
+							"manpower": [
+								"a",
+								-0.02
+							]
+						}
+					]
+				},
+				{
+					"label": "Make a settlement",
+					"text": "Let the sultan keep his court.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1904,
+				1
+			]
+		},
+		{
+			"id": "peace_conference",
+			"title": "A conference at The Hague",
+			"text": "The powers will meet again at The Hague to talk of arbitration and the laws of war, and the Netherlands is asked to host them.",
+			"date": [
+				1907,
+				6
+			],
+			"actors": {
+				"a": "NED"
+			},
+			"options": [
+				{
+					"label": "Host the conference",
+					"text": "A Peace Palace, and the world's eyes on The Hague.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								4
+							]
+						},
+						{
+							"tension": -3
+						},
+						{
+							"revenue": [
+								"a",
+								-0.3
+							]
+						}
+					]
+				},
+				{
+					"label": "Leave it to others",
+					"text": "Nothing of the kind changes anything.",
+					"effects": [
+						{
+							"revenue": [
+								"a",
+								0.1
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1908,
+				6
+			]
+		},
+		{
+			"id": "flushing_forts",
+			"title": "The forts of Flushing",
+			"text": "The army wants to fortify Flushing at the mouth of the Scheldt. London says it would close Antwerp to a British army; Berlin says it is the Netherlands' own business.",
+			"date": [
+				1910,
+				11
+			],
+			"actors": {
+				"a": "NED",
+				"b": "GBR",
+				"c": "GER"
+			},
+			"options": [
+				{
+					"label": "Fortify Flushing",
+					"text": "The Scheldt is Dutch.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								5
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						}
+					]
+				},
+				{
+					"label": "Drop the plan",
+					"text": "Neutral means offending no one.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								5
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1911,
+				11
+			]
+		},
+		{
+			"id": "romanian_treaty",
+			"title": "The secret treaty",
+			"text": "Romania's alliance with {b} is a secret even from most of the cabinet. It comes up for renewal while the papers cry for Transylvania.",
+			"date": [
+				1903,
+				4
+			],
+			"actors": {
+				"a": "ROM",
+				"b": "AUH",
+				"c": "RUS"
+			},
+			"options": [
+				{
+					"label": "Renew the secret treaty",
+					"text": "The King keeps his word to Vienna.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-5
+							]
+						}
+					]
+				},
+				{
+					"label": "Let it lapse",
+					"text": "Look east instead.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								6
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"grievance": [
+								"a",
+								"b",
+								10
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1904,
+				4
+			]
+		},
+		{
+			"id": "peasant_revolt",
+			"title": "The peasants rise",
+			"text": "In Moldavia the peasants burn the manors of the leaseholders, and the fire spreads south.",
+			"date": [
+				1907,
+				3
+			],
+			"actors": {
+				"a": "ROM"
+			},
+			"options": [
+				{
+					"label": "Send in the army",
+					"text": "Order, at the price of thousands dead.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-6
+							]
+						},
+						{
+							"manpower": [
+								"a",
+								-0.03
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						}
+					]
+				},
+				{
+					"label": "Promise land reform",
+					"text": "Cheaper rents and new laws.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								5
+							]
+						},
+						{
+							"revenue": [
+								"a",
+								-0.5
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1908,
+				3
+			]
+		},
+		{
+			"id": "swiss_army_law",
+			"title": "The new army law",
+			"text": "A new military organization: longer training, a modern artillery, and a vote of the people to approve it.",
+			"date": [
+				1907,
+				11
+			],
+			"actors": {
+				"a": "SUI"
+			},
+			"options": [
+				{
+					"label": "Adopt the law",
+					"text": "The militia trained like an army.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								3
+							]
+						},
+						{
+							"revenue": [
+								"a",
+								-0.4
+							]
+						},
+						{
+							"manpower": [
+								"a",
+								0.05
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep the old militia",
+					"text": "Cheaper, and Swiss enough.",
+					"effects": [
+						{
+							"revenue": [
+								"a",
+								0.2
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1908,
+				11
+			]
+		},
+		{
+			"id": "gotthard_convention",
+			"title": "The Gotthard convention",
+			"text": "Berlin and Rome want lasting rights on the Gotthard line in return for what they paid to build it. In the cantons they call it a sale of the Alps.",
+			"date": [
+				1909,
+				10
+			],
+			"actors": {
+				"a": "SUI",
+				"b": "GER",
+				"c": "ITA"
+			},
+			"options": [
+				{
+					"label": "Sign the convention",
+					"text": "Good relations, and a storm at home.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								6
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								6
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-4
+							]
+						}
+					]
+				},
+				{
+					"label": "Refuse it",
+					"text": "The Gotthard is Swiss.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								-5
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-3
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1910,
+				10
+			]
+		},
+		{
+			"id": "norwegian_integrity",
+			"title": "A guarantee for Norway",
+			"text": "The powers offer the new kingdom a treaty that promises its borders, if it gives up nothing for it.",
+			"date": [
+				1907,
+				11
+			],
+			"actors": {
+				"a": "NOR",
+				"b": "GBR",
+				"c": "GER"
+			},
+			"options": [
+				{
+					"label": "Sign the treaty",
+					"text": "Friends in London and Berlin alike.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						}
+					]
+				},
+				{
+					"label": "Stand alone",
+					"text": "Norway asks no one's leave.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1908,
+				11
+			]
+		},
+		{
+			"id": "farmers_march",
+			"title": "The farmers' march",
+			"text": "Thirty thousand farmers march on the palace to ask for armoured ships against {b}; the Liberal ministry wants to cut the budget.",
+			"date": [
+				1914,
+				2
+			],
+			"actors": {
+				"a": "SWE",
+				"b": "RUS"
+			},
+			"options": [
+				{
+					"label": "Build the armoured ships",
+					"text": "The King sides with the farmers.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								4
+							]
+						},
+						{
+							"revenue": [
+								"a",
+								-0.5
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-4
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep the budget cut",
+					"text": "Defence within means.",
+					"effects": [
+						{
+							"revenue": [
+								"a",
+								0.3
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-4
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1915,
+				2
+			]
+		},
+		{
+			"id": "portuguese_republic",
+			"title": "The republic",
+			"text": "Sailors and soldiers rise in Lisbon. The King is at the palace; the city is with the republicans.",
+			"date": [
+				1910,
+				10
+			],
+			"actors": {
+				"a": "POR"
+			},
+			"options": [
+				{
+					"label": "Accept the republic",
+					"text": "The King sails for England.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								4
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				},
+				{
+					"label": "Defend the throne",
+					"text": "The loyal regiments march.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-6
+							]
+						},
+						{
+							"manpower": [
+								"a",
+								-0.02
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1911,
+				10
+			]
+		},
+		{
+			"id": "algeciras_spain",
+			"title": "Spain at Algeciras",
+			"text": "The powers meet at Algeciras over Morocco. {b} wants Spain at its side; {c} wants a Spain that owes Paris nothing.",
+			"date": [
+				1906,
+				1
+			],
+			"actors": {
+				"a": "ESP",
+				"b": "FRA",
+				"c": "GER"
+			},
+			"options": [
+				{
+					"label": "Side with France",
+					"text": "A share of Morocco's police, and a friend across the Pyrenees.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								8
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"c",
+								-4
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep both at arm's length",
+					"text": "Spain has had enough of other people's wars.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"c",
+								3
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1907,
+				1
+			]
+		},
+		{
+			"id": "albanian_independence",
+			"title": "Independence at Vlore",
+			"text": "With the Balkan armies closing in, the notables meet at Vlore and raise a flag of their own.",
+			"date": [
+				1912,
+				11
+			],
+			"actors": {
+				"a": "ALB",
+				"b": "OTT"
+			},
+			"options": [
+				{
+					"label": "Declare independence",
+					"text": "An Albania of the Albanians.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								5
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								6
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-15
+							]
+						},
+						{
+							"tension": 2
+						}
+					]
+				},
+				{
+					"label": "Wait for the powers",
+					"text": "Let the conference in London decide.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"until": [
+				1913,
+				11
+			]
+		},
+		{
+			"id": "small_courted",
+			"title": "A great power comes courting",
+			"text": "{b} offers a loan on easy terms and officers to train the army, and wants a friend on the map for it.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {
+				"a": "$player",
+				"b": "$suitor"
+			},
+			"options": [
+				{
+					"label": "Accept the loan and the mission",
+					"text": "Money and instructors, and a patron.",
+					"effects": [
+						{
+							"revenue": [
+								"a",
+								1.0
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-1
+							]
+						}
+					]
+				},
+				{
+					"label": "Keep strict neutrality",
+					"text": "Thank them, and owe no one.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								1
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"repeat_months": 20,
+			"condition": {
+				"player_minor": true,
+				"pressure_ai": true,
+				"months_from_start": 6
+			}
+		},
+		{
+			"id": "small_trade_treaty",
+			"title": "A trade treaty",
+			"text": "{b} offers to cut its tariffs on our goods if we cut ours on its manufactures.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {
+				"a": "$player",
+				"b": "$trade_partner"
+			},
+			"options": [
+				{
+					"label": "Sign the treaty",
+					"text": "Cheaper goods and a bigger market, and our workshops hurt.",
+					"effects": [
+						{
+							"revenue": [
+								"a",
+								0.5
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								6
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								-2
+							]
+						}
+					]
+				},
+				{
+					"label": "Protect our industry",
+					"text": "Our tariffs, our factories.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								2
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-3
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"repeat_months": 26,
+			"condition": {
+				"player_minor": true,
+				"pressure_ai": true,
+				"months_from_start": 12
+			}
+		},
+		{
+			"id": "small_border_incident",
+			"title": "Trouble on the border",
+			"text": "Soldiers of {b} crossed the border in pursuit of smugglers and arrested two of our customs men.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {
+				"a": "$player",
+				"b": "$great_neighbour"
+			},
+			"options": [
+				{
+					"label": "Protest loudly",
+					"text": "A note, a speech, the press with us.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								4
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-6
+							]
+						},
+						{
+							"tension": 1
+						}
+					]
+				},
+				{
+					"label": "Settle it quietly",
+					"text": "Apologies on both sides; the men come home.",
+					"effects": [
+						{
+							"relation": [
+								"a",
+								"b",
+								3
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": 1,
+			"repeat_months": 30,
+			"condition": {
+				"player_minor": true,
+				"pressure_ai": true,
+				"months_from_start": 18
 			}
 		}
 	]

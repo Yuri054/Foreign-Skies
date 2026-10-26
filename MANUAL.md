@@ -42,7 +42,7 @@ One window, a tab for each part of running the nation:
   build. The queue shows why a project is "stalled" (no IC reaches it). A small country has fewer IC, but its buildings cost
   less: they are built to the size of the province.
 - **Military (M)**, **Navy (Y)**: armies, army groups, fronts, fleets, yards.
-- **Diplomacy (F)**: opinions, treaties, wars, gifts, justification, demands, peace.
+- **Diplomacy (F)**: opinions, treaties, wars, gifts, demands, peace.
 - **Focus (O)**: one national effort at a time, with lasting effects.
 - **Rankings (R)**: every nation side by side, with charts.
 - **History (H)**: the history of the run, year by year, the wars, the changes of the map and how nations stand; it can be
@@ -66,7 +66,7 @@ more power, a weaker enemy or another level of trench would do.
 ## Diplomacy
 
 Almost everything costs **diplomacy points**, earned monthly (more with prestige): treaties (alliance, guarantee,
-non-aggression, passage), gifts, improving relations, justifying a war.
+non-aggression, passage), gifts, improving relations, making a demand.
 
 **War needs a reason.** A war with no casus belli costs prestige, goodwill and war support, and needs a mobilized country; on a
 nation that stands apart from the blocs (no great-power ally, not mobilized) it costs more, and the whole of Europe grows tenser.
@@ -74,13 +74,11 @@ Better to have a goal:
 
 - Some goals come with the scenario: a **claim** (France on Alsace-Lorraine), which gives a casus belli on its provinces; a
   defence of a guarantee or an ally.
-- **Justify war** (Diplomacy tab) lets you choose what the war will be for: named provinces, or a concession (reparations, a
-  withdrawal of the border armies, an end to the enemy's ties to someone). It takes diplomacy points and some weeks, the
-  target and its friends hear of it and think less of you, and you then hold a casus belli with that goal. At peace the goal is
-  half price and everything else dearer, so a war for Liège is easy to end with Liège and hard to end with Brussels.
-- **Press a demand** (Diplomacy tab) opens a **crisis** instead of a war: you ask for a province or reparations and the
-  nation has until a deadline to yield, refuse (you then hold a casus belli for it), mobilize (if you cannot win, you back
-  down) or appeal to the powers.
+- **Make a demand** (Diplomacy tab) is how a war gets its reason: choose what you ask of the nation (named provinces, or a
+  concession: reparations, a withdrawal of its border armies, no new warships, an end to its ties to someone), pay the
+  diplomacy points, and it has until a deadline to yield, refuse, mobilize (if you cannot win, you back down) or appeal to
+  the powers. If it refuses you hold a casus belli with that demand as the goal of the war. At peace the goal is half
+  price and everything else dearer, so a war for Liège is easy to end with Liège and hard to end with Brussels.
 
 **Crises** also arise by themselves between rivals when tension and grievances build: a demand with a deadline. If it concerns
 you, you are asked at once. If it does not, you may **mediate** (a chance from your prestige and the goodwill you hold with
@@ -100,7 +98,10 @@ Europe's **tension** (top bar) rises with the arms race, mobilization, rivalry a
 grow, the nearer it gets to 100. Historical events stop time and put choices to you: each option shows its **largest effect**
 and, on hover, everything it does. After the great war the world goes on: provinces lost at a peace, unrest in the empires and
 conferences on armaments come from how things stand, not from the calendar. When your focus tree is done, its last foci can be
-taken again. In the Overview you can make a public stand to calm or rattle Europe.
+taken again. On the Overview you may set your nation an **ambition** (keep out of the great war, unify the nation, become a
+great power): not a score, a direction, and the History book records how it went. In the Overview you can take a public stand, one every half year: a call for calm weighs as much as your nation
+does (a great power's, when Europe is tense, can pull it back from the brink); rattling the sabre cheers your people and
+annoys your neighbours.
 
 ## Saving
 

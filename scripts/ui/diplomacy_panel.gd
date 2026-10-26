@@ -6,10 +6,13 @@ extends FloatingWindow
 ## Clicking a province on the map selects its owner. Toggle with F (D pans the map).
 
 ## Why a declaration or proposal is not possible, in words.
-const JUSTIFY_BLOCKS := {
-	"active": "You are already working on a claim against them.",
-	"limit": "All your justification efforts are in use.",
-	"has_cause": "You already hold a casus belli against them.",
+## Why a demand cannot be pressed now, in words (Crisis.press_block).
+const DEMAND_BLOCKS := {
+	"busy": "One of you is already in a crisis.",
+	"rest": "You quarrelled with them lately.",
+	"at_war": "You are at war.",
+	"allied": "You are allied.",
+	"nap": "A non-aggression pact stands: cancel it first.",
 }
 const BLOCKS := {
 	"same": "That is your own nation.",
@@ -39,7 +42,7 @@ var _points := Label.new()
 var _buy := Button.new()
 var _projects := Label.new()
 var _improve := Button.new()
-var _justify := Button.new()
+var _demand := Button.new()
 var _rename_row := HBoxContainer.new()
 var _rename_edit := LineEdit.new()
 var _rename := Button.new()
@@ -218,9 +221,9 @@ func _ready() -> void:
 	_improve.focus_mode = Control.FOCUS_NONE
 	_improve.pressed.connect(_on_improve)
 	_box.add_child(_improve)
-	_justify.focus_mode = Control.FOCUS_NONE
-	_justify.pressed.connect(_on_justify)
-	_box.add_child(_justify)
+	_demand.focus_mode = Control.FOCUS_NONE
+	_demand.pressed.connect(_on_demand)
+	_box.add_child(_demand)
 	_rename_edit.placeholder_text = "Alliance name"
 	_rename_edit.max_length = 40
 	_rename_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -448,7 +451,7 @@ func _refresh_detail() -> void:
 	var has := GameState.nations.has(_selected)
 	_treaties.visible = has
 	_header.visible = has
-	for c in [_cancel, _cb_picker, _cb_info, _declare, _peace, _gift_amount, _gift, _improve, _justify] + _action_labels:
+	for c in [_cancel, _cb_picker, _cb_info, _declare, _peace, _gift_amount, _gift, _improve, _demand] + _action_labels:
 		c.visible = has and acting
 	for b: Button in _propose_buttons.values():
 		b.visible = has and acting
@@ -585,19 +588,17 @@ func _refresh_actions() -> void:
 	var circle := Diplomacy.alliance_circle(GameState, me)
 	_rename_row.visible = _acting() and _selected in circle and _selected != me and not Diplomacy.is_historic_bloc(GameState, me) and Diplomacy.bloc_name(GameState, me) != ""
 	_rename.tooltip_text = "Name the alliance you share with %s." % GameState.nations[tag].display_name
-	var jcost := Diplomacy.justify_cost(GameState, me)
-	var jblock := Diplomacy.justify_block(GameState, me, tag)
-	var jwork: Variant = Diplomacy.justifying(GameState, me, tag)
-	var jpoor := not Diplomacy.can_afford(GameState, me, jcost)
-	_justify.text = "Building a claim… (%d days left)" % maxi(0, jwork.done_day - Clock.days_elapsed) if jwork != null else "Justify war (%d)" % int(jcost)
-	_justify.disabled = jblock != "" or jpoor
-	if jblock != "":
-		if jblock != "active":
-			reasons.append("Justify war: %s" % JUSTIFY_BLOCKS.get(jblock, BLOCKS.get(jblock, jblock)))
-	elif jpoor:
-		reasons.append("Justify war: not enough diplomacy points (need %d)." % int(jcost))
-	_justify.text = _justify.text.replace("Justify war (%d)" % int(jcost), "Justify war…")
-	_justify.tooltip_text = "Choose what the war is for (provinces to win, or a concession), then spend diplomacy points and some weeks building the case, from about %d points. The target and its friends hear of it at once and resent it. A war fought for a goal has its goal at half price at peace; the claim lasts %d years." % [int(jcost), int(Diplomacy.cfg.war.cb_years)]
+	var dcost := Crisis.press_cost(GameState, me)
+	# What is asked and its price are judged in the picker, where the demand is chosen.
+	var dblock := Crisis.press_block(GameState, me, tag, true)
+	var dpoor := not Diplomacy.can_afford(GameState, me, dcost)
+	_demand.text = "Make a demand… (from %d)" % int(dcost)
+	_demand.disabled = dblock != "" or dpoor
+	if dblock != "":
+		reasons.append("Make a demand: %s" % DEMAND_BLOCKS.get(dblock, BLOCKS.get(dblock, dblock)))
+	elif dpoor:
+		reasons.append("Make a demand: not enough diplomacy points (need %d)." % int(dcost))
+	_demand.tooltip_text = "Choose what you ask of %s (provinces, or a concession) and give it %d days to answer. It may yield, refuse (you then hold a casus belli with the demand as the goal of the war, half price at peace, for %d years), mobilize or appeal to the powers." % [GameState.nations[tag].display_name, int(Crisis.cfg.gate.deadline_days), int(Diplomacy.cfg.war.cb_years)]
 	_why.text = "\n".join(reasons)
 	_why.visible = not reasons.is_empty()
 	_improve.tooltip_text = (BLOCKS.get(improve_block, "") if improve_block != "" else ("Not enough diplomacy points (need %d, have %d)." % [int(improve_cost), roundi(Diplomacy.points(GameState, me))] if improve_poor else "")) + "\n" + "For a year, each month the two nations think better of each other (+%d, and part of it lasts). %d points; up to %d efforts at a time." % [int(Diplomacy.cfg.points.improve.monthly), int(Diplomacy.cost_of("improve_relations")), int(Diplomacy.cfg.points.improve.max_active)]
@@ -696,12 +697,8 @@ func _on_rename() -> void:
 	_refresh()
 
 
-## Opens the goal picker: the case is begun there, once the player has said what the war is for.
-func _on_justify() -> void:
-	if Diplomacy.justify_block(GameState, GameState.player_tag, _selected) != "":
-		_status.text = JUSTIFY_BLOCKS.get(Diplomacy.justify_block(GameState, GameState.player_tag, _selected), "That is not possible.")
-		_status.modulate = Fmt.BAD
-		return
+## Opens the goal picker: the player says what the demand asks there, and presses it.
+func _on_demand() -> void:
 	get_tree().call_group("goal_picker", "open", _selected)
 
 
@@ -717,8 +714,6 @@ func _refresh_crises(me: String, tag: String) -> void:
 		c.queue_free()
 	if not GameState.nations.has(tag):
 		return
-	if _acting() and tag != me and GameState.nations[tag].provinces.size() > 0:
-		_press_row(me, tag)
 	for c: Dictionary in Crisis.of(GameState, tag):
 		var head := Label.new()
 		head.text = "%s\nAnswer due %s." % [c.text, Clock.date_after(c.deadline_day - Clock.days_elapsed)]
@@ -747,43 +742,6 @@ func _refresh_crises(me: String, tag: String) -> void:
 			_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.a].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_a",
 					"Stand behind %s's demand: its side is stronger, relations with it improve and with %s worsen." % [GameState.nations[c.a].display_name, GameState.nations[c.b].display_name])
 		_crisis_box.add_child(row)
-
-
-## Press a demand: the demands the player could make of the selected nation, and a button to make one (a crisis, with the
-## nation answering by a deadline).
-func _press_row(me: String, tag: String) -> void:
-	var block := Crisis.press_block(GameState, me, tag)
-	var options := Crisis.demand_options(GameState, me, tag)
-	if options.is_empty() and block in ["", "points", "nothing"]:
-		return
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 4)
-	var picker := OptionButton.new()
-	picker.focus_mode = Control.FOCUS_NONE
-	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	picker.clip_text = true
-	for o: Dictionary in options:
-		picker.add_item(o.label)
-		picker.set_item_metadata(picker.item_count - 1, o.kind)
-		picker.set_item_tooltip(picker.item_count - 1, "%s: if refused, you hold a casus belli with this as the goal." % o.label)
-	var press := Button.new()
-	press.focus_mode = Control.FOCUS_NONE
-	var cost := int(Crisis.cfg.press.cost_points)
-	press.text = "Press a demand (%d)" % cost
-	var reasons := {"busy": "One of you is already in a crisis.", "rest": "You quarrelled with them lately.", "points": "Not enough diplomacy points (need %d)." % cost,
-			"nothing": "There is nothing to demand of them.", "at_war": "You are at war.", "allied": "You are allied.", "nap": "A non-aggression pact stands."}
-	press.disabled = block != "" or picker.item_count == 0
-	press.tooltip_text = (reasons.get(block, "") + "\n" if block != "" else "") + "Make a demand of %s with a deadline of %d days. They may yield, refuse (you then hold a casus belli with the demand as its goal), mobilize or appeal to the powers." % [GameState.nations[tag].display_name, int(Crisis.cfg.gate.deadline_days)]
-	picker.disabled = picker.item_count == 0
-	press.pressed.connect(func() -> void:
-		if picker.item_count == 0:
-			return
-		GameState.issue(PressDemand.new(me, tag, picker.get_item_metadata(picker.selected)))
-		_refresh()
-	)
-	row.add_child(picker)
-	row.add_child(press)
-	_crisis_box.add_child(row)
 
 
 func _crisis_button(row: HBoxContainer, text: String, id: int, action: String, tip: String) -> void:

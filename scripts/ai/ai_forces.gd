@@ -63,9 +63,8 @@ static func demobilize(gs: Node, tag: String) -> void:
 	for key: String in gs.alarms:
 		if key.ends_with(">" + tag):
 			return
-	for j: Dictionary in gs.justifications:
-		if j.holder == tag or j.target == tag:
-			return
+	if not Crisis.of(gs, tag).is_empty():
+		return
 	var excess := float(n.men_in_units) - float(n.peacetime_army) * float(f.demob_margin)
 	if excess <= 0.0:
 		return

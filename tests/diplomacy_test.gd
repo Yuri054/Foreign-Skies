@@ -177,7 +177,7 @@ func _test_declare() -> void:
 	_fresh()
 	var opts: Array = D.casus_belli_options(gs, "FRA", "GER")
 	_check("reconquest" in opts and opts.back() == "none", "France can claim Alsace-Lorraine back (%s)" % str(opts))
-	_check(D.casus_belli_options(gs, "FRA", "ESP") == ["none"], "France has no justification against Spain")
+	_check(D.casus_belli_options(gs, "FRA", "ESP") == ["none"], "France has no casus belli against Spain")
 	_check("border_claim" in D.casus_belli_options(gs, "ITA", "AUH"), "Italy has a border claim on Austria-Hungary")
 	_check("border_claim" not in D.casus_belli_options(gs, "ITA", "GER"), "but none on Germany")
 	_check(D.declare_block(gs, "FRA", "RUS") == "allied", "France cannot declare on its ally")
@@ -486,7 +486,7 @@ func _test_points() -> void:
 	gs.nations["GER"].mobilization = 0.5
 	gs.nations["GER"].diplomacy_points = 29.0
 	cmd = DeclareC.new("GER", "BEL", "none")
-	_check(not gs.issue(cmd) and cmd.reason == "points", "a war with no justification needs 30")
+	_check(not gs.issue(cmd) and cmd.reason == "points", "a war with no casus belli needs 30")
 	gs.nations["GER"].diplomacy_points = 30.0
 	_check(gs.issue(DeclareC.new("GER", "BEL", "none")) and gs.nations["GER"].diplomacy_points == 0.0, "and uses them up")
 	_fresh()

@@ -54,21 +54,6 @@ func _connect_navy() -> void:
 		var mine: bool = tag == GameState.player_tag
 		say("%s lost a %s in the %s." % [_name(tag), Navy.cfg.types[type].name.to_lower(), MapData.sea_zones[zone].name], Fmt.BAD if mine else Fmt.GOOD)
 	)
-	GameState.casus_belli_ready.connect(func(holder: String, target: String) -> void:
-		if holder == GameState.player_tag:
-			say("Your claim against %s is ready: a fabricated casus belli." % _name(target), Fmt.GOOD)
-		elif target == GameState.player_tag:
-			say("%s has fabricated a claim against you." % _name(holder), Fmt.BAD)
-	)
-	GameState.justification_started.connect(func(holder: String, target: String, goal: Dictionary, told: Array) -> void:
-		var aim := WarGoal.describe(GameState, goal) if not goal.is_empty() else "a pretext"
-		if holder == GameState.player_tag:
-			say("You begin building a case against %s: %s." % [_name(target), aim], Fmt.DIM)
-		elif target == GameState.player_tag:
-			say("%s is building a case against you: %s." % [_name(holder), aim], Fmt.BAD)
-		elif GameState.player_tag in told:
-			say("%s is building a case against %s, %s." % [_name(holder), _name(target), aim], Fmt.WARN)
-	)
 	GameState.ship_built.connect(func(tag: String, province: int, type: String) -> void:
 		if tag == GameState.player_tag:
 			say("%s launched at %s." % [Navy.cfg.types[type].name, MapData.provinces[province].name], Fmt.GOOD)

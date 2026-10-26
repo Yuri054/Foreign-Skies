@@ -1,0 +1,8 @@
+{
+	"_note": "Ambitions (scripts/sim/ambition.gd): a direction the player may choose for the nation, not a score. Each is offered when it fits (`for`: \"all\", \"minor\" for a nation that is not a great power, \"claims\" for one with a scenario claim); its state is worked out each month (Ambition.status) and the History book records when it is chosen, given up, achieved or lost. keep_out: never at war with a great power. unify: hold every province of the nation's scenario claims. great_power: rank among the first `rank` nations by output (Rankings).",
+	"ambitions": {
+		"keep_out": {"label": "Keep out of the great war", "for": "all", "desc": "Whatever the powers do, our people will not fight them."},
+		"unify": {"label": "Unify the nation", "for": "claims", "desc": "Bring every land that is ours by right within our borders."},
+		"great_power": {"label": "Become a great power", "for": "minor", "rank": 6, "desc": "Grow until the powers have to count with us."}
+	}
+}

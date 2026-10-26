@@ -174,6 +174,9 @@ static func best_candidate(gs: Node) -> Dictionary:
 			if not may_quarrel(gs, a, b):
 				continue
 			var s := score(gs, a, b) + 0.05 * AI.noise(gs, "crisis|%s|%s|%d" % [a, b, Clock.year * 12 + Clock.month])
+			# A quarrel with the player's nation comes a little sooner: the player is asked things.
+			if b == gs.player_tag:
+				s += float(cfg.score.get("player", 0.0))
 			if s >= float(cfg.gate.min_score) and (best.is_empty() or s > best.score):
 				best = {"a": a, "b": b, "score": s}
 	return best
@@ -242,9 +245,10 @@ static func choose_demand(gs: Node, a: String, b: String) -> Dictionary:
 	return options[0] if not options.is_empty() else {}
 
 
-## Why the player (`a`) cannot press a demand on `b` now ("" if it can): unknown, points, at_war, allied, nap, busy (one of
-## them is in a crisis), rest (they quarrelled lately), nothing (no demand to make).
-static func press_block(gs: Node, a: String, b: String) -> String:
+## Why `a` cannot press a demand on `b` now ("" if it can): unknown, points, at_war, allied, nap, busy (one of them is in
+## a crisis), rest (they quarrelled lately), nothing (no demand to make). For a demand chosen in full (`full`), what it
+## asks and what it costs are judged with it (custom_problem, press_cost), not here.
+static func press_block(gs: Node, a: String, b: String, full := false) -> String:
 	var why := Diplomacy.declare_block(gs, a, b)
 	if why != "":
 		return why
@@ -253,6 +257,8 @@ static func press_block(gs: Node, a: String, b: String) -> String:
 			return "busy"
 	if gs.crisis_cooldown.get(Diplomacy.pair_key(a, b), -1) > Clock.days_elapsed:
 		return "rest"
+	if full:
+		return ""
 	if not Diplomacy.can_afford(gs, a, float(cfg.press.cost_points)):
 		return "points"
 	if demand_options(gs, a, b).is_empty():
@@ -260,18 +266,63 @@ static func press_block(gs: Node, a: String, b: String) -> String:
 	return ""
 
 
-## `a` (the player) presses a demand of `kind` on `b`: opens the crisis, for points. Returns it, or {} if it cannot be done.
-static func press(gs: Node, a: String, b: String, kind: String) -> Dictionary:
-	if press_block(gs, a, b) != "":
+## `a` presses a demand on `b`: opens the crisis, for points. The demand is `custom` ({demand, goal}, chosen in the goal
+## picker or by the AI), else the one of `kind` among demand_options. Returns the crisis, or {} if it cannot be done.
+static func press(gs: Node, a: String, b: String, kind: String, custom := {}) -> Dictionary:
+	if press_block(gs, a, b, not custom.is_empty()) != "":
 		return {}
 	var pick := {}
-	for o: Dictionary in demand_options(gs, a, b):
-		if o.kind == kind:
-			pick = o
+	if not custom.is_empty():
+		if custom_problem(gs, a, b, custom) != "":
+			return {}
+		pick = {"kind": kind_of(custom.demand), "demand": custom.demand.duplicate(true), "goal": custom.goal.duplicate(true)}
+	else:
+		for o: Dictionary in demand_options(gs, a, b):
+			if o.kind == kind:
+				pick = o
 	if pick.is_empty():
 		return {}
-	Diplomacy.spend(gs, a, float(cfg.press.cost_points))
+	var cost := press_cost(gs, a, pick.goal)
+	if not Diplomacy.can_afford(gs, a, cost):
+		return {}
+	Diplomacy.spend(gs, a, cost)
 	return open(gs, {"a": a, "b": b, "score": 0.0}, pick)
+
+
+## What pressing a demand for `goal` costs `a` in diplomacy points: press.cost_points times the goal's weight
+## (WarGoal.cost_mult: more provinces cost more), less what its prestige buys (points.prestige_uses.demand_discount).
+static func press_cost(gs: Node, a: String, goal := {}) -> float:
+	var u: Dictionary = Diplomacy.cfg.points.prestige_uses
+	var cut := clampf(gs.nations[a].prestige * float(u.demand_discount), -float(u.demand_discount_max), float(u.demand_discount_max))
+	return float(cfg.press.cost_points) * (1.0 - cut) * (WarGoal.cost_mult(goal) if not goal.is_empty() else 1.0)
+
+
+## Why a demand chosen in full cannot be pressed ("" if it can): the goal's own problem (WarGoal.invalid: provinces,
+## count, detached, capital, demand), or "demand" when it could not be carried out.
+static func custom_problem(gs: Node, a: String, b: String, custom: Dictionary) -> String:
+	if not custom.has("demand") or not custom.has("goal"):
+		return "demand"
+	var why := WarGoal.invalid(gs, a, b, custom.goal)
+	if why != "":
+		return why
+	return "demand" if Peace.demand_cost(gs, a, b, custom.demand) < 0.0 else ""
+
+
+## The crisis kind of a demand (for its title and text in data/crises.json).
+static func kind_of(demand: Dictionary) -> String:
+	match demand.get("kind", ""):
+		"indemnity": return "indemnity"
+		"disarm_border": return "disarm"
+		"fleet_limit": return "naval"
+		"release_ally": return "release"
+	return "border"
+
+
+## The demand a goal stands for: its provinces handed over, or its concession.
+static func demand_for(goal: Dictionary) -> Dictionary:
+	if goal.get("kind", "") == "concession":
+		return goal.demand.duplicate(true)
+	return {"kind": "province", "ids": goal.get("ids", []).duplicate()}
 
 
 ## Opens a crisis for a found quarrel. Returns the crisis ({} if there is nothing to demand).

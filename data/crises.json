@@ -1,5 +1,5 @@
 {
-	"_note": "Dynamic crises (scripts/sim/crisis.gd). Each month, while the scenario has pressure_ai, the quarrels of the world are weighed: for a nation `a` and a neighbour (or, between great powers, any nation) `b`, score = hostile * how much b dislikes a ... see score. A pair may quarrel only if the demander's side (with allies and guarantors) has gate.min_odds of the other side's strength; a scenario claim is pressed only from gate.claim_min_tension. The best pair at or above gate.min_score opens a crisis: `a` makes a demand of `b` (a province claim, ground it lost at a peace (revanche), a border province, an indemnity, the withdrawal of border armies, or, between great powers, no new warships for some years (naval)) with a deadline. `b` yields, refuses (a gets a casus belli with the demand as its goal, and the AI may declare war at once), mobilizes (if a cannot win it backs down) or appeals to the powers. A third nation may mediate or back a side. The AI answers for itself after think_days; the player is asked at once if the crisis is theirs.",
+	"_note": "Dynamic crises (scripts/sim/crisis.gd). Each month, while the scenario has pressure_ai, the quarrels of the world are weighed: for a nation `a` and a neighbour (or, between great powers, any nation) `b`, score = hostile * how much b dislikes a ... see score. A pair may quarrel only if the demander's side (with allies and guarantors) has gate.min_odds of the other side's strength; a scenario claim is pressed only from gate.claim_min_tension. The best pair at or above gate.min_score (a quarrel with the player's nation scores score.player more) opens a crisis: `a` makes a demand of `b` (a province claim, ground it lost at a peace (revanche), a border province, an indemnity, the withdrawal of border armies, or, between great powers, no new warships for some years (naval)) with a deadline. `b` yields, refuses (a gets a casus belli with the demand as its goal, and the AI may declare war at once), mobilizes (if a cannot win it backs down) or appeals to the powers. A third nation may mediate or back a side. The AI answers for itself after think_days; the player is asked at once if the crisis is theirs.",
 	"gate": {
 		"start_days": 120,
 		"min_score": 0.72,
@@ -20,7 +20,8 @@
 		"claim": 0.6,
 		"alarm": 0.3,
 		"tension": 0.7,
-		"edge": 0.25
+		"edge": 0.25,
+		"player": 0.08
 	},
 	"kinds": {
 		"claim": {"weight": 1.3, "title": "{a} presses its claim on {b}", "text": "{a} demands {what} from {b}, which it says is rightfully its own, and gives {b} until {date} to answer."},
@@ -28,9 +29,10 @@
 		"indemnity": {"weight": 0.8, "min_grievance": 20, "share": 0.1, "months": 12, "title": "{a} demands reparations from {b}", "text": "{a} claims it was wronged and demands {what} from {b}. It gives {b} until {date} to answer."},
 		"disarm": {"weight": 0.7, "years": 2, "title": "{a} demands {b} withdraw from the border", "text": "{a} will not stand {b}'s armies on its frontier and demands {what}. It gives {b} until {date} to answer."},
 		"revanche": {"weight": 1.5, "title": "{a} demands back what it lost", "text": "{a} has never accepted the peace that gave {what} to {b}. It demands them back and gives {b} until {date} to answer."},
+		"release": {"weight": 0.0, "title": "{a} demands {b} break with an ally", "text": "{a} demands {what} and gives {b} until {date} to answer."},
 		"naval": {"weight": 0.6, "years": 5, "min_ratio": 0.5, "title": "{a} demands {b} stop building warships", "text": "{a} will not see its place at sea challenged and demands {what} from {b}. It gives {b} until {date} to answer."}
 	},
-	"press": {"cost_points": 15},
+	"press": {"_note": "Pressing a demand (Crisis.press_cost, the goal picker, AIDiplomacy.consider_press): cost_points diplomacy points times the goal's cost_mult (diplomacy.json war.goals), less what prestige buys.", "cost_points": 15},
 	"open": {"tension": 2.0, "relation": -3},
 	"yield": {"a_prestige": 3, "b_prestige": -5, "b_war_support": -4, "tension": -2, "relation": 6},
 	"refuse": {"relation": -12, "grievance": 10, "tension": 4},

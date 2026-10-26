@@ -187,6 +187,8 @@ static func _condition_ok(gs: Node, e: Dictionary) -> bool:
 		return false
 	if c.get("player_great_power", false) and gs.player_tag not in GREAT:
 		return false
+	if c.get("player_minor", false) and (gs.player_tag == "" or gs.player_tag in GREAT or not _alive(gs, gs.player_tag)):
+		return false
 	if c.has("months_from_start") and _month_index() - gs.pressure_start < int(c.months_from_start):
 		return false
 	if c.get("after_great_war", false) and not great_war_fought(gs):
@@ -224,6 +226,9 @@ static func _roles(gs: Node, e: Dictionary) -> Dictionary:
 ##   $empire       the most troubled of picks.empires at peace: one with war support under picks.empire_support, or
 ##                 that lost ground lately
 ##   $most_armed   the great power with the most men under arms, and $second_armed the next
+##   $suitor       the great power the player's nation is on best terms with (not allied, not at war)
+##   $trade_partner the player's richest land neighbour at peace with it, or else its suitor
+##   $great_neighbour the great power on the player's border it is on worst terms with
 static func _pick_role(gs: Node, sel: String) -> String:
 	var p: Dictionary = cfg.get("picks", {})
 	match sel:
@@ -244,6 +249,8 @@ static func _pick_role(gs: Node, sel: String) -> String:
 				if (n.war_support < float(p.get("empire_support", 40.0)) or lost) and (best == "" or n.war_support < gs.nations[best].war_support):
 					best = tag
 			return best
+		"$suitor", "$trade_partner", "$great_neighbour":
+			return _player_partner(gs, sel)
 		"$most_armed", "$second_armed":
 			var powers: Array = GREAT.filter(func(t: String) -> bool: return _alive(gs, t))
 			powers.sort_custom(func(x: String, y: String) -> bool:
@@ -251,6 +258,38 @@ static func _pick_role(gs: Node, sel: String) -> String:
 			var i := 0 if sel == "$most_armed" else 1
 			return powers[i] if powers.size() > i else ""
 	return ""
+
+
+## The nations a small player's events turn to (see _pick_role), "" if none fits.
+static func _player_partner(gs: Node, sel: String) -> String:
+	var me: String = gs.player_tag
+	if not _alive(gs, me):
+		return ""
+	var best := ""
+	var best_v := -INF
+	var near: Array[String] = Diplomacy.neighbor_nations(gs, me)
+	var pool: Array = near if sel == "$trade_partner" else GREAT
+	for tag: String in pool:
+		if tag == me or not _alive(gs, tag) or gs.at_war(me, tag):
+			continue
+		var v: float
+		match sel:
+			"$suitor":
+				if Diplomacy.are_allied(gs, me, tag):
+					continue
+				v = Diplomacy.relation(gs, tag, me)
+			"$trade_partner":
+				v = float(gs.nations[tag].budget.get("gdp", 0.0))
+			_:
+				if tag not in near:
+					continue
+				v = -Diplomacy.relation(gs, tag, me)
+		if v > best_v or (v == best_v and tag < best):
+			best = tag
+			best_v = v
+	if best == "" and sel == "$trade_partner":
+		return _player_partner(gs, "$suitor")
+	return best
 
 
 ## The latest claim made in play (ground lost at a peace) within `days`, by `holder` if given, whose holder is alive
@@ -396,7 +435,7 @@ static func _apply(gs: Node, fx: Dictionary, roles: Dictionary) -> void:
 		if _alive(gs, a) and _alive(gs, b) and not gs.at_war(a, b):
 			Diplomacy.start_war(gs, a, b, w.size() > 2)
 	else:
-		for key: String in ["treasury", "prestige", "war_support", "points", "manpower", "mobilize"]:
+		for key: String in ["treasury", "revenue", "prestige", "war_support", "points", "manpower", "mobilize"]:
 			if fx.has(key):
 				var tag := _tag(roles, fx[key][0])
 				if gs.nations.has(tag):
@@ -414,6 +453,7 @@ static func _both(gs: Node, roles: Dictionary, a: String, b: String) -> bool:
 static func _apply_to(gs: Node, key: String, n: Nation, v: float) -> void:
 	match key:
 		"treasury": n.treasury += v
+		"revenue": n.treasury += v * float(n.budget.get("revenue", 0.0)) / 12.0
 		"prestige": Diplomacy.gain_prestige(gs, n.tag, v)
 		"war_support":
 			n.war_support = clampf(n.war_support + v, 0.0, 100.0)
@@ -447,9 +487,9 @@ static func effect_lines(gs: Node, option: Dictionary, roles: Dictionary) -> Pac
 		elif fx.has("grievance"):
 			pass
 		else:
-			for key: String in ["treasury", "prestige", "war_support", "manpower", "mobilize"]:
+			for key: String in ["treasury", "revenue", "prestige", "war_support", "manpower", "mobilize"]:
 				if fx.has(key) and _tag(roles, fx[key][0]) == gs.player_tag:
-					out.append(_effect_text(key, float(fx[key][1])))
+					out.append(_effect_text(key, float(fx[key][1]), gs.nations[gs.player_tag]))
 	return out
 
 
@@ -483,13 +523,13 @@ static func advisor_line(gs: Node, option: Dictionary, roles: Dictionary) -> Str
 				weight = absf(float(r[2])) * 2.0
 				line = "Relations with %s %+d" % [_other_name(gs, roles, r[0], r[1]), roundi(float(r[2]))]
 		else:
-			var scale := {"treasury": 3.0, "prestige": 3.0, "war_support": 2.0, "manpower": 50.0, "mobilize": 50.0}
+			var scale := {"treasury": 3.0, "revenue": 15.0, "prestige": 3.0, "war_support": 2.0, "manpower": 50.0, "mobilize": 50.0}
 			for key: String in scale:
 				if fx.has(key) and _tag(roles, fx[key][0]) == gs.player_tag:
 					var w: float = absf(float(fx[key][1])) * float(scale[key])
 					if w > weight:
 						weight = w
-						line = _effect_text(key, float(fx[key][1]))
+						line = _effect_text(key, float(fx[key][1]), gs.nations[gs.player_tag])
 		if weight > best:
 			best = weight
 			text = line
@@ -503,9 +543,12 @@ static func _other_name(gs: Node, roles: Dictionary, a: String, b: String) -> St
 	return gs.nations[tb if ta == gs.player_tag else ta].display_name
 
 
-static func _effect_text(key: String, v: float) -> String:
+static func _effect_text(key: String, v: float, n: Nation = null) -> String:
 	match key:
 		"treasury": return "Treasury %+.0fM" % v
+		"revenue":
+			var m: float = v * float(n.budget.get("revenue", 0.0)) / 12.0 if n != null else 0.0
+			return "Treasury %+.1fM (%s months of revenue)" % [m, str(snappedf(v, 0.1))]
 		"prestige": return "Prestige %+d" % roundi(v)
 		"war_support": return "War support %+d" % roundi(v)
 		"manpower": return "Reserve %+d%%" % roundi(v * 100.0)
@@ -529,6 +572,18 @@ static func tip(gs: Node) -> String:
 
 # --- Public stands ---------------------------------------------------------------------------
 
+## What a stand does to tension now. A call for calm carries as much weight as the nation that makes it: its base, more
+## for a great power and for prestige, and more the tenser Europe is, at most calm.tension_max; a rattled sabre is felt
+## the same from anyone.
+static func appeal_tension(gs: Node, tag: String, kind: String) -> float:
+	var def: Dictionary = cfg.appeals[kind]
+	if kind != "calm":
+		return float(def.tension)
+	var n: Nation = gs.nations[tag]
+	var weight: float = float(def.tension) + (float(def.great_power) if tag in GREAT else 0.0) + float(def.per_prestige) * maxf(n.prestige, 0.0)
+	return -minf(weight * (0.5 + gs.tension / 100.0), float(def.tension_max))
+
+
 ## Why a nation cannot take this stand now, or "".
 static func appeal_block(gs: Node, tag: String, kind: String) -> String:
 	var def: Dictionary = cfg.appeals.get(kind, {})
@@ -547,10 +602,14 @@ static func appeal(gs: Node, tag: String, kind: String) -> bool:
 		return false
 	var def: Dictionary = cfg.appeals[kind]
 	Diplomacy.spend(gs, tag, float(def.cost))
-	gs.tension_impulse = clampf(gs.tension_impulse + float(def.tension), 0.0, float(cfg.impulse_max))
+	gs.tension_impulse = clampf(gs.tension_impulse + appeal_tension(gs, tag, kind), 0.0, float(cfg.impulse_max))
 	_apply_to(gs, "prestige", gs.nations[tag], float(def.prestige))
 	if float(def.war_support) != 0.0:
 		_apply_to(gs, "war_support", gs.nations[tag], float(def.war_support))
+	# The sabre is rattled at someone: every land neighbour thinks less of the nation.
+	if float(def.get("neighbour_relation", 0.0)) != 0.0:
+		for other: String in Diplomacy.neighbor_nations(gs, tag):
+			Diplomacy.change_relation(gs, other, tag, float(def.neighbour_relation))
 	gs.appeal_ready[tag] = Clock.days_elapsed + int(cfg.appeals.wait_days)
 	_record(gs, def.label, "%s: %s" % [gs.nations[tag].display_name, str(def.tip).to_lower().trim_suffix(".")], 0)
 	_update(gs)

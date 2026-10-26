@@ -56,7 +56,7 @@ against the baseline in `docs/baseline.md`.
 | 3b | Money, taxes, mobilization and demobilization | M | done (v0.8.0); army size after a war carried to step 7 |
 | 3c | Small economies, materials and food, the economy on screen | M | done (v0.8.0) |
 | 4 | After the war: revanche, post-war crises and events, repeatable foci | L | done (v0.9.0); post-war wars and tension carried to step 7 |
-| 5 | Peacetime decisions: demands replace justification, one public stand, small nations, ambitions | M | |
+| 5 | Peacetime decisions: demands replace justification, one public stand, small nations, ambitions | M | done (v0.10.0) |
 | 6 | Leftovers: mediation, cavalry | S | |
 | 7 | Retrain the AI under the new rules | L | |
 | 8 | Docs, versions and playtests | S | |
@@ -263,6 +263,12 @@ three parts, in order; each part ends green and measured.
   `public_stand_test`; `validate_data.py` checks that every nation is in at least two events.
 - **Done when:** a passive Belgium is asked at least one thing a year, 1900 to 1915; no decision has an option that
   does nothing; Justify war is gone from code, data and docs.
+- **Result:** a passive Belgium is asked 1.63 things a year from 1900 to 1915 (0.16 before), a passive Spain 1.53 to 1940;
+  `validate_data.py` refuses an event option with no effect (15 had none) and a nation in fewer than two events. Justify
+  war, its command, state, data and signals are gone; the goal picker makes demands (`PressDemand` with a demand chosen in
+  full), the AI makes one where it built a case (`consider_press`), and save format 4 turns a case under way into its
+  casus belli (`demand_test`). The road to 1914 is unchanged (first great-power war 1912.10, general war 1914.06 in 10 of
+  10), crises from 1922 come 0.8 a year. Ambitions are in (`ambition_test`).
 
 ### 6. Leftovers (C4, F12)
 - **Mediation.** A nation may try to mediate a crisis once (C4).

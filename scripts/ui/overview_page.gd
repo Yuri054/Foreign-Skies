@@ -105,6 +105,38 @@ func _issue_row(issue: Dictionary) -> Control:
 
 
 ## What tension is made of, the worst rivalries and a sparkline of the last two years.
+## The player's ambition: a choice of direction (none, or one of those open to the nation) and how it stands.
+func _ambition_row(n: Nation) -> void:
+	if n.tag != GameState.player_tag:
+		return
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var name_label := Label.new()
+	name_label.text = "Ambition"
+	row.add_child(name_label)
+	var pick := OptionButton.new()
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.add_item("None")
+	pick.set_item_metadata(0, "")
+	var current: String = GameState.ambition.get("id", "")
+	for id: String in Ambition.offered(GameState, n.tag):
+		pick.add_item(Ambition.label(id))
+		pick.set_item_metadata(pick.item_count - 1, id)
+		pick.set_item_tooltip(pick.item_count - 1, str(Ambition.cfg.ambitions[id].desc))
+		if id == current:
+			pick.select(pick.item_count - 1)
+	pick.tooltip_text = "A direction for the nation, not a score: the History book records how it goes."
+	pick.item_selected.connect(func(i: int) -> void:
+		GameState.issue(SetAmbition.new(n.tag, pick.get_item_metadata(i)))
+		_refresh()
+	)
+	row.add_child(pick)
+	_box.add_child(row)
+	var s := Ambition.status(GameState)
+	if s.state != "":
+		_box.add_child(_line("%s: %s" % [s.state.capitalize(), s.text], Fmt.GOOD if s.state == "achieved" else (Fmt.BAD if s.state == "lost" else Fmt.DIM)))
+
+
 func _tension_breakdown() -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
@@ -203,6 +235,7 @@ func _refresh() -> void:
 	_pair(g, "Prestige", "%d" % roundi(n.prestige))
 	_pair(g, "Raw materials", "%d%% of the need" % roundi(b.materials.ratio * 100.0), Fmt.GOOD if b.materials.ratio >= 0.999 else Fmt.WARN)
 	_pair(g, "Diplomacy points", "%d  (+%.1f a month)" % [roundi(n.diplomacy_points), Diplomacy.point_income(GameState, n.tag)])
+	_ambition_row(n)
 
 	_box.add_child(HSeparator.new())
 	_box.add_child(_heading("Europe"))
@@ -227,7 +260,8 @@ func _refresh() -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		var block := Pressure.appeal_block(GameState, n.tag, kind)
 		button.disabled = block != ""
-		button.tooltip_text = "%s\nCosts %d diplomacy points; the same nation may do either again after %d days.\nTension %+d, prestige %+d%s" % [def.tip, int(def.cost), int(Pressure.cfg.appeals.wait_days), int(def.tension), int(def.prestige), (", war support %+d" % int(def.war_support)) if int(def.war_support) != 0 else ""]
+		var neighbours := (", relations with each neighbour %+d" % int(def.neighbour_relation)) if def.has("neighbour_relation") else ""
+		button.tooltip_text = "%s\nCosts %d diplomacy points; you may take one stand every %d days.\nTension %+d now, prestige %+d%s%s" % [def.tip, int(def.cost), int(Pressure.cfg.appeals.wait_days), roundi(Pressure.appeal_tension(GameState, n.tag, kind)), int(def.prestige), (", war support %+d" % int(def.war_support)) if int(def.war_support) != 0 else "", neighbours]
 		if block != "":
 			button.tooltip_text = block + "\n" + button.tooltip_text
 		button.pressed.connect(func() -> void:

@@ -75,14 +75,14 @@
 				"war_support": 5
 			},
 			"none": {
-				"label": "No justification",
+				"label": "No casus belli",
 				"target_relations": -50,
 				"world_relations": -20,
 				"prestige": -15,
 				"war_support": -10
 			},
 			"fabricated_claim": {
-				"label": "Fabricated claim",
+				"label": "Refused demand",
 				"target_relations": -35,
 				"world_relations": -5,
 				"prestige": -2,
@@ -104,14 +104,13 @@
 			"tension": 5
 		},
 		"goals": {
-			"_note": "War goals (scripts/sim/war_goal.gd). A war has a goal for its aggressor: a province claim (justified: the provinces are named), a concession (justified: an indemnity, a border disarmament or an end to the target's ties with a named nation), or a national claim (from a scenario claim, no justification needed). Defending a guarantee or an ally is the 'defence' goal. At peace the aggressor pays `discount` times the price for what matches its goal and `premium` times for everything else; a war declared with no casus belli at all pays `none_premium` for every term. justify cost is war.justify cost times cost_mult (plus cost_per_province for each province named after the first); days is how long the work takes. met_score is the war score at which a concession goal counts as met. notice_relations is what the target (and its allies and guarantors) think less of the nation building the case, at once.",
+			"_note": "War goals (scripts/sim/war_goal.gd). A war has a goal for its aggressor: a province claim (the provinces a refused demand named), a concession (an indemnity, a border disarmament, a fleet limit or an end to the target's ties with a named nation), or a national claim (from a scenario claim or ground lost at a peace). Defending a guarantee or an ally is the 'defence' goal. At peace the aggressor pays `discount` times the price for what matches its goal and `premium` times for everything else; a war declared with no casus belli at all pays `none_premium` for every term. Pressing a demand costs crises.json press.cost_points times cost_mult (plus cost_per_province for each province named after the first; Crisis.press_cost). met_score is the war score at which a concession goal counts as met.",
 			"discount": 0.5,
 			"premium": 1.5,
 			"none_premium": 1.3,
 			"max_provinces": 6,
-			"notice_relations": -5,
-			"provinces": {"label": "Province claim", "days": 90, "cost_mult": 1.0, "cost_per_province": 0.15, "grievance": 8},
-			"concession": {"label": "Concession", "days": 60, "cost_mult": 0.7, "grievance": 5, "met_score": 12, "indemnity_share": 0.15, "indemnity_months": 24, "disarm_years": 3},
+			"provinces": {"label": "Province claim", "cost_mult": 1.0, "cost_per_province": 0.15},
+			"concession": {"label": "Concession", "cost_mult": 0.7, "met_score": 12, "indemnity_share": 0.15, "indemnity_months": 24, "disarm_years": 3},
 			"nationality": {"label": "National claim"},
 			"defence": {"label": "Defence", "met_score": 0}
 		},
@@ -150,12 +149,6 @@
 				"world_relations": 0,
 				"prestige": 0
 			}
-		},
-		"justify": {
-			"days": 90,
-			"grievance": 8,
-			"max_active": 2,
-			"_note": "JustifyWar: the nation pays points.costs.justify and works for `days` days to manufacture a fabricated_claim casus belli against a nation that is not its ally or pact partner and is not at war with it. The target resents the effort (`grievance`). Ends early if the two go to war, ally or sign a pact; at most `max_active` at once. The finished claim lasts war.cb_years."
 		}
 	},
 	"join": {
@@ -353,13 +346,12 @@
 				"passage": 5,
 				"neutral_pact": 0
 			},
-			"gift": 10,
-			"justify": 25
+			"gift": 10
 		},
 		"prestige_uses": {
-			"_note": "What prestige buys besides point income: each point cuts the price of a war justification by justify_discount (at most justify_discount_max of it, and a negative prestige raises it by as much), and adds alliance_pull to how others regard the proposer when it offers a treaty (at most alliance_pull_max either way).",
-			"justify_discount": 0.01,
-			"justify_discount_max": 0.4,
+			"_note": "What prestige buys besides point income: each point cuts the price of pressing a demand (Crisis.press_cost) by demand_discount (at most demand_discount_max of it, and a negative prestige raises it by as much), and adds alliance_pull to how others regard the proposer when it offers a treaty (at most alliance_pull_max either way).",
+			"demand_discount": 0.01,
+			"demand_discount_max": 0.4,
 			"alliance_pull": 0.5,
 			"alliance_pull_max": 15
 		}

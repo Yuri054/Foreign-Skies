@@ -42,7 +42,6 @@ func _initialize() -> void:
 		_t("navy.step_day", func() -> void: Nav.step_day(gs))
 		_t("military.step_day", func() -> void: Mil.step_day(gs))
 		_t("diplomacy.step_day", func() -> void: Dip.step_day(gs))
-		_t("  dip.justifications", func() -> void: Dip._step_justifications(gs))
 		_t("  dip.alarms", func() -> void: Dip._step_alarms(gs))
 		_t("  dip.mobilization", func() -> void: Dip._step_mobilization(gs))
 		_t("  dip.join_calls", func() -> void: Dip._step_join_calls(gs))
