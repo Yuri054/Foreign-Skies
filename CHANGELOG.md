@@ -5,8 +5,11 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
-## 0.10.2
+## 0.10.2 (2026-10-26 17:11 UTC)
+
+The first release since 0.5.7: it carries everything from 0.6.0 to here (those versions were not released on their own).
 
 - The tutorial teaches demands, how a war ends (war score and peace) and arms production.
 - A great power gives up at most a quarter of its provinces at one peace (a beaten Britain could lose nearly half).
