@@ -56,6 +56,7 @@ func _initialize() -> void:
 	_check(map._strikes.size() == 1 and is_instance_valid(map._strikes[0]), "one effect is alive")
 	var effect: Node = map._strikes[0]
 	_check(effect.get_node_or_null("Bolt") != null and effect.get_node_or_null("Flash") != null and effect.get_node_or_null("Scorch") != null, "it has a bolt, a flash and a scorch")
+	_check(effect.get_node_or_null("Shockwave") != null and effect.get_node_or_null("Sparks") != null, "it has a shockwave and sparks")
 	_check(gs.command_log.size() == log_before, "the strike issues no command")
 	_check(gs.province_owner == owners_before, "and changes no province")
 	_check(gs.wars.size() == wars_before, "nor starts a war")
