@@ -6,6 +6,10 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.5.6
+
+- A player's guide (MANUAL.md) and screenshots in the README; the pause menu's key list names the History tab.
+
 ## 0.5.5
 
 - Battle staff report: on the battle screen of a battle you are in, how it is going (what each side loses a day, how long until

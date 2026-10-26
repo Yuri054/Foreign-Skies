@@ -10,7 +10,7 @@ const AudioPanel := preload("res://scripts/ui/audio_panel.gd")
 const KEYS := "Move  WASD or arrow keys, wheel to zoom
 Select  click · drag a box for several
 Orders  right-click a province
-Nation screen  N, with E B M Y F O R as its tabs
+Nation screen  N, with E B M Y F O R H as its tabs
 Command panel  C
 Map modes  1 to 6 · 3D map  V
 Time  Space pauses, + and - change speed

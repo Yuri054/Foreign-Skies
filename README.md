@@ -5,7 +5,14 @@ Start in January 1900, at peace, or in July 1914 with the crisis already under w
 run its economy, armies, navy, diplomacy and national focus, and steer through the crises that pushed the
 great powers toward war. Europe's tension rises with the arms race and rivalry; events put choices to you; the
 AI plays every other nation. There is no score and no ending: it is an open sandbox, and whether the great war comes is up to you and them. The design is
-in [DESIGN.md](DESIGN.md).
+in [DESIGN.md](DESIGN.md); [MANUAL.md](MANUAL.md) is a player's guide, and [CHANGELOG.md](CHANGELOG.md) lists what changed.
+
+![The political map, July 1914](docs/screenshots/map.jpg)
+
+| | |
+|---|---|
+| ![Armies and fronts at war](docs/screenshots/war.jpg) | ![The cabinet briefing](docs/screenshots/briefing.jpg) |
+| ![Choosing what a war is for](docs/screenshots/war-goals.jpg) | ![Peace talks with a war goal](docs/screenshots/peace-talks.jpg) |
 
 ## Running it
 
@@ -28,7 +35,7 @@ Saves and settings are written to Godot's user folder (`user://saves/`, `user://
 | Space, `-` `+` | Pause, change speed (five speeds) |
 | 1 to 6 | Map modes (political, diplomacy, economy, population, military with its sea control and blockade variants, terrain) |
 | C | Show or hide the command panel (armies and fleets as cards along the bottom) |
-| N | The Nation screen, on its Overview. Its tabs have their own letters: E Economy, B Build, M Military, Y Navy, F Diplomacy, O Focus, R Rankings (a letter opens the screen on that tab and, pressed again, closes it) |
+| N | The Nation screen, on its Overview. Its tabs have their own letters: E Economy, B Build, M Military, Y Navy, F Diplomacy, O Focus, R Rankings, H History (a letter opens the screen on that tab and, pressed again, closes it) |
 | V | Switch the 3D map on or off. Page Up and Page Down tilt it, `[` and `]` turn it, Home resets; Settings has the 3D map's quality |
 | F5, Shift+F5, F6 | Quick save, quick load, save and load window |
 | F10, Ctrl and `+` `-` | Settings, UI scale |
