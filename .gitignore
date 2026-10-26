@@ -7,3 +7,7 @@ build/
 export/
 .mono/
 tools/ai_training/jobs/
+
+# Rendered trailers (see the README)
+*.mp4
+*.avi
