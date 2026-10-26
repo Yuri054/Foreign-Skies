@@ -319,6 +319,66 @@ three parts, in order; each part ends green and measured.
   picker's screenshot is new. Not done here: the releases (they are public and are published from the main branch, so
   that is the owner's call once this branch is merged) and the playtests, which need people.
 
+## Economy, round 2
+
+After step 3 the economy still has no point: building everything is the only plan, and what it builds changes nothing a
+player can feel. Germany, 1900 to 1914 with the AI off (`tools/economy.py`, a probe of the budget):
+
+| | Doing nothing | Building everything |
+|---|---|---|
+| Output a month | £194M | £227M (+17%) |
+| Revenue / civil spending a month | £19.5M / £14.5M | £24.2M / £17.0M |
+| Net a month, treasury in 1914 | +£0.45M, £80M | +£1.54M, £225M |
+| Divisions the treasury could raise / the recruits allow | 133 / 4 | 375 / 4 |
+
+- **G1. Money buys nothing in peace.** A player's standing army is capped by the scenario's peacetime army (only the
+  AI's grows); past it the only way is mobilization, which costs output and alarms the neighbours. The treasury piles up
+  with nothing to buy.
+- **G2. Growth does not reach the treasury.** Civil spending follows output, so half of what building adds to revenue
+  is spent by the state before it reaches the budget.
+- **G3. Building has no price.** Buildings cost industry only, and industry has no other use but shells and hulls, so
+  there is never a reason not to build everything: no decision.
+- **G4. Small nations are broke from the first day.** Serbia's army costs £0.39M a month against £0.28M of revenue: it
+  runs a deficit whatever it does, and its economy cannot pay for anything.
+- **G5. Nothing says what the economy is for.** The Economy tab shows money and industry, not the army, fleet or
+  shells they could buy.
+
+The aim: a bigger economy carries a bigger army and fleet, and the player chooses between growing it and spending it
+(guns or growth), with the cost of arming felt in tension and the neighbours' alarm.
+
+| Step | Work | Status |
+|---|---|---|
+| E1 | Soldiers cost what the country pays (upkeep by wages) | |
+| E2 | Growth reaches the treasury (civil spending follows the people, not the factories) | |
+| E3 | Money buys the standing army (a peacetime ceiling from the people, not a fixed figure) | |
+| E4 | Building costs money too, and says what it pays back | |
+| E5 | The Economy tab says what the economy buys | |
+| E6 | Measure: guns or growth is a real choice; the road to 1914 holds | |
+
+- **E1.** A soldier's upkeep follows the nation's output per head against a reference (`economy.json`
+  soldier_upkeep_ref), within bounds, so a poor nation's army is cheap and a rich one's dear. Done when every nation
+  starts with its army paid for and a civil budget of its own (no `civil_mult` at the floor), Serbia included.
+- **E2.** Civil spending is calibrated at the start and then follows the nation's people and development (and the share
+  of output mobilization and blockade leave), not the buildings, foci and investment it adds. Done when building
+  everything leaves at least two thirds of the revenue it adds in the budget (a half today).
+- **E3.** In peace a nation may keep under arms up to `economy.json` standing_share of its manpower pool (Germany about
+  900,000, against 529,000 today); mobilization still calls up the reserve toward the whole pool for war. The AI keeps
+  its own peacetime targets. Done when a player's money turns into divisions: from the same start, a Germany that saves
+  can keep at least a quarter more divisions in 1914 than one that does nothing, and one that builds can keep more than
+  one that does not.
+- **E4.** A building level also costs money (`construction.gold_share` of its IC value, paid when it is begun), and the
+  build panel says what the level adds a year in revenue and how many years it takes to pay back. Done when building
+  everything from 1900 is no longer affordable on the side: a Germany that builds everything has the smallest army in
+  1914 of the policies, and one that arms alone has the smallest economy.
+- **E5.** The Economy tab shows "What the budget can keep" (divisions the monthly surplus pays for), "What the treasury
+  can raise now" and the recruits; the briefing says when money sits idle and what it could buy. A test drives the
+  panel.
+- **E6.** `tools/economy.py` gets policies that raise an army with the money (`army`), build then arm (`build=YEAR`) and
+  the existing ones, and reports divisions in 1914 beside output. Done when the strongest Germany in 1914 (divisions,
+  with output for a tie) is a mix, not "build everything" or "army only"; and the campaign checks of steps 1 to 4 hold
+  (first great-power war in 1912 or later in 8 seeds, the general war by 1916 in 6, shells short early in 5, treasuries
+  from 1922 at most 6 months).
+
 ## Quality gates
 
 - New or changed rule: a headless test. UI feature: a test that drives the scene and checks text and state.
