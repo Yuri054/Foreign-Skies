@@ -35,8 +35,13 @@ func _wait(frames: int) -> void:
 ## The trailer is not played: whatever the game asks (an event, a crisis) is answered with its first option, out of sight.
 func _clear_events() -> void:
 	var pressure = load("res://scripts/sim/pressure.gd")
+	var watching := gs.player_tag
 	for d: Dictionary in gs.pending_events.duplicate():
+		# (An observer with no nation answers as some nation, for the account the answer writes.)
+		if watching == "":
+			gs.player_tag = "ESP"
 		pressure.answer(gs, d.id, 0)
+		gs.player_tag = watching
 	clock.paused = true
 
 
@@ -178,9 +183,9 @@ func _peace_beat() -> void:
 	await _wait(2)
 	_say("January 1900. Europe is at peace.", 5.0)
 	_fade_to(0.0, 1.0)
-	await _days(150, 3, Vector2(3000, 2600), 0.34)
+	await _days(150, 1, Vector2(3000, 2600), 0.34)
 	_say("Twenty-two nations. One continent. Fourteen years.", 4.5)
-	await _days(180, 3, Vector2(2700, 2700), 0.5)
+	await _days(180, 1, Vector2(2700, 2700), 0.5)
 
 
 func _desk_beat() -> void:
@@ -219,13 +224,13 @@ func _war_beat() -> void:
 	await _wait(2)
 	_say("July 1914. The alliances are drawn.", 4.0)
 	_fade_to(0.0, 0.8)
-	await _days(60, 2, Vector2(2250, 2550), 0.42)
+	await _days(60, 1, Vector2(2250, 2550), 0.42)
 	_say("A shot in Sarajevo. Europe marches.", 4.0)
-	await _days(100, 2, Vector2(2050, 2650), 0.7)
+	await _days(100, 1, Vector2(2050, 2650), 0.7)
 	main.map_view.set_mode(main.map_view.Mode.POLITICAL)
 	_say("Every front, every battle, every peace.", 4.0)
-	await _days(120, 2, Vector2(2650, 2200), 0.55)
-	await _days(100, 2, Vector2(3300, 2450), 0.45)
+	await _days(120, 1, Vector2(2650, 2200), 0.55)
+	await _days(100, 1, Vector2(3300, 2450), 0.45)
 
 
 func _view3d_beat() -> void:
@@ -238,8 +243,8 @@ func _view3d_beat() -> void:
 	cam.zoom = Vector2(0.9, 0.9)
 	await _wait(3)
 	_say("Or watch it unfold in three dimensions.", 4.5)
-	await _days(60, 1, Vector2(2200, 2600), 1.35)
-	await _days(40, 1, Vector2(2000, 2700), 1.6)
+	await _days(110, 1, Vector2(2200, 2600), 1.35)
+	await _days(80, 1, Vector2(2000, 2700), 1.6)
 	m3.set_enabled(false)
 
 
