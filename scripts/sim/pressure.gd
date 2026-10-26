@@ -74,6 +74,14 @@ static func parts(gs: Node) -> Dictionary:
 			"events": gs.tension_impulse, "total": total}
 
 
+## Whether a war between two great powers has been fought and ended: the world after the war.
+static func great_war_fought(gs: Node) -> bool:
+	for w: War in gs.war_history:
+		if w.a in GREAT and w.b in GREAT and w.end_day >= 0:
+			return true
+	return false
+
+
 ## Whether the AI may start a war of its own choosing: Europe must be tense enough (see war_gate).
 static func ai_may_declare(gs: Node) -> bool:
 	return not gs.pressure_ai or gs.tension >= war_gate(gs)
@@ -114,6 +122,11 @@ static func _update(gs: Node) -> void:
 
 static func step_month(gs: Node) -> void:
 	gs.tension_impulse = minf(gs.tension_impulse * (1.0 - float(cfg.impulse_decay)), float(cfg.impulse_max))
+	# Once the great powers have fought each other, what counts as armed follows the armies slowly, both ways: a lasting
+	# army becomes the norm, a new arms race above it shows, and armies sent home ease it. (Before that, the arms race is
+	# measured from the scenario's armies, as the road to 1914 was.)
+	if great_war_fought(gs):
+		gs.tension_arms_base = maxf(1.0, gs.tension_arms_base + (_great_men(gs) - gs.tension_arms_base) * float(cfg.get("arms_drift", 0.0)))
 	_fire_events(gs)
 	_update(gs)
 	if gs.tension >= float(cfg.harden_above):
@@ -174,8 +187,16 @@ static func _condition_ok(gs: Node, e: Dictionary) -> bool:
 		return false
 	if c.get("player_great_power", false) and gs.player_tag not in GREAT:
 		return false
+	if c.has("months_from_start") and _month_index() - gs.pressure_start < int(c.months_from_start):
+		return false
+	if c.get("after_great_war", false) and not great_war_fought(gs):
+		return false
+	if c.get("no_great_war", false):
+		for w: War in gs.wars.values():
+			if w.a in GREAT and w.b in GREAT:
+				return false
 	for tag: String in e.actors.values():
-		if tag != "$player" and not gs.nations.has(tag):
+		if not tag.begins_with("$") and not gs.nations.has(tag):
 			return false
 	return true
 
@@ -184,15 +205,66 @@ static func _alive(gs: Node, tag: String) -> bool:
 	return gs.nations.has(tag) and not gs.nations[tag].provinces.is_empty()
 
 
-## The event's actors by role (a, b, c), `$player` filled in; {} if one of them is gone from the map.
+## The event's actors by role (a, b, c), `$player` and the other picks filled in (see _pick_role); {} if one of them
+## is gone from the map or nobody fits.
 static func _roles(gs: Node, e: Dictionary) -> Dictionary:
 	var roles := {}
 	for role: String in e.actors:
 		var tag: String = e.actors[role]
-		roles[role] = gs.player_tag if tag == "$player" else tag
+		roles[role] = _pick_role(gs, tag) if tag.begins_with("$") else tag
 		if not gs.nations.has(roles[role]):
 			return {}
 	return roles
+
+
+## A role named by what a nation is now, not by its tag (events.json picks):
+##   $player       the player's nation
+##   $lost_ground  the nation that most lately gave up ground at a peace (in the last picks.recent_months, alive and at
+##                 peace), and $winner the nation it gave it to
+##   $empire       the most troubled of picks.empires at peace: one with war support under picks.empire_support, or
+##                 that lost ground lately
+##   $most_armed   the great power with the most men under arms, and $second_armed the next
+static func _pick_role(gs: Node, sel: String) -> String:
+	var p: Dictionary = cfg.get("picks", {})
+	match sel:
+		"$player":
+			return gs.player_tag
+		"$lost_ground", "$winner":
+			var loss := _recent_loss(gs, int(p.get("recent_months", 24)) * 30)
+			if loss.is_empty():
+				return ""
+			return loss.holder if sel == "$lost_ground" else loss.against
+		"$empire":
+			var best := ""
+			for tag: String in p.get("empires", []):
+				if not _alive(gs, tag) or not gs.wars_of(tag).is_empty():
+					continue
+				var n: Nation = gs.nations[tag]
+				var lost := not _recent_loss(gs, int(p.get("recent_months", 24)) * 30, tag).is_empty()
+				if (n.war_support < float(p.get("empire_support", 40.0)) or lost) and (best == "" or n.war_support < gs.nations[best].war_support):
+					best = tag
+			return best
+		"$most_armed", "$second_armed":
+			var powers: Array = GREAT.filter(func(t: String) -> bool: return _alive(gs, t))
+			powers.sort_custom(func(x: String, y: String) -> bool:
+				return gs.nations[x].men_in_units > gs.nations[y].men_in_units or (gs.nations[x].men_in_units == gs.nations[y].men_in_units and x < y))
+			var i := 0 if sel == "$most_armed" else 1
+			return powers[i] if powers.size() > i else ""
+	return ""
+
+
+## The latest claim made in play (ground lost at a peace) within `days`, by `holder` if given, whose holder is alive
+## and at peace: {} if none.
+static func _recent_loss(gs: Node, days: int, holder := "") -> Dictionary:
+	var best := {}
+	for c: Dictionary in gs.claims:
+		if holder != "" and c.holder != holder:
+			continue
+		if Clock.days_elapsed - int(c.get("made_day", -999999)) > days or not _alive(gs, c.holder) or not gs.wars_of(c.holder).is_empty():
+			continue
+		if best.is_empty() or int(c.made_day) > int(best.made_day) or (int(c.made_day) == int(best.made_day) and str(c.holder) < str(best.holder)):
+			best = c
+	return best
 
 
 static func _swapped(roles: Dictionary) -> Dictionary:

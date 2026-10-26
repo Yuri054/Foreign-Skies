@@ -6,6 +6,21 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.9.0
+
+- After the war the world goes on. Land lost at a peace leaves the loser a claim to it for 25 years and a lasting
+  resentment of the winner; it is a reason for war and the first thing the loser demands in a crisis.
+- New crises: a nation demands back what it lost, and a great power demands that another build no more warships for some
+  years (a new peace term too).
+- Ground lost at the peace after a war is a provocation: the loser may go to war for it even in a calm Europe, if it can
+  win. A refused demand makes the demander keener on war.
+- Mediation by the powers succeeds a little less often, and the same two nations quarrel at most every four years.
+- Events from the state of the world: the lost provinces (after a peace), unrest in an empire, a conference on armaments.
+- Every focus tree ends in foci that can be taken again, so no nation runs out of national efforts; the AI takes them
+  once its tree is done. The briefing asks for a focus only when one can be started.
+- Once two great powers have fought a war to its end, tension's arms race is measured against a base that follows the
+  armies slowly: a lasting army becomes the norm, a new race shows, and armies sent home ease it.
+
 ## 0.8.0
 
 - Munitions: industry now arms the guns. An Arms production slider puts a share of each day's industry into a stockpile of

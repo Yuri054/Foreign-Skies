@@ -78,7 +78,7 @@ static func issues(gs: Node, tag: String) -> Array[Dictionary]:
 		var big := biggest_tension_part(gs)
 		_add(out, "tension", gs.tension * 0.6, "Europe's tension is %d of 100" % roundi(gs.tension), "Mostly %s. The nearer it gets to war, the bolder the AI nations grow." % big.name.to_lower(), "Overview")
 	# What is not being done.
-	if n.focus.is_empty() and not Focus.tree_of(tag).is_empty():
+	if n.focus.is_empty() and Focus.tree_of(tag).any(func(f: Dictionary) -> bool: return Focus.block(gs, tag, f.id) == ""):
 		_add(out, "focus", 30.0, "No national focus chosen", "A focus is one lasting effort, such as an arms drive or a reform. Pick one.", "Focus")
 	var points := Diplomacy.points(gs, tag)
 	if points >= 60.0:

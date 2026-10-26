@@ -60,6 +60,7 @@ def check(root: Path) -> list:
     events = load_json(data / "events.json", problems) or {}
     check_events(events, tags, problems)
     check_focus(load_json(data / "focus.json", problems) or {}, tags, problems)
+    check_crises(load_json(data / "crises.json", problems) or {}, problems)
     check_ai(root, problems)
     check_audio(root, load_json(data / "audio.json", problems) or {}, problems)
 
@@ -100,6 +101,36 @@ def check_events(events: dict, tags: set, problems: list):
         for role, who in e.get("actors", {}).items():
             if isinstance(who, str) and not who.startswith("$") and who not in tags:
                 problems.append(f"events.json: {eid} names unknown nation {who} as {role}")
+            if isinstance(who, str) and who.startswith("$") and who not in PICKS:
+                problems.append(f"events.json: {eid} picks {who} as {role}, which Pressure._pick_role does not know")
+        for key in e.get("condition", {}):
+            if key not in CONDITIONS:
+                problems.append(f"events.json: {eid} has an unknown condition {key}")
+    for tag in events.get("tension", {}).get("picks", {}).get("empires", []):
+        if tag not in tags:
+            problems.append(f"events.json: tension.picks.empires names unknown nation {tag}")
+
+
+# What Pressure._pick_role and Pressure._condition_ok read.
+PICKS = {"$player", "$lost_ground", "$winner", "$empire", "$most_armed", "$second_armed"}
+CONDITIONS = {"tension_min", "tension_max", "relation_above", "peace", "pressure_ai", "player_great_power", "no_great_war", "after_great_war",
+              "months_from_start"}
+
+
+def check_crises(crises: dict, problems: list):
+    # Every kind of demand Crisis.demand_options makes needs its weight and its words.
+    for kind in ("claim", "revanche", "border", "indemnity", "disarm", "naval"):
+        k = crises.get("kinds", {}).get(kind)
+        if not isinstance(k, dict):
+            problems.append(f"crises.json: no kind {kind}")
+            continue
+        for key in ("weight", "title", "text"):
+            if key not in k:
+                problems.append(f"crises.json: kind {kind} has no {key}")
+    naval = crises.get("kinds", {}).get("naval", {})
+    for key in ("years", "min_ratio"):
+        if key not in naval:
+            problems.append(f"crises.json: kind naval has no {key}")
 
 
 def check_focus(focus: dict, tags: set, problems: list):

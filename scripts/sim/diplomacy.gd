@@ -44,6 +44,7 @@ static func load_scenario(gs: Node) -> void:
 	gs.casus_belli.clear()
 	gs.grievance.clear()
 	gs.rivalries.clear()
+	gs.claims.clear()
 	gs.war_groups.clear()
 	gs.pending_joins.clear()
 	gs.join_calls.clear()
@@ -658,7 +659,7 @@ static func casus_belli_options(gs: Node, a: String, b: String) -> Array[String]
 	var out: Array[String] = []
 	if a == b or not gs.nations.has(a) or not gs.nations.has(b):
 		return out
-	for claim: Dictionary in gs.scenario.get("claims", []):
+	for claim: Dictionary in all_claims(gs):
 		if claim.holder == a and _claim_applies(gs, claim, b) and claim.kind not in out:
 			out.append(claim.kind)
 	for ward in guaranteed_by(gs, a):
@@ -677,6 +678,15 @@ static func casus_belli_options(gs: Node, a: String, b: String) -> Array[String]
 	return out
 
 
+## Whether `b` refused a demand of `a`'s in the last war.provocation.refusal_days (the AI's desire for war counts it).
+static func refused_lately(gs: Node, a: String, b: String) -> bool:
+	for cb: Dictionary in gs.casus_belli:
+		if cb.holder == a and cb.target == b and cb.has("refused_day") \
+				and Clock.days_elapsed - int(cb.refused_day) <= int(cfg.war.provocation.get("refusal_days", 0)):
+			return true
+	return false
+
+
 ## Whether `b` holds a claimed province. A border claim also needs it to touch the claimant.
 static func _claim_applies(gs: Node, claim: Dictionary, b: String) -> bool:
 	for id in claim_provinces(claim):
@@ -690,8 +700,57 @@ static func _claim_applies(gs: Node, claim: Dictionary, b: String) -> bool:
 	return false
 
 
-## Province ids named by a scenario claim.
+## The scenario's claims and those made in play that still stand.
+static func all_claims(gs: Node) -> Array:
+	var out: Array = gs.scenario.get("claims", []).duplicate()
+	out.append_array(gs.claims)
+	return out
+
+
+## The claims `a` made in play (revanche) on ground `b` holds now: their province ids, or []. `from_war`: only ground lost
+## at the peace after a war, not ground yielded to a demand.
+static func revanche_ids(gs: Node, a: String, b: String, from_war := false) -> Array:
+	var out: Array = []
+	for claim: Dictionary in gs.claims:
+		if claim.holder == a and (not from_war or claim.get("war", false)):
+			for id: int in claim.ids:
+				if gs.province_owner[id] == b and id not in out:
+					out.append(id)
+	return out
+
+
+## Ground handed over at a peace (or to a demand) leaves the loser a reconquest claim to it for revanche.years, and a
+## lasting resentment of the winner: a floor under its grievance (rivalry) that fades like an old rivalry.
+static func revanche(gs: Node, loser: String, winner: String, ids: Array, from_war := true) -> void:
+	if ids.is_empty() or not gs.nations.has(loser) or gs.nations[loser].provinces.is_empty():
+		return
+	var c: Dictionary = cfg.revanche
+	var until: int = Clock.days_elapsed + int(float(c.years) * 365.0)
+	var claim := {}
+	for old: Dictionary in gs.claims:
+		if old.holder == loser and old.get("against", "") == winner:
+			claim = old
+	if claim.is_empty():
+		claim = {"holder": loser, "against": winner, "kind": "reconquest", "ids": [],
+				"note": "lost to %s" % gs.nations[winner].display_name}
+		gs.claims.append(claim)
+	for id: int in ids:
+		if id not in claim.ids:
+			claim.ids.append(id)
+	claim["expires_day"] = until
+	claim["made_day"] = Clock.days_elapsed
+	claim["war"] = claim.get("war", false) or from_war
+	var key := "%s>%s" % [loser, winner]
+	var floor_now := minf(float(c.rivalry_max), float(c.rivalry) + float(c.rivalry_per_province) * claim.ids.size())
+	gs.rivalries[key] = maxf(gs.rivalries.get(key, 0.0), floor_now)
+
+
+## Province ids named by a claim (a scenario claim names provinces; one made in play holds their ids).
 static func claim_provinces(claim: Dictionary) -> Array[int]:
+	if claim.has("ids"):
+		var ids: Array[int] = []
+		ids.assign(claim.ids)
+		return ids
 	var key := ",".join(claim.provinces)
 	var cached: Variant = _claim_cache.get(key)
 	if cached != null:
@@ -835,6 +894,11 @@ static func _step_grievance(gs: Node) -> void:
 			gs.rivalries.erase(key)
 	var today: int = Clock.days_elapsed
 	gs.casus_belli = gs.casus_belli.filter(func(cb: Dictionary) -> bool: return cb.expires_day > today)
+	# A claim lapses with time, or once the holder has its ground back (or is gone).
+	gs.claims = gs.claims.filter(func(c: Dictionary) -> bool:
+		if c.expires_day <= today or not gs.nations.has(c.holder) or gs.nations[c.holder].provinces.is_empty():
+			return false
+		return c.ids.any(func(id: int) -> bool: return gs.province_owner[id] != c.holder))
 
 
 # --- War justification ---------------------------------------------------------------------

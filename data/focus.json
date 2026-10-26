@@ -1,5 +1,5 @@
 {
-	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci. A focus with repeatable and max can be taken again after finishing, up to max times in all (Nation.focus_count); its effects apply each time. nations.<TAG>.tree, where present, is the nation's whole tree and replaces its template (the great powers have one of their own, written by tools/make_focus_trees.py).",
+	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci. A focus with repeatable and max can be taken again after finishing, up to max times in all (max 0: for ever) (Nation.focus_count); its effects apply each time. nations.<TAG>.tree, where present, is the nation's whole tree and replaces its template (the great powers have one of their own, written by tools/make_focus_trees.py).",
 	"templates": {
 		"major": [
 			{
@@ -253,7 +253,38 @@
 				},
 				"ai": 0.4,
 				"repeatable": true,
-				"max": 6
+				"max": 0
+			},
+			{
+				"id": "sound_finances",
+				"name": "Sound finances",
+				"desc": "Balanced books and cheap credit for the country's works.",
+				"x": 1,
+				"y": 2,
+				"days": 120,
+				"requires": [],
+				"effects": {
+					"growth": 0.0005
+				},
+				"ai": 0.6,
+				"repeatable": true,
+				"max": 8
+			},
+			{
+				"id": "grand_manoeuvres",
+				"name": "Grand manoeuvres",
+				"desc": "The army shows itself to the nation and to the attaches.",
+				"x": 1,
+				"y": 3,
+				"days": 120,
+				"requires": [],
+				"effects": {
+					"war_support": 2,
+					"prestige": 1
+				},
+				"ai": 0.5,
+				"repeatable": true,
+				"max": 0
 			}
 		]
 	},
@@ -566,6 +597,53 @@
 						]
 					},
 					"ai": 1.0
+				},
+				{
+					"id": "sound_finances",
+					"name": "Sound finances",
+					"desc": "Balanced books and cheap credit for the country's works.",
+					"x": 0,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"growth": 0.0005
+					},
+					"ai": 0.6,
+					"repeatable": true,
+					"max": 8
+				},
+				{
+					"id": "grand_manoeuvres",
+					"name": "Grand manoeuvres",
+					"desc": "The army shows itself to the nation and to the attaches.",
+					"x": 1,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"war_support": 2,
+						"prestige": 1
+					},
+					"ai": 0.5,
+					"repeatable": true,
+					"max": 0
+				},
+				{
+					"id": "diplomatic_missions",
+					"name": "Embassies abroad",
+					"desc": "Envoys, visits and banquets in every capital.",
+					"x": 2,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"points": 8,
+						"prestige": 1
+					},
+					"ai": 0.4,
+					"repeatable": true,
+					"max": 0
 				}
 			]
 		},
@@ -870,6 +948,53 @@
 						"growth": 0.002
 					},
 					"ai": 1.0
+				},
+				{
+					"id": "sound_finances",
+					"name": "Sound finances",
+					"desc": "Balanced books and cheap credit for the country's works.",
+					"x": 0,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"growth": 0.0005
+					},
+					"ai": 0.6,
+					"repeatable": true,
+					"max": 8
+				},
+				{
+					"id": "grand_manoeuvres",
+					"name": "Grand manoeuvres",
+					"desc": "The army shows itself to the nation and to the attaches.",
+					"x": 1,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"war_support": 2,
+						"prestige": 1
+					},
+					"ai": 0.5,
+					"repeatable": true,
+					"max": 0
+				},
+				{
+					"id": "diplomatic_missions",
+					"name": "Embassies abroad",
+					"desc": "Envoys, visits and banquets in every capital.",
+					"x": 2,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"points": 8,
+						"prestige": 1
+					},
+					"ai": 0.4,
+					"repeatable": true,
+					"max": 0
 				}
 			]
 		},
@@ -1204,6 +1329,53 @@
 					},
 					"ai": 1.0,
 					"min_aggression": 0.55
+				},
+				{
+					"id": "sound_finances",
+					"name": "Sound finances",
+					"desc": "Balanced books and cheap credit for the country's works.",
+					"x": 0,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"growth": 0.0005
+					},
+					"ai": 0.6,
+					"repeatable": true,
+					"max": 8
+				},
+				{
+					"id": "grand_manoeuvres",
+					"name": "Grand manoeuvres",
+					"desc": "The army shows itself to the nation and to the attaches.",
+					"x": 1,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"war_support": 2,
+						"prestige": 1
+					},
+					"ai": 0.5,
+					"repeatable": true,
+					"max": 0
+				},
+				{
+					"id": "diplomatic_missions",
+					"name": "Embassies abroad",
+					"desc": "Envoys, visits and banquets in every capital.",
+					"x": 2,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"points": 8,
+						"prestige": 1
+					},
+					"ai": 0.4,
+					"repeatable": true,
+					"max": 0
 				}
 			]
 		},
@@ -1529,6 +1701,53 @@
 						"trade": 0.004
 					},
 					"ai": 1.0
+				},
+				{
+					"id": "sound_finances",
+					"name": "Sound finances",
+					"desc": "Balanced books and cheap credit for the country's works.",
+					"x": 0,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"growth": 0.0005
+					},
+					"ai": 0.6,
+					"repeatable": true,
+					"max": 8
+				},
+				{
+					"id": "grand_manoeuvres",
+					"name": "Grand manoeuvres",
+					"desc": "The army shows itself to the nation and to the attaches.",
+					"x": 1,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"war_support": 2,
+						"prestige": 1
+					},
+					"ai": 0.5,
+					"repeatable": true,
+					"max": 0
+				},
+				{
+					"id": "diplomatic_missions",
+					"name": "Embassies abroad",
+					"desc": "Envoys, visits and banquets in every capital.",
+					"x": 2,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"points": 8,
+						"prestige": 1
+					},
+					"ai": 0.4,
+					"repeatable": true,
+					"max": 0
 				}
 			]
 		},
@@ -1845,6 +2064,53 @@
 						"diplomacy": 0.5
 					},
 					"ai": 1.0
+				},
+				{
+					"id": "sound_finances",
+					"name": "Sound finances",
+					"desc": "Balanced books and cheap credit for the country's works.",
+					"x": 0,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"growth": 0.0005
+					},
+					"ai": 0.6,
+					"repeatable": true,
+					"max": 8
+				},
+				{
+					"id": "grand_manoeuvres",
+					"name": "Grand manoeuvres",
+					"desc": "The army shows itself to the nation and to the attaches.",
+					"x": 1,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"war_support": 2,
+						"prestige": 1
+					},
+					"ai": 0.5,
+					"repeatable": true,
+					"max": 0
+				},
+				{
+					"id": "diplomatic_missions",
+					"name": "Embassies abroad",
+					"desc": "Envoys, visits and banquets in every capital.",
+					"x": 2,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"points": 8,
+						"prestige": 1
+					},
+					"ai": 0.4,
+					"repeatable": true,
+					"max": 0
 				}
 			]
 		},
@@ -2146,6 +2412,53 @@
 						"diplomacy": 0.8
 					},
 					"ai": 1.0
+				},
+				{
+					"id": "sound_finances",
+					"name": "Sound finances",
+					"desc": "Balanced books and cheap credit for the country's works.",
+					"x": 0,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"growth": 0.0005
+					},
+					"ai": 0.6,
+					"repeatable": true,
+					"max": 8
+				},
+				{
+					"id": "grand_manoeuvres",
+					"name": "Grand manoeuvres",
+					"desc": "The army shows itself to the nation and to the attaches.",
+					"x": 1,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"war_support": 2,
+						"prestige": 1
+					},
+					"ai": 0.5,
+					"repeatable": true,
+					"max": 0
+				},
+				{
+					"id": "diplomatic_missions",
+					"name": "Embassies abroad",
+					"desc": "Envoys, visits and banquets in every capital.",
+					"x": 2,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"points": 8,
+						"prestige": 1
+					},
+					"ai": 0.4,
+					"repeatable": true,
+					"max": 0
 				}
 			]
 		},
@@ -2434,6 +2747,53 @@
 					},
 					"ai": 1.0,
 					"min_aggression": 0.55
+				},
+				{
+					"id": "sound_finances",
+					"name": "Sound finances",
+					"desc": "Balanced books and cheap credit for the country's works.",
+					"x": 0,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"growth": 0.0005
+					},
+					"ai": 0.6,
+					"repeatable": true,
+					"max": 8
+				},
+				{
+					"id": "grand_manoeuvres",
+					"name": "Grand manoeuvres",
+					"desc": "The army shows itself to the nation and to the attaches.",
+					"x": 1,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"war_support": 2,
+						"prestige": 1
+					},
+					"ai": 0.5,
+					"repeatable": true,
+					"max": 0
+				},
+				{
+					"id": "diplomatic_missions",
+					"name": "Embassies abroad",
+					"desc": "Envoys, visits and banquets in every capital.",
+					"x": 2,
+					"y": 4,
+					"days": 120,
+					"requires": [],
+					"effects": {
+						"points": 8,
+						"prestige": 1
+					},
+					"ai": 0.4,
+					"repeatable": true,
+					"max": 0
 				}
 			]
 		},

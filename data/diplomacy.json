@@ -116,10 +116,12 @@
 			"defence": {"label": "Defence", "met_score": 0}
 		},
 		"provocation": {
+			"_note": "Grievance and provocation (Diplomacy.grievance, AIDiplomacy.war_check). A nation attacked with no casus belli resents the aggressor by grievance_on_unprovoked_war; grievance fades grievance_decay_per_month, and old rivalries (scenario rivalries, revanche) are a floor under it that fades rivalry_fade_per_year. A nation provoked (by grievance past retaliation_threshold with a casus belli, or ground the target took from it at the peace after a war, see revanche) may go to war in a calm Europe and unmobilized. refusal_days: how long a refused demand counts in the AI's desire for war (ai.json w_refused).",
 			"grievance_on_unprovoked_war": 40,
 			"grievance_decay_per_month": 2,
 			"rivalry_fade_per_year": 1.0,
-			"retaliation_threshold": 60
+			"retaliation_threshold": 60,
+			"refusal_days": 180
 		},
 		"cancel": {
 			"_note": "What it costs the cancelling nation to tear up a treaty: partner_relations (the other party's opinion), world_relations (everyone else's), prestige.",
@@ -229,6 +231,7 @@
 			"max_months": 60,
 			"release_ally": 10,
 			"disarm_border_per_year": 2,
+			"fleet_limit_per_year": 2,
 			"disarm_years_max": 10
 		},
 		"ai": {
@@ -282,6 +285,13 @@
 		"gift_ref_share": 0.05,
 		"gift_ref_floor": 2.0,
 		"gift_memory_decay": 0.9
+	},
+	"revanche": {
+		"_note": "Diplomacy.revanche: ground ceded at a peace or to a demand leaves the loser a reconquest claim to it (GameState.claims) for `years`, gone once it has the ground back, and a rivalry with the winner of `rivalry` plus `rivalry_per_province` for each province claimed, at most `rivalry_max`, which fades as the scenario's rivalries do (war.provocation.rivalry_fade_per_year).",
+		"years": 25,
+		"rivalry": 20,
+		"rivalry_per_province": 8,
+		"rivalry_max": 50
 	},
 	"points": {
 		"_note": "Diplomacy points (Nation.diplomacy_points): a nation's stock of diplomatic effort, spent by the commands DeclareWar, ProposeTreaty, CancelTreaty and Gift (costs below; an AI nation's own internal moves, such as joining a war it is bound to, are free) and earned each month: income.base, plus prestige_weight per point of prestige, plus top_output_bonus for the top_output_count nations by output, never below income.min. The stock cannot pass max. A refused treaty proposal gives refusal_refund of its cost back. purchase: pay base_cost GBP millions for a batch of points, the price rising by price_growth with each purchase and easing back by price_decay each month. improve: improve_relations starts a project that adds monthly to the opinion of the pair (and base_monthly to what it settles at) for months, at most max_active at once. prestige: a battle won earns battle_win, peace terms earn the taker peace_per_score a point of their cost (at most peace_cap, the loser loses peace_loser_share of that), a new alliance or guarantee earns the treaty value, and all of it fades by decay_per_month. Other income sources: the diplomatic service program and the foreign ministry building (see economy.json). A scenario nation can set its own start with diplomacy_points.",

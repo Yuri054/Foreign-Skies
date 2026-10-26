@@ -257,6 +257,11 @@ static func demand_cost(gs: Node, taker: String, giver: String, d: Dictionary) -
 			if years < 1 or years > p.disarm_years_max or Military.border_provinces(gs, giver, taker).is_empty():
 				return -1.0
 			return p.disarm_border_per_year * years * f
+		"fleet_limit":
+			var years: int = d.get("years", 0)
+			if years < 1 or years > p.disarm_years_max or Navy.strength_of(gs, giver) <= 0.0:
+				return -1.0
+			return float(p.fleet_limit_per_year) * years * f
 	return -1.0
 
 
@@ -274,6 +279,8 @@ static func describe_demand(gs: Node, d: Dictionary) -> String:
 			return "an end to its ties with %s" % gs.nations[d.nation].display_name
 		"disarm_border":
 			return "its border armies withdrawn for %d years" % d.years
+		"fleet_limit":
+			return "no new warships for %d years" % d.years
 	return "?"
 
 
@@ -480,7 +487,8 @@ static func make_peace(gs: Node, war: War, offer: Dictionary) -> void:
 	_separate_peace(gs, war)
 
 
-static func _apply_demand(gs: Node, taker: String, giver: String, d: Dictionary) -> String:
+## `at_war`: carried out at a peace (false for a demand yielded in a crisis; see Diplomacy.revanche).
+static func _apply_demand(gs: Node, taker: String, giver: String, d: Dictionary, at_war := true) -> String:
 	match d.kind:
 		"province":
 			var names: Array[String] = []
@@ -489,6 +497,7 @@ static func _apply_demand(gs: Node, taker: String, giver: String, d: Dictionary)
 				names.append(MapData.provinces[id].name)
 				capital_lost = capital_lost or id == gs.nations[giver].capital
 				gs.transfer_province(id, taker)
+			Diplomacy.revanche(gs, giver, taker, d.ids, at_war)
 			if capital_lost:
 				_move_capital(gs, giver)
 			return ", ".join(names)
@@ -505,6 +514,10 @@ static func _apply_demand(gs: Node, taker: String, giver: String, d: Dictionary)
 					"provinces": Military.border_provinces(gs, giver, taker),
 					"until_day": Clock.days_elapsed + int(d.years * 365)})
 			return "%s's border armies withdrawn for %d years" % [gs.nations[giver].display_name, d.years]
+		"fleet_limit":
+			gs.restrictions.append({"nation": giver, "holder": taker, "kind": "fleet_limit", "provinces": [],
+					"until_day": Clock.days_elapsed + int(d.years * 365)})
+			return "no new warships for %s for %d years" % [gs.nations[giver].display_name, d.years]
 	return ""
 
 
@@ -583,6 +596,14 @@ static func _separate_peace(gs: Node, war: War) -> void:
 static func restricted(gs: Node, tag: String, id: int) -> bool:
 	for r: Dictionary in gs.restrictions:
 		if r.nation == tag and Clock.days_elapsed < r.until_day and id in r.provinces and not gs.at_war(tag, r.holder):
+			return true
+	return false
+
+
+## Whether a peace clause or a yielded demand forbids `tag` new warships (not while it fights the nation that holds it).
+static func fleet_limited(gs: Node, tag: String) -> bool:
+	for r: Dictionary in gs.restrictions:
+		if r.nation == tag and r.get("kind", "") == "fleet_limit" and Clock.days_elapsed < r.until_day and not gs.at_war(tag, r.holder):
 			return true
 	return false
 

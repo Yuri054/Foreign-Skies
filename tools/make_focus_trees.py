@@ -156,10 +156,22 @@ TREES["OTT"] = [
     F("lost_lands", "The lost lands", "Thessaly, Crete and the islands are not forgotten.", 3, 3, 100, ["russian_fear", "balkan_question"], {"claim": ["GRE"]}, min_aggression=0.55),
 ]
 
+# Every great power's tree ends in the same repeatable foci, so a nation whose tree is done still has a national effort
+# in hand: sound finances (a little growth, up to a limit) and two that may be taken again for ever (max 0), whose
+# effects are one-off and fade (war support and prestige drift back, points are spent).
+def COMMON(y):
+    return [
+        F("sound_finances", "Sound finances", "Balanced books and cheap credit for the country's works.", 0, y, 120, [], {"growth": 0.0005}, ai=0.6, repeatable=True, max=8),
+        F("grand_manoeuvres", "Grand manoeuvres", "The army shows itself to the nation and to the attaches.", 1, y, 120, [], {"war_support": 2, "prestige": 1}, ai=0.5, repeatable=True, max=0),
+        F("diplomatic_missions", "Embassies abroad", "Envoys, visits and banquets in every capital.", 2, y, 120, [], {"points": 8, "prestige": 1}, ai=0.4, repeatable=True, max=0),
+    ]
+
 if __name__ == "__main__":
     p = "data/focus.json"
     d = json.load(open(p))
     for tag, tree in TREES.items():
+        tree = tree + COMMON(max(f["y"] for f in tree) + 1)
+        TREES[tag] = tree
         ids = [f["id"] for f in tree]
         assert len(ids) == len(set(ids)), tag
         for f in tree:

@@ -30,6 +30,15 @@ static func fleets_of(gs: Node, tag: String) -> Array[Fleet]:
 	return out
 
 
+## The strength of all a nation's ships, afloat and in port.
+static func strength_of(gs: Node, tag: String) -> float:
+	var total := 0.0
+	for f: Fleet in fleets_of(gs, tag):
+		for s in f.ships:
+			total += s.strength
+	return total
+
+
 static func fleets_in_port(gs: Node, province: int) -> Array[Fleet]:
 	var out: Array[Fleet] = []
 	for f: Fleet in gs.fleets.values():
@@ -361,6 +370,8 @@ static func build_problem(gs: Node, tag: String, province: int, type: String, co
 		return "Not your province"
 	if gs.province_controller[province] != tag:
 		return "Province is occupied"
+	if Peace.fleet_limited(gs, tag):
+		return "A treaty limits your fleet: no new warships"
 	if MapData.zones_of_port(province).is_empty():
 		return "Needs a coastal province"
 	var level := port_level(gs, province)

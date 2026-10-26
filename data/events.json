@@ -1,10 +1,11 @@
 {
-	"_note": "Historical pressure (scripts/sim/pressure.gd). Each event fires at the first month on or after `date` while its conditions hold, and is dropped once `until` has passed. The player is asked if they are an actor (a, or b with b_options; a `mirror` event reads the same from either side); otherwise the event is news and `ai_option` (or b_ai_option) is applied. Effects: tension, relation [a,b,d], treasury [a,m], prestige [a,n], war_support [a,n], points [a,n], manpower [a,fraction], mobilize [a,d], grievance [holder,target,n], treaty [kind,a,b,terms,note], war [a,b,(calls)].",
+	"_note": "Historical pressure (scripts/sim/pressure.gd). Each event fires at the first month on or after `date` while its conditions hold, and is dropped once `until` has passed. The player is asked if they are an actor (a, or b with b_options; a `mirror` event reads the same from either side); otherwise the event is news and `ai_option` (or b_ai_option) is applied. Actors are tags, $player or a pick of what a nation is now (tension.picks); conditions: tension_min, tension_max, relation_above, peace, pressure_ai, player_great_power, no_great_war (no war between two great powers), after_great_war (once two great powers have fought a war to its end), months_from_start (not in the scenario's first months). Effects: tension, relation [a,b,d], treasury [a,m], prestige [a,n], war_support [a,n], points [a,n], manpower [a,fraction], mobilize [a,d], grievance [holder,target,n], treaty [kind,a,b,terms,note], war [a,b,(calls)].",
 	"tension": {
-		"_note": "Tension (Pressure.parts): base + arms (growth of the great powers' men under arms since the start, times arms_weight, at most arms_max) + mobilization (each great power's level above mobilization_from, times weight, at most max) + wars (war_each for every war a great power fights, at most war_max) + rivalry (the average dislike between the great powers times rivalry_weight) + the lingering force of events, which fades impulse_decay a month. From aggression_from the AI grows bolder, up to aggression_gain more aggression at 100. From harden_above the great powers' quarrels worsen harden_per_month a month. ai_war_gate: below this tension the AI starts no war of its own choosing (a war it was provoked into, or its allies' wars, are not held back). impulse_max caps what events can add. bloc_weight: added when the great powers stand in two alliance circles of at least two each.",
+		"_note": "Tension (Pressure.parts): base + arms (growth of the great powers' men under arms over a base that starts at the scenario's armies and, once two great powers have fought a war to its end, moves arms_drift of the way to them each month, times arms_weight, at most arms_max) + mobilization (each great power's level above mobilization_from, times weight, at most max) + wars (war_each for every war a great power fights, at most war_max) + rivalry (the average dislike between the great powers times rivalry_weight) + the lingering force of events, which fades impulse_decay a month. From aggression_from the AI grows bolder, up to aggression_gain more aggression at 100. From harden_above the great powers' quarrels worsen harden_per_month a month. ai_war_gate: below this tension the AI starts no war of its own choosing (a war it was provoked into, or its allies' wars, are not held back). impulse_max caps what events can add. bloc_weight: added when the great powers stand in two alliance circles of at least two each.",
 		"base": 8,
 		"arms_weight": 40,
 		"arms_max": 15,
+		"arms_drift": 0.005,
 		"mobilization_from": 0.35,
 		"mobilization_weight": 40,
 		"mobilization_max": 18,
@@ -38,6 +39,16 @@
 				"war_support": 3,
 				"tip": "Parades, speeches and a hard line: your people cheer and Europe frowns."
 			}
+		},
+		"picks": {
+			"_note": "Events may name a role by what a nation is now (Pressure._pick_role): $lost_ground (gave up ground at a peace in the last recent_months) and $winner (who took it), $empire (the most troubled of `empires`: war support under empire_support, or ground lost lately), $most_armed and $second_armed (the great powers with the most men under arms).",
+			"recent_months": 24,
+			"empires": [
+				"AUH",
+				"OTT",
+				"RUS"
+			],
+			"empire_support": 40
 		}
 	},
 	"events": [
@@ -4233,6 +4244,234 @@
 					"AUH",
 					"SRB"
 				]
+			}
+		},
+		{
+			"id": "lost_provinces",
+			"title": "The lost provinces",
+			"text": "{a} has signed away ground to {b}, and the country will not forget it. Statues are draped in black; leagues for the lost provinces fill the halls.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {
+				"a": "$lost_ground",
+				"b": "$winner"
+			},
+			"options": [
+				{
+					"label": "Swear to win them back",
+					"text": "The nation will remember, and so will {b}.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								6
+							]
+						},
+						{
+							"grievance": [
+								"a",
+								"b",
+								20
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-10
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				},
+				{
+					"label": "Accept the peace",
+					"text": "Bitter, but the country needs quiet.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-5
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-3
+							]
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								5
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				}
+			],
+			"ai_option": 0,
+			"repeat_months": 24,
+			"condition": {
+				"pressure_ai": true,
+				"months_from_start": 12
+			}
+		},
+		{
+			"id": "empire_unrest",
+			"title": "Unrest in the empire",
+			"text": "The peoples of {a} stir: strikes, newspapers in a dozen languages, and men who speak of a state of their own.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {
+				"a": "$empire"
+			},
+			"options": [
+				{
+					"label": "Grant autonomy",
+					"text": "Diets, schools and offices in their own tongues.",
+					"effects": [
+						{
+							"prestige": [
+								"a",
+								-4
+							]
+						},
+						{
+							"war_support": [
+								"a",
+								8
+							]
+						},
+						{
+							"tension": -2
+						}
+					]
+				},
+				{
+					"label": "Send in the troops",
+					"text": "Order first; the rest can wait.",
+					"effects": [
+						{
+							"war_support": [
+								"a",
+								-4
+							]
+						},
+						{
+							"manpower": [
+								"a",
+								-0.05
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								2
+							]
+						},
+						{
+							"tension": 3
+						}
+					]
+				}
+			],
+			"ai_option": {
+				"tension_min": 50,
+				"yes": 1,
+				"no": 0
+			},
+			"repeat_months": 36,
+			"condition": {
+				"pressure_ai": true,
+				"months_from_start": 12
+			}
+		},
+		{
+			"id": "arms_limitation",
+			"title": "A conference on armaments",
+			"text": "The powers are asked to The Hague to limit their armies and fleets. {a}, with the largest army in Europe, is watched above all, and {b} next.",
+			"date": [
+				1900,
+				1
+			],
+			"actors": {
+				"a": "$most_armed",
+				"b": "$second_armed"
+			},
+			"options": [
+				{
+					"label": "Agree to limits",
+					"text": "A pledge to call up fewer men.",
+					"effects": [
+						{
+							"tension": -10
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								10
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								3
+							]
+						},
+						{
+							"mobilize": [
+								"a",
+								-0.1
+							]
+						}
+					]
+				},
+				{
+					"label": "Refuse to bind our hands",
+					"text": "No power limits ours.",
+					"effects": [
+						{
+							"tension": 5
+						},
+						{
+							"relation": [
+								"a",
+								"b",
+								-8
+							]
+						},
+						{
+							"prestige": [
+								"a",
+								-2
+							]
+						}
+					]
+				}
+			],
+			"ai_option": {
+				"tension_min": 50,
+				"yes": 1,
+				"no": 0
+			},
+			"repeat_months": 60,
+			"condition": {
+				"tension_min": 30,
+				"no_great_war": true,
+				"pressure_ai": true,
+				"months_from_start": 12,
+				"after_great_war": true
 			}
 		}
 	]

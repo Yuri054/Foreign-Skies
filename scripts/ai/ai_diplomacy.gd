@@ -166,6 +166,11 @@ static func war_desire(gs: Node, tag: String, target: String, justified: bool) -
 		desire += float(w.w_plan)
 	if justified:
 		desire += float(w.w_cb)
+	# Ground the target took from it at a peace, or a demand it refused lately.
+	if not Diplomacy.revanche_ids(gs, tag, target).is_empty():
+		desire += float(w.get("w_revanche", 0.0))
+	if Diplomacy.refused_lately(gs, tag, target):
+		desire += float(w.get("w_refused", 0.0))
 	# A nation that stands apart from the quarrels, or that a third power guarantees, is not a target to reach for lightly.
 	if Diplomacy.is_neutral(gs, target):
 		desire -= float(w.get("neutral_penalty", 0.0))
@@ -204,6 +209,8 @@ static func war_check(gs: Node, tag: String, target: String) -> Dictionary:
 	out.cb = cb
 	var justified := cb != "none"
 	var provoked := Diplomacy.grievance(gs, tag, target) >= float(Diplomacy.cfg.war.provocation.retaliation_threshold) and justified
+	# Ground the target took at the peace after a war is provocation enough to fight in a calm Europe.
+	provoked = provoked or not Diplomacy.revanche_ids(gs, tag, target, true).is_empty()
 	# In a calm Europe the AI starts no wars of its own choosing (see Pressure).
 	if not provoked and not Pressure.ai_may_declare(gs):
 		out.reason = "calm"

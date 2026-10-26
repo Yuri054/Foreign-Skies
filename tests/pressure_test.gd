@@ -85,7 +85,7 @@ func _test_event_data() -> void:
 		var ok: bool = not ids.has(e.id) and not e.options.is_empty() and ai_ok and (e.has("until") or e.has("repeat_months"))
 		ids[e.id] = true
 		for actor: String in e.actors.values():
-			ok = ok and (actor == "$player" or gs.nations.has(actor))
+			ok = ok and (actor.begins_with("$") or gs.nations.has(actor))
 		for list_name in ["options", "b_options"]:
 			for o: Dictionary in e.get(list_name, []):
 				for fx: Dictionary in o.effects:

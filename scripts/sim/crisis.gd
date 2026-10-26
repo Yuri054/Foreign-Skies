@@ -118,7 +118,10 @@ static func score(gs: Node, a: String, b: String) -> float:
 	var hostile := clampf(-Diplomacy.relation(gs, b, a) / 100.0, 0.0, 1.0)
 	var s: float = float(w.hostile) * hostile
 	s += float(w.grievance) * Diplomacy.grievance(gs, a, b) / 100.0
-	if _claim_cb(gs, a, b) != "" and gs.tension >= float(cfg.gate.get("claim_min_tension", 0.0)):
+	# Ground lost at a living memory's peace is pressed at any tension; an old scenario claim only once Europe is tense.
+	if not Diplomacy.revanche_ids(gs, a, b).is_empty():
+		s += float(w.claim)
+	elif _claim_cb(gs, a, b) != "" and gs.tension >= float(cfg.gate.get("claim_min_tension", 0.0)):
 		s += float(w.claim)
 	if gs.alarms.has("%s>%s" % [b, a]):
 		s += float(w.alarm)
@@ -179,6 +182,12 @@ static func best_candidate(gs: Node) -> Dictionary:
 ## Every demand `a` could make of `b` now: [{kind, label, demand, goal}], best first (the weights of data/crises.json).
 static func demand_options(gs: Node, a: String, b: String) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
+	# Revanche: ground `a` lost to `b` at a peace, as much of it as could be handed over.
+	var lost := Diplomacy.revanche_ids(gs, a, b)
+	if not lost.is_empty():
+		var back: Array = Peace.pick_takeable(gs, a, b, lost, func(_id: int) -> float: return 0.0, INF).ids
+		if not back.is_empty():
+			options.append({"kind": "revanche", "demand": {"kind": "province", "ids": back}, "goal": WarGoal.provinces_goal(back)})
 	var cb := _claim_cb(gs, a, b)
 	# An old claim is pressed only once Europe is tense enough for it (not the first spring of a calm 1900).
 	if cb != "" and gs.tension >= float(cfg.gate.get("claim_min_tension", 0.0)):
@@ -213,6 +222,13 @@ static func demand_options(gs: Node, a: String, b: String) -> Array[Dictionary]:
 	if gs.alarms.has("%s>%s" % [b, a]) and not Military.border_provinces(gs, b, a).is_empty():
 		var d2 := {"kind": "disarm_border", "years": cfg.kinds.disarm.years}
 		options.append({"kind": "disarm", "demand": d2, "goal": WarGoal.concession_goal(d2)})
+	# A naval rivalry: a great power with a fleet of some weight asks another to build no more warships.
+	var naval: Dictionary = cfg.kinds.naval
+	if a in Pressure.GREAT and b in Pressure.GREAT and not Peace.fleet_limited(gs, b):
+		var theirs := Navy.strength_of(gs, b)
+		if theirs > 0.0 and Navy.strength_of(gs, a) >= theirs * float(naval.min_ratio):
+			var d3 := {"kind": "fleet_limit", "years": naval.years}
+			options.append({"kind": "naval", "demand": d3, "goal": WarGoal.concession_goal(d3)})
 	for o: Dictionary in options:
 		o["label"] = Peace.describe_demand(gs, o.demand)
 		o["weight"] = float(cfg.kinds[o.kind].weight) + 0.05 * AI.noise(gs, "kind|%s|%s|%s" % [a, b, o.kind])
@@ -380,7 +396,7 @@ static func respond(gs: Node, id: int, tag: String, action: String) -> bool:
 
 static func _yield(gs: Node, c: Dictionary) -> void:
 	var y: Dictionary = cfg["yield"]
-	var terms := Peace._apply_demand(gs, c.a, c.b, c.demand)
+	var terms := Peace._apply_demand(gs, c.a, c.b, c.demand, false)
 	Diplomacy.gain_prestige(gs, c.a, float(y.a_prestige))
 	Diplomacy.gain_prestige(gs, c.b, float(y.b_prestige))
 	WarSupport.change(gs, c.b, float(y.b_war_support))
@@ -398,7 +414,7 @@ static func _refuse(gs: Node, c: Dictionary) -> void:
 	gs.tension_impulse += float(r.tension)
 	# The demand becomes a casus belli with the demand as its goal.
 	gs.casus_belli.append({"holder": c.a, "target": c.b, "kind": "fabricated_claim", "goal": c.goal.duplicate(true),
-			"expires_day": Clock.days_elapsed + int(Diplomacy.cfg.war.cb_years * 365)})
+			"expires_day": Clock.days_elapsed + int(Diplomacy.cfg.war.cb_years * 365), "refused_day": Clock.days_elapsed})
 	end(gs, c, "refused", "%s refuses %s. %s now has a claim to press." % [_name(gs, c.b), _name(gs, c.a), _name(gs, c.a)])
 	if c.a != gs.player_tag:
 		var option := AIDiplomacy.war_option(gs, c.a, c.b)
@@ -427,7 +443,7 @@ static func _compromise(gs: Node, c: Dictionary, mediator: String) -> void:
 	var terms := "no concession"
 	if c.demand.kind == "province":
 		var d := {"kind": "indemnity", "share": m.compromise_share, "months": m.compromise_months}
-		terms = Peace._apply_demand(gs, c.a, c.b, d)
+		terms = Peace._apply_demand(gs, c.a, c.b, d, false)
 	gs.tension_impulse += float(m.tension)
 	Diplomacy.gain_prestige(gs, mediator, float(m.prestige))
 	Diplomacy.change_relation(gs, mediator, c.a, 3.0)

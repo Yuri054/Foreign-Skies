@@ -46,7 +46,7 @@ static func for_declaration(gs: Node, a: String, b: String, cb: String) -> Dicti
 			return {}
 		"unprovoked_aggression":
 			return {}
-	for claim: Dictionary in gs.scenario.get("claims", []):
+	for claim: Dictionary in Diplomacy.all_claims(gs):
 		if claim.holder == a and claim.kind == cb and Diplomacy._claim_applies(gs, claim, b):
 			var owned: Array = []
 			for id: int in gs.nations[b].provinces:
@@ -77,7 +77,7 @@ static func invalid(gs: Node, a: String, b: String, goal: Dictionary) -> String:
 		"concession":
 			var d: Dictionary = goal.get("demand", {})
 			match d.get("kind", ""):
-				"indemnity", "disarm_border":
+				"indemnity", "disarm_border", "fleet_limit":
 					return ""
 				"release_ally":
 					var other: String = d.get("nation", "")
@@ -124,7 +124,7 @@ static func price_factor(war: War, taker: String, d: Dictionary, province_id := 
 		"concession":
 			return float(c.discount) if kind == goal.demand.get("kind", "") else float(c.premium)
 		"defence":
-			return float(c.discount) if kind in ["indemnity", "disarm_border", "release_ally"] else float(c.premium)
+			return float(c.discount) if kind in ["indemnity", "disarm_border", "release_ally", "fleet_limit"] else float(c.premium)
 	return 1.0
 
 

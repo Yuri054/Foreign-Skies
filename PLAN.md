@@ -55,7 +55,7 @@ against the baseline in `docs/baseline.md`.
 | 3a | Munitions: industry arms the guns | L | done (v0.8.0) |
 | 3b | Money, taxes, mobilization and demobilization | M | done (v0.8.0); army size after a war carried to step 7 |
 | 3c | Small economies, materials and food, the economy on screen | M | done (v0.8.0) |
-| 4 | After the war: revanche, post-war crises and events, repeatable foci | L | |
+| 4 | After the war: revanche, post-war crises and events, repeatable foci | L | done (v0.9.0); post-war wars and tension carried to step 7 |
 | 5 | Peacetime decisions: demands replace justification, one public stand, small nations, ambitions | M | |
 | 6 | Leftovers: mediation, cavalry | S | |
 | 7 | Retrain the AI under the new rules | L | |
@@ -234,6 +234,18 @@ three parts, in order; each part ends green and measured.
 - Tests: `revanche_test`; extend `crisis_test` and `focus_test`; `validate_data.py` checks the new kinds and events.
 - **Done when** (both scenarios to 1940, 10 seeds): from 1922 at least one crisis every 2 years and one war every 5
   years on average; January tension spread of at least 5; no AI nation idle without a focus for more than 12 months.
+- **Result:** from 1922, crises come 0.56 a year from 1900 and 0.64 from July 1914 (median; 0.2 to 1.3 by seed; none
+  before), from revanche, naval rivalry and the old claims; no AI nation is ever more than a month without a focus (383 and
+  215 before). Not met: no war starts after 1922 in any seed, and January tension moves by 2.3 and 2.7. Crises end in
+  yielding, backing down or mediation; a target refuses only when about as strong as the demander, who then cannot win,
+  and the few nations holding ground lost at a peace are weaker than the winners' side. Making a refused demand a
+  provocation brought the great war forward to 1902 (a naval demand of Russia's on Britain), so it only adds to the AI's
+  desire (`w_refused`); ground lost at the peace after a war is a provocation (`w_revanche`). The arms base's drift and
+  the conference on armaments wait for a great-power war to end, or they took the general war away from 4 of 10 1900
+  runs; with that, the road to 1914 is as step 2 left it (first great-power war 1912.10, general war 1914.06 in 10 of
+  10). One 1900 seed has a beaten Serbia annexed by Germany in 1920, counted as detached by the report (land paths only;
+  the peace rule also accepts a held sea), not yet traced. The "minority" crisis is not built: the map has no peoples to
+  protect. Wars after 1922 and the tension spread go to step 7, with the AI's appetite for war.
 
 ### 5. Peacetime decisions (F6, F7, F8)
 - **Demands replace justification.** The Justify war button and command go; the goal picker chooses what a demand asks.
@@ -262,6 +274,9 @@ three parts, in order; each part ends green and measured.
 - Fitness: the soldier term from 30 to about 5, plus the change in provinces held, less a little for each month at war
   (`tools/ai_train.py`, `tools/ai_arena.gd`). The new numbers of steps 3 and 4 (arms share, buying, investment,
   demobilization) join the trained list.
+- Wars after the great war (step 4): with the new rules no war starts after 1922; the AI's weighing of a war (desire,
+  odds with allies) should let a stronger revanchist or a refused demander fight, and the trained numbers should be judged
+  on it too.
 - War-time recruiting: in these runs a war barely raises a great power's army above its peacetime size, so there is
   little to send home after it (step 3b's 0.6 of the peak). The AI should raise armies when a war goes long, and the
   trained numbers should include how far.

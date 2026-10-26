@@ -156,6 +156,9 @@ var casus_belli: Array[Dictionary] = []
 var grievance: Dictionary = {}
 ## Old quarrels from the scenario, "holder>target" -> a floor under the grievance that fades each year (see Diplomacy.grievance).
 var rivalries: Dictionary = {}
+## Claims made in play, beside the scenario's: {holder, kind, ids, note, expires_day}. Ground ceded at a peace leaves
+## the loser a reconquest claim to it (Diplomacy.revanche).
+var claims: Array[Dictionary] = []
 var next_war_group := 1
 ## war group id -> {id, attacker, defender, members: {tag: "attack"|"defend"}, declined: {tag: true}}.
 ## A group is one conflict: the pairwise wars opened together (see Diplomacy).
