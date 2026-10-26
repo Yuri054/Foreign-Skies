@@ -158,6 +158,14 @@ static func _accepts(gs: Node, offer: Dictionary) -> bool:
 	# (A little slack: an offer built to be exactly the share of the score must not fail on rounding.)
 	var parts := Peace.score_parts(gs, war, me)
 	var ground := maxf(0.0, float(parts.occupation) + float(parts.capital))
+	# A great power that offers all the ground it may cede at one peace (Peace.max_cession) can give no more.
+	var ceded := 0
+	for d: Dictionary in offer.demands:
+		if d.get("kind", "") == "province":
+			ceded += d.get("ids", []).size()
+	var giver: String = offer.get("giver", offer.from if offer.mode == "offer" else offer.to)
+	if ceded > 0 and giver in Pressure.GREAT and ceded >= Peace.max_cession(gs, giver):
+		return true
 	return offer.cost >= float(c.accept_share) * minf(maxf(0.0, score), ground) - 0.000001 or u >= float(c.seek_threshold)
 
 

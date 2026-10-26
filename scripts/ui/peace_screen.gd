@@ -393,8 +393,15 @@ func _select_goal() -> void:
 
 func _select_held() -> void:
 	var taker := _taker()
+	var held: Array = []
+	for id: int in _province_ids:
+		if GameState.province_controller[id] == taker:
+			held.append(id)
+	# As much of it as can be handed over together, at most what may be ceded at one peace (a great power: a quarter).
+	if GameState.nations.has(_giver()):
+		held = Peace.pick_takeable(GameState, taker, _giver(), held, func(_id: int) -> float: return 0.0, INF).ids
 	for i in _province_ids.size():
-		if GameState.province_controller[_province_ids[i]] == taker:
+		if _province_ids[i] in held:
 			_provinces.select(i, false)
 	_refresh_cost()
 
@@ -437,6 +444,7 @@ func _refresh_cost() -> void:
 		_cost_label.text += " %s is beaten: it gives up to %.1f, but only the ground you hold, your goal and money." % [GameState.nations[_giver()].display_name, check.get("budget", 0.0)]
 	var reasons := {
 		"too_expensive": "The score does not pay for these terms.",
+		"too_much": "A great power gives up at most a quarter of its provinces at one peace.",
 		"detached": "%s would not touch your land: take the provinces between, or hold the sea beside them." % _detached_names(demands),
 		"capital": "The capital goes only with the whole country.",
 		"forced_terms": "A beaten enemy gives only the ground you hold and your goal.",

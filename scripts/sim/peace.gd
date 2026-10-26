@@ -203,16 +203,28 @@ static func can_add(gs: Node, taker: String, giver: String, id: int, chosen: Arr
 	return false
 
 
+## The most provinces `giver` may hand over in one treaty: a great power at most peace.great_power_max_share of what it
+## has (a great power is not carved up at one peace table); any other nation all of them.
+static func max_cession(gs: Node, giver: String) -> int:
+	var count: int = gs.nations[giver].provinces.size()
+	if giver not in Pressure.GREAT:
+		return count
+	return maxi(1, floori(count * float(cfg().get("great_power_max_share", 1.0))))
+
+
 ## Picks from `candidates` (the giver's provinces, best first) what `budget` pays for at `price_of(id)` and can be
-## taken together (see province_problem): passes over the list until nothing more fits, since a province can only join
-## once one between it and the taker's land has. Returns {ids, spent}.
+## taken together (see province_problem), at most max_cession of them: passes over the list until nothing more fits,
+## since a province can only join once one between it and the taker's land has. Returns {ids, spent}.
 static func pick_takeable(gs: Node, taker: String, giver: String, candidates: Array, price_of: Callable, budget: float) -> Dictionary:
 	var ids: Array = []
 	var spent := 0.0
 	var added := true
-	while added:
+	var cap := max_cession(gs, giver)
+	while added and ids.size() < cap:
 		added = false
 		for id: int in candidates:
+			if ids.size() >= cap:
+				break
 			if id in ids:
 				continue
 			var price: float = price_of.call(id)
@@ -295,7 +307,8 @@ static func _release_treaties(gs: Node, giver: String, other: String) -> Array[T
 ## Checks a proposal. Returns {ok, reason, cost, budget, taker, giver, forced, war}. Reasons: no_war,
 ## pending (an offer is already waiting in this war), cooldown, detached (a province would not touch the taker's
 ## land), capital (the capital without the whole nation), invalid (another demand cannot be made), forced_terms (a
-## beaten nation is asked for ground the taker neither holds nor fights for), too_expensive (the taker's score, or
+## beaten nation is asked for ground the taker neither holds nor fights for), too_much (more of a great power's provinces
+## than max_cession), too_expensive (the taker's score, or
 ## a beaten nation's larger budget, does not pay for it).
 static func check(gs: Node, from: String, to: String, mode: String, demands: Array) -> Dictionary:
 	var out := {"ok": false, "reason": "", "cost": 0.0, "taker": "", "giver": "", "forced": false, "war": null}
@@ -324,6 +337,13 @@ static func check(gs: Node, from: String, to: String, mode: String, demands: Arr
 static func check_terms(gs: Node, war: War, taker: String, giver: String, demands: Array) -> Dictionary:
 	var out := {"reason": "", "cost": 0.0, "budget": 0.0, "forced": false, "taker": taker, "giver": giver}
 	var cost := 0.0
+	var ceded := 0
+	for d: Dictionary in demands:
+		if d.get("kind", "") == "province":
+			ceded += d.get("ids", []).size()
+	if ceded > max_cession(gs, out.giver):
+		out.reason = "too_much"
+		return out
 	for d: Dictionary in demands:
 		var c := demand_cost(gs, out.taker, out.giver, d)
 		if c < 0.0:

@@ -41,6 +41,7 @@ func _initialize() -> void:
 	_test_terms()
 	_test_clauses()
 	_test_capital()
+	_test_quarter()
 	_test_player()
 	_test_separate_peace()
 	_test_overtures()
@@ -207,7 +208,7 @@ func _test_ai_answers() -> void:
 	var ids := _occupy("GER", "FRA", 60)
 	var worth: float = P.war_score(gs, war, "FRA")
 	_check(worth > 10.0, "France is well ahead (%.1f)" % worth)
-	var terms: Array = [{"kind": "province", "ids": ids.slice(0, 30)}]
+	var terms: Array = [{"kind": "province", "ids": ids.slice(0, mini(30, P.max_cession(gs, "GER")))}]
 	var price: float = P.check(gs, "FRA", "GER", "demand", terms).cost
 	_check(price <= worth, "the terms are within its means (%.1f of %.1f)" % [price, worth])
 	var cmd = ProposeC.new("FRA", "GER", "demand", terms)
@@ -312,6 +313,21 @@ func _test_clauses() -> void:
 		clock.days_elapsed += 30
 		P.step_month(gs)
 	_check(gs.restrictions.is_empty() and Mil.can_enter(gs, "GER", inner), "after three years it lapses")
+
+
+## A great power gives up at most a quarter of its provinces at one peace, however beaten (step 1's check).
+func _test_quarter() -> void:
+	var war = _war()
+	var cap: int = P.max_cession(gs, "GER")
+	_check(cap == floori(gs.nations["GER"].provinces.size() * float(P.cfg().great_power_max_share)), "Germany may give up at most %d provinces at once" % cap)
+	_check(P.max_cession(gs, "BEL") == gs.nations["BEL"].provinces.size(), "a small nation may be taken whole")
+	var held := _occupy("GER", "FRA", cap + 3)
+	gs.nations["GER"].war_support = 0.0
+	var all_held: Array = held.filter(func(id: int) -> bool: return id != gs.nations["GER"].capital)
+	_check(all_held.size() > cap and P.check(gs, "FRA", "GER", "demand", [{"kind": "province", "ids": all_held}]).reason == "too_much", "a beaten Germany is not asked for more (%d held)" % all_held.size())
+	var picked: Array = P.pick_takeable(gs, "FRA", "GER", all_held, func(_id: int) -> float: return 0.0, INF).ids
+	_check(picked.size() <= cap, "and the AI's choice of ground stops at the limit (%d)" % picked.size())
+	gs.set_war("FRA", "GER", false)
 
 
 func _test_capital() -> void:

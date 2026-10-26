@@ -88,7 +88,8 @@ both; success eases tension and earns prestige) or **back** a side. A war with m
 enemy takes the whole package or refuses (it may offer less, for a month).
 
 **Peace terms** are paid for in war score. Land you take must touch your own, through the other provinces you take or across
-a sea you hold or have a coast on, and a capital goes only with the whole country: the peace screen says what is cut off. A
+a sea you hold or have a coast on, a great power gives up at most a quarter of its land at one peace, and a capital goes
+only with the whole country: the peace screen says what is cut off. A
 beaten enemy (its people will not fight on, or you hold its capital and its war support is spent, or you hold most of it)
 gives more than your score pays for, but only the ground you hold, your war's goal and money. Land lost at a peace is not
 forgotten: the loser keeps a claim to it for 25 years and resents the winner, and is likely to demand it back.
