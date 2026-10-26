@@ -74,7 +74,8 @@ static func score_of(gs: Node, tag: String, target: String, own_gdp: float) -> f
 	var margin := AIDiplomacy.odds_against(gs, tag, target) / maxf(AI.required_odds(gs, tag), 0.01)
 	var opportunity := clampf(log(maxf(margin, 1.0)) / log(10.0), 0.0, 1.0)
 	return float(c.w_claim) * claim + float(c.w_opportunity) * opportunity + float(c.w_hostile) * hostile + float(c.w_grievance) * grievance \
-			+ float(c.w_weak) * weak + float(c.get("w_tension", 0.0)) * gs.tension / 100.0 * hostile - float(c.w_guarantee) * Diplomacy.guarantors_of(gs, target).size()
+			+ float(c.w_weak) * weak + float(c.get("w_tension", 0.0)) * gs.tension / 100.0 * hostile - float(c.w_guarantee) * Diplomacy.guarantors_of(gs, target).size() \
+			- (float(c.get("w_neutral", 0.0)) if Diplomacy.is_neutral(gs, target) else 0.0)
 
 
 ## Ends an ambition: its plan goes, and the nation waits `cooldown` days before the next.

@@ -118,7 +118,11 @@ func _initialize() -> void:
 	_fresh()
 	clock.days_elapsed = 0
 	gs.ai_enabled = true
-	var late := {"wars": 0, "treaties": 0}
+	var late := {"wars": 0, "treaties": 0, "crises": 0}
+	gs.crisis_opened.connect(func(_c: Dictionary) -> void:
+		if clock.days_elapsed > 400:
+			late.crises += 1
+	)
 	gs.war_changed.connect(func(_a: String, _b: String, on: bool) -> void:
 		if on and clock.days_elapsed > 400:
 			late.wars += 1
@@ -129,7 +133,7 @@ func _initialize() -> void:
 	)
 	for i in 365 * 3:
 		clock.advance_day()
-	_check(late.wars > 0, "wars go on after the first year (%d begun)" % late.wars)
+	_check(late.wars + late.crises > 0, "quarrels go on after the first year (%d wars begun, %d crises)" % [late.wars, late.crises])
 	_check(late.treaties > 0, "so do treaties (%d signed)" % late.treaties)
 	var empty := 0
 	for tag in gs.nations:

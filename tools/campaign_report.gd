@@ -21,6 +21,9 @@ extends SceneTree
 ##   demob_ratio         median men in units over the most men the nation had in its last war, great powers at peace
 ##                       three years after it (1.0: nobody went home)
 ##   focus_idle_max      the longest run of months an AI nation spent with no focus (after its first year)
+##   general_war         year.month when four or more great powers were first at war at once, or 0
+##   neutral_attacks_early  wars declared with no casus belli on a nation that stood apart (Diplomacy.is_neutral), before 1912
+##   crisis_min_odds     the weakest odds of the two sides (no backers) at which a crisis opened
 ##   bystander_decisions decisions put to the bystander a year
 
 const POST_FROM := 1922
@@ -51,7 +54,11 @@ func _initialize() -> void:
 	var great: Array = Pr.GREAT
 	var start_year: int = clock.year
 
+	var D = load("res://scripts/sim/diplomacy.gd")
 	var first_gp_war := [0.0]
+	var general_war := [0.0]
+	var neutral_early := [0]
+	var crisis_odds := [INF]
 	var declarations := {}
 	var crises := {}
 	var decisions := [0]
@@ -59,12 +66,16 @@ func _initialize() -> void:
 		if not at_war:
 			return
 		declarations[clock.year] = int(declarations.get(clock.year, 0)) + 1
+		var w = gs.war_between(a, b)
+		if w != null and w.casus_belli == "none" and clock.year < 1912 and D.is_neutral(gs, b):
+			neutral_early[0] += 1
 		if a in great and b in great and first_gp_war[0] == 0.0:
 			first_gp_war[0] = clock.year + clock.month / 100.0
 		if verbose:
 			print("%d-%02d war %s -> %s" % [clock.year, clock.month, a, b]))
 	gs.crisis_opened.connect(func(c: Dictionary) -> void:
 		crises[clock.year] = int(crises.get(clock.year, 0)) + 1
+		crisis_odds[0] = minf(crisis_odds[0], Cr.odds_a(gs, {"a": c.a, "b": c.b, "backers_a": [], "backers_b": []}))
 		if verbose:
 			print("%d-%02d crisis %s" % [clock.year, clock.month, c.title]))
 	gs.event_posted.connect(func(_d: Dictionary) -> void: decisions[0] += 1)
@@ -92,6 +103,13 @@ func _initialize() -> void:
 		changes.clear()
 		clock.advance_day()
 		_answer(gs, me, Pr, Cr, AD, AP, AnswerEv, AnswerJn, AnswerPc)
+		if general_war[0] == 0.0:
+			var fighting := 0
+			for g: String in great:
+				if gs.nations.has(g) and not gs.wars_of(g).is_empty():
+					fighting += 1
+			if fighting >= 4:
+				general_war[0] = clock.year + clock.month / 100.0
 		if not changes.is_empty():
 			_measure_changes(gs, Mil, changes, owners_before, capitals, counts, great, capitals_ceded, detached, worst_loss, verbose, clock)
 		if clock.day == 1:
@@ -138,6 +156,8 @@ func _initialize() -> void:
 		"demob_ratio": snappedf(_median(army_samples), 0.01) if not army_samples.is_empty() else null,
 		"focus_idle_max": idle_max[0], "focus_idle_who": idle_max[1],
 		"bystander_decisions": snappedf(decisions[0] / float(years), 0.01),
+		"general_war": general_war[0], "neutral_attacks_early": neutral_early[0],
+		"crisis_min_odds": snappedf(crisis_odds[0], 0.01) if crisis_odds[0] < INF else null,
 		"wars_by_year": declarations, "crises_by_year": crises,
 	}
 	print("RESULT " + JSON.stringify(result))

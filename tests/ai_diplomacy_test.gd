@@ -134,10 +134,24 @@ func _ready_to_strike(aggression := 0.5) -> void:
 	gs.ai_traits["GER"] = {"aggression": aggression, "caution": 0.5}
 	# The plan is given here (the AI makes its own as it picks targets; no scenario scripts one).
 	gs.ai_plans.append({"nation": "GER", "enemy": "BEL", "posture": "offensive", "objectives": [{"province": gs.nations["BEL"].capital, "weight": 1.0}]})
+	# Belgium stands apart and is guaranteed by others: the weights against that are tested on their own below, and
+	# switched off here, where Belgium is only a weak neighbour.
+	_neutral_weights(0.0, 0.0)
+
+
+func _neutral_weights(neutral: float, guaranteed: float) -> void:
+	var w: Dictionary = load("res://scripts/ai/ai.gd").cfg.diplomacy.war
+	w.neutral_penalty = neutral
+	w.guaranteed_penalty = guaranteed
 
 
 func _test_unjustified_conditions() -> void:
 	_ready_to_strike()
+	var desire_plain: float = AD.war_desire(gs, "GER", "BEL", false)
+	_neutral_weights(0.6, 0.3)
+	_check(D.is_neutral(gs, "BEL") and AD.war_desire(gs, "GER", "BEL", false) < desire_plain - 0.8, "Belgium stands apart and others guarantee it, so Germany wants it far less (%.2f against %.2f)" % [AD.war_desire(gs, "GER", "BEL", false), desire_plain])
+	_check(AD.war_option(gs, "GER", "BEL").is_empty(), "and will not reach for it")
+	_neutral_weights(0.0, 0.0)
 	var o: Dictionary = AD.war_option(gs, "GER", "BEL")
 	_check(not o.is_empty() and o.cb == "none" and o.odds >= 4.0, "with a plan, mobilization, odds and room under the cap, Germany would invade Belgium")
 

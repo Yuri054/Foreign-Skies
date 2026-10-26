@@ -154,6 +154,8 @@ var next_treaty_id := 1
 var casus_belli: Array[Dictionary] = []
 ## "A>B" -> how much A resents B (0..100); see Diplomacy.add_grievance.
 var grievance: Dictionary = {}
+## Old quarrels from the scenario, "holder>target" -> a floor under the grievance that fades each year (see Diplomacy.grievance).
+var rivalries: Dictionary = {}
 var next_war_group := 1
 ## war group id -> {id, attacker, defender, members: {tag: "attack"|"defend"}, declined: {tag: true}}.
 ## A group is one conflict: the pairwise wars opened together (see Diplomacy).

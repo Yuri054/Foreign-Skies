@@ -51,7 +51,7 @@ against the baseline in `docs/baseline.md`.
 |---|---|---|---|
 | 0 | Housekeeping and the measuring tools | S | done |
 | 1 | War resolution: forced peace, connected annexation, conferences | L | done (v0.6.0); France-Germany length carried to step 7 |
-| 2 | The road to 1914: war gate, temperaments, neutrals, crisis odds | M | |
+| 2 | The road to 1914: war gate, temperaments, neutrals, crisis odds | M | done (v0.7.0) |
 | 3a | Munitions: industry arms the guns | L | |
 | 3b | Money, taxes, mobilization and demobilization | M | |
 | 3c | Small economies, materials and food, the economy on screen | M | |
@@ -117,6 +117,12 @@ against the baseline in `docs/baseline.md`.
 - **Done when** (1900, 10 seeds): the first war between great powers is in 1908 or later in at least 8 seeds; no war
   without a casus belli on a neutral before 1912; no crisis opens at side odds under 0.7; the general war still comes
   by 1916 in at least 6 seeds.
+- **Result** (1900, 10 seeds to 1917): the first war between great powers in October 1912 in all ten (1902-04 in five
+  before); no war with no reason on a neutral; no crisis under side odds of 0.70; a general war (four great powers) in
+  June 1914 in all ten. Two things beyond the list made it: the 1900 scenario had lost its starting relations (Franco-German
+  enmity, the Great Game, the Balkan rivalries) in an earlier data change, and `tools/make_1900.py` restores them; and old
+  rivals sign no pact or alliance (`Diplomacy.treaty_acceptable`), since Russia's pacts with Austria-Hungary and Germany
+  had kept it out of 1914. France and Germany now fight about 10 months (median), not 4.
 
 ### 3. Munitions and the economy (F4, F5, E1-E6, E8, E9)
 The economy gets the choice that 1900-1914 was about: grow now, or arm for the war. Industry makes munitions as well

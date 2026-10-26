@@ -51,8 +51,11 @@ func _initialize() -> void:
 
 	# --- Opening ---------------------------------------------------------------------------
 	_fresh()
+	gs.tension = float(C.cfg.gate.claim_min_tension) - 10.0
+	_check(C.demand_options(gs, "FRA", "GER").all(func(o: Dictionary) -> bool: return o.kind != "claim"), "in a calm Europe France does not press its old claim")
+	gs.tension = float(C.cfg.gate.claim_min_tension) + 5.0
 	var c: Dictionary = _open("FRA", "GER")
-	_check(not c.is_empty() and c.kind == "claim", "France opens a crisis over its claim on Germany (%s)" % c.get("kind", ""))
+	_check(not c.is_empty() and c.kind == "claim", "once Europe is tense it opens a crisis over its claim on Germany (%s)" % c.get("kind", ""))
 	_check(c.demand.kind == "province" and not c.demand.ids.is_empty() and c.goal.kind == "nationality", "the demand is the claimed provinces, with a national goal")
 	_check(gs.crises.size() == 1 and c.deadline_day - c.start_day == int(C.cfg.gate.deadline_days), "it is under way, with a deadline of %d days" % int(C.cfg.gate.deadline_days))
 	_check(c.title.contains("France") and c.text.contains("German Empire"), "its title and text name both nations: %s" % c.title)

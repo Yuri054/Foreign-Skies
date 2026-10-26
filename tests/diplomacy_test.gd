@@ -215,7 +215,10 @@ func _test_unprovoked() -> void:
 	var prestige: float = gs.nations["GER"].prestige
 	var world: float = D.relation(gs, "GER", "ITA")
 	_check(_declare("GER", "BEL", "none"), "a war with no casus belli is allowed once mobilized")
-	_check(D.relation(gs, "GER", "ITA") == world - 20.0 and gs.nations["GER"].prestige == prestige - 15.0, "but costs world opinion and prestige")
+	# Belgium stands apart (no bloc, no great-power ally), so the world's anger at a war with no reason is greater still.
+	var v: Dictionary = D.cfg.war.neutral_violation
+	_check(D.is_neutral(gs, "BEL") or gs.at_war("GER", "BEL"), "Belgium stands apart")
+	_check(is_equal_approx(D.relation(gs, "GER", "ITA"), world - 20.0 + float(v.world_relations)) and is_equal_approx(gs.nations["GER"].prestige, prestige - 15.0 + float(v.prestige)), "but costs world opinion and prestige, more for a neutral (%.0f, %.0f)" % [D.relation(gs, "GER", "ITA") - world, gs.nations["GER"].prestige - prestige])
 	var fra: Array = D.casus_belli_options(gs, "FRA", "GER")
 	_check("unprovoked_aggression" in fra, "a neighbour gets a casus belli against the aggressor (%s)" % str(fra))
 	_check("unprovoked_aggression" in D.casus_belli_options(gs, "GBR", "GER"), "so does a guarantor of the victim")

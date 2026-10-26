@@ -1,5 +1,5 @@
 {
-	"_note": "Dynamic crises (scripts/sim/crisis.gd). Each month, while the scenario has pressure_ai, the quarrels of the world are weighed: for a nation `a` and a neighbour (or, between great powers, any nation) `b`, score = hostile * how much b dislikes a ... see score. The best pair at or above gate.min_score opens a crisis: `a` makes a demand of `b` (a province claim, a border province, an indemnity, or the withdrawal of border armies) with a deadline. `b` yields, refuses (a gets a casus belli with the demand as its goal, and the AI may declare war at once), mobilizes (if a cannot win it backs down) or appeals to the powers. A third nation may mediate or back a side. The AI answers for itself after think_days; the player is asked at once if the crisis is theirs.",
+	"_note": "Dynamic crises (scripts/sim/crisis.gd). Each month, while the scenario has pressure_ai, the quarrels of the world are weighed: for a nation `a` and a neighbour (or, between great powers, any nation) `b`, score = hostile * how much b dislikes a ... see score. A pair may quarrel only if the demander's side (with allies and guarantors) has gate.min_odds of the other side's strength; a scenario claim is pressed only from gate.claim_min_tension. The best pair at or above gate.min_score opens a crisis: `a` makes a demand of `b` (a province claim, a border province, an indemnity, or the withdrawal of border armies) with a deadline. `b` yields, refuses (a gets a casus belli with the demand as its goal, and the AI may declare war at once), mobilizes (if a cannot win it backs down) or appeals to the powers. A third nation may mediate or back a side. The AI answers for itself after think_days; the player is asked at once if the crisis is theirs.",
 	"gate": {
 		"start_days": 120,
 		"min_score": 0.72,
@@ -9,6 +9,7 @@
 		"per_month": 1,
 		"pair_cooldown_months": 30,
 		"min_odds": 0.7,
+		"claim_min_tension": 40,
 		"think_days": 14,
 		"deadline_days": 60,
 		"log_max": 120

@@ -118,7 +118,7 @@ static func score(gs: Node, a: String, b: String) -> float:
 	var hostile := clampf(-Diplomacy.relation(gs, b, a) / 100.0, 0.0, 1.0)
 	var s: float = float(w.hostile) * hostile
 	s += float(w.grievance) * Diplomacy.grievance(gs, a, b) / 100.0
-	if _claim_cb(gs, a, b) != "":
+	if _claim_cb(gs, a, b) != "" and gs.tension >= float(cfg.gate.get("claim_min_tension", 0.0)):
 		s += float(w.claim)
 	if gs.alarms.has("%s>%s" % [b, a]):
 		s += float(w.alarm)
@@ -148,8 +148,9 @@ static func may_quarrel(gs: Node, a: String, b: String) -> bool:
 			return false
 	if gs.crisis_cooldown.get(Diplomacy.pair_key(a, b), -1) > Clock.days_elapsed:
 		return false
-	var odds := AIDiplomacy.side_power(gs, [a]) / maxf(AIDiplomacy.side_power(gs, [b]), 0.01)
-	return odds >= float(cfg.gate.min_odds)
+	# The odds of the two sides, allies and guarantors with them, as the nation asked will weigh them.
+	var draft := {"a": a, "b": b, "backers_a": [], "backers_b": []}
+	return odds_a(gs, draft) >= float(cfg.gate.min_odds)
 
 
 ## The best quarrel at or above the gate: {a, b, score}, or {}.
@@ -179,7 +180,8 @@ static func best_candidate(gs: Node) -> Dictionary:
 static func demand_options(gs: Node, a: String, b: String) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var cb := _claim_cb(gs, a, b)
-	if cb != "":
+	# An old claim is pressed only once Europe is tense enough for it (not the first spring of a calm 1900).
+	if cb != "" and gs.tension >= float(cfg.gate.get("claim_min_tension", 0.0)):
 		var goal := WarGoal.for_declaration(gs, a, b, cb)
 		if goal.has("ids") and not goal.ids.is_empty():
 			# Only what could be handed over: the claimed ground that touches the demander's, never the capital alone.

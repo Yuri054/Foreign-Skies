@@ -59,7 +59,8 @@ more power, a weaker enemy or another level of trench would do.
 Almost everything costs **diplomacy points**, earned monthly (more with prestige): treaties (alliance, guarantee,
 non-aggression, passage), gifts, improving relations, justifying a war.
 
-**War needs a reason.** A war with no casus belli costs prestige, goodwill and war support, and needs a mobilized country.
+**War needs a reason.** A war with no casus belli costs prestige, goodwill and war support, and needs a mobilized country; on a
+nation that stands apart from the blocs (no great-power ally, not mobilized) it costs more, and the whole of Europe grows tenser.
 Better to have a goal:
 
 - Some goals come with the scenario: a **claim** (France on Alsace-Lorraine), which gives a casus belli on its provinces; a

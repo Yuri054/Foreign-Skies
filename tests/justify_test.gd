@@ -103,6 +103,10 @@ func _initialize() -> void:
 	gs.ai_declarations = {"total": 3, "unjustified": 0}
 	gs.ai_traits["GER"] = {"aggression": 0.5, "caution": 0.5}
 	gs.ai_plans.append({"nation": "GER", "enemy": "BEL", "posture": "offensive", "objectives": [{"province": gs.nations["BEL"].capital, "weight": 1.0}]})
+	# Belgium is only a weak neighbour here: the weights against a neutral, guaranteed nation are off (ai_diplomacy_test has them).
+	var w: Dictionary = load("res://scripts/ai/ai.gd").cfg.diplomacy.war
+	w.neutral_penalty = 0.0
+	w.guaranteed_penalty = 0.0
 	_check(AD.war_option(gs, "GER", "BEL").is_empty(), "the cap forbids an unjustified war on Belgium")
 	AD.consider_war(gs, "GER")
 	_check(gs.wars.is_empty() and not D.justifications_of(gs, "GER").is_empty(), "so Germany starts justifying one")

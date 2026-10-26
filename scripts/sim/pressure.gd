@@ -74,9 +74,22 @@ static func parts(gs: Node) -> Dictionary:
 			"events": gs.tension_impulse, "total": total}
 
 
-## Whether the AI may start a war of its own choosing: Europe must be tense enough.
+## Whether the AI may start a war of its own choosing: Europe must be tense enough (see war_gate).
 static func ai_may_declare(gs: Node) -> bool:
-	return not gs.pressure_ai or gs.tension >= float(cfg.ai_war_gate)
+	return not gs.pressure_ai or gs.tension >= war_gate(gs)
+
+
+## The tension below which the AI starts no war of its own choosing. A scenario may set its own `ai_war_gate`: a
+## number, or {start, end, from, to} falling evenly from `start` in year `from` to `end` in year `to` (so the long
+## 1900 game does not reach for war in its first years); otherwise data/events.json's tension.ai_war_gate.
+static func war_gate(gs: Node) -> float:
+	var g: Variant = gs.scenario.get("ai_war_gate", null)
+	if g == null:
+		return float(cfg.ai_war_gate)
+	if g is Dictionary:
+		var t := inverse_lerp(float(g.from), float(g.to), Clock.year + (Clock.month - 1) / 12.0)
+		return lerpf(float(g.start), float(g.end), clampf(t, 0.0, 1.0))
+	return float(g)
 
 
 ## Whether the great powers stand in two alliance circles of at least two each, the shape of 1914.

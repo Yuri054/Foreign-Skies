@@ -97,6 +97,12 @@
 			}
 		},
 		"cb_years": 5,
+		"neutral_violation": {
+			"_note": "A war with no casus belli on a neutral nation (Diplomacy.is_neutral: in no bloc, allied to no great power, not mobilized) costs the aggressor this on top of the 'none' casus belli: every other nation's opinion, prestige, and tension.",
+			"world_relations": -15,
+			"prestige": -10,
+			"tension": 5
+		},
 		"goals": {
 			"_note": "War goals (scripts/sim/war_goal.gd). A war has a goal for its aggressor: a province claim (justified: the provinces are named), a concession (justified: an indemnity, a border disarmament or an end to the target's ties with a named nation), or a national claim (from a scenario claim, no justification needed). Defending a guarantee or an ally is the 'defence' goal. At peace the aggressor pays `discount` times the price for what matches its goal and `premium` times for everything else; a war declared with no casus belli at all pays `none_premium` for every term. justify cost is war.justify cost times cost_mult (plus cost_per_province for each province named after the first); days is how long the work takes. met_score is the war score at which a concession goal counts as met. notice_relations is what the target (and its allies and guarantors) think less of the nation building the case, at once.",
 			"discount": 0.5,
@@ -112,6 +118,7 @@
 		"provocation": {
 			"grievance_on_unprovoked_war": 40,
 			"grievance_decay_per_month": 2,
+			"rivalry_fade_per_year": 1.0,
 			"retaliation_threshold": 60
 		},
 		"cancel": {

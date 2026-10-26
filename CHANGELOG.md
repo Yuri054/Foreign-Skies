@@ -6,6 +6,16 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.7.0
+
+- The road to 1914: in the 1900 game the AI starts no war of its own while Europe is calm (its war gate falls from tension
+  48 in 1900 to 35 by 1912), the nations have temperaments of their own (the Balkan states bold, the neutrals timid), and the
+  old quarrels (Alsace-Lorraine, the Balkans, the Straits) are a floor under grievance that fades slowly. Old rivals sign no
+  pact or alliance. The 1900 starting relations, lost in an earlier change, are back.
+- A nation that stands apart from the blocs is no easy target: the AI weighs heavily against attacking one, and a war on one
+  with no reason costs more in the world's eyes, in prestige and in tension.
+- Crises open only when the demander's side could carry them, and old claims are pressed only once Europe is tense.
+
 ## 0.6.0
 
 - Peace: taking a capital no longer lets the winner dictate anything. A nation is beaten when its people will not fight on,

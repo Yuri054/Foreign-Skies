@@ -12,6 +12,9 @@ godot = os.environ.get("GODOT", "godot")
 COLUMNS = [
     ("seed", "Seed"),
     ("first_gp_war", "First GP war"),
+    ("general_war", "General war"),
+    ("neutral_attacks_early", "Neutrals attacked before 1912"),
+    ("crisis_min_odds", "Weakest crisis odds"),
     ("gp_war_months_median", "GP war months (median)"),
     ("fra_ger_months", "FRA-GER months"),
     ("capitals_ceded", "Capitals ceded"),
@@ -83,7 +86,7 @@ def main():
             medians.append("**median**")
             continue
         values = [r[k] for r in results if "error" not in r and isinstance(r.get(k), (int, float)) and not isinstance(r.get(k), bool)]
-        if k == "first_gp_war":
+        if k in ("first_gp_war", "general_war"):
             values = [v for v in values if v > 0]
         medians.append(cell(statistics.median(values)) if values and k in MEDIAN_KEYS else "")
     lines.append("| " + " | ".join(medians) + " |")

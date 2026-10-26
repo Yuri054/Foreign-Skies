@@ -166,6 +166,13 @@ static func war_desire(gs: Node, tag: String, target: String, justified: bool) -
 		desire += float(w.w_plan)
 	if justified:
 		desire += float(w.w_cb)
+	# A nation that stands apart from the quarrels, or that a third power guarantees, is not a target to reach for lightly.
+	if Diplomacy.is_neutral(gs, target):
+		desire -= float(w.get("neutral_penalty", 0.0))
+	for g in Diplomacy.guarantors_of(gs, target):
+		if g != tag:
+			desire -= float(w.get("guaranteed_penalty", 0.0))
+			break
 	return desire
 
 

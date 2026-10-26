@@ -43,6 +43,7 @@ static func load_scenario(gs: Node) -> void:
 	gs.mobilization_calls.clear()
 	gs.casus_belli.clear()
 	gs.grievance.clear()
+	gs.rivalries.clear()
 	gs.war_groups.clear()
 	gs.pending_joins.clear()
 	gs.join_calls.clear()
@@ -84,6 +85,9 @@ static func load_scenario(gs: Node) -> void:
 		assert(gs.relations.has(key), "relations entry names an unknown nation pair: %s" % key)
 		gs.relation_base[key] = _clamp(float(entry.value))
 		gs.relations[key] = gs.relation_base[key]
+	for entry: Dictionary in s.get("rivalries", []):
+		if gs.nations.has(entry.holder) and gs.nations.has(entry.target):
+			gs.rivalries["%s>%s" % [entry.holder, entry.target]] = clampf(float(entry.grievance), 0.0, 100.0)
 
 
 static func _seed(gs: Node, kind: String, a: String, b: String, entry: Dictionary) -> void:
@@ -122,6 +126,19 @@ static func bloc_of(gs: Node, tag: String) -> String:
 		if tag in blocs[bloc]:
 			return bloc
 	return ""
+
+
+## Whether a nation stands apart from the powers' quarrels: in no bloc, allied to no great power, and not mobilized.
+## Attacking one is weighed heavily against by the AI and costs more in the world's eyes (see declare_war).
+static func is_neutral(gs: Node, tag: String) -> bool:
+	if not gs.nations.has(tag) or bloc_of(gs, tag) != "":
+		return false
+	if gs.nations[tag].mobilization >= float(cfg.crisis.alarm_level):
+		return false
+	for ally in allies_of(gs, tag):
+		if ally in Pressure.GREAT:
+			return false
+	return true
 
 
 ## Nations tied to `tag` by standing alliances (the nation itself first), through however many.
@@ -579,8 +596,11 @@ static func proposal_block(gs: Node, from: String, to: String, kind: String) -> 
 
 
 ## Whether `to` would agree (the AI's rule): its opinion of `from` reaches the bar for the kind,
-## and an alliance does not cross opposed blocs.
+## an alliance does not cross opposed blocs, and old rivals make no pact or alliance.
 static func treaty_acceptable(gs: Node, from: String, to: String, kind: String) -> bool:
+	# Old rivals (see rivalries) sign no pact and no alliance while the quarrel lasts.
+	if kind in ["nap", "alliance"] and (gs.rivalries.has("%s>%s" % [from, to]) or gs.rivalries.has("%s>%s" % [to, from])):
+		return false
 	if relation(gs, to, from) + prestige_pull(gs, from) < cfg.actions.treaty_accept[kind]:
 		return false
 	if kind == "alliance":
@@ -720,7 +740,16 @@ static func declare_war(gs: Node, a: String, b: String, cb := "none", group := 0
 	if not can_declare(gs, a, b, cb):
 		return false
 	var rules: Dictionary = cfg.war.casus_belli[cb]
+	# A war with no reason at all on a nation that stood apart shocks the world beyond the usual.
+	var on_neutral: bool = cb == "none" and is_neutral(gs, b)
 	gs.set_war(a, b, true, cb, group, WarGoal.for_declaration(gs, a, b, cb))
+	if on_neutral:
+		var v: Dictionary = cfg.war.neutral_violation
+		for tag: String in gs.nations:
+			if tag != a and tag != b:
+				change_relation(gs, tag, a, float(v.world_relations))
+		gain_prestige(gs, a, float(v.prestige))
+		gs.tension_impulse += float(v.tension)
 	var conflict: Dictionary = _open_group(gs, a, b, gs.war_between(a, b).war_group)
 	# A dated casus belli is used up.
 	for held: Dictionary in gs.casus_belli.duplicate():
@@ -776,7 +805,8 @@ static func neighbor_nations(gs: Node, tag: String) -> Array[String]:
 # --- Grievance and provocation -------------------------------------------------------------
 
 static func grievance(gs: Node, holder: String, target: String) -> float:
-	return gs.grievance.get("%s>%s" % [holder, target], 0.0)
+	var key := "%s>%s" % [holder, target]
+	return maxf(gs.grievance.get(key, 0.0), gs.rivalries.get(key, 0.0))
 
 
 static func add_grievance(gs: Node, holder: String, target: String, amount: float) -> void:
@@ -797,6 +827,12 @@ static func _step_grievance(gs: Node) -> void:
 	var decay: float = cfg.war.provocation.grievance_decay_per_month
 	for key: String in gs.grievance.keys():
 		gs.grievance[key] = maxf(0.0, gs.grievance[key] - decay)
+	# An old rivalry is a floor under the grievance that fades over the years.
+	var fade: float = float(cfg.war.provocation.rivalry_fade_per_year) / 12.0
+	for key: String in gs.rivalries.keys():
+		gs.rivalries[key] = maxf(0.0, gs.rivalries[key] - fade)
+		if gs.rivalries[key] <= 0.0:
+			gs.rivalries.erase(key)
 	var today: int = Clock.days_elapsed
 	gs.casus_belli = gs.casus_belli.filter(func(cb: Dictionary) -> bool: return cb.expires_day > today)
 
