@@ -77,6 +77,14 @@ func _option_block(d: Dictionary, index: int) -> Control:
 	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	about.modulate = Fmt.DIM
 	block.add_child(about)
+	var advice := Pressure.advisor_line(GameState, option, d.roles)
+	if advice != "":
+		var advisor := Label.new()
+		advisor.text = "Largest effect: " + advice
+		advisor.add_theme_font_size_override("font_size", 12)
+		advisor.modulate = Color(0.85, 0.75, 0.5)
+		advisor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		block.add_child(advisor)
 	# What the answer would do is for the mouse to ask: over the button or its description.
 	var lines := Pressure.effect_lines(GameState, option, d.roles)
 	var tip := "\n".join(lines) if not lines.is_empty() else "No lasting effects."

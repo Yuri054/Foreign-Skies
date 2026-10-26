@@ -175,8 +175,8 @@ static func best_candidate(gs: Node) -> Dictionary:
 	return best
 
 
-## The demand `a` would make of `b`: {kind, demand, goal} or {} when nothing is there to ask for.
-static func choose_demand(gs: Node, a: String, b: String) -> Dictionary:
+## Every demand `a` could make of `b` now: [{kind, label, demand, goal}], best first (the weights of data/crises.json).
+static func demand_options(gs: Node, a: String, b: String) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var cb := _claim_cb(gs, a, b)
 	if cb != "":
@@ -205,21 +205,56 @@ static func choose_demand(gs: Node, a: String, b: String) -> Dictionary:
 	if gs.alarms.has("%s>%s" % [b, a]) and not Military.border_provinces(gs, b, a).is_empty():
 		var d2 := {"kind": "disarm_border", "years": cfg.kinds.disarm.years}
 		options.append({"kind": "disarm", "demand": d2, "goal": WarGoal.concession_goal(d2)})
-	var best := {}
-	var best_w := -INF
 	for o: Dictionary in options:
-		var w: float = float(cfg.kinds[o.kind].weight) + 0.05 * AI.noise(gs, "kind|%s|%s|%s" % [a, b, o.kind])
-		if w > best_w:
-			best = o
-			best_w = w
-	return best
+		o["label"] = Peace.describe_demand(gs, o.demand)
+		o["weight"] = float(cfg.kinds[o.kind].weight) + 0.05 * AI.noise(gs, "kind|%s|%s|%s" % [a, b, o.kind])
+	options.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return x.weight > y.weight)
+	return options
+
+
+## The demand `a` would make of `b`: {kind, demand, goal} or {} when nothing is there to ask for.
+static func choose_demand(gs: Node, a: String, b: String) -> Dictionary:
+	var options := demand_options(gs, a, b)
+	return options[0] if not options.is_empty() else {}
+
+
+## Why the player (`a`) cannot press a demand on `b` now ("" if it can): unknown, points, at_war, allied, nap, busy (one of
+## them is in a crisis), rest (they quarrelled lately), nothing (no demand to make).
+static func press_block(gs: Node, a: String, b: String) -> String:
+	var why := Diplomacy.declare_block(gs, a, b)
+	if why != "":
+		return why
+	for c: Dictionary in gs.crises:
+		if a in [c.a, c.b] or b in [c.a, c.b]:
+			return "busy"
+	if gs.crisis_cooldown.get(Diplomacy.pair_key(a, b), -1) > Clock.days_elapsed:
+		return "rest"
+	if not Diplomacy.can_afford(gs, a, float(cfg.press.cost_points)):
+		return "points"
+	if demand_options(gs, a, b).is_empty():
+		return "nothing"
+	return ""
+
+
+## `a` (the player) presses a demand of `kind` on `b`: opens the crisis, for points. Returns it, or {} if it cannot be done.
+static func press(gs: Node, a: String, b: String, kind: String) -> Dictionary:
+	if press_block(gs, a, b) != "":
+		return {}
+	var pick := {}
+	for o: Dictionary in demand_options(gs, a, b):
+		if o.kind == kind:
+			pick = o
+	if pick.is_empty():
+		return {}
+	Diplomacy.spend(gs, a, float(cfg.press.cost_points))
+	return open(gs, {"a": a, "b": b, "score": 0.0}, pick)
 
 
 ## Opens a crisis for a found quarrel. Returns the crisis ({} if there is nothing to demand).
-static func open(gs: Node, found: Dictionary) -> Dictionary:
+static func open(gs: Node, found: Dictionary, chosen := {}) -> Dictionary:
 	var a: String = found.a
 	var b: String = found.b
-	var pick := choose_demand(gs, a, b)
+	var pick := chosen if not chosen.is_empty() else choose_demand(gs, a, b)
 	if pick.is_empty():
 		gs.crisis_cooldown[Diplomacy.pair_key(a, b)] = Clock.days_elapsed + 90
 		return {}

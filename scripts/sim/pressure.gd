@@ -368,6 +368,49 @@ static func effect_lines(gs: Node, option: Dictionary, roles: Dictionary) -> Pac
 	return out
 
 
+## The one effect of an option that matters most to the player, in words ("" for none): a war, a treaty, then the largest of
+## the figures weighed by how much each is worth (tension, relations, money, prestige, war support, men). For the decision
+## window's advisor line; the tooltip still lists everything.
+static func advisor_line(gs: Node, option: Dictionary, roles: Dictionary) -> String:
+	if option.has("tip"):
+		return str(option.tip).split("\n")[0]
+	var best := 0.0
+	var text := ""
+	for fx: Dictionary in option.effects:
+		var weight := 0.0
+		var line := ""
+		if fx.has("war"):
+			weight = 100.0
+			line = "War with %s" % _other_name(gs, roles, fx.war[0], fx.war[1])
+		elif fx.has("treaty"):
+			var t: Array = fx.treaty
+			weight = 60.0
+			line = "%s with %s" % [t[4] if str(t[4]) != "" else "A treaty", _other_name(gs, roles, t[1], t[2])]
+		elif fx.has("end_treaty"):
+			weight = 50.0
+			line = "A treaty ends"
+		elif fx.has("tension"):
+			weight = absf(float(fx.tension)) * 4.0
+			line = "Tension %+d" % roundi(float(fx.tension))
+		elif fx.has("relation"):
+			var r: Array = fx.relation
+			if _both(gs, roles, r[0], r[1]):
+				weight = absf(float(r[2])) * 2.0
+				line = "Relations with %s %+d" % [_other_name(gs, roles, r[0], r[1]), roundi(float(r[2]))]
+		else:
+			var scale := {"treasury": 3.0, "prestige": 3.0, "war_support": 2.0, "manpower": 50.0, "mobilize": 50.0}
+			for key: String in scale:
+				if fx.has(key) and _tag(roles, fx[key][0]) == gs.player_tag:
+					var w: float = absf(float(fx[key][1])) * float(scale[key])
+					if w > weight:
+						weight = w
+						line = _effect_text(key, float(fx[key][1]))
+		if weight > best:
+			best = weight
+			text = line
+	return text
+
+
 ## The name of the nation in the pair that is not the player's.
 static func _other_name(gs: Node, roles: Dictionary, a: String, b: String) -> String:
 	var ta := _tag(roles, a)

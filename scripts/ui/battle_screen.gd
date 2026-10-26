@@ -9,6 +9,7 @@ var _battle_id := 0
 var _title := Label.new()
 var _status := Label.new()
 var _sides := HBoxContainer.new()
+var _staff := Label.new()
 var _morale_chart := BattleChart.new()
 var _events := ItemList.new()
 var _map_button := Button.new()
@@ -39,6 +40,9 @@ func _ready() -> void:
 
 	_sides.add_theme_constant_override("separation", 14)
 	box.add_child(_sides)
+	_staff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_staff.custom_minimum_size = Vector2(500, 0)
+	box.add_child(_staff)
 	box.add_child(HSeparator.new())
 	box.add_child(_morale_chart)
 	var events_title := Label.new()
@@ -101,12 +105,59 @@ func _refresh() -> void:
 		_status.modulate = Color.WHITE
 	_map_button.disabled = false
 	_rebuild_sides(battle)
+	_staff.text = staff_report(battle)
+	_staff.visible = _staff.text != ""
 	_update_charts(battle)
 	_events.clear()
 	for line: String in battle.events:
 		_events.add_item(line)
 	if _events.item_count > 0:
 		_events.ensure_current_is_visible()
+
+
+## The staff's report on a battle in progress that the player is in: how it is going, and what would change it. Each
+## "what if" is worked out by Military.battle_forecast with the same rules the fighting uses. "" when the player is not
+## in the battle or it is over.
+func staff_report(battle: Dictionary) -> String:
+	var me := GameState.player_tag
+	if not battle.active or not battle.sides.has(me):
+		return ""
+	var now := Military.battle_forecast(GameState, battle.province)
+	if not now.ok or not now.sides.has(me):
+		return ""
+	var foe := ""
+	for tag: String in now.sides:
+		if tag != me:
+			foe = tag
+	if foe == "":
+		return ""
+	var ours: Dictionary = now.sides[me]
+	var theirs: Dictionary = now.sides[foe]
+	var lines: PackedStringArray = []
+	var ratio: float = theirs.rate / maxf(ours.rate, 0.0001)
+	var verdict := "favours you" if ratio > 1.3 else ("goes against you" if ratio < 0.77 else "is even")
+	lines.append("Staff report: the battle %s. Each day you lose about %s men (%.1f%%), the enemy %s (%.1f%%)." % [verdict, Fmt.people(ours.loss), ours.rate * 100.0, Fmt.people(theirs.loss), theirs.rate * 100.0])
+	if ours.half_days < INF and theirs.half_days < INF:
+		lines.append("At this rate you are half your strength in %d days, the enemy in %d." % [ceili(ours.half_days), ceili(theirs.half_days)])
+	var ideas: PackedStringArray = []
+	var more := Military.battle_forecast(GameState, battle.province, {"power": {me: 1.25}})
+	if more.ok:
+		ideas.append("a quarter more fighting power would raise the enemy's daily loss by %d%%" % roundi(100.0 * (more.sides[foe].loss / maxf(theirs.loss, 1.0) - 1.0)))
+	var weaker := Military.battle_forecast(GameState, battle.province, {"power": {foe: 0.75}})
+	if weaker.ok:
+		ideas.append("an enemy a quarter weaker would cut your daily loss by %d%%" % roundi(100.0 * (1.0 - weaker.sides[me].loss / maxf(ours.loss, 1.0))))
+	var holds := false
+	for id: int in battle.sides[me].armies:
+		var a: Army = GameState.armies.get(id)
+		if a != null and a.province == battle.province and not a.attacking:
+			holds = true
+	if holds:
+		var dug := Military.battle_forecast(GameState, battle.province, {"entrench": {me: 1}})
+		if dug.ok and dug.sides[me].loss < ours.loss - 0.5:
+			ideas.append("one more level of trench would cut your daily loss by %d%%" % roundi(100.0 * (1.0 - dug.sides[me].loss / maxf(ours.loss, 1.0))))
+	if not ideas.is_empty():
+		lines.append("What would change it: " + "; ".join(ideas) + ". Terrain and the works of the province count already.")
+	return "\n".join(lines)
 
 
 func _side_order(battle: Dictionary) -> Array:

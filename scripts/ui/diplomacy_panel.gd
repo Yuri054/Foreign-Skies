@@ -717,6 +717,8 @@ func _refresh_crises(me: String, tag: String) -> void:
 		c.queue_free()
 	if not GameState.nations.has(tag):
 		return
+	if _acting() and tag != me and GameState.nations[tag].provinces.size() > 0:
+		_press_row(me, tag)
 	for c: Dictionary in Crisis.of(GameState, tag):
 		var head := Label.new()
 		head.text = "%s\nAnswer due %s." % [c.text, Clock.date_after(c.deadline_day - Clock.days_elapsed)]
@@ -738,6 +740,43 @@ func _refresh_crises(me: String, tag: String) -> void:
 		_crisis_button(row, "Back %s (%d)" % [GameState.nations[c.a].display_name, int(Crisis.cfg.back.cost_points)], c.id, "back_a",
 				"Stand behind %s's demand: its side is stronger, relations with it improve and with %s worsen." % [GameState.nations[c.a].display_name, GameState.nations[c.b].display_name])
 		_crisis_box.add_child(row)
+
+
+## Press a demand: the demands the player could make of the selected nation, and a button to make one (a crisis, with the
+## nation answering by a deadline).
+func _press_row(me: String, tag: String) -> void:
+	var block := Crisis.press_block(GameState, me, tag)
+	var options := Crisis.demand_options(GameState, me, tag)
+	if options.is_empty() and block in ["", "points", "nothing"]:
+		return
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	var picker := OptionButton.new()
+	picker.focus_mode = Control.FOCUS_NONE
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker.clip_text = true
+	for o: Dictionary in options:
+		picker.add_item(o.label)
+		picker.set_item_metadata(picker.item_count - 1, o.kind)
+		picker.set_item_tooltip(picker.item_count - 1, "%s: if refused, you hold a casus belli with this as the goal." % o.label)
+	var press := Button.new()
+	press.focus_mode = Control.FOCUS_NONE
+	var cost := int(Crisis.cfg.press.cost_points)
+	press.text = "Press a demand (%d)" % cost
+	var reasons := {"busy": "One of you is already in a crisis.", "rest": "You quarrelled with them lately.", "points": "Not enough diplomacy points (need %d)." % cost,
+			"nothing": "There is nothing to demand of them.", "at_war": "You are at war.", "allied": "You are allied.", "nap": "A non-aggression pact stands."}
+	press.disabled = block != "" or picker.item_count == 0
+	press.tooltip_text = (reasons.get(block, "") + "\n" if block != "" else "") + "Make a demand of %s with a deadline of %d days. They may yield, refuse (you then hold a casus belli with the demand as its goal), mobilize or appeal to the powers." % [GameState.nations[tag].display_name, int(Crisis.cfg.gate.deadline_days)]
+	picker.disabled = picker.item_count == 0
+	press.pressed.connect(func() -> void:
+		if picker.item_count == 0:
+			return
+		GameState.issue(PressDemand.new(me, tag, picker.get_item_metadata(picker.selected)))
+		_refresh()
+	)
+	row.add_child(picker)
+	row.add_child(press)
+	_crisis_box.add_child(row)
 
 
 func _crisis_button(row: HBoxContainer, text: String, id: int, action: String, tip: String) -> void:

@@ -27,6 +27,7 @@
 		"indemnity": {"weight": 0.8, "min_grievance": 20, "share": 0.1, "months": 12, "title": "{a} demands reparations from {b}", "text": "{a} claims it was wronged and demands {what} from {b}. It gives {b} until {date} to answer."},
 		"disarm": {"weight": 0.7, "years": 2, "title": "{a} demands {b} withdraw from the border", "text": "{a} will not stand {b}'s armies on its frontier and demands {what}. It gives {b} until {date} to answer."}
 	},
+	"press": {"cost_points": 15},
 	"open": {"tension": 2.0, "relation": -3},
 	"yield": {"a_prestige": 3, "b_prestige": -5, "b_war_support": -4, "tension": -2, "relation": 6},
 	"refuse": {"relation": -12, "grievance": 10, "tension": 4},

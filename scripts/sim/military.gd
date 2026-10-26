@@ -1028,6 +1028,50 @@ static func _fight(gs: Node) -> void:
 			_finish_engagement(gs, id)
 
 
+## What a day's fighting in a province would cost each side, worked out as _fight works it out but changing nothing:
+## {ok, sides: {tag: {men, loss, rate, half_days}}} where `loss` is the men lost a day, `rate` that as a share of the men,
+## and `half_days` the days at that rate until half the men are gone (INF when none are lost). `tweaks` asks "what if":
+## {"power": {tag: multiplier on that side's fighting power}, "entrench": {tag: levels of trench dug in more}}.
+static func battle_forecast(gs: Node, province: int, tweaks := {}) -> Dictionary:
+	var out := {"ok": false, "sides": {}}
+	var here: Array = armies_at(gs, province)
+	var foes := {}
+	for a: Army in here:
+		var list: Array[Army] = []
+		for b: Army in here:
+			if a.tag != b.tag and gs.at_war(a.tag, b.tag):
+				list.append(b)
+		if not list.is_empty():
+			foes[a] = list
+	if foes.is_empty():
+		return out
+	var power_mult: Dictionary = tweaks.get("power", {})
+	var extra_trench: Dictionary = tweaks.get("entrench", {})
+	var incoming := {}
+	for a in foes:
+		incoming[a] = 0.0
+	for b in foes:
+		var share: float = b.power() * float(power_mult.get(b.tag, 1.0)) * WarSupport.morale_mult(gs, b.tag) / foes[b].size()
+		var shelling: float = b.shelling_share()
+		for a in foes[b]:
+			incoming[a] += share * (1.0 - works_reduction(gs, a, shelling))
+	for a: Army in foes:
+		var mult := 1.0
+		if not a.attacking:
+			var levels := mini(int(cfg.combat.max_entrenchment), a.entrenchment() + int(extra_trench.get(a.tag, 0)))
+			mult = terrain_of(a.province).defense * (1.0 + cfg.combat.entrench_defense_per_level * levels + works_defense(gs, a))
+		var side: Dictionary = out.sides.get(a.tag, {"men": 0.0, "loss": 0.0})
+		side.men += a.men()
+		side.loss += minf(incoming[a] * cfg.combat.casualties_per_point / mult, a.men())
+		out.sides[a.tag] = side
+	for tag: String in out.sides:
+		var side: Dictionary = out.sides[tag]
+		side["rate"] = side.loss / maxf(side.men, 1.0)
+		side["half_days"] = log(0.5) / log(1.0 - minf(side.rate, 0.999)) if side.rate > 0.0 else INF
+	out.ok = true
+	return out
+
+
 ## Men lost by the army in this call.
 static func _apply_casualties(a: Army, casualties: float) -> float:
 	var total := a.men()

@@ -6,6 +6,15 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.5.5
+
+- Battle staff report: on the battle screen of a battle you are in, how it is going (what each side loses a day, how long until
+  each is at half strength) and what would change it (a quarter more fighting power, a weaker enemy, a further level of trench),
+  each worked out by the rules the fighting uses.
+- Event options now show their largest effect under the description.
+- You can press a demand on another nation (a claimed province, a border province, reparations, or a withdrawal of armies)
+  from the Diplomacy tab: it opens a crisis with a deadline, and a refusal leaves you a casus belli for it.
+
 ## 0.5.4
 
 - Difficulty: Historical, Challenging or Sandbox, chosen on the New game page and saved with the game. A preset only retunes

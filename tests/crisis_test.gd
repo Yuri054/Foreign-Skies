@@ -196,6 +196,28 @@ func _initialize() -> void:
 	C.cfg.gate.min_score = gate
 	C.cfg.gate.start_days = start
 
+	# --- The player presses a demand -----------------------------------------------------------------
+	_fresh("FRA")
+	gs.nations["FRA"].diplomacy_points = 100.0
+	var options: Array = C.demand_options(gs, "FRA", "GER")
+	_check(not options.is_empty() and options[0].has("label") and options[0].has("goal"), "the player has demands to choose from (%d)" % options.size())
+	var Press = load("res://scripts/sim/press_demand.gd")
+	var points: float = gs.nations["FRA"].diplomacy_points
+	var press = Press.new("FRA", "GER", options[0].kind)
+	_check(gs.issue(press), "France presses a demand on Germany")
+	_check(gs.nations["FRA"].diplomacy_points < points and not C.of(gs, "GER").is_empty(), "it costs points and a crisis opens")
+	_check(C.of(gs, "GER")[0].a == "FRA", "with the player as the one demanding")
+	_check(C.press_block(gs, "FRA", "GER") == "busy" and not gs.issue(Press.new("FRA", "GER", options[0].kind)), "and it cannot be pressed twice")
+	var pressed_id: int = C.of(gs, "GER")[0].id
+	for i in int(C.cfg.gate.think_days) + 2:
+		clock.advance_day()
+	_check(C.of(gs, "GER").is_empty() and _outcome(pressed_id) != "", "Germany answers by itself (%s)" % _outcome(pressed_id))
+	_fresh("FRA")
+	gs.nations["FRA"].diplomacy_points = 0.0
+	_check(C.press_block(gs, "FRA", "GER") == "points", "without the points it cannot be pressed")
+	gs.nations["FRA"].diplomacy_points = 100.0
+	_check(C.press_block(gs, "FRA", "RUS") == "allied", "nor on an ally")
+
 	# --- A save keeps the crisis ----------------------------------------------------------------
 	_fresh()
 	c = _open("FRA", "GER")
