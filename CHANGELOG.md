@@ -6,6 +6,17 @@ finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
 
+## 0.6.0
+
+- Peace: taking a capital no longer lets the winner dictate anything. A nation is beaten when its people will not fight on,
+  or the enemy holds its capital and its war support is spent, or the enemy holds most of it; it then gives more than the
+  war score pays for, but only the ground the winner holds, the war's goal and money.
+- Land taken at a peace must touch the winner's own, through the other provinces taken or across a sea it holds or has a
+  coast on, and a capital goes only with the whole country. The peace screen, the AI, conferences, crises and war goals all
+  keep to it, and the peace screen says what is cut off.
+- Conferences: a counter-offer waits a month, and is put to the enemy again when taken; the enemy weighs the whole package.
+- No more indemnities "of 0.0 a month".
+
 ## 0.5.7
 
 - `tools/trailer.gd` renders a one-minute trailer from the game itself (see the README).

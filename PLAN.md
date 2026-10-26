@@ -50,7 +50,7 @@ against the baseline in `docs/baseline.md`.
 | Step | Work | Size | Status |
 |---|---|---|---|
 | 0 | Housekeeping and the measuring tools | S | done |
-| 1 | War resolution: forced peace, connected annexation, conferences | L | in progress |
+| 1 | War resolution: forced peace, connected annexation, conferences | L | done (v0.6.0); France-Germany length carried to step 7 |
 | 2 | The road to 1914: war gate, temperaments, neutrals, crisis odds | M | |
 | 3a | Munitions: industry arms the guns | L | |
 | 3b | Money, taxes, mobilization and demobilization | M | |
@@ -96,6 +96,11 @@ against the baseline in `docs/baseline.md`.
 - **Done when** (10 seeds of each scenario): no capital ceded without the whole nation; no detached cession without
   fleet control; France against Germany lasts 12 months or more (median, July 1914); no great power loses more than a
   quarter of its provinces in one treaty.
+- **Result:** no capital ceded in any of 20 runs (median 5 before); provinces with no land link to the new owner from a
+  median of 6.5 and 13 to 0 and 0 (the few left go by sea); the worst loss in one treaty 13% (26% before). France and
+  Germany still settle in about 4 months (median, July 1914): France holds 14% of Germany within weeks and Germany
+  accepts a limited loss (Alsace-Lorraine and the Saar, France's goal). That is the military balance and the trained
+  peace thresholds, not the peace rules: carried to step 7, whose fitness rewards ending wars on better terms.
 
 ### 2. The road to 1914 (F3, F10)
 - **War gate by scenario.** `ai_war_gate` moves to `scenario.json` (about 45 for 1900, 30 for 1914), optionally falling
