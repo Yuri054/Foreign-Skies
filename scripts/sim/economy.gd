@@ -199,12 +199,14 @@ static func size_factor(gs: Node, id: int, type := "") -> float:
 ## other). Nothing is paid in money.
 static func build_plan(gs: Node, id: int, type: String) -> Dictionary:
 	var ic := level_cost(gs, id, type)
-	return {"ic": ic, "days": int(cfg.buildings[type].min_days), "gold": 0.0, "total": ic * float(cfg.ic_value), "blocked": ""}
+	var share: float = float(cfg.buildings[type].get("gold_share", cfg.construction.get("gold_share", 0.0)))
+	var gold := ic * float(cfg.ic_value) * share
+	return {"ic": ic, "days": int(cfg.buildings[type].min_days), "gold": gold, "total": ic * float(cfg.ic_value), "blocked": ""}
 
 
-## Why a building cannot be started now, or "" if it can. `_check_money` is kept for the callers
-## that pass it: buildings cost no money.
-static func build_problem(gs: Node, tag: String, id: int, type: String, _check_money := true) -> String:
+## Why a building cannot be started now, or "" if it can. The money it costs (build_plan's gold) is checked unless
+## `check_money` is false (the AI and the province highlights ask what could be built at all).
+static func build_problem(gs: Node, tag: String, id: int, type: String, check_money := true) -> String:
 	var n: Nation = gs.nations.get(tag)
 	if n == null or not cfg.buildings.has(type) or type.begins_with("_"):
 		return "Unknown nation or building"
@@ -222,6 +224,10 @@ static func build_problem(gs: Node, tag: String, id: int, type: String, _check_m
 			return "Already under construction"
 	if gs.province_buildings[id].get(type, 0) >= def.max_level:
 		return "Fully built"
+	if check_money:
+		var gold: float = build_plan(gs, id, type).gold
+		if gold > 0.0 and n.treasury < gold:
+			return "Not enough money (£%.1fM)" % gold
 	return ""
 
 
@@ -324,17 +330,22 @@ static func recompute(gs: Node) -> void:
 
 ## Calibrates a scenario at its start: the kt of raw materials a year one GBP million of industrial
 ## output needs, so that the world just balances (all deposits against all industry), and each nation's
-## civil spending, so that its budget just balances. Read again on every load.
+## civil spending, so that its budget starts with a small surplus (start_surplus of its revenue) for the nation to spend
+## as it chooses. Read again on every load.
 static func calibrate(gs: Node) -> void:
 	_calibrate_materials(gs)
 	for tag in gs.nations:
 		gs.nations[tag].civil_mult = 1.0
+		gs.nations[tag].civil_base = 0.0
+		gs.nations[tag].civil_index = 1.0
 	_budgets(gs)
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
 		var civil: float = n.budget.civil
 		if civil > 0.0:
-			n.civil_mult = clampf((n.budget.net + civil) / civil, 0.1, 4.0)
+			var surplus: float = float(n.budget.revenue) * float(cfg.get("start_surplus", 0.0))
+			n.civil_mult = clampf((n.budget.net + civil - surplus) / civil, 0.1, 4.0)
+		n.civil_base = 0.0   # worked out again from the calibrated multiplier
 
 
 static func _calibrate_materials(gs: Node) -> void:
@@ -417,9 +428,13 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 	var revenue_per_gdp := n.tax_rate * tax_drag
 	var revenue: float = gdp * revenue_per_gdp * tax_mult + trade + float(mats.income)
 
-	# The state's own costs follow the output it governs, after mobilization, blockade and arms take their share.
-	var civil: float = gdp * cfg.default_tax_rate * cfg.civil_share * n.civil_mult
-	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep)) * cfg.soldier_upkeep / 1e6
+	# The state's own costs are set at the start and follow the people and the economy's own drift (civil_index), not
+	# what buildings, foci and investment add; mobilization, blockade and arms take their share of them as of the output.
+	if n.civil_base <= 0.0:
+		n.civil_base = raw.gdp * cfg.default_tax_rate * cfg.civil_share * n.civil_mult
+	var civil: float = n.civil_base * n.civil_index * gdp_scale
+	# A soldier costs what the country pays its people: upkeep follows output per head (wage_factor).
+	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep)) * cfg.soldier_upkeep * wage_factor(n, raw) / 1e6
 	var naval: float = n.naval_budget
 	# The whole economy buys the food; the treasury only carries its share (subsidies, duties).
 	var food_imports: float = food_imported * cfg.food_import_cost * cfg.food_state_share / 1e6
@@ -465,6 +480,28 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 	}
 
 
+## The most men a nation may keep under arms in peace: economy.json standing_share of its manpower pool. The standing
+## army (Nation.peacetime_army) is set below it, by the player (SetEconomyPolicy "standing_army") or the AI's own growth.
+static func standing_cap(gs: Node, n: Nation) -> int:
+	var raw: Dictionary = gs.economy_sums.get(n.tag, {})
+	return int(float(raw.get("pool", 0.0)) * float(cfg.standing_share))
+
+
+## What a division of 12,000 men costs a month to keep, GBP millions (its share of Nation.budget.army).
+static func division_upkeep(gs: Node, n: Nation) -> float:
+	var raw: Dictionary = gs.economy_sums.get(n.tag, {"gdp": 0.0})
+	return 12000.0 * float(cfg.soldier_upkeep) * wage_factor(n, raw) / 1e6 / 12.0
+
+
+## How dear a nation's soldiers are against the reference: its output per head over economy.json soldier_upkeep_ref
+## (GBP a year), within wage_min and wage_max. A Serbian soldier costs less than a British one.
+static func wage_factor(n: Nation, raw: Dictionary) -> float:
+	if n.population <= 0:
+		return 1.0
+	var per_head: float = float(raw.gdp) * 1e6 / float(n.population)
+	return clampf(per_head / float(cfg.soldier_upkeep_ref), float(cfg.wage_min), float(cfg.wage_max))
+
+
 ## Construction points (IC) a nation can spend in a day: the works everywhere, the focus's addition and
 ## the industrial output (after materials and workers) times ic_per_industry.
 static func construction_points(n: Nation, industry: float, gdp := -1.0) -> float:
@@ -478,6 +515,32 @@ static func base_ic(gdp: float) -> float:
 	if gdp < 0.0:
 		return float(c.base_ic)
 	return maxf(float(c.base_ic_min), float(c.base_ic) * minf(1.0, gdp / float(c.base_ic_gdp_ref)))
+
+
+## What one more level of `type` in province `id` would add to `tag` each year, as things stand: {gdp, revenue (GBP
+## millions a year: the tax on the output, trade and materials sold), net (what the budget keeps of it, after the raw
+## materials the new industry needs and the dearer soldiers of a richer nation), ic (a day)}.
+static func level_gain(gs: Node, tag: String, id: int, type: String) -> Dictionary:
+	var n: Nation = gs.nations[tag]
+	if not gs.economy_sums.has(tag):
+		return {"gdp": 0.0, "revenue": 0.0, "net": 0.0, "ic": 0.0}
+	var owned: Dictionary = gs.province_buildings[id]
+	var more := owned.duplicate()
+	more[type] = int(more.get(type, 0)) + 1
+	var pop: int = gs.province_population[id]
+	var area: float = MapData.provinces[id].area * MapData.KM2_PER_PX
+	var now := province_output(pop, area, n, owned, gs.province_deposit[id])
+	var then := province_output(pop, area, n, more, gs.province_deposit[id])
+	var raw: Dictionary = gs.economy_sums[tag]
+	var raw_more := raw.duplicate()
+	for k in ["gdp", "industry", "food", "trade", "pool", "materials"]:
+		raw_more[k] = float(raw.get(k, 0.0)) + float(then[k]) - float(now[k])
+	var mult := WarSupport.economy_mult(gs, tag)
+	var before := nation_budget(gs, n, raw, mult)
+	var after := nation_budget(gs, n, raw_more, mult)
+	return {"gdp": float(after.gdp) - float(before.gdp), "revenue": float(after.revenue) - float(before.revenue),
+			"net": float(after.net) - float(before.net),
+			"ic": (float(after.industry) - float(before.industry)) * float(cfg.construction.ic_per_industry)}
 
 
 ## What each building type currently contributes to a nation, per year: levels, provinces, gdp, industry,
@@ -596,9 +659,12 @@ static func step_month(gs: Node) -> void:
 
 		var growth: float = growth_rate(n) / 12.0
 		n.development *= 1.0 + growth
-		# The peacetime army of an AI nation grows with its people and its output (the player sets their own).
-		if tag != gs.player_tag and gs.wars_of(tag).is_empty():
-			n.peacetime_army = int(n.peacetime_army * (1.0 + (growth + n.pop_growth / 12.0) * float(cfg.army_growth_share)))
+		n.civil_index *= 1.0 + (float(cfg.baseline_growth) + n.pop_growth) / 12.0
+		# The peacetime army of an AI nation grows with its people and its output while its budget can pay for it, up to
+		# the standing cap (the player sets their own).
+		if tag != gs.player_tag and gs.wars_of(tag).is_empty() and float(b.net) > 0.0:
+			var grown := int(n.peacetime_army * (1.0 + (growth + n.pop_growth / 12.0) * float(cfg.army_growth_share)))
+			n.peacetime_army = maxi(n.peacetime_army, mini(grown, standing_cap(gs, n)))
 
 		# The cap covers everyone in service; what is not under arms is the reserve.
 		var cap := maxi(0, int(b.manpower_max) - n.men_in_units)

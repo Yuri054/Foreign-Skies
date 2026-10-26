@@ -4,7 +4,8 @@ extends SceneTree
 ## grid of nations and policies and prints the table.
 ## Run: godot --headless --path . -s res://tools/economy_policies.gd -- tag years policy [scenario_dir]
 ## policy: a comma list of passive, fact, rail, port, all (the three in turn), focus (economic foci first), tax=X,
-## mob=X, arms=X (the arms share; otherwise the scenario's). Prints "RESULT {...}": GDP, IC and revenue a month at the end and their change, treasury, net, development
+## mob=X, arms=X (the arms share; otherwise the scenario's), army (the standing army at its ceiling, and infantry raised
+## each month while the surplus can keep it), build=YEAR (build as `all` until that year, then arm as `army`). Prints "RESULT {...}": GDP, IC and revenue a month at the end and their change, treasury, net, development
 ## and war support, and the levels built.
 
 
@@ -27,6 +28,9 @@ func _initialize() -> void:
 	var n = gs.nations[tag]
 	var start := {"gdp": float(n.budget.gdp), "ic": float(n.budget.construction_points), "dev": float(n.development)}
 	var types: Array = []
+	var army := false
+	var build_until := 99999
+	var Raise = load("res://scripts/sim/raise_units.gd")
 	for p in policy:
 		if p.begins_with("tax="):
 			gs.issue(Policy.new(tag, "tax_rate", float(p.get_slice("=", 1))))
@@ -42,13 +46,34 @@ func _initialize() -> void:
 			types.append("port")
 		elif p == "all":
 			types.append_array(["factory", "railway", "port"])
+		elif p == "army":
+			army = true
+		elif p.begins_with("build="):
+			types.append_array(["factory", "railway", "port"])
+			build_until = int(p.get_slice("=", 1))
+			army = true
 	var built := {}
 	var turn := 0
 	for d in years * 365:
 		clock.advance_day()
 		gs.pending_events.clear()
+		# Arm: once a month, the standing army at its ceiling and infantry raised while the surplus keeps it.
+		if army and clock.day == 1 and (build_until == 99999 or clock.year >= build_until):
+			# A division at a time, while the surplus keeps it: the standing army rises by one, its recruits come in, it
+			# is raised.
+			for k in 20:
+				E.recompute(gs)
+				var per: float = E.division_upkeep(gs, n)
+				if n.treasury < 0.6 or float(n.budget.net) / 12.0 < per * 1.3 or n.manpower < 12000 or n.peacetime_army + 12000 > E.standing_cap(gs, n):
+					break
+				gs.issue(Policy.new(tag, "standing_army", float(n.peacetime_army + 12000)))
+				if not gs.issue(Raise.new(tag, n.capital, "infantry", 1)):
+					break
+			# The recruits for the next division come in with the month: ask for them now.
+			if n.peacetime_army < n.men_in_units + 12000 and n.peacetime_army + 12000 <= E.standing_cap(gs, n) and float(n.budget.net) / 12.0 >= E.division_upkeep(gs, n) * 1.3:
+				gs.issue(Policy.new(tag, "standing_army", float(n.men_in_units + 12000)))
 		# Keep the queue fed: every fifth day, add projects until the day's IC would be used.
-		if not types.is_empty() and clock.day % 5 == 1:
+		if not types.is_empty() and clock.year < build_until and clock.day % 5 == 1:
 			var wanted: float = n.budget.construction_points
 			var given := 0.0
 			for job in n.construction:
@@ -90,6 +115,6 @@ func _initialize() -> void:
 		"revenue": snappedf(b.revenue / 12.0, 0.01), "net": snappedf(b.net / 12.0, 0.01), "treasury": roundi(n.treasury),
 		"development": snappedf(n.development / start.dev - 1.0, 0.001), "war_support": roundi(n.war_support),
 		"built": built, "foci": n.focus_done.size(),
-		"munitions": roundi(n.munitions), "stock_days": roundi(minf(load("res://scripts/sim/munitions.gd").days_left(gs, tag), 99999.0)),
+		"munitions": roundi(n.munitions), "divisions": snappedf(n.men_in_units / 12000.0, 0.1), "stock_days": roundi(minf(load("res://scripts/sim/munitions.gd").days_left(gs, tag), 99999.0)),
 	}))
 	quit()

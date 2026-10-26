@@ -28,7 +28,8 @@ func _initialize() -> void:
 	for tag in gs.nations:
 		var b: Dictionary = gs.nations[tag].budget
 		_check(b.gdp > 0.0 and b.revenue > 0.0 and b.manpower_max > 0.0 and b.construction_points > 0.0, "%s: positive output, revenue, manpower and construction points" % tag)
-		_check(absf(b.net) < 0.05, "%s starts with a balanced budget (net %.2f a year)" % [tag, b.net])
+		var surplus: float = float(b.revenue) * float(Eco.cfg.start_surplus)
+		_check(absf(b.net - surplus) < 0.05 + surplus * 0.02, "%s starts with a small surplus to spend (net %.2f a year, %d%% of revenue)" % [tag, b.net, roundi(b.net / b.revenue * 100.0)])
 		_check(b.materials.ratio >= 0.999, "%s starts with the raw materials its industry needs" % tag)
 	for tag in targets:
 		var rev: float = gs.nations[tag].budget.revenue
@@ -102,8 +103,9 @@ func _initialize() -> void:
 	var cash: float = ger.treasury
 	var cost: float = Eco.build_plan(gs, home, "factory").ic
 	var f0: int = gs.province_buildings[home].get("factory", 0)
+	var gold: float = Eco.build_plan(gs, home, "factory").gold
 	_check(gs.issue(Build.new("GER", home, "factory")), "construction accepted")
-	_check(is_equal_approx(ger.treasury, cash) and cost > 0.0, "construction costs IC, not money")
+	_check(is_equal_approx(ger.treasury, cash - gold) and cost > 0.0 and gold > 0.0, "construction costs money when begun (£%.2fM), then IC" % gold)
 	_check(ger.construction.size() == 1 and gs.province_buildings[home].get("factory", 0) == f0, "building is queued, not built")
 	_check(not gs.issue(Build.new("GER", home, "factory")) and Eco.build_problem(gs, "GER", home, "factory") == "Already under construction", "the same building is not queued twice")
 	_check(not gs.issue(Build.new("GER", gs.nations["FRA"].provinces[0], "factory")), "cannot build in a foreign province")
@@ -125,7 +127,7 @@ func _initialize() -> void:
 	gs.province_buildings[home]["factory"] = f0 + 1
 	var poor: float = ger.treasury
 	ger.treasury = 0.0
-	_check(gs.issue(Build.new("GER", home, "railway")), "building needs no money")
+	_check(not gs.issue(Build.new("GER", home, "railway")) and Eco.build_problem(gs, "GER", home, "railway").contains("money"), "building needs money: " + Eco.build_problem(gs, "GER", home, "railway"))
 	ger.construction.clear()
 	ger.treasury = poor
 
@@ -213,11 +215,13 @@ func _initialize() -> void:
 	ita2.blockade = 0.0
 	Eco.recompute(gs)
 	_check(ita2.budget.materials.ratio >= 0.999 and is_equal_approx(ita2.budget.industry, ind_ita), "lifting the blockade restores it")
-	# Building needs neither money nor materials.
+	# Building needs money, not materials.
 	var cash2: float = ita2.treasury
 	ita2.treasury = 0.0
 	ita2.blockade = 0.6
-	_check(Eco.build_problem(gs, "ITA", ita2.provinces[0], "factory") == "", "a blockade and an empty treasury leave a factory buildable")
+	_check(Eco.build_problem(gs, "ITA", ita2.provinces[0], "factory").contains("money"), "an empty treasury stops a factory")
+	ita2.treasury = 1000.0
+	_check(Eco.build_problem(gs, "ITA", ita2.provinces[0], "factory") == "", "a blockade does not")
 	ita2.blockade = 0.0
 	ita2.treasury = cash2
 
@@ -243,14 +247,65 @@ func _initialize() -> void:
 	_check(pv.count == 10 and pv.spent > 0.0, "preview: 10 railways for %.0f IC" % pv.spent)
 	_check(gs.issue(cmd), "mass build accepted")
 	_check(cmd.built.size() == 10 and fra3.construction.size() == q0 + 10, "built in exactly the previewed number of provinces")
-	_check(fra3.treasury == cash3 and is_equal_approx(pv.spent, cmd.spent), "preview cost matches the real cost, and no money is spent")
+	_check(is_equal_approx(pv.spent, cmd.spent) and pv.gold > 0.0 and is_equal_approx(fra3.treasury, cash3 - pv.gold), "preview cost matches the real cost, money included (£%.1fM)" % pv.gold)
 	_check(gs.command_log.back().type == "MassConstructBuilding" and gs.command_log.back().provinces.size() == 10, "logged as one command")
+	var broke = Mass.new("FRA", "railway", 1000, 0.0)
+	fra3.treasury = float(Eco.build_plan(gs, Eco.mass_candidates(gs, "FRA", "railway")[0], "railway").gold) * 2.5
+	gs.issue(broke)
+	_check(broke.stopped_by == "money" and broke.built.size() == 2 and fra3.treasury >= 0.0, "a mass build stops when the money runs out (%d built)" % broke.built.size())
+	fra3.treasury = cash3
 	# Room for the two best candidates (the big cities, whose works are already built up) and not a third.
 	var cap_ic: float = Eco.level_cost(gs, cands[0], "factory") + Eco.level_cost(gs, cands[1], "factory") + 0.5 * Eco.level_cost(gs, cands[2], "factory")
 	var capped = Mass.new("FRA", "factory", 1000, cap_ic)
 	gs.issue(capped)
 	_check(capped.stopped_by == "spend" and capped.built.size() == 2 and capped.spent <= cap_ic, "spend cap respected (%.0f IC of %.0f)" % [capped.spent, cap_ic])
 	_check(not gs.issue(Mass.new("FRA", "bogus", 5, 0.0)) and not gs.issue(Mass.new("XXX", "factory", 5, 0.0)), "unknown building or nation rejected")
+
+	# ---- What money is for (economy round 2) ----
+	gs.load_scenario("res://data/scenarios/jan_1900/")
+	var srb = gs.nations["SRB"]
+	var gbr5 = gs.nations["GBR"]
+	_check(Eco.wage_factor(srb, gs.economy_sums["SRB"]) < Eco.wage_factor(gbr5, gs.economy_sums["GBR"]), "a Serbian soldier costs less to keep than a British one (%.2f to %.2f)" % [Eco.wage_factor(srb, gs.economy_sums["SRB"]), Eco.wage_factor(gbr5, gs.economy_sums["GBR"])])
+	for tag in gs.nations:
+		var bb: Dictionary = gs.nations[tag].budget
+		if gs.nations[tag].provinces.is_empty():
+			continue
+		_check(bb.army < bb.revenue * 0.7, "%s can pay for its army (%.2f of %.2f a year)" % [tag, bb.army, bb.revenue])
+	# Building pays: the state's civil spending does not grow with the buildings, so most of what they add is kept.
+	var ger4 = gs.nations["GER"]
+	ger4.treasury = 5000.0
+	var net0: float = ger4.budget.net
+	var rev0_5: float = ger4.budget.revenue
+	var site: int = Eco.mass_candidates(gs, "GER", "factory")[0]
+	var gain: Dictionary = Eco.level_gain(gs, "GER", site, "factory")
+	var plan4: Dictionary = Eco.build_plan(gs, site, "factory")
+	var cash4: float = ger4.treasury
+	_check(gs.issue(load("res://scripts/sim/construct_building.gd").new("GER", site, "factory")) and is_equal_approx(ger4.treasury, cash4 - float(plan4.gold)) and float(plan4.gold) > 0.0, "a factory is paid for when begun (£%.2fM)" % plan4.gold)
+	gs.province_buildings[site]["factory"] = int(gs.province_buildings[site].get("factory", 0)) + 1
+	ger4.construction.clear()
+	Eco.recompute(gs)
+	var added: float = ger4.budget.revenue - rev0_5
+	var kept: float = ger4.budget.net - net0
+	_check(added > 0.0 and kept >= added * 0.5, "and of the £%.2fM a year it adds, the budget keeps £%.2fM (the rest buys its raw materials)" % [added, kept])
+	_check(absf(gain.revenue - added) < 0.001 and absf(gain.net - kept) < 0.001, "level_gain foresees both (£%.2fM, £%.2fM)" % [gain.revenue, gain.net])
+	ger4.treasury = 0.0
+	_check(Eco.build_problem(gs, "GER", Eco.mass_candidates(gs, "GER", "railway")[0] if not Eco.mass_candidates(gs, "GER", "railway").is_empty() else site, "railway").contains("money"), "with no money nothing can be begun")
+	# The standing army: set by the player up to a ceiling, paid every month.
+	gs.set_player("ITA")
+	var ita_5 = gs.nations["ITA"]
+	var cap: int = Eco.standing_cap(gs, ita_5)
+	gs.issue(Policy.new("ITA", "standing_army", float(cap * 2)))
+	_check(ita_5.peacetime_army == cap and cap > 0, "the standing army stops at its ceiling (%d)" % cap)
+	gs.issue(Policy.new("ITA", "standing_army", 100000.0))
+	_check(ita_5.peacetime_army == 100000, "and may be set below it")
+	var army_low: float = ita_5.budget.army
+	gs.issue(Policy.new("ITA", "standing_army", float(cap)))
+	_advance_month(clock)
+	_check(ita_5.budget.army > army_low and ita_5.manpower > 0, "a larger standing army calls more recruits and costs more (%.1f to %.1f a year)" % [army_low, ita_5.budget.army])
+	var pta: int = ita_5.peacetime_army
+	for i in 12:
+		_advance_month(clock)
+	_check(ita_5.peacetime_army == pta, "the player's standing army does not grow on its own")
 
 	# ---- Recruits ----
 	var ger3 = gs.nations["GER"]

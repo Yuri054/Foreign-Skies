@@ -42,8 +42,16 @@
 	"civil_share": 0.5,
 	"baseline_growth": 0.01,
 	"army_growth_share": 0.8,
+	"_standing_share": "The most men a nation may keep under arms in peace, as a share of its manpower pool (Economy.standing_cap). The player sets the standing army below it; the AI's grows with its people and output (army_growth_share).",
+	"standing_share": 0.2,
 	"manpower_share": 0.12,
+	"_start_surplus": "Each nation starts with a budget in surplus by this share of its revenue (Economy.calibrate sets its civil spending so): money to build with, arm with or invest.",
+	"start_surplus": 0.08,
 	"soldier_upkeep": 70.0,
+	"_soldier_upkeep_ref": "A soldier's upkeep is soldier_upkeep times the nation's output per head over soldier_upkeep_ref (GBP a year), within wage_min and wage_max (Economy.wage_factor): a poor nation's army is cheap, a rich one's dear.",
+	"soldier_upkeep_ref": 30.0,
+	"wage_min": 0.35,
+	"wage_max": 1.4,
 	"mobilization_output_penalty": 0.35,
 	"labor": {
 		"_note": "Factory output is multiplied by 1 - penalty times the share of the people under arms (never under floor). Peacetime armies cost a percent or two; a mass levy cripples the factories.",
@@ -69,12 +77,13 @@
 		"peace_max": 0.4
 	},
 	"construction": {
-		"_note": "Industry points (IC) a day: base_ic (small works everywhere; a share of it for an economy under base_ic_gdp_ref GBP millions a year, never under base_ic_min) plus the nation's industrial output (GBP millions a year, after its supply of materials) times ic_per_industry. A project costs `ic` (scaled to the province: one with less output than cost_ref_gdp GBP millions a year pays that share, never under cost_min_factor; a building with size_by \"industry\" is measured on the province's industry against cost_ref_industry) and takes in at most its cost over `min_days` a day.",
+		"_note": "Industry points (IC) a day: base_ic (small works everywhere; a share of it for an economy under base_ic_gdp_ref GBP millions a year, never under base_ic_min) plus the nation's industrial output (GBP millions a year, after its supply of materials) times ic_per_industry. A project costs `ic` and gold_share of its IC value (ic_value) in money, paid when it is begun (trenches and fortifications are paid in IC only) (scaled to the province: one with less output than cost_ref_gdp GBP millions a year pays that share, never under cost_min_factor; a building with size_by \"industry\" is measured on the province's industry against cost_ref_industry) and takes in at most its cost over `min_days` a day.",
 		"base_ic": 20.0,
 		"base_ic_gdp_ref": 200.0,
 		"base_ic_min": 4.0,
 		"cost_ref_gdp": 15.0,
 		"cost_ref_industry": 20.0,
+		"gold_share": 1.0,
 		"cost_min_factor": 0.02,
 		"ic_per_industry": 0.35
 	},
@@ -153,6 +162,7 @@
 		},
 		"trench": {
 			"name": "Trench complex",
+			"gold_share": 0.0,
 			"max_level": 10,
 			"ic": 1200,
 			"ic_growth": 0.0,
@@ -163,6 +173,7 @@
 		},
 		"fortification": {
 			"name": "Heavy fortification",
+			"gold_share": 0.0,
 			"max_level": 10,
 			"ic": 8000,
 			"ic_growth": 0.5,

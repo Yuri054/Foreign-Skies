@@ -13,6 +13,8 @@ var max_spend: float
 ## Provinces that were built in; filled in by execute().
 var built: Array[int] = []
 var spent := 0.0
+## Money paid for them (GBP millions).
+var gold := 0.0
 ## Why the last run stopped: "all" (every eligible province), "count", "spend" or "money".
 var stopped_by := "all"
 
@@ -27,6 +29,7 @@ func _init(p_tag := "", p_type := "", p_max_count := 1000000, p_max_spend := 0.0
 func execute(gs: Node) -> bool:
 	built.clear()
 	spent = 0.0
+	gold = 0.0
 	stopped_by = "all"
 	if not gs.nations.has(tag) or not Economy.cfg.buildings.has(type) or type.begins_with("_"):
 		return false
@@ -42,22 +45,25 @@ func execute(gs: Node) -> bool:
 			stopped_by = "money"
 			break
 		spent += plan.ic
+		gold += float(plan.gold)
 		built.append(id)
 	return not built.is_empty()
 
 
-## What execute() would do right now, without changing anything: {count, spent}.
+## What execute() would do right now, without changing anything: {count, spent, gold, stopped_by}.
 func preview(gs: Node) -> Dictionary:
 	if not gs.nations.has(tag):
-		return {"count": 0, "spent": 0.0, "stopped_by": "all"}
+		return {"count": 0, "spent": 0.0, "gold": 0.0, "stopped_by": "all"}
 	var n: Nation = gs.nations[tag]
 	var jobs := n.construction.duplicate(true)
+	var treasury := n.treasury
 	execute(gs)
-	var result := {"count": built.size(), "spent": spent, "stopped_by": stopped_by}
+	var result := {"count": built.size(), "spent": spent, "gold": gold, "stopped_by": stopped_by}
 	n.construction.clear()
 	n.construction.append_array(jobs)
+	n.treasury = treasury
 	return result
 
 
 func to_dict() -> Dictionary:
-	return {"type": "MassConstructBuilding", "tag": tag, "building": type, "provinces": built.duplicate(), "spent": spent}
+	return {"type": "MassConstructBuilding", "tag": tag, "building": type, "provinces": built.duplicate(), "spent": spent, "gold": gold}

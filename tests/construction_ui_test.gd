@@ -75,7 +75,16 @@ func _test_open_and_colours() -> void:
 	var stock: float = _ger().munitions
 	eco_panel._buy.pressed.emit()
 	_check(_ger().munitions > stock and _ger().treasury < 100.0 and eco_panel._buy.text.contains("Buy munitions abroad"), "the buy button spends money on munitions from abroad (%s)" % eco_panel._buy.text)
+	# What the money is for: the standing army is set by command, and People says what the budget and treasury buy.
+	var men0: int = _ger().peacetime_army
+	eco_panel._army_slider.value = eco_panel._army_slider.max_value
+	_check(_ger().peacetime_army > men0 and gs.command_log.back().policy == "standing_army", "the Standing army slider raises the army by command (%d to %d)" % [men0, _ger().peacetime_army])
+	gs.economy_updated.emit()
+	_check(eco_panel._army_note.text.contains("costs £") and eco_panel._army_note.text.contains("pays for"), "and says what a division costs and how many the surplus pays for: " + eco_panel._army_note.text)
+	var people := _texts(eco_panel._people)
+	_check(people.contains("Divisions the budget can keep") and people.contains("Divisions the treasury can raise") and people.contains("War chest"), "People shows what the money buys")
 	eco_panel.visible = false
+	_check(panel._detail_text("factory").contains("The money is back in"), "the Build tab says what a factory pays back: " + panel._detail_text("factory").get_slice("\n", panel._detail_text("factory").count("\n")))
 
 	var free := 0
 	var full := 0
@@ -122,7 +131,7 @@ func _test_clicks() -> void:
 	var jobs: int = ger.construction.size()
 	var cash: float = ger.treasury
 	map_view.select(id)
-	_check(ger.construction.size() == jobs + 1 and is_equal_approx(ger.treasury, cash), "a click on a green province queues a factory, which costs no money")
+	_check(ger.construction.size() == jobs + 1 and ger.treasury < cash, "a click on a green province queues a factory and pays for it (£%.1fM)" % (cash - ger.treasury))
 	_check(panel._status.text.contains("IC"), "and says what it cost: " + panel._status.text)
 	# A province that cannot take it.
 	var blocked: int = ger.capital
@@ -133,15 +142,16 @@ func _test_clicks() -> void:
 	var foreign: int = gs.nations["FRA"].provinces[0]
 	map_view.select(foreign)
 	_check(ger.construction.size() == jobs, "foreign land cannot be built on")
-	ger.treasury = 0.0
 	jobs = ger.construction.size()
 	var other := 0
 	for p in ger.provinces:
 		if p != id and Eco.build_problem(gs, "GER", p, "factory").is_empty():
 			other = p
 			break
+	ger.treasury = 0.0
 	map_view.select(other)
-	_check(ger.construction.size() == jobs + 1, "with an empty treasury it is still queued: " + panel._status.text)
+	_check(other > 0 and ger.construction.size() == jobs and panel._status.text.contains("money"), "with an empty treasury nothing is begun, and it says why: " + panel._status.text)
+	ger.treasury = 5000.0
 	ger.treasury = 5000.0
 
 
@@ -164,7 +174,7 @@ func _test_close_and_mass() -> void:
 	panel._rows["railway"].pressed.emit()
 	ger.treasury = 5000.0
 	panel._refresh()
-	_check(panel._mass_box.visible and panel._mass_preview.text.contains("IC in all"), "mass build previews: " + panel._mass_preview.text)
+	_check(panel._mass_box.visible and panel._mass_preview.text.contains("IC and £"), "mass build previews: " + panel._mass_preview.text)
 	var jobs: int = ger.construction.size()
 	panel._mass_button.pressed.emit()
 	_check(ger.construction.size() > jobs, "mass build queues the buildings")
@@ -180,3 +190,11 @@ func _test_close_and_mass() -> void:
 	panel.toggle()
 	await process_frame
 	_check(not panel.visible and map_view.mode == MapView.Mode.POLITICAL, "closing the panel puts the map back")
+
+
+## All the text of the labels under `node`, one per line.
+func _texts(node: Node) -> String:
+	var out: PackedStringArray = []
+	for c in node.find_children("*", "Label", true, false):
+		out.append(c.text)
+	return "\n".join(out)

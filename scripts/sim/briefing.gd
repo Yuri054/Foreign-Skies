@@ -54,6 +54,13 @@ static func issues(gs: Node, tag: String) -> Array[Dictionary]:
 		var pool: float = b.get("construction_points", 0.0)
 		if pool > 0.0 and used < pool * 0.5 and n.construction.is_empty():
 			_add(out, "idle_industry", 35.0, "Your industry sits idle", "%d of %d IC a day are not used. Queue buildings." % [roundi(pool - used), roundi(pool)], "Build")
+		# Money piling up in peace buys nothing: say what it could.
+		var revenue_month: float = float(b.revenue) / 12.0
+		if not at_war and revenue_month > 0.0 and n.treasury > revenue_month * 12.0 and b.net > 0.0:
+			var war_cost := Economy.mobilization_cost(gs, n, 1.0)
+			var decade: float = Economy.division_upkeep(gs, n) * 120.0 + float(Military.cfg.unit_types.infantry.cost)
+			var chest := "a war chest for %d months of full mobilization" % floori(n.treasury / war_cost) if war_cost > 0.01 else "a war chest"
+			_add(out, "idle_money", 28.0, "£%.0fM lies idle in the treasury" % n.treasury, "It could begin buildings, raise and keep %d more divisions for ten years, or buy munitions; as it is, it is %s." % [floori(n.treasury / maxf(decade, 0.001)), chest], "Economy")
 	# Neighbours and Europe.
 	for key: String in gs.alarms:
 		if key.ends_with(">" + tag):

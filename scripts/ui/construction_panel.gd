@@ -231,7 +231,7 @@ func _refresh_queue() -> void:
 	if n == null or not visible:
 		return
 	var points: float = n.budget.get("construction_points", 0.0)
-	_pool.text = "Buildings are paid in industry (IC), not money, so the treasury does not move. Your industry gives %s IC a day; %s is going into projects now (buildings and ships). Projects are served in the order below and wait when the day's IC runs out." % [Fmt.thousands(roundi(points)), Fmt.thousands(roundi(n.construction_used))]
+	_pool.text = "A building is paid for in money when it is begun, and then built with industry (IC) over the days. Your industry gives %s IC a day; %s is going into projects now (buildings and ships). Projects are served in the order below and wait when the day's IC runs out." % [Fmt.thousands(roundi(points)), Fmt.thousands(roundi(n.construction_used))]
 	for c in _queue.get_children():
 		_queue.remove_child(c)
 		c.queue_free()
@@ -283,6 +283,18 @@ func _detail_text(type: String) -> String:
 		lines.append("Carries armies and supplies faster, as long as the nation has the raw materials to run it. The numbers on the map are levels out of the most.")
 	if def.get("requires", "") == "coastal":
 		lines.append("Coastal provinces only.")
+	# What it pays back, in the best place for it now.
+	var n := GameState.get_player()
+	if n != null and not def.effects.is_empty():
+		var best := Economy.mass_candidates(GameState, n.tag, type)
+		if not best.is_empty():
+			var id: int = best[0]
+			var plan := Economy.build_plan(GameState, id, type)
+			var gain := Economy.level_gain(GameState, n.tag, id, type)
+			var back := "never" if gain.net <= 0.0 else "%.0f years" % ceilf(float(plan.gold) / gain.net)
+			lines.append("In %s, the best place now: £%.1fM and %s IC; the budget gains £%.2fM a year%s. The money is back in %s." % [
+					MapData.provinces[id].name, plan.gold, Fmt.thousands(roundi(plan.ic)), gain.net,
+					(" and %.1f IC a day" % gain.ic) if gain.ic > 0.05 else "", back])
 	return "\n".join(lines)
 
 
@@ -330,8 +342,8 @@ func _refresh_mass() -> void:
 		_mass_button.text = "Build"
 		_mass_button.disabled = true
 	else:
-		_mass_preview.text = "%d buildings, %s IC in all, best provinces first. Limited by %s." % [preview.count, Fmt.thousands(roundi(preview.spent)), limits[preview.stopped_by]]
-		_mass_button.text = "Build %d (%s IC)" % [preview.count, Fmt.thousands(roundi(preview.spent))]
+		_mass_preview.text = "%d buildings, %s IC and £%.1fM in all, best provinces first. Limited by %s." % [preview.count, Fmt.thousands(roundi(preview.spent)), preview.gold, limits[preview.stopped_by]]
+		_mass_button.text = "Build %d (%s IC, £%.0fM)" % [preview.count, Fmt.thousands(roundi(preview.spent)), preview.gold]
 		_mass_button.disabled = false
 
 

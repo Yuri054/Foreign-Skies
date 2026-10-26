@@ -30,6 +30,12 @@ One window, a tab for each part of running the nation:
   the tab that deals with it), your figures, Europe's tension (what it is made of, the worst rivalries, a chart of two years)
   and your wars with what each is being fought for.
 - **Economy (E)**: money, taxes, spending, industry, food, raw materials. Money pays the army, interest and what the state buys.
+  Every nation begins with a small surplus, and the economy is for spending it: on buildings, which grow it, or on the
+  army, which it keeps. The **Standing army** slider sets how many men you keep under arms in peace (up to a fifth of your
+  manpower): each division costs a sum a month, a soldier as dear as your people's wages, and the page says how many more
+  divisions your surplus keeps, how many the treasury can raise, how many your recruits fill and how many months the
+  treasury pays for a full mobilization. Raise the standing army, and the recruits come in over the next months; then
+  raise the divisions on the Military tab.
   **Arms production** puts a share of your industry into munitions for the guns, before buildings: it costs a little output
   and the stockpile costs money to keep, but in a war guns without shells fight much weaker. The page says how many days of
   war the stockpile lasts; in a war you can also buy munitions abroad, if the sea is open.
@@ -37,10 +43,12 @@ One window, a tab for each part of running the nation:
   bring less and the economy grows faster. **State investment** puts a sum a month into the country's development: the
   first millions do the most. **Mobilization** calls up the reserve: the slider says what it costs a month before you move
   it. Raw materials and food are bought abroad by themselves: they matter when a blockade cuts the sea.
-- **Build (B)**: pick a building, then click a green province. **Buildings cost industry (IC), not money**: the nation has a
-  number of IC a day, projects are served in order and wait when the day's IC runs out, so the treasury never moves when you
-  build. The queue shows why a project is "stalled" (no IC reaches it). A small country has fewer IC, but its buildings cost
-  less: they are built to the size of the province.
+- **Build (B)**: pick a building, then click a green province. **A building costs money when it is begun, then industry
+  (IC)**: the nation has a number of IC a day, projects are served in order and wait when the day's IC runs out. The queue
+  shows why a project is "stalled" (no IC reaches it). A small country has fewer IC, but its buildings cost less: they are
+  built to the size of the province. Each building says what it costs in its best place now, what it adds to the budget a
+  year and how many years the money takes to come back: a factory in a great city pays back in about ten years, one in a
+  small town much later. Trenches and fortifications cost only IC.
 - **Military (M)**, **Navy (Y)**: armies, army groups, fronts, fleets, yards.
 - **Diplomacy (F)**: opinions, treaties, wars, gifts, demands, peace.
 - **Focus (O)**: one national effort at a time, with lasting effects.
@@ -113,7 +121,8 @@ rotating slots. A save keeps the difficulty it was made at.
 ## Tips
 
 - Read the cabinet briefing each month; it is the quickest way to see what is wrong.
-- Build before the money runs out: construction is paid in industry, not money, but industry comes from your factories.
+- Guns or growth: build early, while the buildings have years to pay back, then turn the surplus into divisions. Money that
+  lies idle in peace buys nothing but a war chest.
 - Do not send armies beyond supply without a plan to take ground that will carry them.
 - A claim is cheaper than a pretext, and a goal makes the peace you want cheap.
 - Allies pull you into wars as they pull the enemy's allies in: look at who is bound to whom before you declare.

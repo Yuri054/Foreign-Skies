@@ -2,8 +2,9 @@ class_name SetEconomyPolicy
 extends Command
 ## Sets one of a nation's economic policies: "tax_rate", "mobilization", "arms_share" (the share of each day's IC
 ## that goes to munitions, see Munitions) or "investment" (GBP millions a month into development, at most a tenth of
-## the month's output; see Economy.investment_growth). Mobilization stops at the most the nation may have now (see
-## Economy.mobilization_range).
+## the month's output; see Economy.investment_growth) or "standing_army" (men kept under arms in peace, Nation.peacetime_army,
+## at most Economy.standing_cap: the reserve fills toward it and units can be raised from it). Mobilization stops at
+## the most the nation may have now (see Economy.mobilization_range).
 
 var tag: String
 var policy: String
@@ -29,6 +30,10 @@ func execute(gs: Node) -> bool:
 			n.arms_share = clampf(value, 0.0, 1.0)
 		"investment":
 			n.investment = clampf(value, 0.0, float(n.budget.get("gdp", 0.0)) / 12.0 * 0.1)
+		"standing_army":
+			n.peacetime_army = clampi(int(value), 0, maxi(Economy.standing_cap(gs, n), 0))
+			# The reserve follows at once: a smaller army asks no more recruits; a larger one fills over the months.
+			Economy.request(gs)
 		_:
 			return false
 	return true

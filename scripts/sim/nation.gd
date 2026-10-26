@@ -81,6 +81,11 @@ var men_in_units := 0
 var recruiting: Array[Dictionary] = []
 ## Multiplier on the state's civil spending, set when a scenario starts so that the budget balances (see Economy.calibrate).
 var civil_mult := 1.0
+## The state's civil spending at the start (GBP millions a year, after civil_mult), and how it has grown since with the
+## people and the economy's own drift (baseline growth): not with buildings, foci or investment, so what those add
+## reaches the budget (see Economy.nation_budget). 0 until worked out.
+var civil_base := 0.0
+var civil_index := 1.0
 ## Multiplier on what this nation's industry needs in raw materials (1 unless the scenario says otherwise).
 var materials_need_mult := 1.0
 ## National focus (see Focus): the one being worked on, {id, days_left, days_total} or {}; the

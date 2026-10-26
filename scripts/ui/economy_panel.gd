@@ -16,6 +16,9 @@ var _people := VBoxContainer.new()
 var _mob_slider := HSlider.new()
 var _mob_label := Label.new()
 var _mob_note := Label.new()
+var _army_slider := HSlider.new()
+var _army_label := Label.new()
+var _army_note := Label.new()
 var _invest_slider := HSlider.new()
 var _invest_label := Label.new()
 var _invest_note := Label.new()
@@ -188,6 +191,14 @@ func _build_people() -> Control:
 	_mob_note.modulate = Fmt.DIM
 	box.add_child(_slider_row("Mobilization", _mob_slider, _mob_label, _mob_note,
 			"How much of the manpower pool is called up. More men under arms means a stronger army and weaker factories and fields; the reservists are paid, and the line below says what the level costs a month."))
+	_army_slider.value_changed.connect(func(v: float) -> void:
+		if not _updating:
+			GameState.issue(SetEconomyPolicy.new(GameState.player_tag, "standing_army", v * 1000.0))
+	)
+	_army_note.modulate = Fmt.DIM
+	box.add_child(_slider_row("Standing army", _army_slider, _army_label, _army_note,
+			"The men kept under arms in peace, in thousands. Money is what limits it: every division costs its upkeep each month. Raise the units themselves on the Military tab once the recruits are in."))
+	_army_slider.step = 12.0
 	box.add_child(_people)
 	return box
 
@@ -411,6 +422,16 @@ func _refresh_people(n: Nation) -> void:
 	_mob_slider.set_value_no_signal(n.mobilization)
 	_updating = false
 	_mob_label.text = "%d%%" % roundi(n.mobilization * 100.0)
+	var cap := Economy.standing_cap(GameState, n)
+	var per_div := Economy.division_upkeep(GameState, n)
+	_updating = true
+	_army_slider.min_value = 0.0
+	_army_slider.max_value = maxf(cap, n.peacetime_army) / 1000.0
+	_army_slider.set_value_no_signal(n.peacetime_army / 1000.0)
+	_updating = false
+	_army_label.text = "%dk" % roundi(n.peacetime_army / 1000.0)
+	var keepable := floori(maxf(0.0, float(b.net) / 12.0) / maxf(per_div, 0.0001))
+	_army_note.text = "Up to %dk in peace. A division of 12,000 costs £%.2fM a month to keep: your monthly surplus pays for %d more. %dk are under arms now." % [roundi(cap / 1000.0), per_div, keepable, roundi(n.men_in_units / 1000.0)]
 	var cost := Economy.mobilization_cost(GameState, n, n.mobilization)
 	_mob_note.text = "May be between %d%% and %d%% %s. %s" % [roundi(range.x * 100.0), roundi(range.y * 100.0), "at war" if not GameState.wars_of(n.tag).is_empty() else "in peace",
 			"At %d%%, once the reserve is called up, it costs about £%.1fM a month (reservists' pay and the output lost)." % [roundi(n.mobilization * 100.0), cost] if n.mobilization > 0.005 else "Each step costs reservists' pay and output: at %d%% about £%.1fM a month." % [roundi(range.y * 100.0), Economy.mobilization_cost(GameState, n, range.y)]]
@@ -425,6 +446,18 @@ func _refresh_people(n: Nation) -> void:
 	_cell(g, Fmt.people(n.manpower), 1)
 	_cell(g, "Most that may be called up", 0)
 	_cell(g, Fmt.people(b.manpower_max), 1)
+	# What the money is for: divisions the surplus keeps, the treasury raises and the reserve fills, and the war chest.
+	var inf: Dictionary = Military.cfg.unit_types.infantry
+	_cell(g, "Divisions the budget can keep", 0, Color.WHITE, "More divisions the monthly surplus would pay for, at £%.2fM a month each." % per_div)
+	_cell(g, "%d more" % keepable, 1, Fmt.GOOD if keepable > 0 else Fmt.WARN)
+	_cell(g, "Divisions the treasury can raise", 0, Color.WHITE, "At £%.1fM each, paid when training begins." % float(inf.cost))
+	_cell(g, "%d" % floori(maxf(0.0, n.treasury) / maxf(float(inf.cost), 0.001)), 1)
+	_cell(g, "Recruits ready for", 0, Color.WHITE, "The reserve, in divisions of %s. Raise the standing army to call more." % Fmt.thousands(int(inf.size)))
+	_cell(g, "%d divisions" % floori(float(n.manpower) / maxf(float(inf.size), 1.0)), 1)
+	var war_cost := Economy.mobilization_cost(GameState, n, 1.0)
+	if war_cost > 0.01:
+		_cell(g, "War chest", 0, Color.WHITE, "How long the treasury pays for full mobilization in a war (about £%.1fM a month on top of today's budget) before the state borrows." % war_cost)
+		_cell(g, "%d months" % floori(maxf(0.0, n.treasury) / war_cost), 1)
 	_cell(g, "Food", 0, Color.WHITE, "People the land can feed, against the population. A shortfall is imported unless blockaded.")
 	_cell(g, "%s fed of %s" % [Fmt.people(b.food_production + b.food_imported), Fmt.people(b.food_need)], 1, Fmt.BAD if b.food_shortage > 0.0 else Color.WHITE)
 	_cell(g, "War support", 0)

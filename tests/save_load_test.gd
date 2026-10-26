@@ -46,7 +46,7 @@ func _fingerprint() -> String:
 	parts.append(str(gs.province_controller))
 	for tag in gs.nations:
 		var n = gs.nations[tag]
-		parts.append("%s %.4f %d %.4f %.4f %.4f" % [tag, n.treasury, n.manpower, n.war_support, n.blockade, n.civil_mult])
+		parts.append("%s %.4f %d %.4f %.4f %.4f %.4f %.6f %d" % [tag, n.treasury, n.manpower, n.war_support, n.blockade, n.civil_mult, n.civil_base, n.civil_index, n.peacetime_army])
 	var men := 0.0
 	for a in gs.armies.values():
 		men += a.men() + a.province

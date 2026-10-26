@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 godot = os.environ.get("GODOT", "godot")
-POLICIES = "passive,fact,rail,port,all,focus,all+focus,tax=0.05,tax=0.2,tax=0.4,mob=0.4,arms=0+all,arms=0.2+all"
+POLICIES = "passive,fact,rail,port,all,focus,all+focus,tax=0.05,tax=0.2,tax=0.4,mob=0.4,arms=0+all,arms=0.2+all,army,build=1904,build=1908"
 
 
 def run(tag, years, policy):
@@ -40,8 +40,8 @@ def main():
         rows = [r for r in results if r["tag"] == tag]
         base = next((r for r in rows if r["policy"] == "passive" and "error" not in r), None)
         lines += ["", "**%s**" % tag, "",
-                  "| Policy | GDP/mo | vs nothing | IC/day | vs nothing | Revenue/mo | Net/mo | Treasury | Development | Support | Built | Shells (days of war) |",
-                  "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+                  "| Policy | GDP/mo | vs nothing | IC/day | vs nothing | Revenue/mo | Net/mo | Treasury | Development | Support | Built | Shells (days of war) | Divisions |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for r in rows:
             if "error" in r:
                 lines.append("| %s | error |" % r["policy"])
@@ -49,9 +49,9 @@ def main():
             vs_gdp = "%+.0f%%" % ((r["gdp"] / base["gdp"] - 1) * 100) if base else "-"
             vs_ic = "%+.0f%%" % ((r["ic"] / base["ic"] - 1) * 100) if base else "-"
             built = sum(r["built"].values()) if r["built"] else 0
-            lines.append("| %s | %.1f | %s | %.0f | %s | %.2f | %+.2f | %d | %+.0f%% | %d | %d | %s |" % (
+            lines.append("| %s | %.1f | %s | %.0f | %s | %.2f | %+.2f | %d | %+.0f%% | %d | %d | %s | %s |" % (
                 r["policy"], r["gdp"], vs_gdp, r["ic"], vs_ic, r["revenue"], r["net"], r["treasury"],
-                r["development"] * 100, r["war_support"], built, r.get("stock_days", "-")))
+                r["development"] * 100, r["war_support"], built, r.get("stock_days", "-"), r.get("divisions", "-")))
     text = "\n".join(lines)
     print(text)
     if a.out:
