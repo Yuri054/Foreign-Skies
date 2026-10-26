@@ -407,12 +407,12 @@ static func _withdraw_armies(gs: Node, pair: Array) -> void:
 		gs.armies_changed.emit()
 
 
-## A nation that makes peace while its side is still fighting the same enemy loses the trust
-## of those still fighting, and leaves the conflict once it has no enemy left in it.
 ## The nations making peace together at a conference (see Conference): none of them deserts another.
 static var joint_tags: Array[String] = []
 
 
+## A nation that makes peace while its side is still fighting the same enemy loses the trust
+## of those still fighting, and leaves the conflict once it has no enemy left in it.
 static func _separate_peace(gs: Node, war: War) -> void:
 	var g: Dictionary = gs.war_groups.get(war.war_group, {})
 	if g.is_empty():

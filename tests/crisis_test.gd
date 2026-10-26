@@ -114,6 +114,12 @@ func _initialize() -> void:
 	_check("GBR" in C.find(gs, c.id).backers_b, "it is listed among Germany's backers")
 	_check(D.relation(gs, "GBR", "GER") > rel_b and D.relation(gs, "GBR", "FRA") < rel_a, "relations with Germany rise, with France fall")
 	_check(C.odds_a(gs, C.find(gs, c.id)) < odds0, "and France's odds fall (%.2f to %.2f)" % [odds0, C.odds_a(gs, C.find(gs, c.id))])
+	var pts: float = gs.nations["GBR"].diplomacy_points
+	var rel_again: float = D.relation(gs, "GBR", "GER")
+	_check(not gs.issue(Action.new("GBR", c.id, "back_b")), "a nation backs a side only once")
+	_check(not gs.issue(Action.new("GBR", c.id, "back_a")), "and cannot back the other side as well")
+	_check(gs.nations["GBR"].diplomacy_points == pts and D.relation(gs, "GBR", "GER") == rel_again, "a refused backing costs nothing and changes no relation")
+	_check(C.find(gs, c.id).backers_b.count("GBR") == 1 and "GBR" not in C.find(gs, c.id).backers_a, "it is listed once, on one side")
 	gs.nations["GBR"].diplomacy_points = 0.0
 	_check(not gs.issue(Action.new("GBR", c.id, "mediate")), "a third nation without the points cannot mediate")
 	gs.nations["GBR"].diplomacy_points = 100.0

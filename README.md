@@ -20,7 +20,8 @@ You need [Godot 4.7.2](https://godotengine.org/) (the project is set to 4.7, GL 
 
 1. Open the project folder in Godot and press F5, or run `godot --path .` from this folder.
 2. The first launch imports the map images; wait for it to finish.
-3. On the main menu choose **New game** and a scenario (January 1900 or July 1914), or **Tutorial**, a guided intro in 1900; then a nation.
+3. On the main menu choose **New game**, a scenario (January 1900 or July 1914) and a difficulty, or **Tutorial**, a guided intro in 1900; then a nation.
+   The difficulty (Historical, Challenging or Sandbox) only changes how the AI nations and the crisis generator behave, never what the rules give anyone; it is saved with the game.
 
 Saves and settings are written to Godot's user folder (`user://saves/`, `user://settings.cfg`).
 
