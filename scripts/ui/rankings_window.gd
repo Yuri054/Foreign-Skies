@@ -132,15 +132,19 @@ static func short_value(id: String, v: float) -> String:
 
 func _refresh() -> void:
 	_dirty = false
-	if not GameState.nations.has(GameState.player_tag):
+	if GameState.nations.is_empty():
 		return
 	var metric := Standings.metric(_metric)
 	var ranking := Standings.ranking(GameState, _metric)
 	var me := GameState.player_tag
-	var mine := Standings.rank_of(GameState, me, _metric)
-	_summary.text = "%s: you are #%d of %d (%s). %s leads with %s." % [
-			metric.label, mine, ranking.size(), format_value(_metric, Standings.value(GameState, me, _metric)),
-			GameState.nations[ranking[0].tag].display_name, format_value(_metric, ranking[0].value)] if not ranking.is_empty() else ""
+	if not GameState.nations.has(me):
+		# A spectator: no "you".
+		_summary.text = "%s: %s leads with %s." % [metric.label, GameState.nations[ranking[0].tag].display_name, format_value(_metric, ranking[0].value)] if not ranking.is_empty() else ""
+	else:
+		var mine := Standings.rank_of(GameState, me, _metric)
+		_summary.text = "%s: you are #%d of %d (%s). %s leads with %s." % [
+				metric.label, mine, ranking.size(), format_value(_metric, Standings.value(GameState, me, _metric)),
+				GameState.nations[ranking[0].tag].display_name, format_value(_metric, ranking[0].value)] if not ranking.is_empty() else ""
 	_refresh_table()
 	_refresh_trend(ranking)
 
@@ -209,7 +213,7 @@ func _refresh_trend(ranking: Array[Dictionary]) -> void:
 	var picked: Array[String] = []
 	for i in mini(TREND_LEADERS, ranking.size()):
 		picked.append(ranking[i].tag)
-	if GameState.player_tag not in picked:
+	if GameState.player_tag not in picked and GameState.nations.has(GameState.player_tag):
 		picked.append(GameState.player_tag)
 	var series: Array = []
 	var longest := 0

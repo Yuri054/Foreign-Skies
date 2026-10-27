@@ -1,9 +1,11 @@
 extends Control
 ## Choosing which nation to play, by clicking it on the map. The map stays live underneath: a
 ## click on any province picks the nation that owns it, and a small panel at the right says
-## who is picked and starts the game (Play, or Enter). Only the panel takes the mouse.
+## who is picked and starts the game (Play, or Enter), or starts it with no nation to watch (spectator). Only the panel
+## takes the mouse.
 
 signal nation_chosen(tag: String)
+signal spectate_chosen
 
 var map_view: Node
 var _tag := ""
@@ -11,6 +13,7 @@ var _flag := FlagIcon.new()
 var _name := Label.new()
 var _facts := Label.new()
 var _play := Button.new()
+var _watch := Button.new()
 
 
 func _ready() -> void:
@@ -59,12 +62,17 @@ func _ready() -> void:
 
 	_play.pressed.connect(_start)
 	box.add_child(_play)
+	_watch.text = "Watch as a spectator"
+	_watch.tooltip_text = "Every nation is run by the computer: you watch, and may look at any nation with a right click."
+	_watch.pressed.connect(func() -> void: spectate_chosen.emit())
+	box.add_child(_watch)
 
 	if map_view == null:
 		map_view = get_tree().get_first_node_in_group("map_view")
 	if map_view != null:
 		map_view.province_selected.connect(pick_province)
-	choose(GameState.player_tag)
+	# Nothing is played until a nation is chosen: the scenario's own nation is only the first suggestion.
+	choose(GameState.scenario.get("default_player", ""))
 
 
 ## A province was clicked: its owner is the nation picked. Sea and empty ground do nothing.

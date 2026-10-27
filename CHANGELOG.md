@@ -5,7 +5,14 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.11.0 (2026-10-27 00:29 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.11.1 (2026-10-27 00:55 UTC)
+
+- **Spectator mode.** The nation picker has a "Watch as a spectator" button: the computer runs every nation and you
+  watch. Right-click any nation to see its panel; the Nation screen opens on Rankings and History.
+- Choosing a nation no longer shows Germany (the scenario's own nation) in the top bar as if it were already yours: it
+  says "Choosing a nation" until you pick one.
+
+## 0.11.0 (2026-10-27 00:29 UTC)
 
 The economy has a point: it is for spending, on growth or on guns, and the choice between them is yours.
 

@@ -223,11 +223,12 @@ func _refresh() -> void:
 		_chips["tension"].tooltip_text = Pressure.tip(GameState)
 	else:
 		_flag.tag = ""
-		_nation.text = "No nation"
+		var picking := get_tree().get_nodes_in_group("nation_picker").any(func(p: Node) -> bool: return not p.is_queued_for_deletion())
+		_nation.text = "Choosing a nation" if picking else "Spectator"
 		_treasury.text = ""
 		_net.text = ""
 		_manpower.text = ""
-		_tension.text = ""
+		_tension.text = "%d" % roundi(GameState.tension)
 		_points.text = ""
 		_points_gain.text = ""
 	_date.text = Clock.date_string()

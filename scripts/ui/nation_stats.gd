@@ -139,7 +139,10 @@ func _dock() -> void:
 
 ## The nation on show.
 func shown_tag() -> String:
-	return _chosen if _chosen != "" and GameState.nations.has(_chosen) else GameState.player_tag
+	if _chosen != "" and GameState.nations.has(_chosen):
+		return _chosen
+	# A spectator has no nation of their own: the first in the list is shown.
+	return GameState.player_tag if GameState.nations.has(GameState.player_tag) else (GameState.nations.keys()[0] if not GameState.nations.is_empty() else "")
 
 
 func _mark_dirty() -> void:
@@ -151,9 +154,10 @@ func _mark_dirty() -> void:
 
 func _refresh() -> void:
 	_dirty = false
-	if not GameState.nations.has(GameState.player_tag):
-		return
 	var tag := shown_tag()
+	if not GameState.nations.has(tag):
+		return
+	var spectating := not GameState.nations.has(GameState.player_tag)
 	var n: Nation = GameState.nations[tag]
 	var mine := tag == GameState.player_tag
 	title = "Nation: %s" % n.display_name
@@ -163,7 +167,7 @@ func _refresh() -> void:
 	_sub.text = "%s · %s%s" % [n.government.replace("_", " ").capitalize() if n.government != "" else "Government unknown",
 			bloc if bloc != "" else "no bloc", " · your nation" if mine else ""]
 	_fill_picker(tag)
-	_actions_box.visible = not mine
+	_actions_box.visible = not mine and not spectating
 	for c in _content.get_children():
 		_content.remove_child(c)
 		c.queue_free()
@@ -234,7 +238,7 @@ func _refresh() -> void:
 			WarSupport.effects_text(GameState, tag) + "\nThis month so far:\n" + WarSupport.drivers_text(GameState, tag))
 	_row(politics, "Prestige", "%d" % roundi(n.prestige), _rank(ranks.prestige, tag))
 	_row(politics, "Diplomacy points", "%d  (+%.1f a month)" % [roundi(n.diplomacy_points), Diplomacy.point_income(GameState, tag)])
-	if not mine:
+	if not mine and not spectating:
 		_row(politics, "Opinion of you", "%+d" % roundi(Diplomacy.relation(GameState, tag, GameState.player_tag)))
 	_row(politics, "Alliances", _alliances_text(n))
 	var guarantees := _guarantee_text(n)
@@ -463,7 +467,7 @@ func _build_actions() -> void:
 
 func _refresh_actions(tag: String) -> void:
 	var me: String = GameState.player_tag
-	if tag == me:
+	if tag == me or not GameState.nations.has(me):
 		return
 	var war := GameState.war_between(me, tag)
 	var at_war := war != null

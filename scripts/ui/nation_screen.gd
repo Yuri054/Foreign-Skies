@@ -111,6 +111,11 @@ func open_page(page: Variant) -> void:
 	var target: Control = page if page is Control else page_named(str(page))
 	if target == null:
 		return
+	# A spectator runs no nation: only the pages about Europe as a whole open.
+	if GameState.get_player() == null and _title_of(target) not in SPECTATOR_PAGES:
+		target = page_named(SPECTATOR_PAGES[0])
+		if target == null:
+			return
 	_current = target
 	for p: Dictionary in _pages:
 		var on: bool = p.page == target
@@ -123,6 +128,17 @@ func open_page(page: Variant) -> void:
 	if target.has_method("_refresh"):
 		target.call_deferred("_refresh")
 	_keep_inside.call_deferred()
+
+
+## The pages that open with no nation of your own (a spectator).
+const SPECTATOR_PAGES := ["Rankings", "History"]
+
+
+func _title_of(page: Control) -> String:
+	for p: Dictionary in _pages:
+		if p.page == page:
+			return p.title
+	return ""
 
 
 func toggle_page(page: Control) -> void:

@@ -169,7 +169,14 @@ func _ready() -> void:
 		_focus_on(tag)
 		tutorial.after_nation_chosen()
 	)
+	# A spectator plays no nation: the AI runs them all.
+	picker.spectate_chosen.connect(func() -> void:
+		picker.queue_free()
+		GameState.set_player("")
+		_focus_on("")
+	)
 	ui.add_child(picker)
+	GameState.set_player("")
 
 
 ## A control under a CanvasLayer does not pick up the theme of the window, so the layer's windows,
