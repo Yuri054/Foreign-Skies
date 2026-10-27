@@ -348,12 +348,12 @@ The aim: a bigger economy carries a bigger army and fleet, and the player choose
 
 | Step | Work | Status |
 |---|---|---|
-| E1 | Soldiers cost what the country pays (upkeep by wages) | |
-| E2 | Growth reaches the treasury (civil spending follows the people, not the factories) | |
-| E3 | Money buys the standing army (a peacetime ceiling from the people, not a fixed figure) | |
-| E4 | Building costs money too, and says what it pays back | |
-| E5 | The Economy tab says what the economy buys | |
-| E6 | Measure: guns or growth is a real choice; the road to 1914 holds | |
+| E1 | Soldiers cost what the country pays (upkeep by wages) | done |
+| E2 | Growth reaches the treasury (civil spending follows the people, not the factories) | done (a half, not two thirds: see below) |
+| E3 | Money buys the standing army (a peacetime ceiling from the people, not a fixed figure) | done |
+| E4 | Building costs money too, and says what it pays back | done |
+| E5 | The Economy tab says what the economy buys | done |
+| E6 | Measure: guns or growth is a real choice; the road to 1914 holds | done |
 
 - **E1.** A soldier's upkeep follows the nation's output per head against a reference (`economy.json`
   soldier_upkeep_ref), within bounds, so a poor nation's army is cheap and a rich one's dear. Done when every nation
@@ -378,6 +378,52 @@ The aim: a bigger economy carries a bigger army and fleet, and the player choose
   with output for a tie) is a mix, not "build everything" or "army only"; and the campaign checks of steps 1 to 4 hold
   (first great-power war in 1912 or later in 8 seeds, the general war by 1916 in 6, shells short early in 5, treasuries
   from 1922 at most 6 months).
+
+### Results
+
+Germany, Italy, Serbia and France, 14 years from 1900 with the AI off (`tools/economy.py`); divisions are men under
+arms over 12,000 in 1914:
+
+| Germany | Output vs nothing | Divisions | Treasury |
+|---|---|---|---|
+| Doing nothing | +0% | 44 | £305M |
+| Building everything | +15% | 44 | £0 |
+| Arming only | +0% | 67 | £34M |
+| Building to 1904, then arming | +7% | 83 | £5M |
+| Building to 1908, then arming | +10% | 93 | £13M |
+| Tax 15%, arming | -7% | 120 (the ceiling) | £443M |
+| Tax 15%, building to 1908, then arming | +3% | 120 (the ceiling) | £874M |
+
+- **E1.** Every nation starts with its army paid for and a civil budget of its own: `civil_mult` 0.66 to 2.56 in both
+  scenarios, none at the floor. Serbia's army costs £0.09M a month of £0.22M revenue (£0.39M before), and Serbia runs a
+  small surplus in peace until the Balkan war mobilizes it in 1912. A Serbian soldier costs 0.44 of the reference, a
+  British one 1.24.
+- **E2.** Civil spending follows the people and the baseline drift (`Nation.civil_index`), not the buildings, and
+  every nation starts with a surplus of 8% of revenue (`start_surplus`) to build or arm with. A factory in the best
+  German province adds £0.14M a year to revenue and the budget keeps £0.08M: 57%, not the two thirds aimed at, since the
+  new industry buys its raw materials. Building everything now ends 1914 with net +£5.3M a month against +£2.1M.
+- **E3.** The standing army (`standing_share` 0.2 of the pool: Germany 1.5 million in 1914) is a slider; arming
+  Germany keeps 67 divisions, 52% more than doing nothing, and one that builds until 1904 or 1908 and then arms keeps 83
+  or 93. The AI's peacetime army grows only while its budget is in surplus, up to the same ceiling. The ceiling had to
+  rise from 0.12 to 0.2: at 0.12 Serbia's and France's 1900 armies were above it.
+- **E4.** A building is paid for in money when begun (£2.3M for a factory in Baden-Württemberg, back in about 10
+  years; trenches and fortifications cost only IC). Building everything leaves Germany the smallest army of the
+  policies (44 divisions, the same as doing nothing) and an empty treasury; arming alone the smallest economy but for
+  the tax.
+- **E5.** The Economy tab's People section says how many more divisions the budget keeps, the treasury raises and the
+  recruits fill, and how many months the treasury pays for full mobilization; the Standing army slider says what a
+  division costs; the Build tab says what a level pays back; the briefing names money lying idle in peace. Tested in
+  `construction_ui_test`, `briefing_test` and `economy_test`.
+- **E6.** The strongest Germany in 1914 is a mix: at a 15% tax every policy reaches the ceiling of 120 divisions, and the
+  one that builds until 1908 first has 11% more output and twice the treasury; at 10% building then arming beats arming
+  alone by 26 divisions. Italy the same (45 divisions against 30). Campaigns, 10 seeds: from 1900 the first great-power
+  war in October 1912 in all ten and the general war by June 1914 in all ten; from July 1914 a great power short of
+  shells within 6 months in all ten (median 3.5 months), and from 1900 in nine (most in the 1912 war); treasuries from
+  1922 hold 5.9 months of revenue from 1900 and 5.5 from 1914. That took the AI investing 80% of its surplus once it holds
+  6 months of spending (`ai.json` budget rich_months, invest_share; 12 and 60% before): with a surplus to start with,
+  its treasuries had climbed to 11.5 and 10.4 months.
+- Not done: Serbia's economy still buys little. Its surplus (£0.02M a month) keeps less than a division (£0.03M), and
+  its ceiling (49,000) barely clears its army; a small nation's lever is its taxes and its alliances.
 
 ## Quality gates
 

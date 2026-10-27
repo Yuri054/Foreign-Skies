@@ -5,7 +5,29 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.11.0 (2026-10-27 00:29 UTC)
+
+The economy has a point: it is for spending, on growth or on guns, and the choice between them is yours.
+
+- **Money buys the army.** A new **Standing army** slider (Economy tab, People) sets how many men you keep under arms in
+  peace, up to a fifth of your manpower. Each division costs a sum a month, and the page says how many more your surplus
+  keeps, how many the treasury can raise, how many your recruits fill and how many months the treasury pays for a full
+  mobilization.
+- **A soldier costs what your people earn.** A Serbian soldier costs less than half what a British one does, so small and
+  poor nations can pay for their armies; every nation now starts with a small surplus (8% of revenue).
+- **Growth reaches the treasury.** The state's own spending follows the people, not the factories, so most of what a
+  building adds stays in the budget.
+- **Buildings cost money too**, paid when they are begun, then industry as before. The Build tab says, for the best place
+  now, what a level costs, what the budget gains a year and how many years the money takes to come back. Mass build stops
+  when the money runs out. Trenches and fortifications still cost only industry.
+- The cabinet briefing says when money lies idle in peace and what it could buy.
+- The AI's peacetime army grows only while its budget is in surplus, and the AI invests its surplus sooner, so its
+  treasuries no longer pile up.
+- Measured over 14 years from 1900: a Germany that builds until 1908 and then arms ends with 10% more output than one
+  that does nothing, twice the army of one that builds everything and more divisions than one that only arms. The road
+  to 1914 is unchanged.
+
+## 0.10.2 (2026-10-26 17:11 UTC)`.
 
 ## 0.10.2 (2026-10-26 17:11 UTC)
 
