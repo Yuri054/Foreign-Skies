@@ -40,8 +40,8 @@ One window, a tab for each part of running the nation:
   and the stockpile costs money to keep, but in a war guns without shells fight much weaker. The page says how many days of
   war the stockpile lasts; in a war you can also buy munitions abroad, if the sea is open.
   **Taxes** above the usual 10% bring money and cost growth and the people's support, more with every point; under it they
-  bring less and the economy grows faster. **State investment** puts a sum a month into the country's development: the
-  first millions do the most. **Mobilization** calls up the reserve: the slider says what it costs a month before you move
+  bring less and the economy grows faster. **State investment** puts a sum a month into the country's development, and
+  it compounds: each pound invested a year adds about a pound to the yearly output, which brings more revenue to invest. **Mobilization** calls up the reserve: the slider says what it costs a month before you move
   it. Raw materials and food are bought abroad by themselves: they matter when a blockade cuts the sea.
 - **Build (B)**: pick a building, then click a green province. **A building costs money when it is begun, then industry
   (IC)**: the nation has a number of IC a day, projects are served in order and wait when the day's IC runs out. The queue
@@ -121,8 +121,10 @@ rotating slots. A save keeps the difficulty it was made at.
 ## Tips
 
 - Read the cabinet briefing each month; it is the quickest way to see what is wrong.
-- Guns or growth: build early, while the buildings have years to pay back, then turn the surplus into divisions. Money that
-  lies idle in peace buys nothing but a war chest.
+- Your effort compounds: build, then put the surplus into state investment, and the economy grows faster every year.
+  Any nation, even the smallest, can climb to the top given time; each 1 January the news says how far you have come.
+- Guns or growth: every pound on the army is a pound not compounding. Money that lies idle in peace buys nothing but a
+  war chest.
 - Do not send armies beyond supply without a plan to take ground that will carry them.
 - A claim is cheaper than a pretext, and a goal makes the peace you want cheap.
 - Allies pull you into wars as they pull the enemy's allies in: look at who is bound to whom before you declare.

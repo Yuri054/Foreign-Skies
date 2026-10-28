@@ -140,10 +140,11 @@
 		}
 	},
 	"budget": {
-		"_note": "AIBudget, once a month. Taxes: up by tax_step (to tax_max, or tax_max_war at war) when the nation is in debt and cannot repay it in repay_months, or runs a deficit its treasury cannot carry for cushion_months; down by tax_step to tax_min (under the default: light taxes help growth) when it is in surplus with more than rich_months of expenses in the bank, and then it also puts invest_share of its monthly surplus into state investment. Buildings: one a month, at most max_construction at a time, only when net is at least build_min_net; among the candidates richest provinces, the capital and ground behind the fronts, the one with the best yearly return per pound (min_return; food counts food_value, a railway near a front front_railway_bonus of the province's output, the capital times capital_multiplier), leaving build_floor in the treasury (double at war). Points: in a crisis, a batch is bought when the stock is under buy_below and buy_floor stays in the treasury.",
+		"_note": "AIBudget, once a month. Taxes: up by tax_step (to tax_max, or tax_max_war at war) when the nation is in debt and cannot repay it in repay_months, or runs a deficit its treasury cannot carry for cushion_months; down by tax_step to tax_min (under the default: light taxes help growth) when it is in surplus with more than rich_months of expenses in the bank, and then it also puts invest_share of its monthly surplus into state investment, at most invest_max_share of its output (the AI grows, but less well than a focused player: VISION.md, rule 3). Buildings: one a month, at most max_construction at a time, only when net is at least build_min_net; among the candidates richest provinces, the capital and ground behind the fronts, the one with the best yearly return per pound (min_return; food counts food_value, a railway near a front front_railway_bonus of the province's output, the capital times capital_multiplier), leaving build_floor in the treasury (double at war). Points: in a crisis, a batch is bought when the stock is under buy_below and buy_floor stays in the treasury.",
 		"enabled": true,
 		"tax_min": 0.08,
 		"invest_share": 0.8,
+		"invest_max_share": 0.005,
 		"tax_step": 0.02,
 		"tax_max": 0.25,
 		"tax_max_war": 0.35,

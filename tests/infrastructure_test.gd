@@ -86,13 +86,14 @@ func _test_labels() -> void:
 	var entries: Array = Labels.entries(gs, "railway")
 	_check(entries.size() == fra.provinces.size(), "every province of the player is written on (%d)" % entries.size())
 	var e: Dictionary = entries[0]
-	_check(e.text == "0/5" and not e.full, "a railway shows its level out of the most (%s)" % e.text)
-	gs.province_buildings[e.id]["railway"] = 5
+	var most: int = load("res://scripts/sim/economy.gd").cfg.buildings.railway.max_level
+	_check(e.text == "0/%d" % most and not e.full, "a railway shows its level out of the most (%s)" % e.text)
+	gs.province_buildings[e.id]["railway"] = most
 	var again: Dictionary = {}
 	for x in Labels.entries(gs, "railway"):
 		if x.id == e.id:
 			again = x
-	_check(again.text == "5/5" and again.full, "and a full one is marked (%s)" % again.text)
+	_check(again.text == "%d/%d" % [most, most] and again.full, "and a full one is marked (%s)" % again.text)
 	_check(Labels.entries(gs, "").is_empty(), "nothing is written for no building")
 
 

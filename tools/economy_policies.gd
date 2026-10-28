@@ -5,7 +5,9 @@ extends SceneTree
 ## Run: godot --headless --path . -s res://tools/economy_policies.gd -- tag years policy [scenario_dir]
 ## policy: a comma list of passive, fact, rail, port, all (the three in turn), focus (economic foci first), tax=X,
 ## mob=X, arms=X (the arms share; otherwise the scenario's), army (the standing army at its ceiling, and infantry raised
-## each month while the surplus can keep it), build=YEAR (build as `all` until that year, then arm as `army`). Prints "RESULT {...}": GDP, IC and revenue a month at the end and their change, treasury, net, development
+## each month while the surplus can keep it), build=YEAR (build as `all` until that year, then arm as `army`), invest (each
+## month the surplus goes into state investment, all of it once the treasury holds three months of revenue), ai (the AI
+## runs every other nation, so the world grows too; the result then gives the nation's rank in output by decade). Prints "RESULT {...}": GDP, IC and revenue a month at the end and their change, treasury, net, development
 ## and war support, and the levels built.
 
 
@@ -31,6 +33,9 @@ func _initialize() -> void:
 	var army := false
 	var build_until := 99999
 	var Raise = load("res://scripts/sim/raise_units.gd")
+	var St = load("res://scripts/sim/standings.gd")
+	var invest := false
+	var ranks: Array = [St.rank_of(gs, tag, "gdp")]
 	for p in policy:
 		if p.begins_with("tax="):
 			gs.issue(Policy.new(tag, "tax_rate", float(p.get_slice("=", 1))))
@@ -48,6 +53,10 @@ func _initialize() -> void:
 			types.append_array(["factory", "railway", "port"])
 		elif p == "army":
 			army = true
+		elif p == "invest":
+			invest = true
+		elif p == "ai":
+			gs.ai_enabled = true
 		elif p.begins_with("build="):
 			types.append_array(["factory", "railway", "port"])
 			build_until = int(p.get_slice("=", 1))
@@ -57,6 +66,21 @@ func _initialize() -> void:
 	for d in years * 365:
 		clock.advance_day()
 		gs.pending_events.clear()
+		# A peaceful player: every peace offered is taken, every call to join a war declined.
+		for offer: Dictionary in gs.pending_offers.duplicate():
+			gs.issue(load("res://scripts/sim/answer_peace.gd").new(int(offer.id), true))
+		for join: Dictionary in gs.pending_joins.duplicate():
+			gs.issue(load("res://scripts/sim/answer_join.gd").new(int(join.id), false))
+		if clock.day == 1 and clock.month == 1 and d > 0 and (clock.year - 1900) % 10 == 0:
+			ranks.append(St.rank_of(gs, tag, "gdp"))
+		# A player at peace sends the reserve home (the tool answers no events, so a war's call-up would otherwise stay).
+		if clock.day == 1 and gs.wars_of(tag).is_empty() and n.mobilization > 0.0 and not ("mob" in args[2]):
+			gs.issue(Policy.new(tag, "mobilization", 0.0))
+		# Invest: once a month, the surplus before investment goes into development.
+		if invest and clock.day == 1:
+			var surplus: float = (float(n.budget.net) + float(n.budget.investment)) / 12.0
+			var share := 1.0 if n.treasury > float(n.budget.revenue) / 4.0 else 0.5
+			gs.issue(Policy.new(tag, "investment", maxf(0.0, surplus * share)))
 		# Arm: once a month, the standing army at its ceiling and infantry raised while the surplus keeps it.
 		if army and clock.day == 1 and (build_until == 99999 or clock.year >= build_until):
 			# A division at a time, while the surplus keeps it: the standing army rises by one, its recruits come in, it
@@ -115,6 +139,7 @@ func _initialize() -> void:
 		"revenue": snappedf(b.revenue / 12.0, 0.01), "net": snappedf(b.net / 12.0, 0.01), "treasury": roundi(n.treasury),
 		"development": snappedf(n.development / start.dev - 1.0, 0.001), "war_support": roundi(n.war_support),
 		"built": built, "foci": n.focus_done.size(),
-		"munitions": roundi(n.munitions), "divisions": snappedf(n.men_in_units / 12000.0, 0.1), "stock_days": roundi(minf(load("res://scripts/sim/munitions.gd").days_left(gs, tag), 99999.0)),
+		"munitions": roundi(n.munitions), "rank": St.rank_of(gs, tag, "gdp"), "ranks": ranks,
+		"leaders": St.ranking(gs, "gdp").slice(0, 3).map(func(r: Dictionary) -> String: return "%s %.0f" % [r.tag, r.value]), "divisions": snappedf(n.men_in_units / 12000.0, 0.1), "stock_days": roundi(minf(load("res://scripts/sim/munitions.gd").days_left(gs, tag), 99999.0)),
 	}))
 	quit()

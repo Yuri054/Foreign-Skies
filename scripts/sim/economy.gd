@@ -101,13 +101,13 @@ static func growth_rate(n: Nation) -> float:
 			+ float(cfg.tax_relief.growth_bonus) * tax_relief(n) + investment_growth(n)
 
 
-## What state investment adds to yearly growth: invest.growth_max at most, approached as the share of output invested
-## grows past invest.ref_share (each further pound does less).
+## What state investment adds to yearly growth: invest.growth_per_share times the share of output invested, easing a
+## little past invest.soft_share. No ceiling: investment compounds (VISION.md).
 static func investment_growth(n: Nation) -> float:
-	var gdp: float = maxf(float(n.budget.get("gdp", 0.0)), 1.0)
-	var share := n.investment * 12.0 / gdp
+	var gdp: float = maxf(float(n.budget.get("gdp", 0.0)), 0.01)
+	var share := maxf(0.0, n.investment * 12.0 / gdp)
 	var c: Dictionary = cfg.invest
-	return float(c.growth_max) * (1.0 - exp(-share / float(c.ref_share)))
+	return float(c.growth_per_share) * share / (1.0 + share / float(c.soft_share))
 
 
 ## The lowest and highest mobilization a nation may have now, as Vector2(min, max): in peace 0 to
@@ -338,6 +338,7 @@ static func calibrate(gs: Node) -> void:
 		gs.nations[tag].civil_mult = 1.0
 		gs.nations[tag].civil_base = 0.0
 		gs.nations[tag].civil_index = 1.0
+		gs.nations[tag].wage = 0.0
 	_budgets(gs)
 	for tag in gs.nations:
 		var n: Nation = gs.nations[tag]
@@ -434,7 +435,7 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 		n.civil_base = raw.gdp * cfg.default_tax_rate * cfg.civil_share * n.civil_mult
 	var civil: float = n.civil_base * n.civil_index * gdp_scale
 	# A soldier costs what the country pays its people: upkeep follows output per head (wage_factor).
-	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep)) * cfg.soldier_upkeep * wage_factor(n, raw) / 1e6
+	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep)) * cfg.soldier_upkeep * soldier_wage(n, raw) / 1e6
 	var naval: float = n.naval_budget
 	# The whole economy buys the food; the treasury only carries its share (subsidies, duties).
 	var food_imports: float = food_imported * cfg.food_import_cost * cfg.food_state_share / 1e6
@@ -490,7 +491,15 @@ static func standing_cap(gs: Node, n: Nation) -> int:
 ## What a division of 12,000 men costs a month to keep, GBP millions (its share of Nation.budget.army).
 static func division_upkeep(gs: Node, n: Nation) -> float:
 	var raw: Dictionary = gs.economy_sums.get(n.tag, {"gdp": 0.0})
-	return 12000.0 * float(cfg.soldier_upkeep) * wage_factor(n, raw) / 1e6 / 12.0
+	return 12000.0 * float(cfg.soldier_upkeep) * soldier_wage(n, raw) / 1e6 / 12.0
+
+
+## What a nation's soldiers cost against the reference now: wage_factor at the start, then the baseline drift
+## (Nation.wage). Growth does not make the army dearer, so what the economy gains reaches the budget (VISION.md, rule 1).
+static func soldier_wage(n: Nation, raw: Dictionary) -> float:
+	if n.wage <= 0.0:
+		n.wage = wage_factor(n, raw)
+	return n.wage
 
 
 ## How dear a nation's soldiers are against the reference: its output per head over economy.json soldier_upkeep_ref
@@ -660,6 +669,7 @@ static func step_month(gs: Node) -> void:
 		var growth: float = growth_rate(n) / 12.0
 		n.development *= 1.0 + growth
 		n.civil_index *= 1.0 + (float(cfg.baseline_growth) + n.pop_growth) / 12.0
+		n.wage *= 1.0 + float(cfg.baseline_growth) / 12.0
 		# The peacetime army of an AI nation grows with its people and its output while its budget can pay for it, up to
 		# the standing cap (the player sets their own).
 		if tag != gs.player_tag and gs.wars_of(tag).is_empty() and float(b.net) > 0.0:

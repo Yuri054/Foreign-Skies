@@ -86,6 +86,10 @@ var civil_mult := 1.0
 ## reaches the budget (see Economy.nation_budget). 0 until worked out.
 var civil_base := 0.0
 var civil_index := 1.0
+## What a soldier costs against the reference (Economy.wage_factor): set from the nation's output per head at the start,
+## then rising only with the baseline drift, so a country that grows keeps its army's cost (see Economy.soldier_wage).
+## 0 until worked out.
+var wage := 0.0
 ## Multiplier on what this nation's industry needs in raw materials (1 unless the scenario says otherwise).
 var materials_need_mult := 1.0
 ## National focus (see Focus): the one being worked on, {id, days_left, days_total} or {}; the

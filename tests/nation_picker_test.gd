@@ -29,7 +29,7 @@ func _initialize() -> void:
 	_check(picker != null, "a new game opens the picker")
 	_check(picker.mouse_filter == Control.MOUSE_FILTER_IGNORE, "it does not block the map")
 	var bar: Node = get_first_node_in_group("top_bar")
-	_check(gs.player_tag == "" and (bar != null and bar._nation.text == "Choosing a nation"), "no nation is played while choosing: the top bar says so, not the scenario's own nation (%s)" % (bar._nation.text if bar != null else "no bar"))
+	_check(bar != null and bar._nation.text == "Choosing a nation" and bar._treasury.text == "", "no nation is shown as yours while choosing: the top bar says so, not the scenario's own nation (%s)" % (bar._nation.text if bar != null else "no bar"))
 	_check(picker.chosen() == gs.scenario.get("default_player", ""), "the scenario's nation is only suggested")
 
 	var fra := 0

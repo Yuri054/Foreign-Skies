@@ -71,8 +71,11 @@ func _ready() -> void:
 		map_view = get_tree().get_first_node_in_group("map_view")
 	if map_view != null:
 		map_view.province_selected.connect(pick_province)
+	# A nation set by anything else (a loaded game, a test) ends the choosing.
+	GameState.player_changed.connect(func(_t: String) -> void: queue_free(), CONNECT_ONE_SHOT)
 	# Nothing is played until a nation is chosen: the scenario's own nation is only the first suggestion.
 	choose(GameState.scenario.get("default_player", ""))
+	get_tree().call_group("top_bar", "_refresh")
 
 
 ## A province was clicked: its owner is the nation picked. Sea and empty ground do nothing.

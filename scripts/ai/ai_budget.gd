@@ -60,7 +60,8 @@ static func _taxes(gs: Node, tag: String) -> void:
 
 
 ## What the nation puts into development a month: in peace, with a treasury past rich_months of its spending, a share
-## (invest_share) of its surplus before investment; nothing at war, in debt or short.
+## (invest_share) of its surplus before investment, at most invest_max_share of its output; nothing at war, in debt or
+## short.
 static func wanted_investment(gs: Node, tag: String) -> float:
 	var c := cfg()
 	var n: Nation = gs.nations[tag]
@@ -69,7 +70,8 @@ static func wanted_investment(gs: Node, tag: String) -> float:
 	var surplus := (float(n.budget.get("net", 0.0)) + float(n.budget.get("investment", 0.0))) / 12.0
 	if surplus <= 0.0 or n.treasury < _monthly_expenses(n) * float(c.rich_months):
 		return 0.0
-	return snappedf(surplus * float(c.get("invest_share", 0.0)), 0.1)
+	var most: float = float(n.budget.get("gdp", 0.0)) / 12.0 * float(c.get("invest_max_share", 1.0))
+	return snappedf(minf(surplus * float(c.get("invest_share", 0.0)), most), 0.1)
 
 
 # --- Munitions ---------------------------------------------------------------------------------------

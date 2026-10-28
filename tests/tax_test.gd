@@ -66,7 +66,7 @@ func _test_growth() -> void:
 		Eco.step_month(gs)
 	var g_fra: float = fra.development / dev_fra - 1.0
 	var g_ger: float = ger.development / dev_ger - 1.0
-	_check(g_ger > 0.01, "a lightly taxed economy grows (%.3f in a year)" % g_ger)
+	_check(g_ger > 0.003, "a lightly taxed economy grows (%.3f in a year)" % g_ger)
 	_check(g_fra < 0.0 and g_fra < g_ger - Eco.cfg.tax_strain.growth_penalty + 0.001, "a heavily taxed one shrinks (%.3f in a year)" % g_fra)
 
 

@@ -113,3 +113,48 @@ static func series(gs: Node, tag: String, id: String) -> Array[Vector2]:
 		if row.has(id):
 			out.append(Vector2(i, row[id]))
 	return out
+
+
+## The player's year in a line, from the records of a year ago and now: how much the output grew, where it ranks and
+## which nations it passed or fell behind ("" without a player or a year of records). Posted each 1 January
+## (VISION.md, rule 2: you can see it).
+static func year_report(gs: Node) -> String:
+	var me: String = gs.player_tag
+	var h: Array = gs.standings_history
+	if not gs.nations.has(me) or h.size() < 13:
+		return ""
+	var then: Dictionary = h[h.size() - 13].values
+	var now: Dictionary = h[h.size() - 1].values
+	if not then.has(me) or not now.has(me) or float(then[me].gdp) <= 0.0:
+		return ""
+	var growth: float = float(now[me].gdp) / float(then[me].gdp) - 1.0
+	var rank_then := _rank_in(then, me, "gdp")
+	var rank_now := _rank_in(now, me, "gdp")
+	var passed: PackedStringArray = []
+	var lost: PackedStringArray = []
+	for tag: String in now:
+		if tag == me or not then.has(tag) or not gs.nations.has(tag):
+			continue
+		var was_ahead: bool = float(then[tag].gdp) > float(then[me].gdp)
+		var is_ahead: bool = float(now[tag].gdp) > float(now[me].gdp)
+		if was_ahead and not is_ahead:
+			passed.append(gs.nations[tag].display_name)
+		elif is_ahead and not was_ahead:
+			lost.append(gs.nations[tag].display_name)
+	var line := "The year %d: output %+.1f%%, %s largest economy" % [Clock.year - 1, growth * 100.0, Fmt.ordinal(rank_now)]
+	if rank_now != rank_then:
+		line += " (%s last year)" % Fmt.ordinal(rank_then)
+	if not passed.is_empty():
+		line += "; passed %s" % ", ".join(passed)
+	if not lost.is_empty():
+		line += "; passed by %s" % ", ".join(lost)
+	return line + "."
+
+
+static func _rank_in(values: Dictionary, tag: String, id: String) -> int:
+	var mine: float = float(values[tag][id])
+	var rank := 1
+	for other: String in values:
+		if other != tag and float(values[other][id]) > mine:
+			rank += 1
+	return rank

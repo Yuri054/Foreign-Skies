@@ -35,13 +35,13 @@ def main():
     jobs = [(t, pol) for t in a.tags.split(",") for pol in a.policies.split(",")]
     with ThreadPoolExecutor(max_workers=a.workers) as pool:
         results = list(pool.map(lambda j: run(j[0], a.years, j[1]), jobs))
-    lines = ["Economy policies, %d years from the scenario's start, AI off (%.0f s)" % (a.years, time.time() - started)]
+    lines = ["Economy policies, %d years from the scenario's start (%.0f s)" % (a.years, time.time() - started)]
     for tag in a.tags.split(","):
         rows = [r for r in results if r["tag"] == tag]
         base = next((r for r in rows if r["policy"] == "passive" and "error" not in r), None)
         lines += ["", "**%s**" % tag, "",
-                  "| Policy | GDP/mo | vs nothing | IC/day | vs nothing | Revenue/mo | Net/mo | Treasury | Development | Support | Built | Shells (days of war) | Divisions |",
-                  "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+                  "| Policy | GDP/mo | vs nothing | IC/day | vs nothing | Revenue/mo | Net/mo | Treasury | Development | Support | Built | Shells (days of war) | Divisions | Rank by decade | Leaders |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for r in rows:
             if "error" in r:
                 lines.append("| %s | error |" % r["policy"])
@@ -49,9 +49,10 @@ def main():
             vs_gdp = "%+.0f%%" % ((r["gdp"] / base["gdp"] - 1) * 100) if base else "-"
             vs_ic = "%+.0f%%" % ((r["ic"] / base["ic"] - 1) * 100) if base else "-"
             built = sum(r["built"].values()) if r["built"] else 0
-            lines.append("| %s | %.1f | %s | %.0f | %s | %.2f | %+.2f | %d | %+.0f%% | %d | %d | %s | %s |" % (
+            lines.append("| %s | %.1f | %s | %.0f | %s | %.2f | %+.2f | %d | %+.0f%% | %d | %d | %s | %s | %s | %s |" % (
                 r["policy"], r["gdp"], vs_gdp, r["ic"], vs_ic, r["revenue"], r["net"], r["treasury"],
-                r["development"] * 100, r["war_support"], built, r.get("stock_days", "-"), r.get("divisions", "-")))
+                r["development"] * 100, r["war_support"], built, r.get("stock_days", "-"), r.get("divisions", "-"),
+                " ".join(str(x) for x in r.get("ranks", [])) + " → %s" % r.get("rank", "-"), ", ".join(r.get("leaders", []))))
     text = "\n".join(lines)
     print(text)
     if a.out:

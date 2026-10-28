@@ -203,7 +203,9 @@ func _bind_windows() -> void:
 
 func _refresh() -> void:
 	var n := GameState.get_player()
-	if n:
+	# While a nation is being chosen none is yours yet, whatever the scenario suggests.
+	var picking := get_tree().get_nodes_in_group("nation_picker").any(func(p: Node) -> bool: return not p.is_queued_for_deletion())
+	if n and not picking:
 		_flag.tag = n.tag
 		_nation.text = n.display_name
 		_treasury.text = "£%.1fM" % n.treasury
@@ -223,7 +225,6 @@ func _refresh() -> void:
 		_chips["tension"].tooltip_text = Pressure.tip(GameState)
 	else:
 		_flag.tag = ""
-		var picking := get_tree().get_nodes_in_group("nation_picker").any(func(p: Node) -> bool: return not p.is_queued_for_deletion())
 		_nation.text = "Choosing a nation" if picking else "Spectator"
 		_treasury.text = ""
 		_net.text = ""

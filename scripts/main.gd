@@ -176,7 +176,6 @@ func _ready() -> void:
 		_focus_on("")
 	)
 	ui.add_child(picker)
-	GameState.set_player("")
 
 
 ## A control under a CanvasLayer does not pick up the theme of the window, so the layer's windows,

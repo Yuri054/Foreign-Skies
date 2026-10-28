@@ -676,6 +676,10 @@ func _on_month_ticked() -> void:
 	Pressure.step_month(self)
 	Crisis.step_month(self)
 	Standings.record(self)
+	if Clock.month == 1:
+		var report := Standings.year_report(self)
+		if report != "":
+			news_posted.emit(report, 0)
 	Ambition.step_month(self)
 	History.step_month(self)
 	economy_updated.emit()

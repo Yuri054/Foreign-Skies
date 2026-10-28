@@ -5,7 +5,26 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.11.1 (2026-10-27 00:55 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.0 (2026-10-28 02:39 UTC)
+
+The game stops trying to be a history simulation: your effort now compounds, and any nation can climb. What the game is
+for is written down in `VISION.md`.
+
+- **Investment compounds, with no ceiling.** Each pound a year you put into state investment adds about a pound to your
+  yearly output, and the extra revenue can be invested again. The state's costs and your soldiers' pay no longer grow
+  with the economy, so a growing country frees more money every year.
+- **Buildings count for much more.** A factory adds 10% industry and 3% output a level (6% and 1.5% before), a railway 6%
+  output, a port 5% output and 2% trade, and provinces take more levels (factories 10, railways 8, ports 5). Buildings
+  cost half the money they did. A fully built province makes about twice what it did bare.
+- **The AI grows, but less well than you.** It invests at most half a percent of its output a year, and baseline growth
+  is halved for everyone, so a focused player outgrows it.
+- **Each 1 January the news says how your year went**: output growth, your rank among the economies, and whom you passed.
+- Measured over 50 years from 1900 with the AI running the world: Italy, building and investing, is the largest economy
+  by about 1940; Serbia, with a 15% tax, buildings and investment, climbs from 19th to 13th; Luxembourg from 20th to
+  15th. A nation that does nothing falls behind.
+- Fix: while you choose a nation, the top bar no longer shows any nation's figures.
+
+## 0.11.1 (2026-10-27 00:55 UTC)
 
 - **Spectator mode.** The nation picker has a "Watch as a spectator" button: the computer runs every nation and you
   watch. Right-click any nation to see its panel; the Nation screen opens on Rankings and History.
