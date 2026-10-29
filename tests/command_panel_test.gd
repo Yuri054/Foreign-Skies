@@ -44,7 +44,7 @@ func _initialize() -> void:
 	await process_frame
 	gs.set_player("FRA")
 	await process_frame
-	_check(bar.visible and not bar._army_orders.visible and bar._more.disabled, "it shows with no selection, the orders closed")
+	_check(bar.visible and not bar._army_orders.visible and not bar._top.visible, "it shows with no selection, with no row of orders")
 	_check(bar._title.text.contains("armies"), "and totals the armies (%s)" % bar._title.text)
 
 	var nancy := 0
@@ -53,10 +53,13 @@ func _initialize() -> void:
 			nancy = id
 	main.map_view.select(nancy)
 	await process_frame
-	_check(bar._quick.visible and not bar._more.disabled and bar._ids == panel._selected, "selecting an army opens its orders: Merge, Split, Halt and more")
-	bar._more.button_pressed = true
-	await process_frame
-	_check(bar._army_orders.visible and bar._army_orders.get_parent().get_parent() == bar._top and bar._top.get_parent().get_parent() == bar._command_frame, "the more button opens the rarer orders in the same middle frame")
+	_check(bar._plans_bar.visible and not bar._army_orders.visible and bar._ids == panel._selected, "selecting an army: the Battle Plans toolbar acts on it; no row of orders")
+	bar._on_card_context(Vector2(300, 300), "army", panel._selected[0])
+	var texts: Array = []
+	for i in bar._menu.item_count:
+		texts.append(bar._menu.get_item_text(i))
+	_check(texts.has("Merge the selected armies") and texts.has("Split in two") and texts.has("Halt the march") and texts.has("Send home") and texts.any(func(t: String) -> bool: return t.begins_with("Detach one")), "its card's right click menu gives the orders: merge, split, halt, detach, send home... (%d items)" % texts.size())
+	bar._menu.hide()
 	_check(bar._title.text.contains("men") and bar._title.text.contains("Meurthe-et-Moselle"), "and names the army (%s)" % bar._title.text)
 	_check(bar._merge.disabled and not bar._split.disabled and not bar._detach.disabled, "one army can be split or detached from, not merged")
 	_check(bar._halt.disabled, "and it is not marching, so there is nothing to halt")
@@ -116,11 +119,11 @@ func _initialize() -> void:
 	main.map_view.select(nancy)
 	panel.select_in_rect(Rect2(Vector2.ZERO, Vector2(100000, 100000)))
 	await process_frame
-	_check(bar._quick.visible and panel._selected.size() > 3 and bar._title.text.contains("armies"), "a box selection shows the total (%s)" % bar._title.text)
+	_check(bar._plans_bar.visible and panel._selected.size() > 3 and bar._title.text.contains("armies"), "a box selection shows the total (%s)" % bar._title.text)
 	_check(bar._merge.disabled, "armies in different provinces cannot merge")
 	bar._deselect.pressed.emit()
 	await process_frame
-	_check(not bar._army_orders.visible and bar._more.disabled and panel._selected.is_empty(), "Deselect clears the selection and the orders close")
+	_check(not bar._army_orders.visible and panel._selected.is_empty(), "Deselect clears the selection")
 
 	await _test_cards(bar, panel, gs)
 	await _test_toggle(bar, Settings)
@@ -238,7 +241,7 @@ func _test_toggle(bar: Node, Settings) -> void:
 	var view: Vector2 = root.get_visible_rect().size
 	var middle: float = bar.get_global_rect().get_center().x
 	_check(middle > view.x * 0.3 and middle < view.x * 0.7 and bar.get_global_rect().size.y < view.y * 0.35, "it stands in the lower middle of the screen and takes under a third of its height (centre %d of %d, %d high)" % [middle, view.x, bar.get_global_rect().size.y])
-	_check(bar._command_frame.get_global_rect().encloses(bar._tabs_col.get_global_rect()) and bar._command_frame.get_global_rect().end.y <= bar._scroll.get_global_rect().position.y, "one framed row (tabs and Battle Plans) over the cards")
+	_check(bar._command_frame.get_global_rect().encloses(bar._plans_bar.get_global_rect()) and bar._command_frame.get_global_rect().end.y <= bar._scroll.get_global_rect().position.y, "one framed row (Battle Plans) over the cards")
 
 
 func _test_fleets(bar: Node, gs: Node) -> void:
@@ -286,15 +289,10 @@ func _test_fleets(bar: Node, gs: Node) -> void:
 	await process_frame
 	var just_other: Array[int] = [other_fleet.id]
 	_check(navy._selected == just_other, "clicking a fleet's card selects that fleet")
-	bar._tab_army.pressed.emit()
-	await process_frame
-	_check(bar._mode == "army" and bar._add_group.visible and bar._add_army.visible, "the Armies tab shows the armies again, with a + card at each end")
-	bar._tab_navy.pressed.emit()
-	await process_frame
-	_check(bar._mode == "navy", "and the Fleets tab the fleets")
 	bar._f_deselect.pressed.emit()
 	await process_frame
 	_check(not bar._fleet_orders.visible and navy._selected.is_empty(), "Deselect clears the fleet selection")
+	_check(bar._mode == "army" and bar._add_group.visible and bar._add_army.visible, "and the armies come back, with a + card at each end")
 
 
 func _test_divisions(bar: Node, panel: Node, gs: Node) -> void:
@@ -312,9 +310,15 @@ func _test_divisions(bar: Node, panel: Node, gs: Node) -> void:
 	var one: Array[int] = [a.id]
 	panel.select_ids(one)
 	await process_frame
-	bar._more.button_pressed = true
+	bar._on_card_context(Vector2(300, 300), "army", a.id)
+	var pick_index := -1
+	for i in bar._menu.item_count:
+		if bar._menu.get_item_text(i).begins_with("Pick divisions"):
+			pick_index = i
+	bar._menu_calls[bar._menu.get_item_id(pick_index)].call()
+	bar._menu.hide()
 	await process_frame
-	_check(bar._div_row.visible, "one selected army shows its divisions row under the more button")
+	_check(bar._div_row.visible, "Pick divisions in the card's menu shows its divisions row")
 	var chips: Array = bar._div_row.find_children("*", "Button", true, false).filter(func(c) -> bool: return c.toggle_mode)
 	_check(chips.size() == a.units.size(), "with a chip for each division (%d)" % chips.size())
 	_check(bar._div_new.disabled, "New army waits for a pick")

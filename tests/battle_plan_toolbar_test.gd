@@ -1,7 +1,7 @@
 extends SceneTree
 ## Drives the Battle Plans toolbar through the main scene, as the map would (BattlePlanToolbar.map_press / map_drag /
-## map_release): each tool's order, Execute and the aggressiveness, Unassign, Delete (one order and all), Esc, and the
-## command panel's add-commander card.
+## map_release): each tool's order, the cards' halt and advance, aggressiveness, Train, Remove, Delete (one order and
+## all), Esc, and the command panel's add-commander card.
 ## Run: godot --headless --path . -s res://tests/battle_plan_toolbar_test.gd
 
 var _failures := 0
@@ -47,9 +47,22 @@ func _initialize() -> void:
 	bar = get_first_node_in_group("battle_plan_toolbar")
 	panel = get_first_node_in_group("military_panel")
 	_check(bar != null and get_first_node_in_group("map_tool") == bar, "the toolbar is there and takes the map's clicks while a tool is in hand")
+	var buttons: Array = bar.find_children("*", "Button", true, false).filter(func(b) -> bool: return b.is_visible_in_tree())
+	_check(buttons.size() == 11, "the bar has train, aggressiveness, create/edit front, attack line, spearhead, fallback, edit, add, remove, delete and + (%d)" % buttons.size())
+	bar._extend.button_pressed = true
+	await process_frame
+	var extra: Array = bar._extra.find_children("*", "Button", true, false).filter(func(b) -> bool: return b.is_visible_in_tree())
+	var cmd: Node = get_first_node_in_group("command_panel")
+	_check(extra.size() == 9 and extra.has(bar._execute) and extra.has(bar._paradrop) and extra.has(cmd._merge) and extra.has(cmd._split) and extra.has(cmd._halt) and extra.has(cmd._fleets_tab), "+ opens a row with execute, garrison, invasion, support, paradrop, merge, split, halt and fleets (%d)" % extra.size())
 	_check(bar._paradrop.disabled, "Paradrop stays off: there are no aircraft")
+	cmd._fleets_tab.pressed.emit()
+	await process_frame
+	_check(cmd._mode == "navy" and cmd._armies_tab.is_visible_in_tree() and not bar.is_visible_in_tree(), "Fleets shows the fleets, with a way back")
+	cmd._armies_tab.pressed.emit()
+	await process_frame
+	_check(cmd._mode == "army" and bar.is_visible_in_tree(), "and Armies brings the Battle Plans back")
 	await _test_fronts_and_plans()
-	await _test_fallback_and_garrison()
+	await _test_fallback_and_add()
 	await _test_invasion_and_support()
 	await _test_delete_and_commander(main)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_toolbar_settings.cfg"))
@@ -66,6 +79,14 @@ func _port() -> int:
 			if best == 0 or (MD.provinces[id].center as Vector2).distance_to(danzig) < (MD.provinces[best].center as Vector2).distance_to(danzig):
 				best = id
 	return best
+
+
+func _card(title: String):
+	var cmd: Node = get_first_node_in_group("command_panel")
+	for c in cmd._cards.find_children("*", "CommandCard", true, false):
+		if c.title == title:
+			return c
+	return null
 
 
 func _named(city: String) -> int:
@@ -98,7 +119,7 @@ func _test_fronts_and_plans() -> void:
 	_check(bar.tool == "", "an army on no front cannot be given an offensive line")
 	# Front line: click across the border; Shift for the whole border.
 	bar.set_tool("front")
-	_check(bar.tool == "front" and bar._hint.visible and bar._hint.text.contains("Front line"), "the Front line tool is in hand, with its hint")
+	_check(bar.tool == "front" and bar._hint.visible and bar._hint.text.contains("front line"), "the Create/Edit front line tool is in hand, with its hint")
 	bar.map_press(across, 0, MOUSE_BUTTON_LEFT, false)
 	var front = gs.fronts.get(army.front_id)
 	_check(front != null and front.against == "RUS" and front.anchor == across and bar.tool == "", "clicking the border puts the army on a front there, and the tool is put down")
@@ -131,51 +152,94 @@ func _test_fronts_and_plans() -> void:
 	bar._drawing = false
 	bar._finish_offensive(true)
 	_check(plan.phases.size() == 2, "with Shift a further line is the next phase")
-	# Execute and aggressiveness.
-	_check(not bar._execute.disabled and not bar._execute.button_pressed, "Execute is open once there is a plan")
+	# Advance and halt are on the army's card: the green arrow toggles, the red square halts.
+	var card = _card(army.display_name)
+	_check(card.commands and card.has_plan and not card.executing, "the army's card carries halt and advance, the arrow ready for its plan")
+	card.advance_pressed.emit()
+	await process_frame
+	_check(plan.active and _card(army.display_name).executing, "the green arrow sets the plan advancing")
+	_card(army.display_name).advance_pressed.emit()
+	await process_frame
+	_check(not plan.active, "pressed again it stops")
+	_card(army.display_name).advance_pressed.emit()
+	await process_frame
+	_card(army.display_name).halt_pressed.emit()
+	await process_frame
+	_check(not plan.active and not _card(army.display_name).executing, "the red square halts it")
+	# Execute in the + row does what the arrows do, for every selected army.
 	bar._on_execute()
-	_check(plan.active and bar._execute.button_pressed, "Execute launches it")
-	bar._on_aggressiveness(0)
-	_check(plan.aggressiveness == "careful" and bar._aggr[0].button_pressed and not bar._aggr[1].button_pressed, "Careful is set on the plan")
+	_check(plan.active and bar._execute.button_pressed, "Execute launches the plan")
 	bar._on_execute()
-	_check(not plan.active, "Execute again halts it")
-	# Spearhead, then Edit moves its target.
+	_check(not plan.active, "and halts it")
+	# Aggressiveness: one button, round the three.
+	_check(bar.aggressiveness == "balanced", "plans start Balanced")
+	bar._on_aggressiveness()
+	_check(plan.aggressiveness == "aggressive" and bar._aggr.tooltip_text.begins_with("Aggressive"), "one press: Aggressive, on the plan too")
+	bar._on_aggressiveness()
+	_check(plan.aggressiveness == "careful", "the next: Careful")
+	# Train.
+	bar._on_train()
+	_check(army.training and bar._train.button_pressed and _card(army.display_name).marks.has("✦"), "Train puts the army on exercise, marked on its card")
+	bar._on_train()
+	_check(not army.training and not bar._train.button_pressed, "and pressed again takes it off")
+	# Spearhead; clicking another province moves it.
 	bar.set_tool("spearhead")
 	bar.map_press(mine, 0, MOUSE_BUTTON_LEFT, false)
 	_check(bar.tool == "spearhead", "a spearhead is not aimed at your own ground")
 	bar.map_press(ring[1], 0, MOUSE_BUTTON_RIGHT, false)
 	var spear = Off.of_army(gs, army)
 	_check(spear.kind == "spearhead" and spear.targets() == [ring[1]] and spear.aggressiveness == "careful", "Spearhead aims at the province clicked, at the aggressiveness set")
+	# The pencil: a spearhead's target moves to the province clicked.
 	bar.set_tool("edit")
 	bar.map_press(ring[2], 0, MOUSE_BUTTON_LEFT, false)
 	bar.map_release(ring[2], MOUSE_BUTTON_LEFT)
-	_check(spear.targets() == [ring[2]] and bar.tool == "edit", "Edit moves a spearhead's target to the province clicked")
-	# Edit a push: drag on to add, drag from a province of the line to take off.
+	_check(spear.targets() == [ring[2]], "Edit moves a spearhead's target to the province clicked")
+	bar.set_tool("")
+	# The attack line reshaped: Ctrl drags more on, starting on the line takes off.
 	bar.set_tool("offensive")
 	bar.map_press(ring[0], 0, MOUSE_BUTTON_RIGHT, false)
 	bar.map_drag(ring[1])
 	bar.map_release(ring[1], MOUSE_BUTTON_RIGHT)
 	var push = Off.of_army(gs, army)
-	bar.set_tool("edit")
-	bar.map_press(ring[2], 0, MOUSE_BUTTON_LEFT, false)
+	bar.set_tool("offensive")
+	var ctrl := InputEventKey.new()
+	ctrl.keycode = KEY_CTRL
+	ctrl.pressed = true
+	Input.parse_input_event(ctrl)
+	Input.flush_buffered_events()
+	bar.map_press(ring[2], 0, MOUSE_BUTTON_RIGHT, false)
 	bar.map_drag(ring[3])
-	bar.map_release(ring[3], MOUSE_BUTTON_LEFT)
-	_check(push.targets() == [ring[0], ring[1], ring[2], ring[3]], "Edit adds the provinces dragged over to the line")
+	bar.map_release(ring[3], MOUSE_BUTTON_RIGHT)
+	ctrl.pressed = false
+	Input.parse_input_event(ctrl)
+	Input.flush_buffered_events()
+	_check(push.targets() == [ring[0], ring[1], ring[2], ring[3]], "Ctrl adds the provinces dragged over to the line (%s)" % str(push.targets()))
+	bar.set_tool("offensive")
+	bar.map_press(ring[0], 0, MOUSE_BUTTON_RIGHT, false)
+	bar.map_release(ring[0], MOUSE_BUTTON_RIGHT)
+	_check(not push.targets().has(ring[0]) and push.targets().size() == 3, "and a drag that starts on the line takes off")
+	# The pencil on a push: a drag from off the line adds, a click on it takes off.
+	bar.set_tool("edit")
 	bar.map_press(ring[0], 0, MOUSE_BUTTON_LEFT, false)
 	bar.map_release(ring[0], MOUSE_BUTTON_LEFT)
-	_check(not push.targets().has(ring[0]) and push.targets().size() == 3, "and takes off one it starts on")
+	_check(push.targets().has(ring[0]) and push.targets().size() == 4, "Edit adds a province clicked off the line")
+	bar.set_tool("edit")
+	bar.map_press(ring[0], 0, MOUSE_BUTTON_LEFT, false)
+	bar.map_release(ring[0], MOUSE_BUTTON_LEFT)
+	_check(not push.targets().has(ring[0]) and push.targets().size() == 3, "and takes one off clicked on it")
+	bar.set_tool("offensive")
 	# Esc puts the tool down.
 	var esc := InputEventKey.new()
 	esc.keycode = KEY_ESCAPE
 	esc.pressed = true
 	bar._input(esc)
 	_check(bar.tool == "" and not bar._hint.visible, "Esc puts the tool down")
-	# Unassign.
+	# Remove from front line.
 	bar._on_unassign()
-	_check(army.front_id == 0 and Off.of_army(gs, army) == null, "Unassign takes the army off its front and drops its plan")
+	_check(army.front_id == 0 and Off.of_army(gs, army) == null, "Remove from front line takes the army off its front and drops its plan")
 
 
-func _test_fallback_and_garrison() -> void:
+func _test_fallback_and_add() -> void:
 	var posen := _named("Posen")
 	var army = await _army(posen, 4)
 	var line: Array[int] = [posen]
@@ -189,17 +253,23 @@ func _test_fallback_and_garrison() -> void:
 	bar.map_release(line[1], MOUSE_BUTTON_LEFT)
 	var f = gs.fronts.get(army.front_id)
 	_check(f != null and f.provinces == line and f.against == "", "dragging through your own ground draws a line and puts the army on it")
-	# Edit the drawn line: extend it from its end.
+	# Create/Edit on the army's own line: dragging on from its end lengthens it.
 	var further := 0
 	for n: int in Mil.neighbors(line[1]):
 		if gs.province_controller[n] == "GER" and not line.has(n) and not Mil.neighbors(line[0]).has(n):
 			further = n
 			break
-	bar.set_tool("edit")
-	bar.map_press(further, 0, MOUSE_BUTTON_LEFT, false)
+	bar.set_tool("front")
+	bar.map_press(line[1], 0, MOUSE_BUTTON_LEFT, false)
+	bar.map_drag(further)
 	bar.map_release(further, MOUSE_BUTTON_LEFT)
-	_check(f.provinces.size() == 3 and f.provinces.back() == further, "Edit lengthens a drawn line from its end")
+	_check(f.provinces.size() == 3 and f.provinces.back() == further, "Create/Edit lengthens the army's drawn line from its end")
 	bar.set_tool("")
+	# Add to front line: a second army clicks the first one's line and joins it.
+	var second = await _army(posen, 3)
+	bar.set_tool("add")
+	bar.map_press(further, 0, MOUSE_BUTTON_LEFT, false)
+	_check(second.front_id == f.id and f.army_ids.has(second.id) and f.army_ids.has(army.id) and bar.tool == "", "Add to front line puts the selected army on the front clicked, beside the one there")
 	# Garrison: the ports near a Baltic port.
 	var danzig := _port()
 	bar.set_tool("garrison")
@@ -210,8 +280,10 @@ func _test_fallback_and_garrison() -> void:
 	var picked: Array[int] = bar._stroke.duplicate()
 	_check(not picked.is_empty() and picked.all(func(p: int) -> bool: return bar.guards(p, "port")), "a click with Ports ticked picks the ports near it (%d)" % picked.size())
 	bar.finish_garrison()
-	var g = gs.fronts.get(army.front_id)
+	var g = gs.fronts.get(second.front_id)
 	_check(g != null and g.kind == "garrison" and g.provinces == picked and bar.tool == "" and not bar._garrison_box.visible, "Finish makes the garrison and puts the army on it")
+
+
 
 
 func _test_invasion_and_support() -> void:

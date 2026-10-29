@@ -7,10 +7,18 @@ extends Control
 
 signal pressed(shift: bool)
 signal context_requested(at: Vector2)
+## The red square on top: halt the army (its plan stops, its stacks stand).
+signal halt_pressed
+## The green arrow on top: advance (execute its plan), or stop advancing.
+signal advance_pressed
 
-const SIZE := Vector2(60, 96)
-## The strip of order icons on top, and the portrait under it: as tall as the paintings are for its width (3 by 4).
-const ORDER_H := 12.0
+const SIZE := Vector2(60, 98)
+## The strip on top (halt, advance, order icons), and the portrait under it: as tall as the paintings are for its width
+## (3 by 4).
+const ORDER_H := 14.0
+## The halt square and the advance arrow in the strip, as in Hearts of Iron.
+const HALT_RECT := Rect2(2, 1, 12, 12)
+const ADVANCE_RECT := Rect2(16, 1, 20, 12)
 const PLATE_H := 75.0
 const GOLD := Color(0.95, 0.78, 0.25)
 const SELECT := Color(1.0, 0.95, 0.4)
@@ -41,6 +49,11 @@ var army_colour := Color(0, 0, 0, 0)
 var front := ""
 var plan := ""
 var executing := false
+## Whether the strip carries the halt and advance buttons (army and marshal cards), and whether there is a plan for
+## advance to execute (without one the arrow is grey); `waiting` marks a plan not yet planned enough (a "!").
+var commands := false
+var has_plan := false
+var waiting := false
 ## The commander's portrait (Portraits); without one, a head and shoulders stand in with his initials.
 var portrait: Texture2D = null
 var _hover := false
@@ -73,7 +86,13 @@ func _gui_input(event: InputEvent) -> void:
 		# which it could no longer mark the click as used and it would fall through to the map.
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			accept_event()
-			pressed.emit(event.shift_pressed)
+			if commands and HALT_RECT.grow(1.0).has_point(event.position):
+				halt_pressed.emit()
+			elif commands and ADVANCE_RECT.grow(1.0).has_point(event.position):
+				if has_plan:
+					advance_pressed.emit()
+			else:
+				pressed.emit(event.shift_pressed)
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			accept_event()
 			context_requested.emit(get_global_mouse_position())
@@ -89,7 +108,28 @@ func _draw() -> void:
 	var strip_top := Rect2(Vector2(0, 0), Vector2(size.x, ORDER_H))
 	draw_rect(strip_top, Color(0.03, 0.035, 0.05, 0.95))
 	var ox := 3.0
-	for icon in _order_icons():
+	if commands:
+		# Halt: a red square, lit while the army stands. Advance: a green arrow, lit while it executes its plan.
+		var red := Color(0.85, 0.16, 0.12) if not executing else Color(0.45, 0.14, 0.12)
+		draw_rect(HALT_RECT, Color(0.02, 0.02, 0.03))
+		draw_rect(HALT_RECT.grow(-2.0), red)
+		draw_rect(HALT_RECT, Color(0.55, 0.5, 0.38), false, 1.0)
+		draw_rect(ADVANCE_RECT, Color(0.02, 0.02, 0.03))
+		var green := Color(0.35, 0.95, 0.4) if executing else (Color(0.2, 0.45, 0.22) if has_plan else Color(0.3, 0.32, 0.34))
+		var r := ADVANCE_RECT
+		var y := r.get_center().y
+		draw_line(Vector2(r.position.x + 3.0, y), Vector2(r.end.x - 7.0, y), green, 3.0)
+		draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 9.0, r.position.y + 2.0), Vector2(r.end.x - 2.0, y), Vector2(r.end.x - 9.0, r.end.y - 2.0)]), green)
+		draw_rect(ADVANCE_RECT, Color(0.95, 0.9, 0.5) if executing else Color(0.55, 0.5, 0.38), false, 1.0)
+		ox = ADVANCE_RECT.end.x + 2.0
+		if waiting:
+			_text(font, "!", Vector2(ox, ORDER_H - 2.0), -1.0, 12, Color(0.95, 0.25, 0.2), HORIZONTAL_ALIGNMENT_LEFT)
+			ox += 6.0
+	# Beside the buttons there is room for one icon: the plan, else the front held (a marshal's star takes it).
+	var icons := _order_icons()
+	if commands:
+		icons = icons.slice(-1) if not marshal else ([] as Array[String])
+	for icon in icons:
 		var tex := Icons.get_icon(icon, int(ORDER_H) - 2)
 		if tex != null:
 			draw_texture(tex, Vector2(ox, 0.5), (Color(0.45, 1.0, 0.5) if executing and icon in ["offensive", "spearhead", "invasion"] else Color.WHITE))

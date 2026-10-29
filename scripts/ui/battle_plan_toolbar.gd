@@ -3,40 +3,46 @@ extends PanelContainer
 ## The Battle Plans toolbar over the command panel's cards, as in Hearts of Iron. It acts on the selected armies (a
 ## general's card, or a field marshal's for the whole group) and holds one tool at a time; while a tool is in hand the
 ## map's clicks and drags come here (MapView routes them through the "map_tool" group) instead of selecting and moving,
-## the pointer is a crosshair and a hint follows it. Every order still goes through a command.
+## the pointer is a crosshair and a hint follows it. Every order still goes through a command. Halt and Advance are on
+## the cards (CommandCard).
 ##
-##   - Execute: launches the selected armies' plans, or halts them so they plan again. Careful, Balanced, Aggressive:
-##     how readily they attack (and the setting new plans get).
-##   - Front line: click a border to put the armies on the stretch of it there; Shift+click for the whole border.
-##   - Offensive line: drag across enemy ground to mark the line to push to (Shift adds it as the next phase).
+##   - Train: puts the armies on exercise, or takes them off (SetTraining).
+##   - Careful / Balanced / Aggressive: one button that goes round the three; how readily the plans attack.
+##   - Create/Edit front line: click a border to put the armies on the stretch of it there, Shift+click for the whole
+##     border; on the army's own drawn line, drag from its end to lengthen it or over its ends to shorten it.
+##   - Attack line: drag across enemy ground to mark the line to push to (Shift: as the next phase; Ctrl: added to the
+##     line it has; starting on its line takes provinces off).
 ##   - Spearhead: click the one province to break through at.
 ##   - Fallback line: drag a line through your own ground, behind the front, to dig in on.
-##   - Garrison: tick what to guard (ports, forts, cities, the capital) and click your provinces; Enter to finish.
-##   - Naval invasion: click the port to sail from, then the coast to land on.
-##   - Naval support: click a coast: the nearest free warships sail off it on Shore support.
-##   - Paradrop: there are no aircraft yet; it stays off.
-##   - Unassign: takes the armies off their fronts and drops their plans.
-##   - Edit: drag over a plan's target line, or a drawn line, to add provinces or take them off.
+##   - Edit order (the pencil): drag over the army's target line or drawn line to add provinces or take them off; a
+##     spearhead's or a landing's target moves to the province clicked.
+##   - Add to front line: click a front on the map to put the armies on it.
+##   - Remove from front line: takes the armies off their fronts and drops their plans.
 ##   - Delete: click an order on the map to remove it; right click the button to clear every order of the selection
 ##     (or all of yours with nothing selected).
+##   - "+" at the right opens a second row: Execute, Garrison, Naval invasion, Naval support, Paradrop (off: no aircraft
+##     yet), and the command panel's Merge, Split, Halt and Fleets (add_extra).
 ## Esc puts the tool down.
 
 signal tool_changed(tool: String)
 
 ## Each tool: its icon, its name and what it does (the tooltip), and the hint that follows the pointer.
 const TOOLS := {
-	"front": {"icon": "frontline", "name": "Front line",
-		"tip": "Click a border to put the selected armies on the stretch of it there; Shift+click for the whole border with that nation. They spread along it and hold it.",
+	"front": {"icon": "frontline", "name": "Create/Edit front line",
+		"tip": "Click a border to put the selected armies on the stretch of it there; Shift+click for the whole border with that nation. They spread along it and hold it. On a line of their own you drew, drag on from its end to lengthen it, or over its end to shorten it.",
 		"hint": "Click a border · Shift+click: the whole border"},
-	"offensive": {"icon": "offensive", "name": "Offensive line",
-		"tip": "Drag across enemy ground to mark the line to push to. Needs the army on a front. Shift while dragging adds it as the next phase.",
-		"hint": "Drag across enemy ground · Shift: next phase"},
+	"offensive": {"icon": "offensive", "name": "Attack line",
+		"tip": "Drag across enemy ground to mark the line to push to. Needs the army on a front. Shift: add it as the next phase. Ctrl: add the provinces to the line it has. Starting on its line takes provinces off.",
+		"hint": "Drag across enemy ground · Shift: next phase · Ctrl: add"},
 	"spearhead": {"icon": "spearhead", "name": "Spearhead",
 		"tip": "Click one enemy province: the army gathers and breaks through there with its whole weight. Needs the army on a front.",
 		"hint": "Click the province to break through at"},
 	"fallback": {"icon": "fallback", "name": "Fallback line",
 		"tip": "Drag a line through your own ground, behind the front: the armies go there and dig in deeper and faster than on the border.",
 		"hint": "Drag a line through your own ground"},
+	"edit": {"icon": "edit", "name": "Edit order",
+		"tip": "Drag over the selected army's target line, or its drawn front line, to add provinces or take them off (a click on one takes it off). A spearhead's or a landing's target moves to the province clicked.",
+		"hint": "Drag over provinces to add or take them off"},
 	"garrison": {"icon": "garrison", "name": "Garrison",
 		"tip": "Guard ports, forts, cities and the capital: tick what to guard, then click your provinces. Enter or Finish when done.",
 		"hint": "Click your provinces · Enter to finish"},
@@ -46,24 +52,23 @@ const TOOLS := {
 	"support": {"icon": "naval_support", "name": "Naval support",
 		"tip": "Click a coast: the nearest free warships sail off it on Shore support, adding to your armies' attacks there.",
 		"hint": "Click the coast to support"},
-	"edit": {"icon": "edit", "name": "Edit order",
-		"tip": "Drag over the selected army's target line, or its drawn front line, to add provinces or take them off. A spearhead's or a landing's target moves to the province clicked.",
-		"hint": "Drag over provinces to add or take them off"},
-	"delete": {"icon": "delete", "name": "Delete order",
+	"add": {"icon": "add_front", "name": "Add to front line",
+		"tip": "Click one of your fronts on the map: the selected armies join it and spread along it with the armies already there.",
+		"hint": "Click a front to put the armies on it"},
+	"delete": {"icon": "delete", "name": "Delete order/front line",
 		"tip": "Click an order on the map to remove it and release its armies. Right click this button to clear every order of the selected armies (all of yours with none selected).",
 		"hint": "Click an order to delete it"},
 }
-const ORDER := [["front", "offensive", "spearhead"], ["fallback", "garrison"], ["invasion", "support", "paradrop"], ["unassign", "edit", "delete"]]
 const AGGRESSIVENESS := [
-	["careful", "chevron1", "Careful: attacks only at odds of two to one and halts when morale is low."],
+	["careful", "chevron1", "Careful: attacks only at odds of two to one and halts when morale falls under 60%."],
 	["balanced", "chevron2", "Balanced: attacks at fair odds and halts at the usual morale."],
 	["aggressive", "chevron3", "Aggressive: attacks at even odds, at once, whatever the morale and the losses."],
 ]
+const ICON := 18
 ## What a garrison can be set to guard, with what makes a province one of them.
 const GARRISON_KINDS := [["port", "Ports"], ["fort", "Forts"], ["city", "Cities"], ["capital", "The capital"]]
 ## How far from a clicked province a garrison looks for what is ticked (provinces).
 const AREA_HOPS := 2
-const ICON := 18
 
 var tool := ""
 ## Set by the command panel: no title line; what the selection is doing goes in the tooltip instead.
@@ -77,17 +82,25 @@ var aggressiveness := "balanced"
 var _armies: Array[Army] = []
 var _stroke: Array[int] = []
 var _drawing := false
-## Edit: the drag takes provinces off rather than adding them.
-var _removing := false
-## Naval invasion: the port chosen first.
-var _port := 0
+## What the drag reshapes: "" (a new line), "plan" (the selected army's target line) or "front" (its drawn line).
+var _editing := ""
+## An edit drag: the province it started on, and whether it adds or takes off ("" until it moves; a click without a
+## drag takes off the province clicked).
+var _press := 0
+var _edit_mode := ""
 var _buttons := {}
-var _execute := Button.new()
-var _aggr: Array[Button] = []
-var _unassign := Button.new()
-var _paradrop := Button.new()
+var _train := Button.new()
+var _aggr := Button.new()
+var _remove := Button.new()
 var _status := Label.new()
 var _hint := Label.new()
+## The second row the "+" button opens, and what is in it of the toolbar's own.
+var _extend := Button.new()
+var _extra := HBoxContainer.new()
+var _execute := Button.new()
+var _paradrop := Button.new()
+## Naval invasion: the port chosen first.
+var _port := 0
 var _garrison_box := PanelContainer.new()
 var _garrison_checks := {}
 
@@ -112,42 +125,50 @@ func _ready() -> void:
 	_status.custom_minimum_size = Vector2(120, 0)
 	head.add_child(_status)
 	box.add_child(head)
+	# The second row, over the first so the first stays put: the tools the "+" button opens.
+	_extra.add_theme_constant_override("separation", 2)
+	_extra.visible = false
+	box.add_child(_extra)
+	_execute = _icon_button("play", "Execute: launch the selected armies' plans (they attack once planned, at once if aggressive), or halt them to plan again. The cards' green arrows do the same, army by army.")
+	_execute.toggle_mode = true
+	_execute.pressed.connect(_on_execute)
+	_extra.add_child(_execute)
+	_extra.add_child(VSeparator.new())
+	for key in ["garrison", "invasion", "support"]:
+		_extra.add_child(_tool_button(key))
+	_paradrop = _icon_button("paradrop", "Paradrop: there are no aircraft or airborne troops in this age.")
+	_paradrop.disabled = true
+	_extra.add_child(_paradrop)
+	_extra.add_child(VSeparator.new())
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	box.add_child(row)
-	_execute = _icon_button("play", "Execute: launch the selected armies' plans (they attack once planned, at once if aggressive), or halt them to plan again.")
-	_execute.toggle_mode = true
-	_execute.pressed.connect(_on_execute)
-	row.add_child(_execute)
-	for i in AGGRESSIVENESS.size():
-		var b := _icon_button(AGGRESSIVENESS[i][1], AGGRESSIVENESS[i][2])
-		b.toggle_mode = true
-		b.pressed.connect(_on_aggressiveness.bind(i))
-		_aggr.append(b)
-		row.add_child(b)
-	for group: Array in ORDER:
-		row.add_child(VSeparator.new())
-		for key: String in group:
-			match key:
-				"paradrop":
-					_paradrop = _icon_button("paradrop", "Paradrop: there are no aircraft or airborne troops in this age.")
-					_paradrop.disabled = true
-					row.add_child(_paradrop)
-				"unassign":
-					_unassign = _icon_button("unassign", "Unassign: take the selected armies off their fronts and drop their plans.")
-					_unassign.pressed.connect(_on_unassign)
-					row.add_child(_unassign)
-				_:
-					var info: Dictionary = TOOLS[key]
-					var b := _icon_button(info.icon, "%s: %s" % [info.name, info.tip])
-					b.toggle_mode = true
-					b.pressed.connect(set_tool.bind(key))
-					if key == "delete":
-						b.gui_input.connect(func(event: InputEvent) -> void:
-							if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-								clear_all_orders())
-					_buttons[key] = b
-					row.add_child(b)
+	_train = _icon_button("train", "Train: put the selected armies on exercise. Standing still, their divisions gain experience (up to a fifth more power over four months); their men cost half again as much upkeep meanwhile. Press again to stop.")
+	_train.toggle_mode = true
+	_train.pressed.connect(_on_train)
+	row.add_child(_train)
+	_aggr = _icon_button("chevron2", "")
+	_aggr.pressed.connect(_on_aggressiveness)
+	row.add_child(_aggr)
+	row.add_child(VSeparator.new())
+	for key in ["front", "offensive", "spearhead", "fallback", "edit"]:
+		row.add_child(_tool_button(key))
+	row.add_child(VSeparator.new())
+	row.add_child(_tool_button("add"))
+	_remove = _icon_button("remove_front", "Remove from front line: take the selected armies off their fronts and drop their plans.")
+	_remove.pressed.connect(_on_unassign)
+	row.add_child(_remove)
+	row.add_child(VSeparator.new())
+	var delete := _tool_button("delete")
+	delete.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			clear_all_orders())
+	row.add_child(delete)
+	row.add_child(VSeparator.new())
+	_extend = _icon_button("plus", "More: Execute, Garrison, Naval invasion, Naval support, Paradrop, Merge, Split, Halt and Fleets, in a row over these.")
+	_extend.toggle_mode = true
+	_extend.toggled.connect(func(on: bool) -> void: _extra.visible = on)
+	row.add_child(_extend)
 	# The hint that follows the pointer while a tool is in hand.
 	_hint.top_level = true
 	_hint.visible = false
@@ -174,6 +195,20 @@ func _icon_button(icon: String, tip: String) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(28, 26)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	return b
+
+
+## Puts one of the command panel's buttons (Merge, Split, Halt, Fleets) in the row "+" opens.
+func add_extra(control: Control) -> void:
+	_extra.add_child(control)
+
+
+func _tool_button(key: String) -> Button:
+	var info: Dictionary = TOOLS[key]
+	var b := _icon_button(info.icon, "%s: %s" % [info.name, info.tip])
+	b.toggle_mode = true
+	b.pressed.connect(set_tool.bind(key))
+	_buttons[key] = b
 	return b
 
 
@@ -269,10 +304,10 @@ func set_tool(key: String) -> void:
 
 ## Why a tool cannot be taken up now, or "".
 func tool_problem(key: String) -> String:
-	if key in ["offensive", "spearhead", "invasion", "edit"] and roots().is_empty():
+	if key in ["offensive", "spearhead", "add", "edit", "invasion"] and roots().is_empty():
 		return "Select an army first."
 	if key in ["offensive", "spearhead"] and not roots().any(func(r: Army) -> bool: return r.front_id != 0):
-		return "Put the army on a front first (the Front line tool)."
+		return "Put the army on a front first (Create/Edit front line)."
 	if key == "support" and _warship_fleets().is_empty():
 		return "You have no warships free to support an attack."
 	return ""
@@ -281,18 +316,22 @@ func tool_problem(key: String) -> String:
 func _refresh() -> void:
 	if not is_inside_tree():
 		return
+	var rs := roots()
 	var plans := _plans()
+	if not plans.is_empty():
+		aggressiveness = plans[0].aggressiveness
+	var index := maxi(0, AGGRESSIVENESS.map(func(a: Array) -> String: return a[0]).find(aggressiveness))
+	_aggr.icon = Icons.get_icon(AGGRESSIVENESS[index][1], ICON)
+	_aggr.tooltip_text = "%s\nClick for %s." % [AGGRESSIVENESS[index][2], AGGRESSIVENESS[(index + 1) % AGGRESSIVENESS.size()][0].capitalize()]
+	_train.disabled = rs.is_empty()
+	_train.set_pressed_no_signal(not rs.is_empty() and rs.all(func(r: Army) -> bool: return r.training))
+	_remove.disabled = not rs.any(func(r: Army) -> bool: return r.front_id != 0 or Offensives.of_army(GameState, r) != null)
 	var running := not plans.is_empty() and plans.all(func(o: Offensive) -> bool: return o.active)
 	_execute.disabled = plans.is_empty()
 	_execute.set_pressed_no_signal(running)
 	_execute.icon = Icons.get_icon("pause" if running else "play", ICON)
-	if not plans.is_empty():
-		aggressiveness = plans[0].aggressiveness
-	for i in _aggr.size():
-		_aggr[i].set_pressed_no_signal(AGGRESSIVENESS[i][0] == aggressiveness)
-	_unassign.disabled = not roots().any(func(r: Army) -> bool: return r.front_id != 0 or Offensives.of_army(GameState, r) != null)
-	for key in ["offensive", "spearhead", "invasion", "edit"]:
-		_buttons[key].disabled = roots().is_empty() and tool != key
+	for key in ["offensive", "spearhead", "add", "edit", "invasion"]:
+		_buttons[key].disabled = rs.is_empty() and tool != key
 	_status.text = _status_text(plans)
 	tooltip_text = "Battle Plans · " + _status.text
 
@@ -302,16 +341,14 @@ func _status_text(plans: Array[Offensive]) -> String:
 	if rs.is_empty():
 		return "Select an army to give it orders"
 	var who: String = rs[0].display_name if rs.size() == 1 else "%d armies" % rs.size()
+	var drill := " · on exercise" if rs.all(func(r: Army) -> bool: return r.training) else ""
 	if plans.is_empty():
-		return "%s · no plan" % who
+		return "%s · no plan%s" % [who, drill]
 	var o := plans[0]
 	var what: String = {"broad": "push", "spearhead": "spearhead", "invasion": "landing"}.get(o.kind, o.kind)
-	var state := "executing" if o.active else "planning %d%%" % roundi(Offensives.planning_of(GameState, rs[0]) * 100.0)
-	if o.kind == "invasion":
-		var wait := Offensives.invasion_wait(GameState, o)
-		state = ("sailing" if wait.is_empty() else wait) if o.active else "ready to execute"
+	var state := "advancing" if o.active else "planning %d%%" % roundi(Offensives.planning_of(GameState, rs[0]) * 100.0)
 	var phase := ", phase %d/%d" % [o.phase + 1, o.phases.size()] if o.phases.size() > 1 else ""
-	return "%s · %s%s · %s" % [who, what, phase, state]
+	return "%s · %s%s · %s%s" % [who, what, phase, state, drill]
 
 
 func _update_hint() -> void:
@@ -356,21 +393,39 @@ func _say(text: String) -> void:
 func map_press(province: int, zone: int, _button: int, shift: bool) -> void:
 	match tool:
 		"front":
-			_front_at(province, shift)
-		"offensive", "fallback":
+			var f := _drawn_front()
+			if f != null and _touches_line(f, province):
+				_begin_edit("front", f.provinces, province)
+			else:
+				_front_at(province, shift)
+		"offensive":
+			var o := _broad_plan()
+			if o != null and o.targets().has(province):
+				_begin_edit("plan", o.targets(), province)
+			elif o != null and Input.is_key_pressed(KEY_CTRL):
+				_begin_edit("plan", o.targets(), province)
+			else:
+				_drawing = true
+				_editing = ""
+				_stroke.clear()
+				_add_to_stroke(province)
+		"fallback":
 			_drawing = true
+			_editing = ""
 			_stroke.clear()
 			_add_to_stroke(province)
 		"spearhead":
 			_spearhead_at(province)
+		"edit":
+			_edit_at(province)
 		"garrison":
 			_garrison_at(province)
 		"invasion":
 			_invasion_at(province)
 		"support":
 			_support_at(province, zone)
-		"edit":
-			_edit_begin(province)
+		"add":
+			_add_at(province)
 		"delete":
 			_delete_at(province)
 
@@ -378,7 +433,7 @@ func map_press(province: int, zone: int, _button: int, shift: bool) -> void:
 func map_drag(province: int) -> void:
 	if not _drawing or province < 1:
 		return
-	if tool == "edit":
+	if _editing != "":
 		_edit_touch(province)
 	else:
 		_add_to_stroke(province)
@@ -388,17 +443,19 @@ func map_release(_province: int, _button: int) -> void:
 	if not _drawing:
 		return
 	_drawing = false
+	if _editing != "":
+		_edit_finish()
+		return
 	match tool:
 		"offensive":
 			_finish_offensive(Input.is_key_pressed(KEY_SHIFT))
 		"fallback":
 			_finish_fallback()
-		"edit":
-			_edit_finish()
 
 
 func _end_stroke() -> void:
 	_drawing = false
+	_editing = ""
 	_stroke.clear()
 	get_tree().call_group("army_layer", "set_draft", [] as Array[int])
 
@@ -485,7 +542,7 @@ func _finish_offensive(as_phase: bool) -> void:
 		else:
 			made += int(GameState.issue(PlanOffensive.new(GameState.player_tag, root.id, "broad", line, aggressiveness)))
 	if made == 0:
-		_say("Put the army on a front first (the Front line tool).")
+		_say("Put the army on a front first (Create/Edit front line).")
 	set_tool("")
 
 
@@ -510,6 +567,21 @@ func _finish_fallback() -> void:
 		set_tool("")
 	else:
 		_say(DesignateFront.problem(GameState, GameState.player_tag, line))
+
+
+## Add to front line: the front clicked (a border front also from the enemy side; a plan's target stands for its army's
+## front) takes the selected armies.
+func _add_at(province: int) -> void:
+	var hit := order_at(province)
+	var front: Front = hit.get("front")
+	if front == null and hit.has("plan"):
+		var owner: Army = GameState.armies.get((hit.plan as Offensive).army_id)
+		front = GameState.fronts.get(owner.front_id) if owner != null else null
+	if front == null:
+		_say("Click one of your fronts.")
+		return
+	_assign(front.id)
+	set_tool("")
 
 
 ## A garrison click: the ticked kinds near the province, or the province itself (again: taken off).
@@ -644,83 +716,132 @@ func _support_at(province: int, zone: int) -> void:
 	set_tool("")
 
 
-## Edit: what the drag reshapes. A plan's target line, else the army's front if it is drawn by hand.
-func _edit_target() -> Dictionary:
-	var rs := roots()
-	if rs.is_empty():
-		return {}
-	var o := Offensives.of_army(GameState, rs[0])
-	if o != null and not o.done:
-		return {"plan": o}
-	var f: Front = GameState.fronts.get(rs[0].front_id)
-	if f != null:
-		return {"front": f}
-	return {}
+# ------------------------------------------------------------------ reshaping (Create/Edit, Attack line, Edit order)
 
-
-func _edit_begin(province: int) -> void:
+## Edit order: the selected army's target line (a spearhead's or a landing's target moves to the province clicked), else
+## its drawn line.
+func _edit_at(province: int) -> void:
 	if province < 1:
 		return
-	var t := _edit_target()
-	if t.is_empty():
-		_say("The selected army has no order to edit.")
-		return
-	if t.has("plan"):
-		var o: Offensive = t.plan
+	var rs := roots()
+	var o := Offensives.of_army(GameState, rs[0]) if not rs.is_empty() else null
+	if o != null and not o.done:
 		if o.kind != "broad":
-			# A spearhead's or a landing's target moves to the province clicked.
 			if not GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "targets", [province] as Array[int])):
 				_say("That cannot be the target.")
 			return
-		_stroke = o.targets()
+		_begin_edit("plan", o.targets(), province)
+		return
+	var f := _drawn_front()
+	if f != null:
+		_begin_edit("front", f.provinces, province)
+		return
+	if not rs.is_empty() and rs[0].front_id != 0:
+		_say("This front follows the border: Create/Edit front line takes a stretch of it (click) or all of it (Shift+click).")
 	else:
-		var f: Front = t.front
-		if not f.against.is_empty():
-			_say("This front follows the border. Shift+click with the Front line tool for the whole border, or click for a stretch.")
-			return
-		_stroke = f.provinces.duplicate()
+		_say("The selected army has no order to edit.")
+
+
+## The first selected army's line drawn by hand (not a border front, not a garrison), or null.
+func _drawn_front() -> Front:
+	var rs := roots()
+	if rs.is_empty():
+		return null
+	var f: Front = GameState.fronts.get(rs[0].front_id)
+	return f if f != null and f.against.is_empty() and f.kind == "line" else null
+
+
+## Whether a click starts on a drawn line or just beyond one of its ends.
+func _touches_line(f: Front, province: int) -> bool:
+	if province < 1 or f.provinces.is_empty():
+		return false
+	if f.provinces.has(province):
+		return true
+	return _mine(province) and (Military.neighbors(f.provinces.front()).has(province) or Military.neighbors(f.provinces.back()).has(province))
+
+
+## The first selected army's broad push, or null.
+func _broad_plan() -> Offensive:
+	var rs := roots()
+	if rs.is_empty():
+		return null
+	var o := Offensives.of_army(GameState, rs[0])
+	return o if o != null and o.kind == "broad" and not o.done else null
+
+
+## Starts reshaping a line. Starting off it adds what the drag crosses; starting on it, the drag decides: on to new
+## provinces adds them (a line's end dragged outward), over the line takes them off; a click alone takes off the one
+## clicked.
+func _begin_edit(what: String, line: Array[int], province: int) -> void:
+	_editing = what
+	_stroke = line.duplicate()
 	_drawing = true
-	_removing = _stroke.has(province)
-	_edit_touch(province)
+	_press = province
+	_edit_mode = "" if _stroke.has(province) else "add"
+	if _edit_mode == "add":
+		_edit_touch(province)
 
 
 func _edit_touch(province: int) -> void:
-	var t := _edit_target()
-	var is_line: bool = t.has("front") and (t.front as Front).kind == "line"
-	if _removing:
-		if not _stroke.has(province):
+	if _edit_mode == "":
+		if province == _press:
 			return
-		if is_line and province != _stroke.front() and province != _stroke.back():
-			return  # a drawn line is shortened from its ends
-		_stroke.erase(province)
-	elif not _stroke.has(province):
-		if is_line and not _stroke.is_empty():
-			if Military.neighbors(_stroke.back()).has(province):
+		_edit_mode = "add" if not _stroke.has(province) else "remove"
+		if _edit_mode == "remove":
+			_take_off(_press)
+	if _edit_mode == "remove":
+		_take_off(province)
+	else:
+		_put_on(province)
+	get_tree().call_group("army_layer", "set_draft", _stroke.duplicate(), "path")
+
+
+## Takes a province off the line being reshaped (a drawn line only from its ends).
+func _take_off(province: int) -> void:
+	if not _stroke.has(province):
+		return
+	if _editing == "front" and province != _stroke.front() and province != _stroke.back():
+		return
+	_stroke.erase(province)
+
+
+## Puts a province on the line being reshaped (a drawn line only at its ends, on your own ground).
+func _put_on(province: int) -> void:
+	var is_line := _editing == "front"
+	if not _stroke.has(province):
+		if is_line:
+			if not _mine(province):
+				return
+			if _stroke.is_empty() or Military.neighbors(_stroke.back()).has(province):
 				_stroke.append(province)
 			elif Military.neighbors(_stroke.front()).has(province):
 				_stroke.insert(0, province)
 			else:
 				return
-		else:
+		elif not _mine(province):
 			_stroke.append(province)
-	get_tree().call_group("army_layer", "set_draft", _stroke.duplicate(), "path" if is_line or t.has("plan") else "area")
 
 
 func _edit_finish() -> void:
-	var t := _edit_target()
+	if _edit_mode == "":
+		_take_off(_press)
+	var what := _editing
 	var line := _stroke.duplicate()
-	_stroke.clear()
-	get_tree().call_group("army_layer", "set_draft", [] as Array[int])
-	if t.is_empty():
-		return
+	set_tool("")
 	if line.is_empty():
 		_say("An order needs at least one province; use Delete to remove it.")
 		return
-	if t.has("plan"):
-		GameState.issue(SetOffensive.new(GameState.player_tag, (t.plan as Offensive).id, "targets", line))
-	elif not GameState.issue(SetFrontLine.new(GameState.player_tag, (t.front as Front).id, line)):
-		_say(SetFrontLine.problem(GameState, GameState.player_tag, (t.front as Front).id, line))
+	if what == "plan":
+		var o := _broad_plan()
+		if o != null:
+			GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "targets", line))
+	else:
+		var f := _drawn_front()
+		if f != null and not GameState.issue(SetFrontLine.new(GameState.player_tag, f.id, line)):
+			_say(SetFrontLine.problem(GameState, GameState.player_tag, f.id, line))
 
+
+# ------------------------------------------------------------------ delete
 
 ## The order on the map at a province: a plan aiming at it (or a landing sailing from it), else a front through it
 ## (a border front also from the enemy side of the border). The selected armies' orders come first. {} if none.
@@ -797,8 +918,22 @@ func _on_execute() -> void:
 	_refresh()
 
 
-func _on_aggressiveness(index: int) -> void:
-	aggressiveness = AGGRESSIVENESS[index][0]
+
+func _on_train() -> void:
+	var ids: Array[int] = []
+	for r in roots():
+		ids.append(r.id)
+	if ids.is_empty():
+		return
+	var on := not roots().all(func(r: Army) -> bool: return r.training)
+	GameState.issue(SetTraining.new(GameState.player_tag, ids, on))
+	_refresh()
+
+
+## Goes round Careful, Balanced and Aggressive, for the selected plans and the plans to come.
+func _on_aggressiveness() -> void:
+	var keys: Array = AGGRESSIVENESS.map(func(a: Array) -> String: return a[0])
+	aggressiveness = keys[(maxi(0, keys.find(aggressiveness)) + 1) % keys.size()]
 	for o in _plans():
 		GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "aggressiveness", aggressiveness))
 	_refresh()

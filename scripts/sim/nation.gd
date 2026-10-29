@@ -77,6 +77,8 @@ var shipbuilding: Array[Dictionary] = []
 var manpower := 0
 ## Men in armies and in training; kept up to date by Military.refresh_men.
 var men_in_units := 0
+## Men in armies on exercise, who cost more upkeep (military.json training cost_share).
+var men_exercising := 0
 ## Units in training: {type, province, days_left}.
 var recruiting: Array[Dictionary] = []
 ## Multiplier on the state's civil spending, set when a scenario starts so that the budget balances (see Economy.calibrate).

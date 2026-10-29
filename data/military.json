@@ -128,6 +128,13 @@
 		"fallback_extra_levels": 2,
 		"fallback_dig_speed": 1.5
 	},
+	"training": {
+		"_note": "Exercises (the Train button): a standing army on exercise drills its divisions to full experience in days_full days; experience adds up to power_max to a division's power; its men cost cost_share more upkeep while it trains; losses dilute experience by loss_dilution of the share lost.",
+		"days_full": 120,
+		"power_max": 0.2,
+		"cost_share": 0.5,
+		"loss_dilution": 0.5
+	},
 	"offensive": {
 		"_note": "Offensives (docs/FRONTLINES.md). A stack of an army with a plan, standing on its front, builds planning to 1 in planning_days; marching or fighting spends it in planning_decay_days. Attacking, it adds planning_max times planning to its power. A plan is launched once the stacks' mean planning reaches planning_ready (at once when aggressive). A stack attacks a province when its power (with planning) over the defenders' (with their terrain and works) reaches the aggressiveness' odds and its morale is at least its morale. A spearhead strikes once gather of the army's divisions stand next to the objective.",
 		"planning_days": 14,

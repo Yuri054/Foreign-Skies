@@ -25,20 +25,18 @@ var _open := true
 ## Army groups folded down to their marshal (group id to true; 0 is the unassigned armies).
 var _collapsed: Dictionary = {}
 var _layout_key := -1
+## Shown only while the panel is folded away: brings it back (or the C key).
 var _toggle := Button.new()
-var _tab_army := Button.new()
-var _tab_navy := Button.new()
 var _title := Label.new()
 var _top := PanelContainer.new()
 var _div_frame := PanelContainer.new()
-var _tabs_col := PanelContainer.new()
-## The frame over the cards: the tabs, the Battle Plans tools and the orders of the selection.
+## The frame over the cards: the Battle Plans tools (or a fleet's orders), and the division chips when picked.
 var _command_frame := PanelContainer.new()
-## Merge, Split, Halt and the "more" button, as icons after the Battle Plans tools.
-var _quick := HBoxContainer.new()
-var _more := Button.new()
-## Whether the row of the rarer orders and the division chips is open.
+## Whether the division chips of the selected army are open (from its card's right click menu).
 var _more_open := false
+## In the "+" row: show the fleets. Among the fleet orders: back to the armies.
+var _fleets_tab := Button.new()
+var _armies_tab := Button.new()
 ## The "+" cards at the two ends of the row: a new army group of the selection, and a new army.
 var _add_group := CommandCard.new()
 var _add_army := CommandCard.new()
@@ -107,9 +105,10 @@ func _ready() -> void:
 	# Smaller text than the rest of the interface keeps the panel short.
 	theme = UiTheme.compact()
 
-	# As in Hearts of Iron, in the lower middle of the screen and kept low: one framed row (the Armies and Fleets
-	# tabs, the Battle Plans tools, Merge, Split, Halt and a "more" button that opens a second row with the rarer
-	# orders and the division chips), and under it the row of commander cards with a "+" card at each end.
+	# As in Hearts of Iron, in the lower middle of the screen and kept low: the Battle Plans toolbar in a frame (a
+	# fleet's orders instead while fleets are selected; the division chips over it when picked), and under it the row
+	# of commander cards with a "+" card at each end. The army orders (merge, split, detach...) are in a card's right
+	# click menu; halt and advance are on the cards.
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
 	add_child(box)
@@ -126,34 +125,18 @@ func _ready() -> void:
 	var main_row := HBoxContainer.new()
 	main_row.add_theme_constant_override("separation", 2)
 	command.add_child(main_row)
-	main_row.add_child(_tabs_col)
-	_tabs_col.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 2)
-	tabs.add_child(_tab_army)
-	tabs.add_child(_tab_navy)
-	tabs.add_child(_toggle)
-	_tabs_col.add_child(tabs)
+	main_row.add_child(_toggle)
 	main_row.add_child(_plans_bar)
 	_plans_bar.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_plans_bar.compact = true
-	_quick.add_theme_constant_override("separation", 2)
-	_quick.add_child(VSeparator.new())
-	main_row.add_child(_quick)
 	var strip := HBoxContainer.new()
 	strip.add_theme_constant_override("separation", 4)
 	strip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(strip)
-	_toggle.tooltip_text = "Show or hide the command panel (C)."
+	_toggle.text = "Command (C)"
+	_toggle.tooltip_text = "Show the command panel (C)."
+	_toggle.focus_mode = Control.FOCUS_NONE
 	_toggle.pressed.connect(toggle)
-	_tab_army.icon = Icons.get_icon("soldier", 16)
-	_tab_army.toggle_mode = true
-	_tab_army.tooltip_text = "Armies: your armies under their field marshals."
-	_tab_army.pressed.connect(func() -> void: _set_mode("army"))
-	_tab_navy.icon = Icons.get_icon("anchor", 16)
-	_tab_navy.toggle_mode = true
-	_tab_navy.tooltip_text = "Fleets: your fleets. They also show when you select one."
-	_tab_navy.pressed.connect(func() -> void: _set_mode("navy"))
 	_army_orders.add_theme_constant_override("h_separation", 2)
 	_fleet_orders.add_theme_constant_override("h_separation", 2)
 	_army_orders.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -179,7 +162,7 @@ func _ready() -> void:
 	_add_group.pressed.connect(func(_shift: bool) -> void: _on_add_commander())
 	_add_army.title = "New army"
 	_add_army.line1 = "General"
-	_add_army.tooltip_text = "New army: make an army of the divisions picked in the selected army (the chips over the cards). With none picked: choose the selected army's general."
+	_add_army.tooltip_text = "New army: make an army of the divisions picked in the selected army (right click its card, Pick divisions). With none picked: choose the selected army's general."
 	_add_army.pressed.connect(func(_shift: bool) -> void: _on_add_army())
 	strip.add_child(_add_group)
 	strip.add_child(_scroll)
@@ -233,7 +216,8 @@ func _ready() -> void:
 	_deselect.text = "Deselect"
 	_deselect.tooltip_text = "Clear the selection (Esc, or click empty ground)."
 	_deselect.pressed.connect(func() -> void: get_tree().call_group("military_panel", "clear_selection"))
-	# Merge, Split and Halt are icons on the main row; the rest of the orders wait in the row "more" opens.
+	# Merge, Split and Halt (and a switch to the fleets) wait in the row the toolbar's "+" opens, as icons; the rest of
+	# the army orders are in a card's right click menu (_army_order_items), the same functions these buttons call.
 	for pair: Array in [[_merge, "merge"], [_split, "split"], [_halt, "halt"]]:
 		var b: Button = pair[0]
 		b.icon = Icons.get_icon(pair[1], 18)
@@ -242,17 +226,14 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(28, 26)
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.focus_mode = Control.FOCUS_NONE
-		_quick.add_child(b)
-	_more.icon = Icons.get_icon("more", 18)
-	_more.toggle_mode = true
-	_more.custom_minimum_size = Vector2(28, 26)
-	_more.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_more.focus_mode = Control.FOCUS_NONE
-	_more.tooltip_text = "More orders: send home, detach, general, group, attack line, symbol, board and land, show, deselect, and the divisions of one army to move or make a new army of."
-	_more.toggled.connect(func(on: bool) -> void:
-		_more_open = on
-		_refresh())
-	_quick.add_child(_more)
+		_plans_bar.add_extra(b)
+	_fleets_tab.icon = Icons.get_icon("anchor", 18)
+	_fleets_tab.custom_minimum_size = Vector2(28, 26)
+	_fleets_tab.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_fleets_tab.focus_mode = Control.FOCUS_NONE
+	_fleets_tab.tooltip_text = "Fleets: show your fleets' cards and orders (Armies brings the armies back)."
+	_fleets_tab.pressed.connect(func() -> void: _set_mode("navy"))
+	_plans_bar.add_extra(_fleets_tab)
 	for c: Control in [_home, _detach, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
 		c.focus_mode = Control.FOCUS_NONE
 		_army_orders.add_child(c)
@@ -277,11 +258,13 @@ func _ready() -> void:
 	_f_deselect.text = "Deselect"
 	_f_deselect.tooltip_text = "Clear the selection (Esc, or click empty water)."
 	_f_deselect.pressed.connect(func() -> void: get_tree().call_group("navy_panel", "clear_selection"))
-	for c: Control in [_f_orders, _f_merge, _f_detach, _f_home, _f_show, _f_deselect]:
+	_armies_tab.icon = Icons.get_icon("soldier", 16)
+	_armies_tab.text = "Armies"
+	_armies_tab.tooltip_text = "Back to your armies and the Battle Plans."
+	_armies_tab.pressed.connect(func() -> void: _set_mode("army"))
+	for c: Control in [_armies_tab, _f_orders, _f_merge, _f_detach, _f_home, _f_show, _f_deselect]:
 		c.focus_mode = Control.FOCUS_NONE
 		_fleet_orders.add_child(c)
-	for c: Control in [_toggle, _tab_army, _tab_navy]:
-		c.focus_mode = Control.FOCUS_NONE
 
 	GameState.armies_changed.connect(_refresh)
 	GameState.fronts_changed.connect(_refresh)
@@ -324,11 +307,14 @@ func set_selection(ids: Array[int]) -> void:
 	_refresh()
 
 
-## The Navy window changed the fleet selection. Selecting a fleet puts the fleets on show.
+## The Navy window changed the fleet selection. Selecting a fleet puts the fleets on show; with none selected the
+## armies come back.
 func set_fleet_selection(ids: Array[int]) -> void:
 	_fleet_ids = ids
 	if not _fleets().is_empty() and _armies().is_empty():
 		_mode = "navy"
+	elif _fleets().is_empty():
+		_mode = "army"
 	_refresh()
 
 
@@ -367,24 +353,17 @@ func _refresh() -> void:
 	visible = GameState.get_player() != null and not _picking()
 	if not visible:
 		return
-	_toggle.text = "▾" if _open else "Command (C)"
-	_tab_army.set_pressed_no_signal(_mode == "army")
-	_tab_navy.set_pressed_no_signal(_mode == "navy")
-	_tab_army.visible = _open
-	_tab_navy.visible = _open
+	_toggle.visible = not _open
 	_scroll.visible = _open
 	_add_group.visible = _open and _mode == "army"
 	_add_army.visible = _open and _mode == "army"
 	var armies := _armies()
 	var fleets := _fleets()
-	_army_orders.visible = _open and _mode == "army" and not armies.is_empty() and _more_open
-	_fleet_orders.visible = _open and _mode == "navy" and not fleets.is_empty()
-	_top.visible = _army_orders.visible or _fleet_orders.visible
+	_army_orders.visible = false
+	_fleet_orders.visible = _open and _mode == "navy"
+	_top.visible = _fleet_orders.visible
 	_plans_bar.visible = _open and _mode == "army"
 	_plans_bar.set_armies(armies)
-	_quick.visible = _open and _mode == "army"
-	_more.disabled = armies.is_empty()
-	_more.set_pressed_no_signal(_more_open)
 	if not _plans_bar.visible and _plans_bar.is_active():
 		_plans_bar.set_tool("")
 	_title.text = _army_title(armies) if _mode == "army" else _fleet_title(fleets)
@@ -568,6 +547,8 @@ func _refresh_fleet_orders(fleets: Array[Fleet]) -> void:
 	_f_merge.disabled = not (fleets.size() >= 2 and places.size() == 1)
 	_f_detach.disabled = not (fleets.size() == 1 and fleets[0].ships.size() >= 2 and not fleets[0].fighting)
 	_f_home.disabled = fleets.all(func(f: Fleet) -> bool: return f.is_in_port() and not f.is_moving())
+	for c: BaseButton in [_f_orders, _f_show, _f_deselect]:
+		c.disabled = fleets.is_empty()
 
 
 ## Bottom left of the screen, resting on the map mode palette, and short of the build queue
@@ -639,10 +620,12 @@ func _rebuild_cards() -> void:
 		c.queue_free()
 	for block: Dictionary in blocks:
 		_cards.add_child(_make_block(block))
-	# The row scrolls to the first selected card.
+	# The row scrolls to the first selected card (once laid out, if it is still there then).
 	for card in _cards.find_children("*", "CommandCard", true, false):
 		if card.selected:
-			_scroll.ensure_control_visible.call_deferred(card)
+			(func() -> void:
+				if is_instance_valid(card) and _scroll.is_ancestor_of(card):
+					_scroll.ensure_control_visible(card)).call_deferred()
 			break
 
 
@@ -660,8 +643,7 @@ func _on_add_commander() -> void:
 	if _armies().is_empty():
 		get_tree().call_group("event_feed", "say", "Select the armies to put under a new commander.", Fmt.WARN)
 		return
-	_fill_group()
-	_group.show_popup()
+	_on_card_context(get_viewport().get_mouse_position(), "army", _armies()[0].id)
 
 
 ## The "+" card at the right end: a new army of the divisions picked in the selected army, or else its general.
@@ -671,8 +653,7 @@ func _on_add_army() -> void:
 		_on_division_new()
 		return
 	if armies.size() == 1:
-		_fill_generals()
-		_general.show_popup()
+		_on_card_context(get_viewport().get_mouse_position(), "army", armies[0].id)
 		return
 	get_tree().call_group("event_feed", "say", "Select one army and pick some of its divisions (the chips over the cards) to make a new army of them.", Fmt.WARN)
 
@@ -695,11 +676,13 @@ func _make_block(block: Dictionary) -> Control:
 
 func _make_card(spec: Dictionary) -> CommandCard:
 	var card := CommandCard.new()
-	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "marks", "front", "plan", "executing", "army_colour", "portrait"]:
+	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "marks", "front", "plan", "executing", "army_colour", "portrait", "commands", "has_plan", "waiting"]:
 		if spec.has(key):
 			card.set(key, spec[key])
 	card.tooltip_text = spec.get("tip", "")
 	card.pressed.connect(_on_card.bind(spec.kind, spec.id))
+	card.halt_pressed.connect(_on_card_halt.bind(spec.kind, spec.id))
+	card.advance_pressed.connect(_on_card_advance.bind(spec.kind, spec.id))
 	card.context_requested.connect(_on_card_context.bind(spec.kind, spec.id))
 	return card
 
@@ -731,11 +714,19 @@ func _army_card(a: Army, tint: Color) -> Dictionary:
 		marks.append("⚓")
 	elif not a.path.is_empty():
 		marks.append("›")
+	if a.training:
+		marks.append("✦")
 	var has_general := a.general_id != 0
 	var tip := "%s\n%s men in %d divisions, morale %d%%\n%s" % [a.display_name, Fmt.people(men), divisions,
 			roundi(morale * 100.0), MapData.provinces[a.province].name]
 	if stacks.size() > 1:
 		tip += " and %d more provinces" % (stacks.size() - 1)
+	if a.training:
+		var drill := 0.0
+		for st in stacks:
+			for u in st.units:
+				drill += u.experience / maxf(divisions, 1.0)
+		tip += "\nOn exercise (✦): drill %d%%" % roundi(drill * 100.0)
 	if has_general:
 		tip += "\nLed by %s (skill %.2f)" % [a.general_name, a.general_skill]
 	else:
@@ -752,6 +743,8 @@ func _army_card(a: Army, tint: Color) -> Dictionary:
 			"strength": men / maxf(full, 1.0), "morale": morale, "tint": tint, "selected": picked,
 			"fighting": fighting, "marks": marks, "tip": tip, "front": front_kind, "plan": o.kind if o != null else "",
 			"executing": o != null and o.active, "army_colour": colour if colour != null else Color(0, 0, 0, 0),
+			"commands": true, "has_plan": o != null,
+			"waiting": o != null and not o.active and Offensives.planning_of(GameState, a) < float(Offensives.cfg().get("planning_ready", 0.5)),
 			"portrait": Portraits.for_name(a.general_name) if has_general else null}
 
 
@@ -769,7 +762,9 @@ func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
 	else:
 		tip += "\nNo field marshal: right click to appoint one."
 	var holds := group.army_ids.any(func(id: int) -> bool: return GameState.armies.has(id) and GameState.armies[id].front_id != 0)
-	return {"kind": "marshal", "id": group.id, "title": group.display_name, "front": "front" if holds else "", "badge": CommandCard.initials(m.display_name) if m != null else "",
+	var plans: Array = group.army_ids.filter(func(id: int) -> bool: return GameState.armies.has(id)).map(func(id: int) -> Variant: return Offensives.of_army(GameState, GameState.armies[id])).filter(func(o: Variant) -> bool: return o != null)
+	return {"kind": "marshal", "id": group.id, "title": group.display_name, "front": "front" if holds else "",
+			"commands": true, "has_plan": not plans.is_empty(), "executing": not plans.is_empty() and plans.all(func(o: Variant) -> bool: return o.active), "badge": CommandCard.initials(m.display_name) if m != null else "",
 			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true, "portrait": Portraits.for_name(m.display_name) if m != null else null,
 			"line1": "%d armies" % group.army_ids.size(),
 			"tint": tint, "selected": all_selected, "tip": tip}
@@ -908,11 +903,16 @@ func _on_card_context(at: Vector2, kind: String, id: int) -> void:
 			var a: Army = GameState.armies.get(id)
 			if a == null:
 				return
+			# The orders act on the selection: the army right clicked is selected first, unless it is the one the picked
+			# divisions are to move to.
+			if _div_sel.is_empty() and not _armies().any(func(x: Army) -> bool: return FrontSolver.root_of(GameState, x) == a):
+				_select([a.id] as Array[int])
 			if not _div_sel.is_empty() and a.id != _div_army:
 				var why := TransferUnits.block(GameState, GameState.armies.get(_div_army), a)
 				items.append({"sep": "Divisions"})
 				items.append({"text": "Move %d picked divisions here%s" % [_div_sel.size(), "" if why.is_empty() else " (%s)" % why],
 						"disabled": not why.is_empty(), "call": func() -> void: _move_divisions_to(a.id)})
+			items.append_array(_army_order_items())
 			items.append({"sep": "General"})
 			for g in pool.slice(0, 8):
 				items.append({"text": "%s · skill %.2f" % [g.display_name, g.skill], "call": func() -> void: GameState.issue(AssignGeneral.new(tag, g.id, a.id))})
@@ -931,6 +931,14 @@ func _on_card_context(at: Vector2, kind: String, id: int) -> void:
 			var grp: ArmyGroup = GameState.army_groups.get(id)
 			if grp == null:
 				return
+			_on_select_group(grp.id, false)
+			_fill_attack()
+			var attack := _attack.get_popup()
+			if attack.item_count > 0:
+				items.append({"sep": "Attack line"})
+				for i in attack.item_count:
+					var attack_id := attack.get_item_id(i)
+					items.append({"text": attack.get_item_text(i), "disabled": attack.is_item_disabled(i), "call": func() -> void: _on_attack(attack_id)})
 			items.append({"sep": "Field marshal"})
 			for g in pool.slice(0, 8):
 				items.append({"text": "%s · skill %.2f" % [g.display_name, g.skill], "call": func() -> void: GameState.issue(SetMarshal.new(tag, grp.id, g.id))})
@@ -944,6 +952,83 @@ func _on_card_context(at: Vector2, kind: String, id: int) -> void:
 			items.append({"text": "Disband %s" % grp.display_name, "call": func() -> void: GameState.issue(DisbandArmyGroup.new(tag, grp.id))})
 	if not items.is_empty():
 		_open_menu(items, at)
+
+
+## The orders of the selected armies for a card's right click menu: the functions the order buttons call, each
+## offered when it can be given.
+func _army_order_items() -> Array:
+	var armies := _armies()
+	_refresh_army_orders(armies)
+	var items: Array = [{"sep": "Orders"}]
+	items.append({"text": "Merge the selected armies", "disabled": _merge.disabled, "call": _on_merge})
+	items.append({"text": "Split in two", "disabled": _split.disabled, "call": _on_split})
+	items.append({"text": "Halt the march", "disabled": _halt.disabled, "call": _on_halt})
+	if not _detach.disabled:
+		_fill_detach()
+		var detach := _detach.get_popup()
+		for i in detach.item_count:
+			var detach_id := detach.get_item_id(i)
+			items.append({"text": "Detach one %s" % detach.get_item_text(i), "call": func() -> void: _on_detach(detach_id)})
+	if armies.size() == 1:
+		items.append({"text": "Hide the division chips" if _more_open else "Pick divisions (to move, or make a new army of)", "call": func() -> void:
+			_more_open = not _more_open
+			_refresh()})
+	if not _home.disabled:
+		items.append({"text": "Send home", "call": _on_send_home})
+	if _board.visible:
+		items.append({"text": "Board ship", "call": func() -> void: _via_panel("_on_board")})
+	if _land.visible:
+		items.append({"text": "Disembark", "call": func() -> void: _via_panel("_on_land")})
+	items.append({"text": "Show on the map", "call": _on_show})
+	items.append({"text": "Deselect", "call": func() -> void: get_tree().call_group("military_panel", "clear_selection")})
+	items.append({"sep": "Symbol"})
+	_fill_symbols()
+	var symbols := _symbol.get_popup()
+	for i in symbols.item_count:
+		var symbol_id := symbols.get_item_id(i)
+		items.append({"text": symbols.get_item_text(i), "call": func() -> void: _on_symbol(symbol_id)})
+	return items
+
+
+## The armies a card's halt and advance act on: the army, or every army of the marshal's group.
+func _card_armies(kind: String, id: int) -> Array[Army]:
+	var out: Array[Army] = []
+	if kind == "army" and GameState.armies.has(id):
+		out.append(GameState.armies[id])
+	elif kind == "marshal" and GameState.army_groups.has(id):
+		for army_id in (GameState.army_groups[id] as ArmyGroup).army_ids:
+			if GameState.armies.has(army_id):
+				out.append(GameState.armies[army_id])
+	return out
+
+
+## The red square: the army stops executing its plan (and plans again), and its stacks sent somewhere stand.
+func _on_card_halt(kind: String, id: int) -> void:
+	var tag := GameState.player_tag
+	for root in _card_armies(kind, id):
+		var o := Offensives.of_army(GameState, root)
+		if o != null and o.active:
+			GameState.issue(SetOffensive.new(tag, o.id, "launch", false))
+		for st in FrontSolver.stacks_of(GameState, root):
+			if not st.path.is_empty() and not st.embarked():
+				GameState.issue(MoveArmy.new(tag, st.id, st.province))
+	_refresh()
+
+
+## The green arrow: the plans advance (execute), or, if they all are, stop advancing.
+func _on_card_advance(kind: String, id: int) -> void:
+	var plans: Array[Offensive] = []
+	for root in _card_armies(kind, id):
+		var o := Offensives.of_army(GameState, root)
+		if o != null:
+			plans.append(o)
+	if plans.is_empty():
+		return
+	var advance := not plans.all(func(o: Offensive) -> bool: return o.active)
+	for o in plans:
+		if o.active != advance:
+			GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "launch", advance))
+	_refresh()
 
 
 ## Pops up a menu at a screen position. Items are {sep: title}, or {text, call, disabled}.

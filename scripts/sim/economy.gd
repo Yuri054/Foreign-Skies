@@ -435,7 +435,9 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, tax_mult: float)
 		n.civil_base = raw.gdp * cfg.default_tax_rate * cfg.civil_share * n.civil_mult
 	var civil: float = n.civil_base * n.civil_index * gdp_scale
 	# A soldier costs what the country pays its people: upkeep follows output per head (wage_factor).
-	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep)) * cfg.soldier_upkeep * soldier_wage(n, raw) / 1e6
+	# Men on exercise cost more (military.json training cost_share).
+	var drilling: float = n.men_exercising * float(Military.cfg.get("training", {}).get("cost_share", 0.0))
+	var army: float = (n.men_in_units + n.manpower * float(cfg.reserve_upkeep) + drilling) * cfg.soldier_upkeep * soldier_wage(n, raw) / 1e6
 	var naval: float = n.naval_budget
 	# The whole economy buys the food; the treasury only carries its share (subsidies, duties).
 	var food_imports: float = food_imported * cfg.food_import_cost * cfg.food_state_share / 1e6

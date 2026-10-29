@@ -7,6 +7,27 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.16.0 (2026-10-29 15:21 UTC)
+
+The Battle Plans bar laid out on the Hearts of Iron buttons, halt and advance on the cards, and exercises.
+
+- **The main row**: **Train**, **Careful / Balanced / Aggressive** (one button going round the three), **Create/Edit
+  front line**, **Attack line**, **Spearhead**, **Fallback line**, **Edit order** (the pencil), **Add to front line**,
+  **Remove from front line**, **Delete order/front line**, and **+**.
+  - Create/Edit also reshapes the army's own drawn line (drag its end outward to lengthen, click an end to shorten).
+  - Attack line also reshapes the line it has: Ctrl adds; a drag starting on the line takes off.
+  - Add to front line: click a front on the map and the selected armies join it.
+- **+ opens a second row** with the rest: Execute, Garrison, Naval invasion, Naval support, Paradrop (off), Merge,
+  Split, Halt (the march) and Fleets. The Armies/Fleets tabs and the "more" row are gone: Fleets is in this row, and
+  detach, pick divisions, send home, board and land, show, deselect and symbol are in a card's right click menu (with
+  merge, split and halt too); a field marshal's card's menu has the group's attack line.
+- **Halt and Advance on the cards**: every general's and field marshal's card has a red square (halt: the plan stops,
+  the stacks stand) and a green arrow (advance: execute the plan; press again to stop), a red "!" while the plan is not
+  planned enough, and its plan's or front's icon. A marshal's buttons act on the whole group.
+- **Exercises** (new, the Train button): standing still, an army on exercise drills its divisions, up to a fifth more
+  power after four months; its men cost half again as much upkeep meanwhile; losses dilute the drill. A ✦ on its card.
+- Edits by click: a click on a province of a line takes it off; a drag decides whether it adds or takes off.
+
 ## 0.15.3 (2026-10-29 14:20 UTC)
 
 - **General portraits** on the commander cards: the whole painting fills the card, the name and the divisions and men

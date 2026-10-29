@@ -68,40 +68,51 @@ province takes it at once; cavalry takes ground after a battle in half the time 
 back. After a war, **Send home** (the command panel) sends an army's men back to the reserve and its
 upkeep stops; the guns go last. It works in peace only.
 
-**The command panel** (C) stands in the middle of the bottom edge, as in Hearts of Iron: one framed row (the Armies
-and Fleets tabs, the **Battle Plans** tools, then **Merge**, **Split**, **Halt** and **⋯**, which opens a second row
-with the rarer orders: send home, detach, general, group, attack line, symbol, board and land, show, deselect, and the
-division chips of one army) over a row of commander cards. Each army has one card (however many provinces it is spread
-over): its general's portrait and skill, its divisions and men, strength and morale, icons on top for the front it
-holds and its plan (green while executing), and its map colour down both sides. A group opens with its field marshal's
-card (gold; right click it to fold the group); the **+** card at the left forms an army group of the selected armies,
-the one at the right a new army of the divisions picked in the selected army (or chooses its general). The map modes
-are a drop-down in the bottom right corner (or the keys 1 to 6).
+**The command panel** (C) stands in the middle of the bottom edge, as in Hearts of Iron: the **Battle Plans** toolbar
+over a row of commander cards. Each army has one card (however many provinces it is spread over): on top a **red
+square (Halt)** and a **green arrow (Advance)**, then an icon for its plan or the front it holds, and a red "!" while
+its plan is not yet planned enough; under them its general's portrait and skill, its divisions and men, strength and
+morale, and its map colour down both sides. **Advance** sets its plan going (lit green while it advances; press again to
+stop); **Halt** stops it and stands its stacks still. A group opens with its field marshal's card (gold), whose halt
+and advance act on the whole group. **Right click a card** for the army's orders (merge, split, halt the march, detach,
+pick divisions, send home, board and land, show, deselect, symbol), its general and group; on a field marshal's card,
+the group's attack line, marshal and folding. The **+** card at the left forms an army group of the selected armies, the
+one at the right a new army of the picked divisions (or chooses its general). The map modes are a drop-down in the
+bottom right corner (or the keys 1 to 6). While fleets are selected (or after Fleets in the + row) the cards and orders
+are the fleets'.
 
-**Battle Plans.** Select an army (its card, or a field marshal's to take the whole group) and the **Battle Plans**
-toolbar gives it orders; while a tool is in hand the pointer is a crosshair, a hint follows it,
-and Esc puts the tool down. The map then shows only the selected armies' plans.
+**Battle Plans.** Select an army (its card, or a field marshal's to take the whole group) and the toolbar gives it
+orders; while a tool is in hand the pointer is a crosshair, a hint follows it, and Esc puts the tool down. The map then
+shows only the selected armies' plans. From left to right:
 
-- **Front line**: click a border to put the armies on the stretch of it there; **Shift+click** for the whole border.
-  Each army spreads its divisions along the line as **detachments**, one stack to a province, more where the enemy is
-  massed; with several armies on one front each holds a stretch of its own, side by side, never mixed. **Cohesion**
-  (the Military tab) says how far a division may be sent to fill a gap: *Rigid* two provinces, *Balanced* six,
-  *Flexible* anywhere. A stack you send somewhere by hand stays on its front and is left alone until it gets there.
-- **Offensive line**: drag across enemy ground to mark the line to push to (hold **Shift** to add it as the next phase).
-  **Spearhead**: click the one province to break through at. Needs the army on a front.
-- **Fallback line**: drag a line through your own ground; armies on it dig in two levels deeper and half again as
-  fast (dashed on the map). **Garrison**: tick what to guard (ports, forts, cities, the capital) and click your
-  provinces; Enter or Finish.
-- **Naval invasion**: click a port of yours, then the coast to land on; the army gathers in the port and sails once a
-  fleet there has the transports for it. **Naval support**: click a coast and your nearest free warships sail off it
-  on Shore support, adding up to 30% to your attacks there. **Paradrop** stays off: there are no aircraft yet.
-- **Unassign** takes the armies off their fronts and drops their plans. **Edit**: drag over a target line or a drawn
-  line to add provinces or take them off (a spearhead's target moves to the province clicked). **Delete**: click an
-  order on the map to remove it; right click the button to clear every order of the selection (or all of yours).
-- **Execute** (the play button) launches the plans, or halts them so the armies plan again. Standing on its front
-  with a plan an army **plans**: up to +30% to its attacks after two weeks, ready to go after one (a green tick on the
-  banner); marching or fighting spends it. **Careful** (›) attacks only at two to one and stops when morale is low,
-  **Balanced** (››) at fair odds, **Aggressive** (›››) at even odds, at once, whatever the morale.
+- **Train**: puts the armies on exercise (press again to stop). Standing still, their divisions gain experience, up to
+  a fifth more power after four months; meanwhile their men cost half again as much upkeep. Losses dilute it. A ✦ on the
+  card marks an army on exercise.
+- **Careful / Balanced / Aggressive** (one button, › ›› ›››, going round): *Careful* attacks only at two to one and halts
+  under 60% morale, *Balanced* at fair odds, *Aggressive* at even odds, at once, whatever the morale.
+- **Create/Edit front line**: click a border to put the armies on the stretch of it there; **Shift+click** for the whole
+  border. They spread their divisions along it as detachments, more where the enemy is massed; several armies on one
+  front each hold a stretch of their own. On a line of the army's own, drag its end outward to lengthen it, click an end
+  to shorten it. **Cohesion** (the Military tab) says how far a division may be sent to fill a gap.
+- **Attack line**: drag across enemy ground to mark the line to push to; **Shift** adds it as the next phase; **Ctrl**
+  drags more provinces onto the line it has; a drag that starts on the line takes provinces off. Needs a front.
+- **Spearhead**: click the one province to break through at. Needs a front.
+- **Fallback line**: drag a line through your own ground; armies on it dig in two levels deeper and half again as fast.
+- **Edit order** (the pencil): drag over the army's target line or its drawn line to add provinces (from off the line)
+  or take them off (along it); a click on the line takes that province off. A spearhead's target moves to the province
+  clicked.
+- **Add to front line**: click a front on the map; the selected armies join it. **Remove from front line**: takes them
+  off their fronts and drops their plans.
+- **Delete order/front line**: click an order on the map to remove it; right click the button to clear every order of
+  the selection (or all of yours).
+- **+** opens a second row: **Execute** (launch or halt the selected armies' plans, as their cards' arrows do),
+  **Garrison** (tick ports, forts, cities, the capital and click your provinces; Enter or Finish), **Naval invasion**
+  (click a port of yours, then the coast to land on), **Naval support** (click a coast: your nearest free warships add
+  up to 30% to attacks there), **Paradrop** (off: no aircraft yet), **Merge**, **Split**, **Halt** (the march) and
+  **Fleets** (the fleets' cards and orders; Armies brings the armies back).
+
+Standing on its front with a plan an army **plans**: up to +30% to its attacks after two weeks, ready to go after one
+(the "!" on its card goes, and a green tick shows on its banners); marching or fighting spends it.
 
 A push sends each stack at the enemy province next to it that leads toward the line, stacks going for the same
 province together; a spearhead gathers the whole army next to the next province on the way and strikes it together. On
@@ -109,7 +120,8 @@ the map a push is a wide arrow in the army's colour to its target line, the enem
 a narrow arrow ringed at its target; a landing an arrow from its port over the sea; later phases are dashed. A yellow
 triangle on a banner means low supply, a red "!" an army at war on no front. Selecting a stack outlines every stack of
 its army in the army's colour; stacks marching to their place on a front draw their road in that colour, and a stretch
-by rail is dashed with a small train. The Military tab lists the fronts and has the same plan controls.
+by rail is dashed with a small train. The Military tab lists the fronts, has the same plan controls, and makes
+garrisons (guarding ports, cities or the capital).
 Armies can be grouped under a field marshal.
 In a battle you are in, the battle screen has a **staff report**: how it goes, how long each side lasts, and what a quarter
 more power, a weaker enemy or another level of trench would do.

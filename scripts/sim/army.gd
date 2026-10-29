@@ -43,6 +43,9 @@ var prepared := false
 ## Planning for its army's attack, 0 to 1 (Offensives): built up standing on the front with a plan, spent marching
 ## and fighting; when attacking it adds up to offensive.planning_max to the stack's power.
 var planning := 0.0
+## On exercise (the Train button): standing still, its divisions gain experience and its men cost more upkeep
+## (military.json training). Set on the army; its detachments follow it.
+var training := false
 ## Fleet the army is embarked in (0 = on land). An embarked army stands in the port it left
 ## until it lands; it cannot fight, move or be supplied by land (see Navy).
 var fleet_id := 0

@@ -4,7 +4,7 @@ extends RefCounted
 ## is a texture sized for a line of text. Names: coin, tax, factory, people, soldier, wheat, coal, iron, wood,
 ## star, flame, scroll, shield, anchor, hammer, flag, scales, chart, cannon; and the battle plan tools: play, pause,
 ## chevron1-3, frontline, offensive, spearhead, fallback, garrison, invasion, naval_support, paradrop, unassign, edit,
-## delete, plus; and the command row's merge, split, halt, more.
+## delete, plus, train, add_front, remove_front; and the command row's merge, split, halt, more.
 
 const SIZE := 18
 
@@ -48,7 +48,10 @@ const _SHAPES := {
 	"merge": '<path d="M4 4.500l6.500 6.500M4 19.500l6.500-6.500M10.500 12H20" fill="none" stroke="#d9c28c" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12l-4.500-3.500v7z" fill="#d9c28c"/>',
 	"split": '<path d="M3 12h7.500l5.500-6M10.500 12l5.500 6" fill="none" stroke="#d9c28c" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.500 3.500l-5.300.8 3.700 3.700zM20.500 20.500l-.8-5.300-3.700 3.700z" fill="#d9c28c"/>',
 	"halt": '<path d="M8.200 2.500h7.600l5.700 5.700v7.600l-5.700 5.700H8.200l-5.700-5.700V8.200z" fill="#d9c28c"/><path d="M7.500 12h9" stroke="#7e6b42" stroke-width="2.600" stroke-linecap="round"/>',
-	"more": '<circle cx="5" cy="12" r="2.200" fill="#d9c28c"/><circle cx="12" cy="12" r="2.200" fill="#d9c28c"/><circle cx="19" cy="12" r="2.200" fill="#d9c28c"/>'
+	"more": '<circle cx="5" cy="12" r="2.200" fill="#d9c28c"/><circle cx="12" cy="12" r="2.200" fill="#d9c28c"/><circle cx="19" cy="12" r="2.200" fill="#d9c28c"/>',
+	"train": '<path d="M4 20L17.500 6.500M20 20L6.500 6.500" fill="none" stroke="#d9c28c" stroke-width="2.200" stroke-linecap="round"/><path d="M17.500 6.500l2-3.500.5 3zM6.500 6.500l-2-3.500-.5 3z" fill="#d9c28c"/><circle cx="12" cy="17.500" r="3" fill="none" stroke="#d9c28c" stroke-width="1.500"/>',
+	"add_front": '<circle cx="8" cy="6" r="2.800" fill="#d9c28c"/><path d="M3 15c0-3.500 2.300-5.500 5-5.500s5 2 5 5.500z" fill="#d9c28c"/><path d="M17.500 4v7M14 7.500h7" stroke="#d9c28c" stroke-width="2.200" stroke-linecap="round"/><path d="M2 20h20" stroke="#d9c28c" stroke-width="2"/><path d="M4 20v2M8 20v2M12 20v2M16 20v2M20 20v2" stroke="#d9c28c" stroke-width="1.400"/>',
+	"remove_front": '<circle cx="8" cy="6" r="2.800" fill="#d9c28c"/><path d="M3 15c0-3.500 2.300-5.500 5-5.500s5 2 5 5.500z" fill="#d9c28c"/><path d="M14 7.500h7" stroke="#d9c28c" stroke-width="2.200" stroke-linecap="round"/><path d="M2 20h20" stroke="#d9c28c" stroke-width="2"/><path d="M4 20v2M8 20v2M12 20v2M16 20v2M20 20v2" stroke="#d9c28c" stroke-width="1.400"/>'
 }
 
 static var _cache := {}

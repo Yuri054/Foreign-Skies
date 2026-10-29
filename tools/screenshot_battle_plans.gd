@@ -1,6 +1,7 @@
 extends SceneTree
 ## Pictures of the Battle Plans toolbar: Germany at war with Russia, two armies on the eastern front, the 8th Army
-## selected with a push planned; then the Offensive line tool in hand mid-drag, the Garrison checklist, a landing, an army group, the more row and the map modes list, and 3D:
+## selected with a push planned; then the Attack line tool in hand mid-drag, the card's menu of orders, a fallback line
+## being dragged, an army group, division chips and the map modes list, and 3D:
 ##   godot --path . --resolution 1600x900 --rendering-driver opengl3 -s res://tools/screenshot_battle_plans.gd -- out_dir
 func _initialize() -> void:
 	await process_frame
@@ -92,63 +93,61 @@ func _initialize() -> void:
 	for i in 6:
 		await process_frame
 	root.get_texture().get_image().save_png("%s/toolbar_3_planned.png" % out)
-	# The Garrison checklist.
-	bar.set_tool("garrison")
-	# Clicked at the German port nearest Danzig, with Ports, Forts and Cities ticked.
-	var danzig_at: Vector2 = Vector2.ZERO
-	for c in gs.cities:
-		if c.name == "Danzig":
-			danzig_at = MD.provinces[c.province].center
-	var danzig := 0
+	# The 8th Army advances (its card's green arrow) and goes on exercise; the card's right click menu of orders.
+	var cmd: Node = get_first_node_in_group("command_panel")
+	cmd._on_card_advance("army", armies[0].id)
+	gs.issue(load("res://scripts/sim/set_training.gd").new("GER", [armies[1].id] as Array[int], true))
+	for i in 4:
+		await process_frame
+	var card_8 = cmd._cards.find_children("*", "CommandCard", true, false).filter(func(c) -> bool: return c.title == "8th Army")[0]
+	cmd._on_card_context(card_8.get_global_rect().position + Vector2(30, -10), "army", armies[0].id)
+	for i in 6:
+		await process_frame
+	root.get_texture().get_image().save_png("%s/toolbar_4_card_menu.png" % out)
+	cmd._menu.hide()
+	# A fallback line dragged behind the front.
+	var behind: Array[int] = []
 	for id in range(1, gs.province_controller.size()):
-		if gs.province_controller[id] == "GER" and load("res://scripts/sim/navy.gd").can_dock(gs, "GER", id):
-			if danzig == 0 or (MD.provinces[id].center as Vector2).distance_to(danzig_at) < (MD.provinces[danzig].center as Vector2).distance_to(danzig_at):
-				danzig = id
-	bar.map_press(danzig, 0, MOUSE_BUTTON_LEFT, false)
-	var at2: Vector2 = main.get_viewport().get_canvas_transform() * (MD.provinces[danzig].center as Vector2)
+		if gs.province_controller[id] == "GER" and Mil.neighbors(id).all(func(n: int) -> bool: return gs.province_controller[n] == "GER"):
+			if (MD.provinces[id].center as Vector2).distance_to(MD.provinces[stack.province].center) < 260.0:
+				behind.append(id)
+	behind = FS.order_line(behind).slice(0, 4)
+	bar.set_tool("fallback")
+	bar.map_press(behind[0], 0, MOUSE_BUTTON_LEFT, false)
+	for p in behind:
+		bar.map_drag(p)
+	var at2: Vector2 = main.get_viewport().get_canvas_transform() * (MD.provinces[behind[-1]].center as Vector2)
 	for i in 6:
 		await process_frame
 	bar._hint.position = at2 + Vector2(18, 20)
 	await process_frame
-	root.get_texture().get_image().save_png("%s/toolbar_4_garrison.png" % out)
+	root.get_texture().get_image().save_png("%s/toolbar_5_fallback_drag.png" % out)
 	bar.set_tool("")
-	# A landing: a corps in the port aimed at the Russian coast up the Baltic.
-	var corps = Mil.new_army(gs, "GER", "Landing Corps", danzig)
-	for i in 4:
-		corps.units.append(UnitC.new("infantry"))
-	var coast := 0
-	for id in range(1, gs.province_controller.size()):
-		if gs.province_controller[id] == "RUS" and not MD.zones_of_port(id).is_empty():
-			if coast == 0 or (MD.provinces[id].center as Vector2).distance_to(danzig_at) < (MD.provinces[coast].center as Vector2).distance_to(danzig_at):
-				coast = id
-	get_first_node_in_group("military_panel").select_ids([corps.id] as Array[int])
-	await process_frame
-	bar.set_tool("invasion")
-	bar.map_press(danzig, 0, MOUSE_BUTTON_LEFT, false)
-	bar.map_press(coast, 0, MOUSE_BUTTON_LEFT, false)
-	cam.position = (MD.provinces[danzig].center + MD.provinces[coast].center) * 0.5 + Vector2(0, 120)
-	for i in 8:
-		await process_frame
-	root.get_texture().get_image().save_png("%s/toolbar_5_invasion.png" % out)
-	get_first_node_in_group("military_panel").select_ids([stack.id] as Array[int])
-	cam.position = MD.provinces[line[line.size() / 2]].center + Vector2(40, 60)
 	# An army group: the 8th and 9th Armies under a field marshal, the whole group selected from his card.
 	var made = load("res://scripts/sim/create_army_group.gd").new("GER", "Army Group East", [armies[0].id, armies[1].id] as Array[int])
 	gs.issue(made)
 	var marshal = Mil.new_general(gs, "GER", "Paul von Hindenburg", 1.2)
 	gs.issue(load("res://scripts/sim/set_marshal.gd").new("GER", made.group_id, marshal.id))
-	var cmd: Node = get_first_node_in_group("command_panel")
 	cmd._on_select_group(made.group_id, false)
 	for i in 8:
 		await process_frame
 	root.get_texture().get_image().save_png("%s/toolbar_7_army_group.png" % out)
-	# The more button's row of orders, and the map modes' list, open.
-	cmd._more.button_pressed = true
+	# The row the "+" button opens.
+	bar._extend.button_pressed = true
+	for i in 6:
+		await process_frame
+	root.get_texture().get_image().save_png("%s/toolbar_9_plus_row.png" % out)
+	bar._extend.button_pressed = false
+	# The division chips of one army, and the map modes' list, open.
+	get_first_node_in_group("military_panel").select_ids([armies[0].id] as Array[int])
+	cmd._more_open = true
+	cmd._refresh()
 	get_first_node_in_group("map_modes").set_open(true)
 	for i in 8:
 		await process_frame
-	root.get_texture().get_image().save_png("%s/toolbar_8_more_and_map_modes.png" % out)
-	cmd._more.button_pressed = false
+	root.get_texture().get_image().save_png("%s/toolbar_8_chips_and_map_modes.png" % out)
+	cmd._more_open = false
+	cmd._refresh()
 	get_first_node_in_group("map_modes").set_open(false)
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)

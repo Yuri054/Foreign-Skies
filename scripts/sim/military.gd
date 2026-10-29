@@ -714,6 +714,23 @@ static func marshal_mult(a: Army) -> float:
 static func refresh_men(gs: Node) -> void:
 	for tag in gs.nations:
 		gs.nations[tag].men_in_units = men_in_service(gs, tag)
+		gs.nations[tag].men_exercising = 0
+	for a: Army in gs.armies.values():
+		var root := FrontSolver.root_of(gs, a)
+		if root != null and root.training and gs.nations.has(a.tag):
+			gs.nations[a.tag].men_exercising += roundi(a.men())
+
+
+## Exercises: every division of an army on exercise standing still (not marching, fighting or at sea) gains
+## experience, full in training.days_full days.
+static func _drill(gs: Node) -> void:
+	var gain := 1.0 / maxf(float(cfg.get("training", {}).get("days_full", 120)), 1.0)
+	for a: Army in gs.armies.values():
+		var root := FrontSolver.root_of(gs, a)
+		if root == null or not root.training or not a.path.is_empty() or a.fighting or a.embarked():
+			continue
+		for u in a.units:
+			u.experience = minf(1.0, u.experience + gain)
 
 
 ## Days at which an army walking `path` from `from` reaches each province on it, counted from
@@ -902,6 +919,7 @@ static func step_day(gs: Node) -> void:
 	AttackLines.step_day(gs)
 	release_orphan_generals(gs)
 	_train(gs)
+	_drill(gs)
 	var armies: Array = gs.armies.values()
 	for a: Army in armies:
 		a.fighting = false
@@ -1147,9 +1165,11 @@ static func _apply_casualties(a: Army, casualties: float) -> float:
 		return 0.0
 	var frac := minf(casualties / total, 1.0)
 	var morale_loss: float = frac * cfg.combat.morale_loss_per_casualty + cfg.combat.morale_loss_base
+	var dilution: float = float(cfg.get("training", {}).get("loss_dilution", 0.5))
 	for i in range(a.units.size() - 1, -1, -1):
 		var u := a.units[i]
 		u.strength *= 1.0 - frac
+		u.experience *= 1.0 - frac * dilution
 		u.morale = maxf(0.0, u.morale - morale_loss)
 		if u.strength < cfg.combat.min_strength:
 			a.units.remove_at(i)
