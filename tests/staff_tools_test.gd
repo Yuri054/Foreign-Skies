@@ -127,7 +127,7 @@ func _initialize() -> void:
 		gs.issue(AssignToFront.new("GER", df.front_id, ids))
 		_check(a.front_id == df.front_id, "an army handed to a front is on it")
 		gs.issue(MoveArmy.new("GER", a.id, home))
-		_check(a.front_id == 0, "an order given by hand takes it off the front")
+		_check(a.front_id == df.front_id and a.pin == home, "an order given by hand pins it: it stays on its front, left alone until it gets there")
 	else:
 		_check(true, "(no border front could be drawn)")
 

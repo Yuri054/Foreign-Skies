@@ -19,16 +19,25 @@ func execute(gs: Node) -> bool:
 	var a: Army = gs.armies.get(army_id)
 	if a == null or a.tag != tag or a.embarked() or destination < 1 or destination >= gs.province_owner.size():
 		return false
+	# On a spreading front a hand order pins the stack instead of taking its army off the front: the front leaves it
+	# alone until it has stopped where it was sent (FrontSolver).
+	var root := FrontSolver.root_of(gs, a)
+	var spreading: bool = root != null and root.front_id != 0 and gs.fronts.has(root.front_id) and (gs.fronts[root.front_id] as Front).spread
 	if destination == a.province:
-		Military.leave_front(gs, a)
+		if not spreading:
+			Military.leave_front(gs, a)
 		# Moving to where it stands cancels the order.
 		a.path.clear()
+		a.pin = 0
 		return true
 	path = Military.find_path(gs, tag, a.speed(), a.province, destination)
 	if path.is_empty():
 		return false
-	# A hand-given order takes the army off its front.
-	Military.leave_front(gs, a)
+	# A hand-given order takes the army off its front, or on a spreading front pins it.
+	if spreading:
+		a.pin = destination
+	else:
+		Military.leave_front(gs, a)
 	# Keep the progress already made if the army is still heading into the same province.
 	if a.path.is_empty() or a.path[0] != path[0]:
 		a.move_days_left = Military.move_days(gs, tag, a.speed(), a.province, path[0])

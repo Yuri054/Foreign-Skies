@@ -25,6 +25,20 @@ var line_stamp := -1
 var dirty := true
 ## Army id -> the day before which no route to its slot is looked for again (it found none).
 var retry: Dictionary = {}
+## Whether the armies on it spread their divisions along the line as detachments (FrontSolver); off, each army holds
+## one province (the slots). The player's fronts spread; the AI's do not yet.
+var spread := false
+## How far a division may be sent along the line to fill a gap: "rigid", "balanced" or "flexible" (FrontSolver._reach).
+var cohesion := "balanced"
+## The line in order along its length, the weight of each of its provinces, and the day they were weighed (FrontSolver).
+var order: Array[int] = []
+var weights: Array[float] = []
+var weights_day := -1
+## Army ids still deploying: newly put on the front, they go anywhere along the line until every province has its
+## share; only then does the cohesion limit hold them (FrontSolver).
+var deploying: Dictionary = {}
+## Each army's sector of the ordered line on a broad front: army id -> Vector2i(first index, one past the last).
+var sectors: Dictionary = {}
 
 
 func to_dict() -> Dictionary:

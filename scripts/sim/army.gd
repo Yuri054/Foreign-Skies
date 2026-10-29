@@ -32,6 +32,12 @@ var icon := "auto"
 var front_id := 0
 ## Army group this army belongs to (0 = none; see ArmyGroup).
 var group_id := 0
+## The army this stack is a detachment of (0: it is an army). A detachment holds part of its army's stretch of a front
+## and keeps its general, symbol and group; see FrontSolver.
+var parent_id := 0
+## Province a hand-given order is taking the stack to, on a spreading front (0: none). The front leaves it alone until
+## it has stopped there; see FrontSolver.
+var pin := 0
 ## Fleet the army is embarked in (0 = on land). An embarked army stands in the port it left
 ## until it lands; it cannot fight, move or be supplied by land (see Navy).
 var fleet_id := 0

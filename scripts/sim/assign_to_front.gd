@@ -1,6 +1,7 @@
 class_name AssignToFront
 extends Command
-## Assigns armies to a front (front 0 releases them from whichever front they are in).
+## Assigns armies to a front (front 0 releases them from whichever front they are in). A detachment stands for its
+## army: the whole army is assigned or released.
 
 var tag: String
 var front_id: int
@@ -23,12 +24,18 @@ func execute(gs: Node) -> bool:
 		var a: Army = gs.armies.get(id)
 		if a == null or a.tag != tag:
 			return false
+	var roots: Array[int] = []
 	for id in army_ids:
+		var root := FrontSolver.root_of(gs, gs.armies[id])
+		if root != null and not roots.has(root.id):
+			roots.append(root.id)
+	for id in roots:
 		var a: Army = gs.armies[id]
 		Military.leave_front(gs, a)
 		if target != null:
 			a.front_id = target.id
 			target.army_ids.append(id)
+			target.deploying[id] = true
 	if target != null:
 		target.dirty = true
 	gs.fronts_changed.emit()

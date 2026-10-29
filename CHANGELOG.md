@@ -5,7 +5,22 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.3 (2026-10-29 02:34 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.13.0 (2026-10-29 02:52 UTC)
+
+The first part of the new front system (the plan is `docs/FRONTLINES.md`).
+
+- **Armies spread along their fronts.** An army put on a front deploys as detachments, one stack of its divisions to a
+  province of the line, more where enemy divisions are massed opposite. The detachments keep their army's general and
+  name, and when the army is released they march back and join it again.
+- **Broad fronts.** Put several armies, or a whole army group (the new "Assign army group" list on the Military tab), on
+  one front and each army holds a stretch of its own, sized by its divisions, side by side in the order they stand;
+  divisions of different armies never mix. The front's details list each army's stretch.
+- **Cohesion**: Rigid (a division moves at most two provinces to fill a gap), Balanced (six) or Flexible (anywhere).
+- **Hand orders pin, not release.** Sending a stack of a front somewhere by hand keeps it on its front: the front leaves
+  it alone until it gets there. Release takes an army off its front.
+- The AI's fronts keep working as before for now.
+
+## 0.12.3 (2026-10-29 02:34 UTC)
 
 - **Ships in port lie on the water**, on the flat map and in 3D. Each port has a harbour spot: the open water off its
   harbour town, in its own sea zone, worked out once; the fleet's banner, its 3D models and the routes into the port use

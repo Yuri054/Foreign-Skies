@@ -68,8 +68,14 @@ province takes it at once; cavalry takes ground after a battle in half the time 
 back. After a war, **Send home** (the command panel) sends an army's men back to the reserve and its
 upkeep stops; the guns go last. It works in peace only.
 
-**Fronts** are lines of provinces armies hold. Hand armies to a front (the command panel, C, or the Military tab) and they
-spread along it and hold it; an order of your own takes an army off its front. Armies can be grouped under a field marshal.
+**Fronts** are lines of provinces armies hold. Hand armies to a front (the command panel, C, or the Military tab) and each
+army spreads its divisions along the line as **detachments**, one stack to a province, more where the enemy is massed;
+the detachments keep their army's general and name. With several armies on one front (or a whole **army group**, from
+the "Assign army group" list), each army holds a stretch of its own, side by side in the order they stand: divisions of
+different armies never mix. **Cohesion** says how far a division may be sent to fill a gap: *Rigid* two provinces,
+*Balanced* six, *Flexible* anywhere. A detachment or army you send somewhere by hand stays on its front and is left alone
+until it gets there; "Release" takes the army off the front, and its detachments march back and join it again.
+Armies can be grouped under a field marshal.
 In a battle you are in, the battle screen has a **staff report**: how it goes, how long each side lasts, and what a quarter
 more power, a weaker enemy or another level of trench would do.
 

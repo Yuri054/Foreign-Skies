@@ -45,6 +45,11 @@ var _face_row := VBoxContainer.new()
 var _assign_button := Button.new()
 var _release_button := Button.new()
 var _delete_button := Button.new()
+## How the chosen front is held (SetFrontPolicy "cohesion"), and the army group to put on it whole.
+var _cohesion := OptionButton.new()
+var _group_pick := OptionButton.new()
+var _group_ids: Array[int] = []
+const COHESIONS := [["rigid", "Rigid"], ["balanced", "Balanced"], ["flexible", "Flexible"]]
 var _draw_row := VBoxContainer.new()
 var _front_name := LineEdit.new()
 
@@ -164,6 +169,23 @@ func _ready() -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		front_buttons.add_child(b)
 	fronts_box.add_child(front_buttons)
+	var policy_row := HBoxContainer.new()
+	var cohesion_label := Label.new()
+	cohesion_label.text = "Cohesion"
+	policy_row.add_child(cohesion_label)
+	_cohesion.focus_mode = Control.FOCUS_NONE
+	_cohesion.tooltip_text = "How far along the line a division may be sent to fill a gap. Rigid: two provinces, each holds its own stretch. Balanced: six. Flexible: anywhere along the front."
+	for c in COHESIONS:
+		_cohesion.add_item(c[1])
+	_cohesion.item_selected.connect(func(i: int) -> void:
+		GameState.issue(SetFrontPolicy.new(GameState.player_tag, _front_selected, "cohesion", COHESIONS[i][0]))
+	)
+	policy_row.add_child(_cohesion)
+	_group_pick.focus_mode = Control.FOCUS_NONE
+	_group_pick.tooltip_text = "Put a whole army group on the chosen front: each of its armies takes a stretch of the line of its own, side by side, in the order they stand."
+	_group_pick.item_selected.connect(_on_group_picked)
+	policy_row.add_child(_group_pick)
+	fronts_box.add_child(policy_row)
 	var face_hint := Label.new()
 	face_hint.text = "Click a province of the nation to face. Esc cancels."
 	face_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -554,6 +576,10 @@ func _refresh_fronts() -> void:
 		_front_selected = 0
 		get_tree().call_group("army_layer", "set_selected_front", 0)
 	var chosen: Front = GameState.fronts.get(_front_selected)
+	_cohesion.disabled = chosen == null or not chosen.spread
+	if chosen != null:
+		_cohesion.select(maxi(0, COHESIONS.map(func(c: Array) -> String: return c[0]).find(chosen.cohesion)))
+	_refresh_group_pick(chosen)
 	_delete_button.disabled = chosen == null
 	_assign_button.disabled = chosen == null or _selected.is_empty()
 	_release_button.disabled = _selected.is_empty()
@@ -567,9 +593,12 @@ func _refresh_fronts() -> void:
 	for p in chosen.provinces:
 		held[p] = 0.0
 	for id in chosen.army_ids:
-		var a: Army = GameState.armies.get(id)
-		if a != null and held.has(a.province):
-			held[a.province] += a.men()
+		var root: Army = GameState.armies.get(id)
+		if root == null:
+			continue
+		for a: Army in FrontSolver.stacks_of(GameState, root):
+			if held.has(a.province):
+				held[a.province] += a.men()
 	var weakest: int = chosen.provinces[0]
 	for p in chosen.provinces:
 		if held[p] < held[weakest]:
@@ -577,10 +606,56 @@ func _refresh_fronts() -> void:
 	var line_names: PackedStringArray = []
 	for p in chosen.provinces:
 		line_names.append(MapData.provinces[p].name)
-	_front_detail.text = "%s: %s.\nWeakest point: %s (%s men)." % [
+	_front_detail.text = "%s: %s.\nWeakest point: %s (%s men).%s" % [
 		chosen.display_name,
 		"%d border provinces" % chosen.provinces.size() if not chosen.against.is_empty() else " → ".join(line_names),
-		MapData.provinces[weakest].name, Fmt.people(held[weakest])]
+		MapData.provinces[weakest].name, Fmt.people(held[weakest]), _sectors_text(chosen)]
+
+
+## Each army's stretch of a broad front, in order along the line: "1st Army: Posen to Thorn, 5 provinces, 12 divisions".
+func _sectors_text(f: Front) -> String:
+	if not f.spread or f.sectors.size() < 1 or f.order.is_empty():
+		return ""
+	var rows: Array = []
+	for id in f.sectors:
+		var root: Army = GameState.armies.get(id)
+		if root == null:
+			continue
+		var span: Vector2i = f.sectors[id]
+		var divisions := 0
+		for s: Army in FrontSolver.stacks_of(GameState, root):
+			divisions += s.units.size()
+		var a_name: String = MapData.provinces[f.order[span.x]].name
+		var b_name: String = MapData.provinces[f.order[mini(span.y, f.order.size()) - 1]].name
+		rows.append([span.x, "%s: %s%s, %d provinces, %d divisions" % [root.display_name, a_name, (" to " + b_name) if b_name != a_name else "", span.y - span.x, divisions]])
+	rows.sort()
+	return "\n" + "\n".join(PackedStringArray(rows.map(func(r: Array) -> String: return r[1])))
+
+
+## The army groups that could be put on the chosen front whole.
+func _refresh_group_pick(chosen: Front) -> void:
+	var ids: Array[int] = []
+	for g: ArmyGroup in GameState.army_groups.values():
+		if g.tag == GameState.player_tag and not g.army_ids.is_empty():
+			ids.append(g.id)
+	ids.sort()
+	if ids != _group_ids or _group_pick.item_count != ids.size() + 1:
+		_group_ids = ids
+		_group_pick.clear()
+		_group_pick.add_item("Assign army group…")
+		for id in ids:
+			_group_pick.add_item(GameState.army_groups[id].display_name)
+	_group_pick.select(0)
+	_group_pick.disabled = chosen == null or ids.is_empty()
+
+
+func _on_group_picked(i: int) -> void:
+	if i <= 0 or i > _group_ids.size():
+		return
+	var g: ArmyGroup = GameState.army_groups.get(_group_ids[i - 1])
+	if g != null:
+		GameState.issue(AssignToFront.new(GameState.player_tag, _front_selected, g.army_ids.duplicate()))
+	_group_pick.select(0)
 
 
 ## Starts a new front from the action bar: "draw" (click the provinces) or "face" (click a nation).

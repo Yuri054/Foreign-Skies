@@ -48,6 +48,8 @@ func execute(gs: Node) -> bool:
 		f.display_name = "Front vs %s" % gs.nations[against].display_name if not against.is_empty() else "Front %d" % f.id
 	f.against = against
 	f.provinces = Military.border_provinces(gs, tag, against) if not against.is_empty() else provinces.duplicate()
+	# The player's armies spread their divisions along the line (FrontSolver); the AI's hold a province each.
+	f.spread = tag == gs.player_tag
 	gs.fronts[f.id] = f
 	front_id = f.id
 	gs.fronts_changed.emit()

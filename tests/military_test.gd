@@ -361,6 +361,8 @@ func _test_fronts() -> void:
 	var cmd = FrontC.new("FRA", "Lorraine Front", line)
 	_check(gs.issue(cmd) and gs.fronts.has(cmd.front_id), "a front can be drawn")
 	_check(gs.fronts[cmd.front_id].display_name == "Lorraine Front", "it keeps its name")
+	# The whole-army mode (each army holds one province), as the AI's fronts work; spreading is front_solver_test's.
+	gs.fronts[cmd.front_id].spread = false
 	var unnamed = FrontC.new("FRA", "", line)
 	gs.issue(unnamed)
 	_check(gs.fronts[unnamed.front_id].display_name.begins_with("Front "), "unnamed fronts get a default name")
@@ -466,6 +468,7 @@ func _test_border_fronts(pair: Array) -> void:
 	var cmd = FrontC.new("FRA", "", none, "GER")
 	_check(gs.issue(cmd), "a front can be drawn by naming the nation")
 	var f = gs.fronts[cmd.front_id]
+	f.spread = false
 	_check(f.display_name == "Front vs German Empire" and f.against == "GER", "it is named after the nation")
 	_check(f.provinces == line, "its line is the whole border")
 

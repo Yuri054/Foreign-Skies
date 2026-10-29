@@ -755,6 +755,7 @@ static func leave_front(gs: Node, a: Army) -> void:
 	if f != null:
 		f.army_ids.erase(a.id)
 		f.slots.erase(a.id)
+		f.deploying.erase(a.id)
 		f.dirty = true
 	a.front_id = 0
 
@@ -783,6 +784,10 @@ static func step_fronts(gs: Node) -> void:
 			f.dirty = true
 		if f.provinces.is_empty():
 			f.slots.clear()
+			continue
+		if f.spread:
+			f.slots.clear()
+			routes_left = FrontSolver.step(gs, f, routes_left)
 			continue
 		if f.dirty:
 			var t1 := Time.get_ticks_usec() if profile else 0
@@ -856,6 +861,8 @@ static func _dist(a: int, b: int) -> float:
 # ------------------------------------------------------------------ daily step
 
 static func step_day(gs: Node) -> void:
+	# Detachments first: one whose army was destroyed takes its place before the fronts drop the army.
+	_timed("detachments", func() -> void: FrontSolver.step_detachments(gs))
 	_timed("fronts", func() -> void: step_fronts(gs))
 	prune_groups(gs)
 	AttackLines.step_day(gs)
