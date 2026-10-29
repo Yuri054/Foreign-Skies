@@ -7,6 +7,11 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.16.2 (2026-10-29 15:58 UTC)
+
+- No empty space under the generals' cards: each block of cards is as tall as its own cards and stands on the bottom
+  line, instead of stretching to the height of a field marshal's taller card.
+
 ## 0.16.1 (2026-10-29 15:43 UTC)
 
 - **Field marshals stand out from their generals**: a bigger card that rises above theirs, a gold band on top with three

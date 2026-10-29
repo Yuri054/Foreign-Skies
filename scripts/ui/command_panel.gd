@@ -674,6 +674,8 @@ func _make_block(block: Dictionary) -> Control:
 	col.add_child(row)
 	var framed := PanelContainer.new()
 	framed.add_theme_stylebox_override("panel", _block_style(int(block.get("group", 0)) != 0))
+	# A block is as tall as its own cards and stands on the bottom line, not stretched to the tallest (a marshal's).
+	framed.size_flags_vertical = Control.SIZE_SHRINK_END
 	framed.add_child(col)
 	return framed
 
