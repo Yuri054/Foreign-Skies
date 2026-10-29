@@ -206,8 +206,10 @@ static func fleet_line(classes: Dictionary) -> Array:
 	return out
 
 
-static func fleet_mesh(line: Array, colour: Color) -> ArrayMesh:
-	var key := "f%s|%s" % [colour.to_html(false), ",".join(PackedStringArray(line))]
+## A fleet's ships: at sea in line ahead, each pushing white water; moored (in port) side by side in rows of three, the
+## block no longer than a few ships, so that it lies in a harbour.
+static func fleet_mesh(line: Array, colour: Color, moored := false) -> ArrayMesh:
+	var key := "f%s|%s|%s" % [colour.to_html(false), ",".join(PackedStringArray(line)), "m" if moored else ""]
 	if _cache.has(key):
 		return _cache[key]
 	var st := SurfaceTool.new()
@@ -218,6 +220,16 @@ static func fleet_mesh(line: Array, colour: Color) -> ArrayMesh:
 	for type: String in line:
 		total += _ship_length(type) + 5.0
 	var x := -total * 0.5
+	if moored:
+		var longest := 0.0
+		for type: String in line:
+			longest = maxf(longest, _ship_length(type))
+		var rows := ceili(line.size() / 3.0)
+		for i in line.size():
+			var row := i / 3
+			var across := mini(3, line.size() - row * 3)
+			_ship(st, Vector3((float(row) - (rows - 1) * 0.5) * (longest + 4.0), 0, (float(i % 3) - (across - 1) * 0.5) * 7.5), line[i], colour)
+		line = []
 	for i in line.size():
 		var type: String = line[i]
 		var length := _ship_length(type)

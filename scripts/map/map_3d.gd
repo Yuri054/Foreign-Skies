@@ -79,6 +79,8 @@ var _marker_root: Node3D
 var _unit_mat: StandardMaterial3D
 var _battle_mat: ShaderMaterial
 var _sea_offsets := {}
+## Fits of fleets on the water already worked out (see fit_on_water).
+var _fits := {}
 var _last_cam_pos := Vector2.ZERO
 var _last_cam_zoom := Vector2.ONE
 var _touched := true
@@ -694,6 +696,54 @@ func _sea_offset(pos: Vector2) -> Vector2:
 	return best
 
 
+## How to lay a fleet's model (its bounding `box`, `px_per_unit` map pixels a model unit) near `at` so that it is on
+## the water: {turn (round y), size (a scale of 1 or less), at (map pixels)}. Tries turns from the one it has (`turn`,
+## so a fleet under sail keeps its course where it can) at `at`, then a little way out into open water (the roads off a
+## harbour), and only then smaller sizes; the first with no part over land, else the one with the least.
+func fit_on_water(at: Vector2, box: AABB, px_per_unit: float, turn: float) -> Dictionary:
+	var key := [at.round(), box, snappedf(px_per_unit, 0.05), snappedf(turn, 0.01)]
+	if _fits.has(key):
+		return _fits[key]
+	var fit := _fit_on_water(at, box, px_per_unit, turn)
+	if _fits.size() > 2000:
+		_fits.clear()
+	_fits[key] = fit
+	return fit
+
+
+func _fit_on_water(at: Vector2, box: AABB, px_per_unit: float, turn: float) -> Dictionary:
+	var best := {"turn": turn, "size": 1.0, "at": at}
+	var best_land := 1 << 30
+	var centres: Array[Vector2] = [at]
+	for r: float in [12.0, 24.0, 36.0, 50.0, 66.0, 84.0]:
+		for i in 16:
+			centres.append(at + Vector2.from_angle(TAU * i / 16.0) * r)
+	var tries: Array = []
+	for c in centres:
+		tries.append([c, 1.0])
+	for size: float in [0.75, 0.55, 0.4]:
+		tries.append([at, size])
+	for t: Array in tries:
+		var c: Vector2 = t[0]
+		var size: float = t[1]
+		if CityModels.land_at(c):
+			continue
+		for k in 13:
+			var r := turn + deg_to_rad(15.0 * (float((k + 1) / 2) * (1.0 if k % 2 == 1 else -1.0)))
+			var land := 0
+			for ix in 9:
+				var x := lerpf(box.position.x, box.end.x, ix / 8.0)
+				for z: float in [box.position.z, (box.position.z + box.end.z) * 0.5, box.end.z]:
+					if CityModels.land_at(c + Vector2(x, z).rotated(-r) * px_per_unit * size):
+						land += 1
+			if land < best_land:
+				best_land = land
+				best = {"turn": r, "size": size, "at": c}
+			if land == 0:
+				return best
+	return best
+
+
 func _battle_material() -> ShaderMaterial:
 	if _battle_mat == null:
 		_battle_mat = CityModels.smoke_material(true)
@@ -725,7 +775,7 @@ static func model_growth(zoom: float) -> float:
 
 func _unit_mesh(entry: Dictionary, colour: Color) -> ArrayMesh:
 	if entry.kind == "fleet":
-		return UnitModels.fleet_mesh(UnitModels.fleet_line(entry.get("classes", {})), colour)
+		return UnitModels.fleet_mesh(UnitModels.fleet_line(entry.get("classes", {})), colour, bool(entry.get("in_port", false)))
 	return UnitModels.army_mesh(UnitModels.army_counts(entry.get("comp", {}), entry.men), colour)
 
 
@@ -749,18 +799,28 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 		if fleet:
 			model.set_surface_override_material(0, _unit_material())
 		var heading: Variant = entry.get("heading")
+		model.rotation.y = 0.0
 		if heading != null:
 			model.rotation.y = -float(heading)      # a marching army faces the way it goes
 		model.position = Vector3.ZERO
+		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
 		if fleet:
-			# A port is on the coast: the ships lie off it, in the water, the line along the shore.
-			var off := _sea_offset(entry.pos)
+			# Ships lie on the water: off the coast if the place is on land, then turned (and if need be drawn smaller)
+			# until none of the line is over land.
+			var at: Vector2 = entry.pos
+			var off := _sea_offset(at)
 			if off != Vector2.ZERO:
-				var water: Variant = ground_point(entry.pos + off)
+				at += off
+				var water: Variant = ground_point(at)
 				if water != null:
 					model.position = Vector3(water.x - entry.ground.x, water.y - entry.ground.y, water.z - entry.ground.z)
-				model.rotation.y = -(off.angle() + PI * 0.5)
-		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
+			var fit := fit_on_water(at, mesh.get_aabb(), FLEET_SCALE * growth, model.rotation.y)
+			model.rotation.y = fit.turn
+			scale_by *= fit.size
+			if fit.at != at:
+				var roads: Variant = ground_point(fit.at)
+				if roads != null:
+					model.position = Vector3(roads.x - entry.ground.x, 0.0, roads.z - entry.ground.z)
 		model.scale = Vector3.ONE * scale_by
 		lift = mesh.get_aabb().end.y * scale_by
 		if not fleet:

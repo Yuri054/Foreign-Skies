@@ -5,7 +5,15 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.2 (2026-10-29 02:14 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.3 (2026-10-29 02:34 UTC)
+
+- **Ships in port lie on the water**, on the flat map and in 3D. Each port has a harbour spot: the open water off its
+  harbour town, in its own sea zone, worked out once; the fleet's banner, its 3D models and the routes into the port use
+  it (before, the banner stood over the province's middle, inland).
+- In 3D a fleet in port lies moored in rows of three, and any fleet is turned, moved a little way out into the roads or
+  at last drawn smaller until none of it is over land.
+
+## 0.12.2 (2026-10-29 02:14 UTC)
 
 The 3D map's armies, fleets and cities, made easier to read.
 

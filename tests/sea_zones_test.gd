@@ -45,6 +45,18 @@ func _initialize() -> void:
 			bad += 1
 			printerr("zone ", id, " ", z.name, " is malformed")
 	_check(bad == 0, "every zone's centre is water inside that zone, and every zone has a neighbour")
+	# A fleet in port is drawn on the water off its harbour, not on the land.
+	var FL = load("res://scripts/map/fleet_layer.gd")
+	var on_land: Array = []
+	var far := 0
+	for port: int in map.port_zones:
+		var spot: Vector2 = FL.harbour_spot(port)
+		if map.province_at_pixel(Vector2i(spot.floor())) != map.SEA:
+			on_land.append(map.provinces[port].name)
+		elif spot.distance_to(map.provinces[port].center) > 400.0:
+			far += 1
+	_check(on_land.is_empty(), "every port's ships lie on the water (%d ports; on land: %s)" % [map.port_zones.size(), ", ".join(on_land)])
+	_check(far == 0, "and near the port (%d far off)" % far)
 
 	# The zone graph is connected and symmetric.
 	var seen := {1: true}

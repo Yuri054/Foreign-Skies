@@ -10,7 +10,8 @@ const GAP := 3.0
 const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
 const ROUTE_COLOR := Color(0.8, 0.95, 1.0, 0.6)
-const PORT_OFFSET := Vector2(0, 30)
+## Map pixels of open water a harbour spot keeps round it (see harbour_spot).
+const HARBOUR_CLEAR := 10.0
 const MISSION_LETTERS := {"station": "S", "patrol": "P", "blockade": "B", "escort": "E", "raid": "R"}
 
 ## Ids of the fleets the player has selected.
@@ -26,6 +27,8 @@ var markers_only := false:
 		queue_redraw()
 var markers: Array = []
 var _collecting := false
+## Harbour spots worked out so far: province id -> Vector2.
+static var _harbours := {}
 
 
 func _ready() -> void:
@@ -60,7 +63,7 @@ func _process(_delta: float) -> void:
 ## two zones when it is sailing).
 static func position_of(f: Fleet, px := 1.0) -> Vector2:
 	if f.port > 0:
-		return (MapData.provinces[f.port].center as Vector2) + PORT_OFFSET * px
+		return harbour_spot(f.port)
 	if f.zone <= 0:
 		return Vector2.ZERO
 	var here: Vector2 = MapData.sea_zones[f.zone].center
@@ -70,6 +73,54 @@ static func position_of(f: Fleet, px := 1.0) -> Vector2:
 	var total := maxf(Navy.zone_days(f.speed(), f.zone, f.path[0]), 1.0)
 	var done := clampf(1.0 - f.move_days_left / total, 0.0, 1.0)
 	return here.lerp(next, done)
+
+
+## Where the ships of a port lie, in map pixels: on the water off its harbour town (the province's biggest city, or
+## its centre), in the port's own sea zone where it can be, with HARBOUR_CLEAR of open water round it (less in narrow
+## waters), so that a
+## fleet in port is drawn at sea, not on the land. Worked out once for each port.
+static func harbour_spot(province: int) -> Vector2:
+	if _harbours.has(province):
+		return _harbours[province]
+	var origin: Vector2 = MapData.provinces[province].center
+	var towns: Array = GameState.cities_by_province.get(province, [])
+	if not towns.is_empty():
+		origin = towns[0].pos
+	var zones: Array[int] = MapData.zones_of_port(province)
+	var best := origin
+	# The port's own zone with open water round it first; then any zone; then narrower water (a river mouth, a strait).
+	for pass_ in [[true, HARBOUR_CLEAR], [false, HARBOUR_CLEAR], [false, 5.0], [false, 1.5]]:
+		var own_zone_only: bool = pass_[0]
+		var clear: float = pass_[1]
+		var found := false
+		for r in range(3, 240, 3):
+			for i in 32:
+				var dir := Vector2.from_angle(TAU * i / 32.0)
+				var p := origin + dir * r
+				if not _open_water(p, clear):
+					continue
+				if own_zone_only and not zones.is_empty() and not zones.has(MapData.sea_zone_at_pixel(Vector2i(p.floor()))):
+					continue
+				best = p
+				found = true
+				break
+			if found:
+				break
+		if found:
+			break
+	_harbours[province] = best
+	return best
+
+
+## Whether the water at `p` is open: `p` and a ring of points `clear` map pixels round it are all sea.
+static func _open_water(p: Vector2, clear: float) -> bool:
+	if MapData.province_at_pixel(Vector2i(p.floor())) != MapData.SEA:
+		return false
+	for i in 12:
+		var q := p + Vector2.from_angle(TAU * i / 12.0) * clear
+		if MapData.province_at_pixel(Vector2i(q.floor())) != MapData.SEA:
+			return false
+	return true
 
 
 ## One entry per (place, nation): {rect, tag, fleets, centre}. Places are zones for fleets at
@@ -196,7 +247,7 @@ func _draw_group(g: Dictionary, px: float) -> void:
 		elif mission != f.mission:
 			mixed = true
 	if markers_only or _collecting:
-		markers.append({"tag": g.tag, "squadrons": squadrons, "fleets": g.fleets.size(), "men": men, "picked": picked,
+		markers.append({"in_port": (g.fleets[0] as Fleet).port > 0, "tag": g.tag, "squadrons": squadrons, "fleets": g.fleets.size(), "men": men, "picked": picked,
 				"fighting": fighting, "pos": rect.get_center(), "classes": classes, "mission": mission, "mixed": mixed, "aboard": men})
 		return
 	_draw_fleet_banner(rect, px, color, squadrons, g.fleets.size(), picked, fighting, mission, mixed, men)
@@ -275,7 +326,7 @@ func _draw_routes(px: float) -> void:
 			prev = f.path[i]
 			from = to
 		if f.dest_port > 0:
-			var port: Vector2 = (MapData.provinces[f.dest_port].center as Vector2) + PORT_OFFSET * px
+			var port: Vector2 = harbour_spot(f.dest_port)
 			draw_dashed_line(from, port, color, (2.5 if picked else 1.5) * px, 6.0 * px)
 			from = port
 			days += Navy.cfg.port_days
