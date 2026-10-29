@@ -12,6 +12,10 @@ const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
 const PREVIEW_COLOR := Color(0.85, 0.95, 1.0, 0.85)
 const DRAFT_COLOR := Color(0.4, 0.95, 1.0)
+## Each army's colour on a front it shares (its stretch of the line, its label), by its place along the line: bright and
+## far apart, so neighbours never look alike.
+const ARMY_COLORS := [Color(0.35, 0.55, 1.0), Color(0.95, 0.3, 0.3), Color(0.35, 0.9, 0.4), Color(1.0, 0.85, 0.25),
+		Color(0.3, 0.9, 0.95), Color(0.95, 0.45, 0.9), Color(1.0, 0.6, 0.2), Color(0.7, 0.55, 1.0)]
 const FRONT_COLORS := [Color(0.95, 0.55, 0.2), Color(0.35, 0.85, 0.5), Color(0.75, 0.5, 0.95), Color(0.95, 0.4, 0.55), Color(0.4, 0.75, 0.95)]  # the same as MapView.FRONT_COLORS
 
 ## Ids of the armies the player has selected.
@@ -262,7 +266,10 @@ func _draw() -> void:
 	_draw_card(px)
 	_draw_battle_icons(px)
 	for l in _labels:
-		_front_label(l[0], l[1], l[2], px, l[3])
+		if l.size() > 4:
+			_sector_label(l[4], l[1], l[2], px, l[3])
+		else:
+			_front_label(l[0], l[1], l[2], px, l[3])
 	_draw_draft(px)
 	if _box.size != Vector2.ZERO:
 		draw_rect(_box, Color(SELECT_COLOR, 0.12))
@@ -347,6 +354,10 @@ func _draw_banners(px: float) -> void:
 				_draw_banner(rect, px, GameState.nations[tag].color, "unknown", men, 1, false, fighting, true)
 			else:
 				_draw_banner(rect, px, GameState.nations[tag].color, biggest.shown_icon(), men, count, picked, fighting)
+				# On a front shared out in sectors, a strip in the army's colour ties the stack to its stretch of the line.
+				var army_colour: Variant = army_colour_of(biggest)
+				if army_colour != null:
+					draw_rect(Rect2(rect.position + Vector2(0, rect.size.y - 3.5 * px), Vector2(rect.size.x, 3.5 * px)), army_colour)
 			if not comp.is_empty():
 				_draw_composition(comp, rect.get_center().x, rect.end.y + 3.0 * px, px)
 
@@ -563,31 +574,151 @@ func _front_stretches(f: Front) -> Array:
 			if not hostile or holder == f.tag:
 				continue
 			for line: PackedVector2Array in MapData.border_lines(p, n):
-				out.append({"line": line, "enemy": n})
+				out.append({"line": line, "enemy": n, "province": p})
 	return out
 
 
-## The line itself, on the border, as on the war map of Hearts of Iron: a dark casing with the
-## front's colour inside, and arrows across it pointing at the enemy.
+## The colour of a stack's army on the front it holds a sector of, or null (not on a front dealt in sectors).
+static func army_colour_of(a: Army) -> Variant:
+	var root := FrontSolver.root_of(GameState, a)
+	if root == null or root.front_id == 0:
+		return null
+	var f: Front = GameState.fronts.get(root.front_id)
+	if f == null or not f.spread or not f.sectors.has(root.id):
+		return null
+	return army_colors(f)[root.id]
+
+
+## The army whose sector of a broad front a province of the line is in (0: none, the front is not dealt in sectors).
+static func sector_owner(f: Front, province: int) -> int:
+	if not f.spread or f.sectors.is_empty():
+		return 0
+	var i := f.order.find(province)
+	if i < 0:
+		return 0
+	for id in f.sectors:
+		var span: Vector2i = f.sectors[id]
+		if i >= span.x and i < span.y:
+			return id
+	return 0
+
+
+## The colour of each army on a front, by its place along the line (army id -> Color).
+static func army_colors(f: Front) -> Dictionary:
+	var spans: Array = []
+	for id in f.sectors:
+		spans.append([(f.sectors[id] as Vector2i).x, id])
+	spans.sort()
+	var out := {}
+	for k in spans.size():
+		out[spans[k][1]] = ARMY_COLORS[k % ARMY_COLORS.size()]
+	return out
+
+
+## The line itself, on the border, as on the war map of Hearts of Iron: a ribbon with a dark casing, in the front's
+## colour or, on a broad front, each army's stretch in its own colour; barbs along it on the friendly side; a bracket
+## where one army's stretch ends and the next begins; and a label for each army and for the front.
 func _draw_border_line(f: Front, stretches: Array, color: Color, chosen: bool, px: float) -> void:
-	var casing := (5.5 if chosen else 4.2) * px
-	var inner := (3.0 if chosen else 2.0) * px
+	var casing := (8.0 if chosen else 7.0) * px
+	var inner := (5.0 if chosen else 4.2) * px
+	var colours := army_colors(f)
 	var lines: Array[PackedVector2Array] = []
+	var tints: Array[Color] = []
+	var owners: Array[int] = []
 	for s in stretches:
 		lines.append(_smooth(s.line, 2))
+		var owner := sector_owner(f, s.province)
+		owners.append(owner)
+		tints.append(colours.get(owner, color))
 	if chosen:
-		for l in lines:
-			draw_polyline(l, Color(color, 0.22), 12.0 * px, true)
+		for i in lines.size():
+			draw_polyline(lines[i], Color(tints[i], 0.22), 14.0 * px, true)
 	for l in lines:
-		draw_polyline(l, Color(0.02, 0.03, 0.05, 0.75), casing, true)
-	for l in lines:
-		draw_polyline(l, color, inner, true)
+		draw_polyline(l, Color(0.02, 0.03, 0.05, 0.8), casing, true)
+	for i in lines.size():
+		_draw_barbs(lines[i], stretches[i].enemy, tints[i], chosen, px)
+	for i in lines.size():
+		draw_polyline(lines[i], tints[i], inner, true)
+	_draw_brackets(lines, owners, px)
+	# A label for each army at the middle of its longest stretch; one for the front at its middle.
+	var longest_of := {}
 	var longest: PackedVector2Array = lines[0]
-	for i in stretches.size():
-		_draw_arrows(lines[i], stretches[i].enemy, color, chosen, px)
+	for i in lines.size():
 		if _length(lines[i]) > _length(longest):
 			longest = lines[i]
-	_labels.append([f, _midpoint(longest), color, chosen])
+		if owners[i] != 0 and (not longest_of.has(owners[i]) or _length(lines[i]) > _length(longest_of[owners[i]])):
+			longest_of[owners[i]] = lines[i]
+	for id: int in longest_of:
+		_labels.append([f, _midpoint(longest_of[id]), colours[id], chosen, id])
+	# The front's own chip; on a broad front, under the line, clear of the armies' chips.
+	_labels.append([f, _midpoint(longest) + (Vector2(0, 40.0 * px) if longest_of.size() > 1 else Vector2.ZERO), color, chosen])
+
+
+## Barbs: small teeth along the line every few screen pixels, on the friendly side (away from the province across),
+## as on the war map of Hearts of Iron.
+func _draw_barbs(line: PackedVector2Array, enemy: int, color: Color, chosen: bool, px: float) -> void:
+	var length := _length(line)
+	var step := 10.0 * px
+	var count := int(length / step)
+	if count < 1:
+		return
+	var away: Vector2 = MapData.provinces[enemy].center
+	var size := (7.5 if chosen else 6.5) * px
+	var dark := Color(0.02, 0.03, 0.05, 0.85)
+	for i in count:
+		var spot := _point_along(line, (i + 0.5) * length / count)
+		var at: Vector2 = spot.point
+		var n := -_normal(line, spot.index, away - at)
+		var along := Vector2(n.y, -n.x)
+		var tooth := PackedVector2Array([at + along * size * 0.45, at + n * size * 1.25 + along * size * 0.1, at + n * size * 1.25 - along * size * 0.1, at - along * size * 0.45])
+		draw_colored_polygon(tooth, color.lightened(0.1))
+		draw_polyline(PackedVector2Array([tooth[0], tooth[1], tooth[2], tooth[3]]), dark, 1.2 * px, true)
+
+
+## A bracket where one army's stretch of a broad front meets the next: a short white bar across the line, cased.
+func _draw_brackets(lines: Array[PackedVector2Array], owners: Array[int], px: float) -> void:
+	var ends := []
+	for i in lines.size():
+		if owners[i] == 0 or lines[i].size() < 2:
+			continue
+		ends.append([lines[i][0], lines[i][1], owners[i]])
+		ends.append([lines[i][lines[i].size() - 1], lines[i][lines[i].size() - 2], owners[i]])
+	var done: Array[Vector2] = []
+	for a in ends:
+		for b in ends:
+			if a[2] == b[2] or (a[0] as Vector2).distance_to(b[0]) > 3.0 * px:
+				continue
+			var at: Vector2 = a[0]
+			if done.any(func(d: Vector2) -> bool: return d.distance_to(at) < 6.0 * px):
+				continue
+			done.append(at)
+			var along: Vector2 = ((a[0] as Vector2) - (a[1] as Vector2)).normalized()
+			var across := Vector2(-along.y, along.x) * 9.0 * px
+			draw_line(at - across, at + across, Color(0.02, 0.03, 0.05, 0.9), 5.0 * px, true)
+			draw_line(at - across, at + across, Color(0.97, 0.97, 0.92), 2.4 * px, true)
+			for e: Vector2 in [at - across, at + across]:
+				draw_line(e, e + along * 4.0 * px, Color(0.97, 0.97, 0.92), 2.0 * px, true)
+				draw_line(e, e - along * 4.0 * px, Color(0.97, 0.97, 0.92), 2.0 * px, true)
+
+
+## A chip on an army's stretch of a broad front: its divisions and name, in its colour.
+func _sector_label(army_id: int, at: Vector2, color: Color, px: float, chosen: bool) -> void:
+	var root: Army = GameState.armies.get(army_id)
+	if root == null:
+		return
+	var divisions := 0
+	for s: Army in FrontSolver.stacks_of(GameState, root):
+		divisions += s.units.size()
+	var text := "%d divisions · %s" % [divisions, root.display_name]
+	var fs := 11 if chosen else 10
+	var w := MapText.size_of(_font, text, fs, px).x
+	var pad := 3.5 * px
+	var size := Vector2(w + pad * 2.0 + 5.0 * px, fs * px + pad * 1.6)
+	var rect := Rect2(at - Vector2(size.x * 0.5, size.y + 12.0 * px), size)
+	draw_rect(rect.grow(1.2 * px), Color(0, 0, 0, 0.55))
+	draw_rect(rect, Color(0.06, 0.08, 0.12, 0.9))
+	draw_rect(Rect2(rect.position, Vector2(4.0 * px, rect.size.y)), color)
+	MapText.draw(self, _font, rect.position + Vector2(pad + 4.0 * px, fs * px + pad * 0.5), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, color.lightened(0.45), px)
 
 
 ## Corner-cutting: each pass replaces every corner by two points a quarter along its sides, so the
@@ -604,29 +735,6 @@ static func _smooth(line: PackedVector2Array, passes: int) -> PackedVector2Array
 		next.append(out[out.size() - 1])
 		out = next
 	return out
-
-
-## Arrows spaced along a stretch of border, each pointing at the province across it.
-func _draw_arrows(line: PackedVector2Array, enemy: int, color: Color, chosen: bool, px: float) -> void:
-	var length := _length(line)
-	var screen := length / px
-	var count := clampi(int(screen / 160.0), 0 if screen < 60.0 else 1, 4)
-	if count == 0:
-		return
-	var target: Vector2 = MapData.provinces[enemy].center
-	for i in count:
-		var spot := _point_along(line, length * (i + 0.5) / count)
-		var origin: Vector2 = spot.point
-		var dir := _normal(line, spot.index, target - origin)
-		var size := (11.0 if chosen else 9.0) * px
-		var tail: Vector2 = origin - dir * size * 0.5
-		var tip: Vector2 = origin + dir * size * 1.5
-		var side := Vector2(-dir.y, dir.x)
-		var head := PackedVector2Array([tail + dir * size * 0.55 + side * size * 0.75, tip, tail + dir * size * 0.55 - side * size * 0.75])
-		draw_line(tail - dir * size * 0.55, tail + dir * size * 0.6, Color(0.02, 0.03, 0.05, 0.8), 4.2 * px, true)
-		draw_line(tail - dir * size * 0.55, tail + dir * size * 0.6, color.lightened(0.15), 2.4 * px, true)
-		draw_colored_polygon(head, color.lightened(0.15))
-		draw_polyline(PackedVector2Array([head[0], head[1], head[2], head[0]]), Color(0.02, 0.03, 0.05, 0.95), 1.8 * px, true)
 
 
 ## For a front with no enemy across it (a line drawn in friendly land): a dashed line through its
@@ -675,14 +783,18 @@ static func _normal(line: PackedVector2Array, index: int, toward: Vector2) -> Ve
 	return n if n.dot(toward) >= 0.0 else -n
 
 
-## A chip on the line with the front's name, its armies and their men.
+## A chip on the line with the front's name, its armies, their divisions and men.
 func _front_label(f: Front, at: Vector2, color: Color, px: float, chosen: bool) -> void:
 	var men := 0.0
+	var divisions := 0
 	for id in f.army_ids:
-		var a: Army = GameState.armies.get(id)
-		if a != null:
+		var root: Army = GameState.armies.get(id)
+		if root == null:
+			continue
+		for a: Army in FrontSolver.stacks_of(GameState, root):
 			men += a.men()
-	var text := "%s · %d · %s" % [f.display_name, f.army_ids.size(), Fmt.people(men)]
+			divisions += a.units.size()
+	var text := "%s · %d divisions · %s" % [f.display_name, divisions, Fmt.people(men)] if divisions > 0 else "%s · no armies" % f.display_name
 	var fs := 12 if chosen else 11
 	var w := MapText.size_of(_font, text, fs, px).x
 	var pad := 4.0 * px

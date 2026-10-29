@@ -5,7 +5,18 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.13.0 (2026-10-29 02:52 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.13.1 (2026-10-29 03:12 UTC)
+
+Fronts drawn as on a Hearts of Iron war map (the first part of the visual brief in `docs/FRONTLINES.md`).
+
+- **Barbed lines**: a front is a bold ribbon along the border with a comb of barbs on your side of it.
+- **Each army in its own colour**: on a front shared by several armies, each army's stretch is drawn in a colour of its
+  own, with a white bracket where one stretch ends and the next begins, and a label for each army ("10 divisions ·
+  Breslau Corps"); the front's own label counts its divisions.
+- **Banners** of the stacks on such a front carry a strip in their army's colour, so each stack can be matched to its
+  stretch of the line. On the flat map and in 3D.
+
+## 0.13.0 (2026-10-29 02:52 UTC)
 
 The first part of the new front system (the plan is `docs/FRONTLINES.md`).
 
