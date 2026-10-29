@@ -1,15 +1,17 @@
 class_name CommandCard
 extends Control
-## One card of the command panel: an army, a fleet, a field marshal, or an empty slot. A dark
-## tile on top carries the commander's initials (or the unit count of a fleet) and a skill
-## figure; below it are a name, one or two lines of figures and thin strength and morale bars.
-## There are no portraits: the badge stands in for them.
+## One card of the command panel, in the manner of Hearts of Iron: an army, a fleet, a field marshal, or an empty
+## slot. On top a strip of order icons (the front it holds, its plan); then a portrait plate, a head and shoulders in
+## the nation's colour with the commander's initials (or a fleet's ship count) and skill; then the name, a figure plate
+## and thin strength and morale bars. The army's map colour runs down both sides.
 
 signal pressed(shift: bool)
 signal context_requested(at: Vector2)
 
-const SIZE := Vector2(72, 76)
-const TILE_H := 30.0
+const SIZE := Vector2(86, 132)
+## The strip of order icons on top, and the portrait under it.
+const ORDER_H := 16.0
+const PLATE_H := 72.0
 const GOLD := Color(0.95, 0.78, 0.25)
 const SELECT := Color(1.0, 0.95, 0.4)
 const FIGHT := Color(0.95, 0.25, 0.2)
@@ -32,6 +34,13 @@ var marshal := false
 var empty := false
 ## Small marks in the corner of the tile: "no supply", "marching", "aboard" and the like.
 var marks: PackedStringArray = []
+## The army's colour on the map (on a front shared out in sectors); transparent for none.
+var army_colour := Color(0, 0, 0, 0)
+## What the army holds ("front", "fallback", "garrison" or "") and its plan ("broad", "spearhead", "invasion" or ""),
+## shown as icons on top; `executing` lights the plan green.
+var front := ""
+var plan := ""
+var executing := false
 var _hover := false
 
 
@@ -70,41 +79,61 @@ func _gui_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	var font := get_theme_default_font()
-	var back := Color(0.1, 0.12, 0.16, 0.96)
+	var back := Color(0.08, 0.09, 0.12, 0.97)
 	if _hover:
 		back = back.lightened(0.08)
 	draw_rect(Rect2(Vector2.ZERO, size), back)
-	var tile := Rect2(Vector2(2, 2), Vector2(size.x - 4.0, TILE_H))
-	draw_rect(tile, Color(0.16, 0.18, 0.23) if empty else tint.darkened(0.45))
+	# The order strip on top: what the army is doing (its front, its plan), as on the cards of Hearts of Iron.
+	var strip_top := Rect2(Vector2(0, 0), Vector2(size.x, ORDER_H))
+	draw_rect(strip_top, Color(0.03, 0.035, 0.05, 0.95))
+	var ox := 4.0
+	for icon in _order_icons():
+		var tex := Icons.get_icon(icon, int(ORDER_H) - 2)
+		if tex != null:
+			draw_texture(tex, Vector2(ox, 1.0), (Color(0.45, 1.0, 0.5) if executing and icon in ["offensive", "spearhead", "invasion"] else Color.WHITE))
+			ox += ORDER_H
+	if marshal:
+		_text(font, "★", Vector2(0, ORDER_H - 3.0), size.x - 4.0, 11, GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
+	# The portrait: a head and shoulders in the nation's colour, the initials over the chest.
+	var plate := Rect2(Vector2(2, ORDER_H + 1.0), Vector2(size.x - 4.0, PLATE_H))
+	var top_colour := (Color(0.2, 0.22, 0.27) if empty else tint.darkened(0.25))
+	var bottom_colour := (Color(0.1, 0.11, 0.14) if empty else tint.darkened(0.65))
+	draw_polygon(PackedVector2Array([plate.position, Vector2(plate.end.x, plate.position.y), plate.end, Vector2(plate.position.x, plate.end.y)]),
+			PackedColorArray([top_colour, top_colour, bottom_colour, bottom_colour]))
+	var c := plate.get_center()
+	var figure := Color(0.05, 0.06, 0.08, 0.85) if not empty else Color(0.32, 0.35, 0.4, 0.9)
+	draw_circle(c + Vector2(0, -12), 11.0, figure)
+	draw_colored_polygon(PackedVector2Array([c + Vector2(-25, plate.size.y * 0.5), c + Vector2(-21, 6), c + Vector2(-8, 1),
+			c + Vector2(8, 1), c + Vector2(21, 6), c + Vector2(25, plate.size.y * 0.5)]), figure)
 	if empty:
-		var c := tile.get_center()
-		draw_line(c + Vector2(-7, 0), c + Vector2(7, 0), Color(0.5, 0.54, 0.62), 2.0)
-		draw_line(c + Vector2(0, -7), c + Vector2(0, 7), Color(0.5, 0.54, 0.62), 2.0)
+		draw_line(c + Vector2(-9, 18), c + Vector2(9, 18), Color(0.4, 0.95, 0.45), 3.0)
+		draw_line(c + Vector2(0, 9), c + Vector2(0, 27), Color(0.4, 0.95, 0.45), 3.0)
 	else:
-		# A dark head and shoulders behind the initials, as a stand-in portrait.
-		var c := tile.get_center() + Vector2(0, 3)
-		draw_circle(c + Vector2(0, -6), 6.0, tint.darkened(0.2))
-		draw_rect(Rect2(c + Vector2(-12, 1), Vector2(24, 11)), tint.darkened(0.2))
-		_text(font, badge, Vector2(tile.position.x, tile.position.y + 21.0), tile.size.x, 16, Color.WHITE)
-		if not skill.is_empty():
-			_text(font, skill, Vector2(tile.position.x, tile.end.y - 2.0), tile.size.x - 3.0, 9, GOLD if marshal else Color(0.85, 0.88, 0.95), HORIZONTAL_ALIGNMENT_RIGHT)
-	var x := 4.0
+		_text(font, badge, Vector2(plate.position.x, c.y + 20.0), plate.size.x, 18, Color.WHITE)
+	if not skill.is_empty():
+		_text(font, skill, Vector2(plate.position.x, plate.end.y - 3.0), plate.size.x - 4.0, 10, GOLD if marshal else Color(0.85, 0.88, 0.95), HORIZONTAL_ALIGNMENT_RIGHT)
+	var x := plate.position.x + 3.0
 	for m in marks:
-		_text(font, m, Vector2(x, tile.position.y + 10.0), -1.0, 10, WARN if m == "!" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT)
-		x += 10.0
-	var y := tile.end.y + 9.0
-	_text(font, title, Vector2(3, y), size.x - 6.0, 9, Color(0.86, 0.88, 0.94), HORIZONTAL_ALIGNMENT_LEFT)
-	# The figure under the card, white on a dark strip (the units of an army, the ships of a fleet).
-	var strip := Rect2(2, tile.end.y + 12.0, size.x - 4.0, 15.0)
-	draw_rect(strip, Color(0.03, 0.035, 0.04, 0.95))
-	_text(font, line1, Vector2(strip.position.x, strip.end.y - 3.0), strip.size.x, 12, Color.WHITE)
+		_text(font, m, Vector2(x, plate.position.y + 12.0), -1.0, 11, WARN if m == "!" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT)
+		x += 11.0
+	# The army's colour on the map runs down both sides of its card.
+	if army_colour.a > 0.0:
+		draw_rect(Rect2(Vector2(0, ORDER_H), Vector2(4, size.y - ORDER_H)), army_colour)
+		draw_rect(Rect2(Vector2(size.x - 4.0, ORDER_H), Vector2(4, size.y - ORDER_H)), army_colour)
+	var y := plate.end.y + 11.0
+	_text(font, title, Vector2(5, y), size.x - 10.0, 10, Color(0.86, 0.88, 0.94))
+	# The figure under the card, white on a dark plate (the divisions and men of an army, the ships of a fleet).
+	var figure_plate := Rect2(4, plate.end.y + 14.0, size.x - 8.0, 16.0)
+	draw_rect(figure_plate, Color(0.02, 0.025, 0.03, 0.98))
+	draw_rect(figure_plate, Color(0.45, 0.41, 0.3, 0.8), false, 1.0)
+	_text(font, line1, Vector2(figure_plate.position.x, figure_plate.end.y - 3.5), figure_plate.size.x, 12, Color.WHITE)
 	var bar_y := size.y - 7.0
 	if strength >= 0.0:
-		draw_rect(Rect2(3, bar_y, size.x - 6.0, 2), Color(0, 0, 0, 0.6))
-		draw_rect(Rect2(3, bar_y, (size.x - 6.0) * clampf(strength, 0.0, 1.0), 2), Color(0.35, 0.8, 0.4))
+		draw_rect(Rect2(5, bar_y, size.x - 10.0, 2), Color(0, 0, 0, 0.6))
+		draw_rect(Rect2(5, bar_y, (size.x - 10.0) * clampf(strength, 0.0, 1.0), 2), Color(0.35, 0.8, 0.4))
 	if morale >= 0.0:
-		draw_rect(Rect2(3, bar_y + 3.0, size.x - 6.0, 2), Color(0, 0, 0, 0.6))
-		draw_rect(Rect2(3, bar_y + 3.0, (size.x - 6.0) * clampf(morale, 0.0, 1.0), 2), Color(0.4, 0.65, 0.95))
+		draw_rect(Rect2(5, bar_y + 3.0, size.x - 10.0, 2), Color(0, 0, 0, 0.6))
+		draw_rect(Rect2(5, bar_y + 3.0, (size.x - 10.0) * clampf(morale, 0.0, 1.0), 2), Color(0.4, 0.65, 0.95))
 	var border := Color(0.45, 0.41, 0.3)
 	var width := 1.0
 	if marshal:
@@ -117,6 +146,26 @@ func _draw() -> void:
 		border = SELECT
 		width = 3.0
 	draw_rect(Rect2(Vector2.ZERO, size), border, false, width)
+
+
+## The icons of the order strip: the kind of front the army holds, then its plan.
+func _order_icons() -> Array[String]:
+	var out: Array[String] = []
+	match front:
+		"front":
+			out.append("frontline")
+		"fallback":
+			out.append("fallback")
+		"garrison":
+			out.append("garrison")
+	match plan:
+		"broad":
+			out.append("offensive")
+		"spearhead":
+			out.append("spearhead")
+		"invasion":
+			out.append("invasion")
+	return out
 
 
 func _text(font: Font, text: String, at: Vector2, width: float, font_size: int, color: Color, align := HORIZONTAL_ALIGNMENT_CENTER) -> void:

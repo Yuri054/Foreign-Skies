@@ -7,6 +7,21 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.15.1 (2026-10-29 13:18 UTC)
+
+The command panel laid out as in Hearts of Iron, in the lower middle of the screen.
+
+- **On top** a little strip of tabs (Armies, Fleets, Hide); under it the **Battle Plans** frame (the toolbar, then the
+  orders and divisions of the selection); under that the **row of commander cards**.
+- **Commander cards** are tall portrait cards: the general's initials over a head and shoulders, skill, name,
+  divisions and men, strength and morale; icons on top for the front the army holds and its plan (green while
+  executing); the army's map colour down both sides. A field marshal's card (gold, with a star) opens his group.
+- **One card per army**: an army spread along a front in detachments no longer fills the row with a card for each
+  stack; its card counts them all.
+- **A "+" card at each end**: the left forms an army group of the selected armies; the right makes a new army of the
+  divisions picked in the selected army, or chooses its general.
+- The row scrolls to the selected army's card.
+
 ## 0.15.0 (2026-10-29 12:31 UTC)
 
 The command UI redone around a **Battle Plans toolbar**, as in Hearts of Iron (the mapping is in `docs/FRONTLINES.md`).

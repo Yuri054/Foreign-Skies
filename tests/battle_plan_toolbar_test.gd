@@ -106,6 +106,14 @@ func _test_fronts_and_plans() -> void:
 	bar.map_press(across, 0, MOUSE_BUTTON_LEFT, true)
 	var whole = gs.fronts.get(army.front_id)
 	_check(whole != null and whole.anchor == 0 and whole.provinces.size() == border.size(), "Shift+click takes the whole border (%d provinces)" % border.size())
+	# Spread along the border in detachments, the army still has one card, with all its divisions.
+	for d in 8:
+		clock.advance_day()
+	await process_frame
+	var cmd: Node = get_first_node_in_group("command_panel")
+	var its: Array = cmd._cards.find_children("*", "CommandCard", true, false).filter(func(c) -> bool: return c.title == army.display_name)
+	var stacks: int = load("res://scripts/sim/front_solver.gd").stacks_of(gs, army).size()
+	_check(stacks > 1 and its.size() == 1 and its[0].line1.begins_with("6 ·") and its[0].front == "front", "an army spread over %d stacks has one card for all 6 divisions, marked as holding a front (%s)" % [stacks, its[0].line1 if not its.is_empty() else "none"])
 	# Offensive line: a drag across Russian ground.
 	var ring: Array[int] = []
 	for p in Mil.border_provinces(gs, "RUS", "GER"):

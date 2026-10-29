@@ -84,6 +84,7 @@ func _initialize() -> void:
 	await process_frame
 	root.get_texture().get_image().save_png("%s/toolbar_2_offensive_drag.png" % out)
 	bar.map_release(stroke[-1], MOUSE_BUTTON_RIGHT)
+	Input.warp_mouse(Vector2(800, 150))
 	var o = load("res://scripts/sim/offensives.gd").of_army(gs, armies[0])
 	print("PLAN %s targets %d" % [o.kind if o != null else "none", o.targets().size() if o != null else 0])
 	for d in 3:
@@ -131,6 +132,16 @@ func _initialize() -> void:
 	root.get_texture().get_image().save_png("%s/toolbar_5_invasion.png" % out)
 	get_first_node_in_group("military_panel").select_ids([stack.id] as Array[int])
 	cam.position = MD.provinces[line[line.size() / 2]].center + Vector2(40, 60)
+	# An army group: the 8th and 9th Armies under a field marshal, the whole group selected from his card.
+	var made = load("res://scripts/sim/create_army_group.gd").new("GER", "Army Group East", [armies[0].id, armies[1].id] as Array[int])
+	gs.issue(made)
+	var marshal = Mil.new_general(gs, "GER", "Paul von Hindenburg", 1.2)
+	gs.issue(load("res://scripts/sim/set_marshal.gd").new("GER", made.group_id, marshal.id))
+	var cmd: Node = get_first_node_in_group("command_panel")
+	cmd._on_select_group(made.group_id, false)
+	for i in 8:
+		await process_frame
+	root.get_texture().get_image().save_png("%s/toolbar_7_army_group.png" % out)
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)
 	cam.zoom = Vector2.ONE * 0.95

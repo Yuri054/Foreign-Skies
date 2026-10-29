@@ -68,8 +68,15 @@ province takes it at once; cavalry takes ground after a battle in half the time 
 back. After a war, **Send home** (the command panel) sends an army's men back to the reserve and its
 upkeep stops; the guns go last. It works in peace only.
 
+**The command panel** (C) stands in the lower middle of the screen, as in Hearts of Iron: a strip of tabs (Armies,
+Fleets, Hide), the **Battle Plans** frame, and a row of commander cards. Each army has one card (however many
+provinces it is spread over): its general's initials and skill, its divisions and men, strength and morale, icons on
+top for the front it holds and its plan (green while executing), and its map colour down both sides. A group opens with
+its field marshal's card (gold); the **+** card at the left forms an army group of the selected armies, the one at the
+right a new army of the divisions picked in the selected army (or chooses its general).
+
 **Battle Plans.** Select an army (its card, or a field marshal's to take the whole group) and the **Battle Plans**
-toolbar over the command panel gives it orders; while a tool is in hand the pointer is a crosshair, a hint follows it,
+toolbar gives it orders; while a tool is in hand the pointer is a crosshair, a hint follows it,
 and Esc puts the tool down. The map then shows only the selected armies' plans.
 
 - **Front line**: click a border to put the armies on the stretch of it there; **Shift+click** for the whole border.
@@ -92,7 +99,6 @@ and Esc puts the tool down. The map then shows only the selected armies' plans.
   with a plan an army **plans**: up to +30% to its attacks after two weeks, ready to go after one (a green tick on the
   banner); marching or fighting spends it. **Careful** (›) attacks only at two to one and stops when morale is low,
   **Balanced** (››) at fair odds, **Aggressive** (›››) at even odds, at once, whatever the morale.
-- The **+** card at the end of the cards forms an army group of the selected armies.
 
 A push sends each stack at the enemy province next to it that leads toward the line, stacks going for the same
 province together; a spearhead gathers the whole army next to the next province on the way and strikes it together. On

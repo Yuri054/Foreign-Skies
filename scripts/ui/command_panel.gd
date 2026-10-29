@@ -34,6 +34,11 @@ var _title := Label.new()
 var _top := PanelContainer.new()
 var _div_frame := PanelContainer.new()
 var _tabs_col := PanelContainer.new()
+## The frame over the cards: the Battle Plans toolbar, then the orders and the divisions of the selection.
+var _command_frame := PanelContainer.new()
+## The "+" cards at the two ends of the row: a new army group of the selection, and a new army.
+var _add_group := CommandCard.new()
+var _add_army := CommandCard.new()
 var _army_orders := HFlowContainer.new()
 var _fleet_orders := HFlowContainer.new()
 var _scroll := ScrollContainer.new()
@@ -99,29 +104,48 @@ func _ready() -> void:
 	# Smaller text than the rest of the interface keeps the panel short.
 	theme = UiTheme.compact()
 
+	# As in Hearts of Iron, in the lower middle of the screen: a little strip of tabs, the Battle Plans frame (its
+	# toolbar, then the orders and divisions of the selection) and the row of commander cards, a "+" card at each end.
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 3)
+	box.add_theme_constant_override("separation", 0)
 	add_child(box)
-	# The orders for the selection sit in a frame of their own above the cards.
-	_top.add_theme_stylebox_override("panel", frame_style())
-	_top.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_div_frame.add_theme_stylebox_override("panel", frame_style())
-	_div_frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	# The Battle Plans toolbar sits over the orders, as in Hearts of Iron.
-	_plans_bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	box.add_child(_plans_bar)
-	box.add_child(_top)
-	box.add_child(_div_frame)
+	_tabs_col.add_theme_stylebox_override("panel", _tab_style())
+	_tabs_col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 2)
+	tabs.add_child(_tab_army)
+	tabs.add_child(_tab_navy)
+	tabs.add_child(_toggle)
+	_tabs_col.add_child(tabs)
+	box.add_child(_tabs_col)
+	_command_frame.add_theme_stylebox_override("panel", frame_style())
+	_command_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var command := VBoxContainer.new()
+	command.add_theme_constant_override("separation", 2)
+	_command_frame.add_child(command)
+	box.add_child(_command_frame)
+	command.add_child(_plans_bar)
+	_plans_bar.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	_top.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	_div_frame.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	command.add_child(_top)
+	command.add_child(_div_frame)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 3)
+	box.add_child(gap)
 	var strip := HBoxContainer.new()
 	strip.add_theme_constant_override("separation", 4)
+	strip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(strip)
 	_toggle.tooltip_text = "Show or hide the command panel (C)."
 	_toggle.pressed.connect(toggle)
 	_tab_army.text = "Armies"
+	_tab_army.icon = Icons.get_icon("soldier", 16)
 	_tab_army.toggle_mode = true
 	_tab_army.tooltip_text = "Your armies under their field marshals."
 	_tab_army.pressed.connect(func() -> void: _set_mode("army"))
 	_tab_navy.text = "Fleets"
+	_tab_navy.icon = Icons.get_icon("anchor", 16)
 	_tab_navy.toggle_mode = true
 	_tab_navy.tooltip_text = "Your fleets. They also show when you select one."
 	_tab_navy.pressed.connect(func() -> void: _set_mode("navy"))
@@ -141,16 +165,20 @@ func _ready() -> void:
 	_scroll.custom_minimum_size = Vector2(MIN_CARDS, CommandCard.SIZE.y + 24.0)
 	_cards.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_cards)
+	for plus: CommandCard in [_add_group, _add_army]:
+		plus.empty = true
+		plus.size_flags_vertical = Control.SIZE_SHRINK_END
+	_add_group.title = "New group"
+	_add_group.line1 = "Marshal"
+	_add_group.tooltip_text = "New army group: put the selected armies that have no group under a new field marshal. Armies already in a group: choose their commanders."
+	_add_group.pressed.connect(func(_shift: bool) -> void: _on_add_commander())
+	_add_army.title = "New army"
+	_add_army.line1 = "General"
+	_add_army.tooltip_text = "New army: make an army of the divisions picked in the selected army (the chips over the cards). With none picked: choose the selected army's general."
+	_add_army.pressed.connect(func(_shift: bool) -> void: _on_add_army())
+	strip.add_child(_add_group)
 	strip.add_child(_scroll)
-	# The tabs stand in a column at the right end of the strip, as in the Paradox games.
-	_tabs_col.add_theme_stylebox_override("panel", frame_style())
-	_tabs_col.size_flags_vertical = Control.SIZE_SHRINK_END
-	var tabs := VBoxContainer.new()
-	tabs.add_child(_toggle)
-	tabs.add_child(_tab_army)
-	tabs.add_child(_tab_navy)
-	_tabs_col.add_child(tabs)
-	strip.add_child(_tabs_col)
+	strip.add_child(_add_army)
 	add_child(_menu)
 	_menu.id_pressed.connect(func(id: int) -> void:
 		if id >= 0 and id < _menu_calls.size():
@@ -320,6 +348,8 @@ func _refresh() -> void:
 	_tab_army.visible = _open
 	_tab_navy.visible = _open
 	_scroll.visible = _open
+	_add_group.visible = _open and _mode == "army"
+	_add_army.visible = _open and _mode == "army"
 	var armies := _armies()
 	var fleets := _fleets()
 	_army_orders.visible = _open and _mode == "army" and not armies.is_empty()
@@ -327,6 +357,7 @@ func _refresh() -> void:
 	_top.visible = _army_orders.visible or _fleet_orders.visible
 	_plans_bar.visible = _open and _mode == "army"
 	_plans_bar.set_armies(armies)
+	_command_frame.visible = _open and (_plans_bar.visible or _top.visible)
 	if not _plans_bar.visible and _plans_bar.is_active():
 		_plans_bar.set_tool("")
 	_title.text = _army_title(armies) if _mode == "army" else _fleet_title(fleets)
@@ -527,26 +558,39 @@ func _place() -> void:
 	var n := GameState.get_player()
 	if n != null and not (n.construction.is_empty() and n.shipbuilding.is_empty()):
 		right -= QUEUE_ROOM
-	var tabs_w := _tabs_col.get_combined_minimum_size().x
-	var avail := minf(maxf(right - left, 320.0), view.x * MAX_SHARE) - tabs_w - 4.0
-	# Wide enough for the orders to stay on one line.
+	var room := minf(maxf(right - left, 320.0), view.x * MAX_SHARE)
+	# The cards as wide as they need (they scroll beyond the room there is), between the two "+" cards.
+	var plus_w := 0.0
+	if _add_group.visible:
+		plus_w = _add_group.get_combined_minimum_size().x + _add_army.get_combined_minimum_size().x + 8.0
+	var cards_w := clampf(_cards.get_combined_minimum_size().x + 4.0, MIN_CARDS, maxf(room - plus_w, MIN_CARDS))
+	_scroll.custom_minimum_size = Vector2(cards_w, _cards.get_combined_minimum_size().y + SCROLLBAR)
+	# The frame over the cards: wide enough for the toolbar and for the orders to stay on one line.
 	var orders_w := _natural_width(_army_orders) if _army_orders.visible else (_natural_width(_fleet_orders) if _fleet_orders.visible else 0.0)
-	orders_w += 14.0
-	var bar_w := _plans_bar.get_combined_minimum_size().x if _plans_bar.visible else 0.0
-	var inner := clampf(maxf(maxf(_cards.get_combined_minimum_size().x + 4.0, MIN_CARDS), maxf(orders_w, bar_w) - tabs_w), 120.0, avail)
-	var want := inner + tabs_w + 4.0
-	if not _open:
-		want = tabs_w
-	_scroll.custom_minimum_size = Vector2(inner, _cards.get_combined_minimum_size().y + SCROLLBAR)
-	# The frames over the cards are as wide as their buttons need, up to the width of the panel,
-	# so a flow of buttons wraps only when it must.
-	var room := inner + tabs_w + 4.0
-	_top.custom_minimum_size.x = minf(orders_w, room)
-	_div_frame.custom_minimum_size.x = minf(_natural_width(_div_row) + 14.0, room)
-	offset_left = left
-	offset_right = left + want
+	var frame_w := 0.0
+	if _command_frame.visible:
+		frame_w = minf(maxf(_plans_bar.get_combined_minimum_size().x if _plans_bar.visible else 0.0, orders_w) + 16.0, room)
+	_top.custom_minimum_size.x = minf(orders_w, room - 16.0)
+	_div_frame.custom_minimum_size.x = minf(_natural_width(_div_row), room - 16.0)
+	var want := maxf(cards_w + plus_w, frame_w) if _open else _tabs_col.get_combined_minimum_size().x
+	want = minf(maxf(want, _tabs_col.get_combined_minimum_size().x), room)
+	# In the lower middle of the screen, short of the build queue.
+	var x := clampf(view.x * 0.5 - want * 0.5, left, maxf(right - want, left))
+	offset_left = x
+	offset_right = x + want
 	offset_top = -bottom
 	offset_bottom = -bottom
+
+
+## The little strip of tabs on top of the frame: brass edged, no edge at the bottom so it joins the frame.
+static func _tab_style() -> StyleBoxFlat:
+	var style := UiTheme.frame().duplicate() as StyleBoxFlat
+	style.border_width_bottom = 0
+	style.corner_radius_bottom_left = 0
+	style.corner_radius_bottom_right = 0
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	return style
 
 
 ## The dark, brass-edged frame the blocks of the panel sit in.
@@ -578,23 +622,11 @@ func _rebuild_cards() -> void:
 		c.queue_free()
 	for block: Dictionary in blocks:
 		_cards.add_child(_make_block(block))
-	if _mode == "army":
-		_cards.add_child(_add_commander_card())
-
-
-## The empty card at the end of the armies, as in Hearts of Iron: a new army group of the selected armies, or the
-## choice of commander when they already have a group.
-func _add_commander_card() -> Control:
-	var add := Button.new()
-	add.icon = Icons.get_icon("plus", 28)
-	add.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
-	add.custom_minimum_size = Vector2(CommandCard.SIZE.x * 0.6, CommandCard.SIZE.y)
-	add.size_flags_vertical = Control.SIZE_SHRINK_END
-	add.focus_mode = Control.FOCUS_NONE
-	add.tooltip_text = "New army group: put the selected armies that have no group under a new field marshal. Armies already in a group: choose their commanders."
-	add.pressed.connect(_on_add_commander)
-	return add
+	# The row scrolls to the first selected card.
+	for card in _cards.find_children("*", "CommandCard", true, false):
+		if card.selected:
+			_scroll.ensure_control_visible.call_deferred(card)
+			break
 
 
 func _on_add_commander() -> void:
@@ -613,6 +645,19 @@ func _on_add_commander() -> void:
 		return
 	_fill_group()
 	_group.show_popup()
+
+
+## The "+" card at the right end: a new army of the divisions picked in the selected army, or else its general.
+func _on_add_army() -> void:
+	var armies := _armies()
+	if armies.size() == 1 and not _div_sel.is_empty() and _div_sel.size() < armies[0].units.size():
+		_on_division_new()
+		return
+	if armies.size() == 1:
+		_fill_generals()
+		_general.show_popup()
+		return
+	get_tree().call_group("event_feed", "say", "Select one army and pick some of its divisions (the chips over the cards) to make a new army of them.", Fmt.WARN)
 
 
 ## One column of the strip: an optional header (fold button and a Select button) over a row of
@@ -653,7 +698,7 @@ func _make_block(block: Dictionary) -> Control:
 
 func _make_card(spec: Dictionary) -> CommandCard:
 	var card := CommandCard.new()
-	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "marks"]:
+	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "marks", "front", "plan", "executing", "army_colour"]:
 		if spec.has(key):
 			card.set(key, spec[key])
 	card.tooltip_text = spec.get("tip", "")
@@ -662,29 +707,54 @@ func _make_card(spec: Dictionary) -> CommandCard:
 	return card
 
 
+## An army's card: the army with all its detachments (the stacks it is spread into along a front).
 func _army_card(a: Army, tint: Color) -> Dictionary:
+	var stacks := FrontSolver.stacks_of(GameState, a)
 	var full := 0.0
-	for u in a.units:
-		full += u.full_size()
+	var men := 0.0
+	var divisions := 0
+	var morale := 0.0
+	var supplied := true
+	var fighting := false
+	var picked := false
+	for st in stacks:
+		for u in st.units:
+			full += u.full_size()
+		men += st.men()
+		divisions += st.units.size()
+		morale += st.morale() * st.units.size()
+		supplied = supplied and st.supplied
+		fighting = fighting or st.fighting
+		picked = picked or _ids.has(st.id)
+	morale /= maxf(divisions, 1.0)
 	var marks := PackedStringArray()
-	if not a.supplied:
+	if not supplied:
 		marks.append("!")
 	if a.embarked():
 		marks.append("⚓")
 	elif not a.path.is_empty():
 		marks.append("›")
 	var has_general := a.general_id != 0
-	var tip := "%s\n%s men in %d units, morale %d%%\n%s" % [a.display_name, Fmt.people(a.men()), a.units.size(),
-			roundi(a.morale() * 100.0), MapData.provinces[a.province].name]
+	var tip := "%s\n%s men in %d divisions, morale %d%%\n%s" % [a.display_name, Fmt.people(men), divisions,
+			roundi(morale * 100.0), MapData.provinces[a.province].name]
+	if stacks.size() > 1:
+		tip += " and %d more provinces" % (stacks.size() - 1)
 	if has_general:
 		tip += "\nLed by %s (skill %.2f)" % [a.general_name, a.general_skill]
 	else:
 		tip += "\nNo general: right click to give it one."
+	var f: Front = GameState.fronts.get(a.front_id)
+	var front_kind := ""
+	if f != null:
+		front_kind = "garrison" if f.kind == "garrison" else ("fallback" if f.is_fallback(GameState) else "front")
+	var o := Offensives.of_army(GameState, a)
+	var colour: Variant = ArmyLayer.army_colour_of(a)
 	return {"kind": "army", "id": a.id, "title": a.display_name, "badge": CommandCard.initials(a.general_name),
 			"skill": ("%.2f" % a.general_skill) if has_general else "", "empty": not has_general,
-			"line1": "%d · %s" % [a.units.size(), Fmt.people(a.men())],
-			"strength": a.men() / maxf(full, 1.0), "morale": a.morale(), "tint": tint, "selected": _ids.has(a.id),
-			"fighting": a.fighting, "marks": marks, "tip": tip}
+			"line1": "%d · %s" % [divisions, Fmt.people(men)],
+			"strength": men / maxf(full, 1.0), "morale": morale, "tint": tint, "selected": picked,
+			"fighting": fighting, "marks": marks, "tip": tip, "front": front_kind, "plan": o.kind if o != null else "",
+			"executing": o != null and o.active, "army_colour": colour if colour != null else Color(0, 0, 0, 0)}
 
 
 func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
@@ -700,7 +770,8 @@ func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
 		tip += "\nField marshal %s (skill %.2f): his skill adds to every army's own general." % [m.display_name, m.skill]
 	else:
 		tip += "\nNo field marshal: right click to appoint one."
-	return {"kind": "marshal", "id": group.id, "title": "Marshal", "badge": CommandCard.initials(m.display_name) if m != null else "",
+	var holds := group.army_ids.any(func(id: int) -> bool: return GameState.armies.has(id) and GameState.armies[id].front_id != 0)
+	return {"kind": "marshal", "id": group.id, "title": group.display_name, "front": "front" if holds else "", "badge": CommandCard.initials(m.display_name) if m != null else "",
 			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true,
 			"line1": "%d armies" % group.army_ids.size(),
 			"tint": tint, "selected": all_selected, "tip": tip}
@@ -723,9 +794,10 @@ func _army_blocks() -> Array:
 		var men := 0.0
 		for id in g.army_ids:
 			var a: Army = GameState.armies.get(id)
-			if a != null:
+			if a != null and a.parent_id == 0:
 				armies.append(a)
-				men += a.men()
+				for st in FrontSolver.stacks_of(GameState, a):
+					men += st.men()
 		var cards: Array = [_marshal_card(g, tint)]
 		if not folded:
 			for a in armies:
@@ -736,7 +808,7 @@ func _army_blocks() -> Array:
 				"header": "%s · %d armies · %s men%s" % [g.display_name, armies.size(), Fmt.people(men), status]})
 	var loose: Array[Army] = []
 	for a in Military.armies_of(GameState, tag):
-		if a.group_id == 0:
+		if a.group_id == 0 and a.parent_id == 0:
 			loose.append(a)
 	if not loose.is_empty():
 		var folded: bool = _collapsed.get(0, false)
@@ -748,8 +820,6 @@ func _army_blocks() -> Array:
 			cards.append({"kind": "unassigned", "id": 0, "title": "Unassigned", "badge": str(loose.size()), "line1": "%d armies" % loose.size(),
 					"tint": tint, "tip": "Armies in no group. Open the header to see them."})
 		blocks.append({"group": 0, "collapsed": folded, "cards": cards, "header": "Unassigned · %d armies" % loose.size()})
-	blocks.append({"cards": [{"kind": "newgroup", "id": 0, "title": "New group", "empty": true, "tint": tint,
-			"line1": "from the selection", "tip": "Make an army group of the selected armies, to put a field marshal over them."}]})
 	return blocks
 
 
@@ -828,11 +898,7 @@ func _on_card(shift: bool, kind: String, id: int) -> void:
 		"fleet":
 			get_tree().call_group("navy_panel", "select_ids", _toggled(_fleet_ids, id, shift))
 		"newgroup":
-			var ids: Array[int] = []
-			for a in _armies():
-				ids.append(a.id)
-			if not ids.is_empty():
-				GameState.issue(CreateArmyGroup.new(GameState.player_tag, "", ids))
+			_on_add_commander()
 
 
 func _on_card_context(at: Vector2, kind: String, id: int) -> void:

@@ -233,6 +233,10 @@ func _test_toggle(bar: Node, Settings) -> void:
 	_check(bar.is_open() and bar._scroll.visible and Settings.command_open, "the C key opens it again")
 	var palette: Control = get_first_node_in_group("map_modes")
 	_check(bar.get_global_rect().end.y <= palette.get_global_rect().position.y + 1.0 and bar.get_global_rect().end.x <= root.get_visible_rect().size.x, "it sits above the map modes and inside the screen")
+	var view: Vector2 = root.get_visible_rect().size
+	var middle: float = bar.get_global_rect().get_center().x
+	_check(absf(middle - view.x * 0.5) < 2.0 or bar.get_global_rect().end.x >= view.x - 340.0, "it stands in the lower middle of the screen (centre at %d of %d)" % [middle, view.x])
+	_check(bar._tabs_col.get_global_rect().end.y <= bar._command_frame.get_global_rect().position.y + 1.0 and bar._command_frame.get_global_rect().end.y <= bar._scroll.get_global_rect().position.y, "tabs on top, then the Battle Plans frame, then the cards")
 
 
 func _test_fleets(bar: Node, gs: Node) -> void:
@@ -282,7 +286,7 @@ func _test_fleets(bar: Node, gs: Node) -> void:
 	_check(navy._selected == just_other, "clicking a fleet's card selects that fleet")
 	bar._tab_army.pressed.emit()
 	await process_frame
-	_check(bar._mode == "army" and _by_title(bar, "New group") != null, "the Armies tab shows the armies again")
+	_check(bar._mode == "army" and bar._add_group.visible and bar._add_army.visible, "the Armies tab shows the armies again, with a + card at each end")
 	bar._tab_navy.pressed.emit()
 	await process_frame
 	_check(bar._mode == "navy", "and the Fleets tab the fleets")
