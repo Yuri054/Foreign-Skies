@@ -7,6 +7,13 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.15.3 (2026-10-29 14:20 UTC)
+
+- **General portraits** on the commander cards: the whole painting fills the card, the name and the divisions and men
+  over its foot, as in Hearts of Iron. Placeholder art, three portraits for now; each general and field marshal is given
+  one by his name, so he keeps the same face. Armies with no general still show an empty slot. The cards are a little
+  taller to fit them.
+
 ## 0.15.2 (2026-10-29 13:52 UTC)
 
 The command panel made compact and centred, closer to the Hearts of Iron layout.

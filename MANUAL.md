@@ -72,7 +72,7 @@ upkeep stops; the guns go last. It works in peace only.
 and Fleets tabs, the **Battle Plans** tools, then **Merge**, **Split**, **Halt** and **⋯**, which opens a second row
 with the rarer orders: send home, detach, general, group, attack line, symbol, board and land, show, deselect, and the
 division chips of one army) over a row of commander cards. Each army has one card (however many provinces it is spread
-over): its general's initials and skill, its divisions and men, strength and morale, icons on top for the front it
+over): its general's portrait and skill, its divisions and men, strength and morale, icons on top for the front it
 holds and its plan (green while executing), and its map colour down both sides. A group opens with its field marshal's
 card (gold; right click it to fold the group); the **+** card at the left forms an army group of the selected armies,
 the one at the right a new army of the divisions picked in the selected army (or chooses its general). The map modes

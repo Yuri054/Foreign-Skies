@@ -159,8 +159,9 @@ func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
 	var card = _by_title(bar, first.display_name)
 	_check(card.badge == CommandCardC.initials(first.general_name) and card.skill == "%.2f" % first.general_skill and not card.empty, "an army's card carries its general's initials and skill (%s %s)" % [card.badge, card.skill])
 	var bare = mine.filter(func(a) -> bool: return a.general_id == 0)
+	_check(card.portrait != null and card.portrait == load("res://scripts/ui/portraits.gd").for_name(first.general_name), "and his portrait, the same one each time for his name")
 	if not bare.is_empty():
-		_check(_by_title(bar, bare[0].display_name).empty, "an army without a general shows an empty slot")
+		_check(_by_title(bar, bare[0].display_name).empty and _by_title(bar, bare[0].display_name).portrait == null, "an army without a general shows an empty slot, no portrait")
 
 	# Clicking a card selects the army; Shift adds another.
 	card.pressed.emit(false)

@@ -695,7 +695,7 @@ func _make_block(block: Dictionary) -> Control:
 
 func _make_card(spec: Dictionary) -> CommandCard:
 	var card := CommandCard.new()
-	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "marks", "front", "plan", "executing", "army_colour"]:
+	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "marks", "front", "plan", "executing", "army_colour", "portrait"]:
 		if spec.has(key):
 			card.set(key, spec[key])
 	card.tooltip_text = spec.get("tip", "")
@@ -751,7 +751,8 @@ func _army_card(a: Army, tint: Color) -> Dictionary:
 			"line1": "%d · %s" % [divisions, Fmt.people(men)],
 			"strength": men / maxf(full, 1.0), "morale": morale, "tint": tint, "selected": picked,
 			"fighting": fighting, "marks": marks, "tip": tip, "front": front_kind, "plan": o.kind if o != null else "",
-			"executing": o != null and o.active, "army_colour": colour if colour != null else Color(0, 0, 0, 0)}
+			"executing": o != null and o.active, "army_colour": colour if colour != null else Color(0, 0, 0, 0),
+			"portrait": Portraits.for_name(a.general_name) if has_general else null}
 
 
 func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
@@ -769,7 +770,7 @@ func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
 		tip += "\nNo field marshal: right click to appoint one."
 	var holds := group.army_ids.any(func(id: int) -> bool: return GameState.armies.has(id) and GameState.armies[id].front_id != 0)
 	return {"kind": "marshal", "id": group.id, "title": group.display_name, "front": "front" if holds else "", "badge": CommandCard.initials(m.display_name) if m != null else "",
-			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true,
+			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true, "portrait": Portraits.for_name(m.display_name) if m != null else null,
 			"line1": "%d armies" % group.army_ids.size(),
 			"tint": tint, "selected": all_selected, "tip": tip}
 
