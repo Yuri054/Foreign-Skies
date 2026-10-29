@@ -73,8 +73,8 @@ over a row of commander cards. Each army has one card (however many provinces it
 square (Halt)** and a **green arrow (Advance)**, then an icon for its plan or the front it holds, and a red "!" while
 its plan is not yet planned enough; under them its general's portrait and skill, its divisions and men, strength and
 morale, and its map colour down both sides. **Advance** sets its plan going (lit green while it advances; press again to
-stop); **Halt** stops it and stands its stacks still. A group opens with its field marshal's card (gold), whose halt
-and advance act on the whole group. **Right click a card** for the army's orders (merge, split, halt the march, detach,
+stop); **Halt** stops it and stands its stacks still. A group opens with its field marshal's card (bigger, gold, with
+three stars and a FIELD MARSHAL ribbon), whose halt and advance act on the whole group. **Right click a card** for the army's orders (merge, split, halt the march, detach,
 pick divisions, send home, board and land, show, deselect, symbol), its general and group; on a field marshal's card,
 the group's attack line, marshal and folding. The **+** card at the left forms an army group of the selected armies, the
 one at the right a new army of the picked divisions (or chooses its general). The map modes are a drop-down in the

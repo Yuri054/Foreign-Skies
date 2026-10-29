@@ -189,6 +189,8 @@ func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
 	await process_frame
 	var marshals := _cards(bar).filter(func(c) -> bool: return c.marshal)
 	_check(marshals.size() == 1 and marshals[0].badge == CommandCardC.initials(free[0].display_name), "the group's block opens with a gold marshal card")
+	var a_general = _cards(bar).filter(func(c) -> bool: return not c.marshal and not c.empty)
+	_check(not a_general.is_empty() and marshals[0].size.x > a_general[0].size.x and marshals[0].size.y > a_general[0].size.y, "the marshal's card is bigger than a general's (%s against %s)" % [marshals[0].size, a_general[0].size if not a_general.is_empty() else Vector2.ZERO])
 	var total_before := _cards(bar).size()
 	_check(marshals[0].title == "Test Group" and marshals[0].line1 == "3 armies", "the marshal's card names the group and counts its armies (%s, %s)" % [marshals[0].title, marshals[0].line1])
 

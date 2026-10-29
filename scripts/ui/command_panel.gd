@@ -595,10 +595,14 @@ static func _compact_frame() -> StyleBoxFlat:
 	return style
 
 
-## A thin frame round a group's cards.
-static func _block_style() -> StyleBoxFlat:
+## A thin frame round a group's cards: gold round a field marshal's group, the plain brass round the armies in none.
+static func _block_style(group := false) -> StyleBoxFlat:
 	var style := UiTheme.frame().duplicate() as StyleBoxFlat
 	style.set_content_margin_all(2)
+	if group:
+		style.border_color = CommandCard.GOLD
+		style.set_border_width_all(2)
+		style.bg_color = Color(0.22, 0.17, 0.06, 0.85)
 	return style
 
 
@@ -669,7 +673,7 @@ func _make_block(block: Dictionary) -> Control:
 		row.add_child(_make_card(spec))
 	col.add_child(row)
 	var framed := PanelContainer.new()
-	framed.add_theme_stylebox_override("panel", _block_style())
+	framed.add_theme_stylebox_override("panel", _block_style(int(block.get("group", 0)) != 0))
 	framed.add_child(col)
 	return framed
 

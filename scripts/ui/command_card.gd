@@ -20,6 +20,10 @@ const ORDER_H := 14.0
 const HALT_RECT := Rect2(2, 1, 12, 12)
 const ADVANCE_RECT := Rect2(16, 1, 20, 12)
 const PLATE_H := 75.0
+## A field marshal's card is bigger, taller than his generals' and gold: rank stars on top, a "Field Marshal" ribbon
+## across his portrait, a double gold frame.
+const MARSHAL_SIZE := Vector2(78, 124)
+const MARSHAL_BACK := Color(0.2, 0.15, 0.05, 0.98)
 const GOLD := Color(0.95, 0.78, 0.25)
 const SELECT := Color(1.0, 0.95, 0.4)
 const FIGHT := Color(0.95, 0.25, 0.2)
@@ -37,7 +41,10 @@ var morale := -1.0
 var tint := Color(0.3, 0.34, 0.42)
 var selected := false
 var fighting := false
-var marshal := false
+var marshal := false:
+	set(value):
+		marshal = value
+		custom_minimum_size = MARSHAL_SIZE if marshal else SIZE
 ## An empty slot: a grey tile with a plus (no general, no marshal, a new group).
 var empty := false
 ## Small marks in the corner of the tile: "no supply", "marching", "aboard" and the like.
@@ -61,6 +68,8 @@ var _hover := false
 
 func _init() -> void:
 	custom_minimum_size = SIZE
+	# Cards keep their own height and stand on one line: a marshal's, taller, rises above his generals'.
+	size_flags_vertical = Control.SIZE_SHRINK_END
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_entered.connect(func() -> void:
 		_hover = true
@@ -100,13 +109,18 @@ func _gui_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	var font := get_theme_default_font()
-	var back := Color(0.08, 0.09, 0.12, 0.97)
+	var back := MARSHAL_BACK if marshal else Color(0.08, 0.09, 0.12, 0.97)
 	if _hover:
 		back = back.lightened(0.08)
 	draw_rect(Rect2(Vector2.ZERO, size), back)
-	# The order strip on top: what the army is doing (its front, its plan), as on the cards of Hearts of Iron.
+	# The order strip on top: what the army is doing (its front, its plan), as on the cards of Hearts of Iron. A
+	# marshal's is a gold band.
 	var strip_top := Rect2(Vector2(0, 0), Vector2(size.x, ORDER_H))
-	draw_rect(strip_top, Color(0.03, 0.035, 0.05, 0.95))
+	if marshal:
+		draw_polygon(PackedVector2Array([strip_top.position, Vector2(strip_top.end.x, 0), strip_top.end, Vector2(0, strip_top.end.y)]),
+				PackedColorArray([GOLD.darkened(0.15), GOLD.darkened(0.15), GOLD.darkened(0.55), GOLD.darkened(0.55)]))
+	else:
+		draw_rect(strip_top, Color(0.03, 0.035, 0.05, 0.95))
 	var ox := 3.0
 	if commands:
 		# Halt: a red square, lit while the army stands. Advance: a green arrow, lit while it executes its plan.
@@ -135,10 +149,12 @@ func _draw() -> void:
 			draw_texture(tex, Vector2(ox, 0.5), (Color(0.45, 1.0, 0.5) if executing and icon in ["offensive", "spearhead", "invasion"] else Color.WHITE))
 			ox += ORDER_H
 	if marshal:
-		_text(font, "★", Vector2(0, ORDER_H - 2.0), size.x - 3.0, 10, GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
+		_text(font, "★★★", Vector2(0, ORDER_H - 2.5), size.x - 4.0, 10, Color(1.0, 0.96, 0.75), HORIZONTAL_ALIGNMENT_RIGHT, true)
 	# The portrait, whole, filling the card under the order strip (else a head and shoulders in the nation's colour
 	# with the initials); the name and the figure plate stand over its foot, as on the cards of Hearts of Iron.
-	var plate := Rect2(Vector2(2, ORDER_H + 1.0), Vector2(size.x - 4.0, PLATE_H))
+	# The plate keeps the paintings' proportions at any card width (a marshal's card is wider).
+	var plate_w := size.x - 4.0
+	var plate := Rect2(Vector2(2, ORDER_H + 1.0), Vector2(plate_w, PLATE_H * plate_w / (SIZE.x - 4.0)))
 	if portrait != null and not empty:
 		draw_texture_rect(portrait, plate, false)
 	else:
@@ -160,22 +176,30 @@ func _draw() -> void:
 	var shade_top := plate.end.y - 30.0
 	draw_polygon(PackedVector2Array([Vector2(plate.position.x, shade_top), Vector2(plate.end.x, shade_top), plate.end, Vector2(plate.position.x, plate.end.y)]),
 			PackedColorArray([Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0.85), Color(0, 0, 0, 0.85)]))
+	# A marshal's rank on a gold ribbon across the top of his portrait.
+	var ribbon_h := 0.0
+	if marshal:
+		ribbon_h = 12.0
+		var ribbon := Rect2(plate.position, Vector2(plate.size.x, ribbon_h))
+		draw_rect(ribbon, GOLD)
+		draw_rect(Rect2(ribbon.position + Vector2(0, ribbon_h - 1.0), Vector2(ribbon.size.x, 1)), GOLD.darkened(0.5))
+		_text(font, "FIELD MARSHAL", Vector2(ribbon.position.x, ribbon.end.y - 3.0), ribbon.size.x, 7, Color(0.16, 0.11, 0.03))
 	if not skill.is_empty():
-		_text(font, skill, Vector2(plate.position.x + 1.0, plate.position.y + 9.0), plate.size.x - 3.0, 8, GOLD if marshal else Color(0.92, 0.94, 1.0), HORIZONTAL_ALIGNMENT_RIGHT, true)
+		_text(font, skill, Vector2(plate.position.x + 1.0, plate.position.y + ribbon_h + 9.0), plate.size.x - 3.0, 9 if marshal else 8, GOLD if marshal else Color(0.92, 0.94, 1.0), HORIZONTAL_ALIGNMENT_RIGHT, true)
 	var x := plate.position.x + 2.0
 	for m in marks:
-		_text(font, m, Vector2(x, plate.position.y + 10.0), -1.0, 9, WARN if m == "!" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, true)
+		_text(font, m, Vector2(x, plate.position.y + ribbon_h + 10.0), -1.0, 9, WARN if m == "!" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, true)
 		x += 9.0
 	# The army's colour on the map runs down both sides of its card.
 	if army_colour.a > 0.0:
 		draw_rect(Rect2(Vector2(0, ORDER_H), Vector2(3, size.y - ORDER_H)), army_colour)
 		draw_rect(Rect2(Vector2(size.x - 3.0, ORDER_H), Vector2(3, size.y - ORDER_H)), army_colour)
-	_text(font, title, Vector2(4, plate.end.y - 17.0), size.x - 8.0, 8, Color(0.92, 0.93, 0.97), HORIZONTAL_ALIGNMENT_CENTER, true)
+	_text(font, title, Vector2(4, plate.end.y - 17.0), size.x - 8.0, 9 if marshal else 8, GOLD.lightened(0.35) if marshal else Color(0.92, 0.93, 0.97), HORIZONTAL_ALIGNMENT_CENTER, true)
 	# The figure over the foot of the portrait, white on a dark plate (the divisions and men of an army, the ships of a
 	# fleet).
 	var figure_plate := Rect2(3, plate.end.y - 14.0, size.x - 6.0, 13.0)
 	draw_rect(figure_plate, Color(0.02, 0.025, 0.03, 0.92))
-	draw_rect(figure_plate, Color(0.45, 0.41, 0.3, 0.8), false, 1.0)
+	draw_rect(figure_plate, GOLD if marshal else Color(0.45, 0.41, 0.3, 0.8), false, 1.0)
 	_text(font, line1, Vector2(figure_plate.position.x, figure_plate.end.y - 3.0), figure_plate.size.x, 9, Color.WHITE)
 	var bar_y := size.y - 6.0
 	if strength >= 0.0:
@@ -187,8 +211,10 @@ func _draw() -> void:
 	var border := Color(0.45, 0.41, 0.3)
 	var width := 1.0
 	if marshal:
+		# A heavy gold frame (or the selection's), set off from the card by a dark line inside it.
 		border = GOLD
-		width = 2.0
+		width = 3.0
+		draw_rect(Rect2(Vector2.ONE * 2.0, size - Vector2.ONE * 4.0), Color(0.12, 0.08, 0.02), false, 1.0)
 	if fighting:
 		border = FIGHT
 		width = 2.0

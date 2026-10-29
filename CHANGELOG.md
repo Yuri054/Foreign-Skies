@@ -7,6 +7,12 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.16.1 (2026-10-29 15:43 UTC)
+
+- **Field marshals stand out from their generals**: a bigger card that rises above theirs, a gold band on top with three
+  stars, a gold "FIELD MARSHAL" ribbon across the portrait, a heavy gold frame, the name in gold; and the group's cards
+  sit in a gold-edged block.
+
 ## 0.16.0 (2026-10-29 15:21 UTC)
 
 The Battle Plans bar laid out on the Hearts of Iron buttons, halt and advance on the cards, and exercises.
