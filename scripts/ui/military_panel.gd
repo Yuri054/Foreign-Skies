@@ -922,7 +922,11 @@ func _refresh_plan() -> void:
 		_plan_label.text = "%s has no plan of attack." % root.display_name
 		return
 	_plan_aggr.select(maxi(0, AGGRESSIVENESS.map(func(a: Array) -> String: return a[0]).find(o.aggressiveness)))
-	var what := "a spearhead at %s" % MapData.provinces[o.targets()[0]].name if o.kind == "spearhead" and not o.targets().is_empty() else "a push to a line of %d provinces" % o.targets().size()
+	var what := "a push to a line of %d provinces" % o.targets().size()
+	if o.kind == "spearhead" and not o.targets().is_empty():
+		what = "a spearhead at %s" % MapData.provinces[o.targets()[0]].name
+	elif o.kind == "invasion" and not o.targets().is_empty():
+		what = "a landing at %s from %s" % [MapData.provinces[o.targets()[0]].name, MapData.provinces[o.port].name]
 	var state := "attacking" if o.active and o.launched else ("launched, planning first" if o.active else "planned, not launched")
 	_plan_label.text = "%s: %s, phase %d of %d, %s; planning %d%%." % [root.display_name, what, o.phase + 1, o.phases.size(), state, roundi(Offensives.planning_of(GameState, root) * 100.0)]
 

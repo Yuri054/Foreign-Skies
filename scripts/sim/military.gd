@@ -748,6 +748,39 @@ static func border_provinces(gs: Node, tag: String, other: String) -> Array[int]
 	return out
 
 
+## The stretch of a border line nearest to a province: the provinces of `line` joined to one another by land, the run
+## that holds `anchor` or, if none does, the one with a province nearest to it.
+static func border_stretch(line: Array[int], anchor: int) -> Array[int]:
+	if anchor == 0 or line.is_empty():
+		return line
+	var on_line := {}
+	for p in line:
+		on_line[p] = true
+	var seen := {}
+	var best: Array[int] = []
+	var best_d := INF
+	var at: Vector2 = MapData.provinces[anchor].center
+	for p in line:
+		if seen.has(p):
+			continue
+		var run: Array[int] = []
+		var todo: Array[int] = [p]
+		seen[p] = true
+		var d := INF
+		while not todo.is_empty():
+			var q: int = todo.pop_back()
+			run.append(q)
+			d = minf(d, 0.0 if q == anchor else at.distance_to(MapData.provinces[q].center))
+			for n: int in neighbors(q):
+				if on_line.has(n) and not seen.has(n):
+					seen[n] = true
+					todo.append(n)
+		if d < best_d:
+			best_d = d
+			best = run
+	return line.filter(func(q: int) -> bool: return best.has(q))
+
+
 static func leave_front(gs: Node, a: Army) -> void:
 	if a.front_id == 0:
 		return
@@ -769,7 +802,7 @@ static func step_fronts(gs: Node) -> void:
 			# has changed hands since it was last read).
 			f.line_stamp = gs.control_version
 			var t0 := Time.get_ticks_usec() if profile else 0
-			var line := border_provinces(gs, f.tag, f.against)
+			var line := border_stretch(border_provinces(gs, f.tag, f.against), f.anchor)
 			_note("front_line", t0)
 			if line != f.provinces:
 				f.provinces = line
@@ -1001,7 +1034,7 @@ static func _fight(gs: Node) -> void:
 			incoming[a] = 0.0
 			parts[a] = {}
 		for b in foes:
-			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, shells.get(b.tag, 1.0)) / foes[b].size()
+			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, shells.get(b.tag, 1.0)) * (1.0 + naval_support(gs, b.tag, id) if b.attacking else 1.0) / foes[b].size()
 			var shelling: float = b.shelling_share()
 			for a in foes[b]:
 				var dealt: float = share * (1.0 - works_reduction(gs, a, shelling))
@@ -1048,6 +1081,21 @@ static func _fight(gs: Node) -> void:
 			_finish_engagement(gs, id)
 
 
+## What the nation's warships on Shore support off a coastal province add to its armies attacking there (a share of
+## their power: navy.json shore_support).
+static func naval_support(gs: Node, tag: String, province: int) -> float:
+	var c: Dictionary = Navy.cfg.get("shore_support", {})
+	var squadrons := 0
+	for zone: int in MapData.zones_of_port(province):
+		for f: Fleet in Navy.fleets_in_zone(gs, zone):
+			if f.tag != tag or f.mission != "support" or f.is_moving():
+				continue
+			for s: Ship in f.ships:
+				if int(Navy.cfg.types[s.type].get("capacity", 0)) == 0:
+					squadrons += 1
+	return minf(float(c.get("max", 0.3)), float(c.get("per_squadron", 0.05)) * squadrons)
+
+
 ## What a day's fighting in a province would cost each side, worked out as _fight works it out but changing nothing:
 ## {ok, sides: {tag: {men, loss, rate, half_days}}} where `loss` is the men lost a day, `rate` that as a share of the men,
 ## and `half_days` the days at that rate until half the men are gone (INF when none are lost). `tweaks` asks "what if":
@@ -1071,7 +1119,7 @@ static func battle_forecast(gs: Node, province: int, tweaks := {}) -> Dictionary
 	for a in foes:
 		incoming[a] = 0.0
 	for b in foes:
-		var share: float = b.power() * float(power_mult.get(b.tag, 1.0)) * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, gs.nations[b.tag].shell_ratio) / foes[b].size()
+		var share: float = b.power() * float(power_mult.get(b.tag, 1.0)) * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, gs.nations[b.tag].shell_ratio) * (1.0 + naval_support(gs, b.tag, province) if b.attacking else 1.0) / foes[b].size()
 		var shelling: float = b.shelling_share()
 		for a in foes[b]:
 			incoming[a] += share * (1.0 - works_reduction(gs, a, shelling))

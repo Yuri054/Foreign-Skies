@@ -9,11 +9,14 @@ var provinces: Array[int]
 var against: String
 ## "line" or "garrison" (provinces picked one by one, of the nation's own, not joined).
 var kind := "line"
+## For a border front: hold only the stretch of the border nearest to this province (0: all of it).
+var anchor := 0
 ## Id of the new front (filled in by execute).
 var front_id := 0
 
 
-func _init(p_tag := "", p_name := "", p_provinces: Array[int] = [], p_against := "", p_kind := "line") -> void:
+func _init(p_tag := "", p_name := "", p_provinces: Array[int] = [], p_against := "", p_kind := "line", p_anchor := 0) -> void:
+	anchor = p_anchor
 	tag = p_tag
 	front_name = p_name
 	provinces = p_provinces
@@ -58,7 +61,8 @@ func execute(gs: Node) -> bool:
 		f.display_name = "Front vs %s" % gs.nations[against].display_name if not against.is_empty() else ("Garrison %d" if kind == "garrison" else "Front %d") % f.id
 	f.against = against
 	f.kind = kind
-	f.provinces = Military.border_provinces(gs, tag, against) if not against.is_empty() else provinces.duplicate()
+	f.anchor = anchor if not against.is_empty() else 0
+	f.provinces = Military.border_stretch(Military.border_provinces(gs, tag, against), f.anchor) if not against.is_empty() else provinces.duplicate()
 	# The player's armies spread their divisions along the line (FrontSolver); the AI's hold a province each.
 	f.spread = tag == gs.player_tag
 	gs.fronts[f.id] = f
@@ -68,7 +72,7 @@ func execute(gs: Node) -> bool:
 
 
 func to_dict() -> Dictionary:
-	return {"type": "DesignateFront", "tag": tag, "name": front_name, "provinces": provinces, "against": against, "kind": kind}
+	return {"type": "DesignateFront", "tag": tag, "name": front_name, "provinces": provinces, "against": against, "kind": kind, "anchor": anchor}
 
 
 func changes_economy() -> bool:

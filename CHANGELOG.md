@@ -7,6 +7,29 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.15.0 (2026-10-29 12:31 UTC)
+
+The command UI redone around a **Battle Plans toolbar**, as in Hearts of Iron (the mapping is in `docs/FRONTLINES.md`).
+
+- **The toolbar** stands over the command panel's cards and acts on the selected armies. One tool at a time: the
+  pointer turns to a crosshair, a hint follows it, Esc puts it down.
+  - **Front line**: click a border for the stretch of it there; Shift+click for the whole border.
+  - **Offensive line**: drag across enemy ground; Shift adds the next phase. **Spearhead**: click one province.
+  - **Fallback line**: drag through your own ground. **Garrison**: a checklist (ports, forts, cities, the capital),
+    then clicks.
+  - **Naval invasion** (new): click a port, then a coast. The army gathers in the port and sails once a fleet there
+    can carry it. **Naval support** (new): click a coast and your nearest free warships sail off it on the new Shore
+    support mission, adding 5% per warship squadron (at most 30%) to your attacks there. **Paradrop** is there but off:
+    the game has no aircraft.
+  - **Unassign**; **Edit** (drag over a target line or a drawn line to add or take off provinces; move a spearhead's
+    target); **Delete** (click an order; right click the button to clear every order of the selection, or all).
+  - **Execute** launches or halts the plans; **Careful**, **Balanced**, **Aggressive** set how readily they attack.
+    Careful now halts under 60% morale (was 70%).
+- **Commander cards** filter the map: with armies selected, only their plans are drawn. A **+** card at the end of the
+  cards forms an army group of the selected armies.
+- The Assign to front, Release and Plan menus left the command bar; the toolbar does their work. The Military tab
+  keeps its front list and plan controls.
+
 ## 0.14.2 (2026-10-29 10:13 UTC)
 
 - **Plans from the command bar.** A new **Plan** menu on the command bar: push to a line, spearhead, add a phase,

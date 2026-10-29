@@ -1,7 +1,7 @@
 extends SceneTree
 ## Pictures of the 0.14.0 front UI: the plans of tools/screenshot_plans.gd, a fallback line behind them held by a
 ## reserve army and a garrison on three cities; the Military tab open on the Fronts section with the 8th Army
-## selected (its attack plan); the command bar's Plan menu; and the same in 3D:
+## selected (its attack plan), and the same in 3D:
 ##   godot --path . --resolution 1600x900 --rendering-driver opengl3 -s res://tools/screenshot_plan_ui.gd -- out_dir
 func _initialize() -> void:
 	await process_frame
@@ -166,17 +166,6 @@ func _initialize() -> void:
 		await process_frame
 	root.get_texture().get_image().save_png("%s/plan_ui_2d.png" % out)
 	call_group("nation_screen", "close_screen")
-	# The command bar with its Plan menu open.
-	var bar: Node = get_first_node_in_group("command_panel")
-	if not bar.is_open():
-		bar.toggle()
-	for i in 4:
-		await process_frame
-	bar._plan.show_popup()
-	for i in 6:
-		await process_frame
-	root.get_texture().get_image().save_png("%s/plan_bar_2d.png" % out)
-	bar._plan.get_popup().hide()
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)
 	cam.zoom = Vector2.ONE * 0.9

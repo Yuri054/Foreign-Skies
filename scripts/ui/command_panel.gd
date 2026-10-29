@@ -47,8 +47,6 @@ var _div_key := -1
 var _cards := HBoxContainer.new()
 var _menu := PopupMenu.new()
 var _menu_calls: Array[Callable] = []
-var _front := MenuButton.new()
-var _release := Button.new()
 var _merge := Button.new()
 var _split := Button.new()
 var _home := Button.new()
@@ -59,7 +57,7 @@ var _land := Button.new()
 var _general := MenuButton.new()
 var _group := MenuButton.new()
 var _attack := MenuButton.new()
-var _plan := MenuButton.new()
+var _plans_bar := BattlePlanToolbar.new()
 var _symbol := MenuButton.new()
 var _show := Button.new()
 var _deselect := Button.new()
@@ -69,9 +67,6 @@ var _f_detach := MenuButton.new()
 var _f_home := Button.new()
 var _f_show := Button.new()
 var _f_deselect := Button.new()
-var _front_ids: Array[int] = []
-## Enemies a new border front can face, in menu order.
-var _front_enemies: Array[String] = []
 var _detach_types: Array[String] = []
 var _symbol_ids: Array[String] = []
 ## Generals the menu offers, in menu order (the last entry may be "relieve", id 0).
@@ -112,6 +107,9 @@ func _ready() -> void:
 	_top.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_div_frame.add_theme_stylebox_override("panel", frame_style())
 	_div_frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# The Battle Plans toolbar sits over the orders, as in Hearts of Iron.
+	_plans_bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	box.add_child(_plans_bar)
 	box.add_child(_top)
 	box.add_child(_div_frame)
 	var strip := HBoxContainer.new()
@@ -158,13 +156,6 @@ func _ready() -> void:
 		if id >= 0 and id < _menu_calls.size():
 			_menu_calls[id].call())
 
-	_front.text = "Assign to front"
-	_front.tooltip_text = "Put the selected armies on one of your fronts: they spread along it and hold it."
-	_front.get_popup().about_to_popup.connect(_fill_fronts)
-	_front.get_popup().id_pressed.connect(_on_front)
-	_release.text = "Release"
-	_release.tooltip_text = "Take the selected armies off their fronts."
-	_release.pressed.connect(_on_release)
 	_merge.text = "Merge"
 	_merge.tooltip_text = "Combine the selected armies standing in one province into one."
 	_merge.pressed.connect(_on_merge)
@@ -199,10 +190,6 @@ func _ready() -> void:
 	_attack.tooltip_text = "Attack line: send the army group against an enemy along a front. Start and stop it here."
 	_attack.get_popup().about_to_popup.connect(_fill_attack)
 	_attack.get_popup().id_pressed.connect(_on_attack)
-	_plan.text = "Plan"
-	_plan.tooltip_text = "The army's plan of attack: push to a line or spearhead at a province, in phases; launch it once planned, at the aggressiveness you choose."
-	_plan.get_popup().about_to_popup.connect(_fill_plan)
-	_plan.get_popup().id_pressed.connect(_on_plan)
 	_symbol.text = "Symbol"
 	_symbol.tooltip_text = "The marker the map shows for these armies."
 	_symbol.get_popup().about_to_popup.connect(_fill_symbols)
@@ -213,7 +200,7 @@ func _ready() -> void:
 	_deselect.text = "Deselect"
 	_deselect.tooltip_text = "Clear the selection (Esc, or click empty ground)."
 	_deselect.pressed.connect(func() -> void: get_tree().call_group("military_panel", "clear_selection"))
-	for c: Control in [_front, _release, _plan, _merge, _split, _home, _detach, _halt, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
+	for c: Control in [_merge, _split, _home, _detach, _halt, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
 		c.focus_mode = Control.FOCUS_NONE
 		_army_orders.add_child(c)
 
@@ -338,6 +325,10 @@ func _refresh() -> void:
 	_army_orders.visible = _open and _mode == "army" and not armies.is_empty()
 	_fleet_orders.visible = _open and _mode == "navy" and not fleets.is_empty()
 	_top.visible = _army_orders.visible or _fleet_orders.visible
+	_plans_bar.visible = _open and _mode == "army"
+	_plans_bar.set_armies(armies)
+	if not _plans_bar.visible and _plans_bar.is_active():
+		_plans_bar.set_tool("")
 	_title.text = _army_title(armies) if _mode == "army" else _fleet_title(fleets)
 	tooltip_text = _title.text
 	_refresh_divisions(armies)
@@ -497,20 +488,14 @@ func _refresh_army_orders(armies: Array[Army]) -> void:
 	var places := {}
 	for a in armies:
 		places[a.province] = true
-	var any_front := armies.any(func(a: Army) -> bool: return a.front_id != 0)
 	var landlubbers := armies.filter(func(a: Army) -> bool: return not a.embarked())
 	var together := armies.size() >= 2 and places.size() == 1 and landlubbers.size() == armies.size()
-	_front.disabled = landlubbers.is_empty()
-	_release.disabled = not any_front
 	_merge.disabled = not together
 	_split.disabled = not (armies.size() == 1 and armies[0].units.size() >= 2 and not armies[0].embarked())
 	_home.disabled = armies.is_empty() or not GameState.wars_of(GameState.player_tag).is_empty()
 	_detach.disabled = not (armies.size() == 1 and armies[0].units.size() >= 2 and not armies[0].embarked())
 	_general.disabled = not (armies.size() == 1 and not armies[0].embarked())
 	_group.disabled = false
-	_plan.disabled = landlubbers.is_empty()
-	var plan := _plan_of(armies)
-	_plan.text = "Plan" if plan == null else ("Plan: attacking" if plan.active else "Plan: ready" if Offensives.planning_of(GameState, FrontSolver.root_of(GameState, armies[0])) >= float(Offensives.cfg().get("planning_ready", 0.5)) else "Plan: planning")
 	_attack.visible = _common_group() != null
 	_halt.disabled = not armies.any(func(a: Army) -> bool: return not a.path.is_empty() and not a.embarked())
 	var boardable := armies.any(func(a: Army) -> bool: return not a.embarked() and Navy.fleets_in_port(GameState, a.province).any(func(f: Fleet) -> bool: return f.tag == a.tag and f.capacity() > 0))
@@ -547,7 +532,8 @@ func _place() -> void:
 	# Wide enough for the orders to stay on one line.
 	var orders_w := _natural_width(_army_orders) if _army_orders.visible else (_natural_width(_fleet_orders) if _fleet_orders.visible else 0.0)
 	orders_w += 14.0
-	var inner := clampf(maxf(maxf(_cards.get_combined_minimum_size().x + 4.0, MIN_CARDS), orders_w - tabs_w), 120.0, avail)
+	var bar_w := _plans_bar.get_combined_minimum_size().x if _plans_bar.visible else 0.0
+	var inner := clampf(maxf(maxf(_cards.get_combined_minimum_size().x + 4.0, MIN_CARDS), maxf(orders_w, bar_w) - tabs_w), 120.0, avail)
 	var want := inner + tabs_w + 4.0
 	if not _open:
 		want = tabs_w
@@ -592,6 +578,41 @@ func _rebuild_cards() -> void:
 		c.queue_free()
 	for block: Dictionary in blocks:
 		_cards.add_child(_make_block(block))
+	if _mode == "army":
+		_cards.add_child(_add_commander_card())
+
+
+## The empty card at the end of the armies, as in Hearts of Iron: a new army group of the selected armies, or the
+## choice of commander when they already have a group.
+func _add_commander_card() -> Control:
+	var add := Button.new()
+	add.icon = Icons.get_icon("plus", 28)
+	add.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	add.custom_minimum_size = Vector2(CommandCard.SIZE.x * 0.6, CommandCard.SIZE.y)
+	add.size_flags_vertical = Control.SIZE_SHRINK_END
+	add.focus_mode = Control.FOCUS_NONE
+	add.tooltip_text = "New army group: put the selected armies that have no group under a new field marshal. Armies already in a group: choose their commanders."
+	add.pressed.connect(_on_add_commander)
+	return add
+
+
+func _on_add_commander() -> void:
+	var loose: Array[int] = []
+	for a in _armies():
+		var root := FrontSolver.root_of(GameState, a)
+		if root != null and root.group_id == 0 and not loose.has(root.id):
+			loose.append(root.id)
+	if not loose.is_empty():
+		var made := CreateArmyGroup.new(GameState.player_tag, "", loose)
+		if GameState.issue(made):
+			get_tree().call_group("event_feed", "say", "%s formed: give it a field marshal from the Group menu." % GameState.army_groups[made.group_id].display_name, Fmt.GOOD)
+		return
+	if _armies().is_empty():
+		get_tree().call_group("event_feed", "say", "Select the armies to put under a new commander.", Fmt.WARN)
+		return
+	_fill_group()
+	_group.show_popup()
 
 
 ## One column of the strip: an optional header (fold button and a Select button) over a row of
@@ -946,78 +967,6 @@ func _select(ids: Array[int]) -> void:
 	get_tree().call_group("military_panel", "select_ids", ids)
 
 
-const NEW_FRONT_BASE := 100
-const DRAW_FRONT := 200
-const FACE_FRONT := 201
-const GARRISON_FRONT := 202
-
-
-func _fill_fronts() -> void:
-	var popup := _front.get_popup()
-	popup.clear()
-	_front_ids.clear()
-	_front_enemies.clear()
-	for f: Front in GameState.fronts.values():
-		if f.tag == GameState.player_tag:
-			_front_ids.append(f.id)
-	_front_ids.sort()
-	for i in _front_ids.size():
-		var f: Front = GameState.fronts[_front_ids[i]]
-		popup.add_item("Assign to %s (%d)" % [f.display_name, f.army_ids.size()], i)
-	var me := GameState.player_tag
-	var others: Array = GameState.nations.keys()
-	others.sort()
-	for tag: String in others:
-		if tag != me and GameState.at_war(me, tag) and not Military.border_provinces(GameState, me, tag).is_empty():
-			_front_enemies.append(tag)
-	if not _front_ids.is_empty() or not _front_enemies.is_empty():
-		popup.add_separator("New front")
-	for i in _front_enemies.size():
-		popup.add_item("Face %s" % GameState.nations[_front_enemies[i]].display_name, NEW_FRONT_BASE + i)
-	popup.add_item("Draw a line on the map…", DRAW_FRONT)
-	popup.add_item("Face a nation (click it)…", FACE_FRONT)
-	popup.add_item("Garrison provinces (click them)…", GARRISON_FRONT)
-
-
-func _on_front(id: int) -> void:
-	var me := GameState.player_tag
-	if id in [DRAW_FRONT, FACE_FRONT, GARRISON_FRONT]:
-		get_tree().call_group("military_panel", "begin_front", {DRAW_FRONT: "draw", FACE_FRONT: "face", GARRISON_FRONT: "garrison"}[id])
-		return
-	var ids: Array[int] = []
-	for a in _armies():
-		if not a.embarked():
-			ids.append(a.id)
-	if ids.is_empty():
-		return
-	var front := 0
-	if id >= NEW_FRONT_BASE and id < DRAW_FRONT:
-		var i := id - NEW_FRONT_BASE
-		if i >= _front_enemies.size():
-			return
-		var cmd := DesignateFront.new(me, "", [], _front_enemies[i])
-		if not GameState.issue(cmd):
-			return
-		front = cmd.front_id
-	elif id >= 0 and id < _front_ids.size():
-		front = _front_ids[id]
-	if front == 0:
-		return
-	GameState.issue(AssignToFront.new(me, front, ids))
-	get_tree().call_group("army_layer", "set_selected_front", front)
-	_refresh()
-
-
-func _on_release() -> void:
-	var ids: Array[int] = []
-	for a in _armies():
-		if a.front_id != 0:
-			ids.append(a.id)
-	if not ids.is_empty():
-		GameState.issue(AssignToFront.new(GameState.player_tag, 0, ids))
-	_refresh()
-
-
 func _on_merge() -> void:
 	var ids: Array[int] = []
 	for a in _armies():
@@ -1224,70 +1173,6 @@ func _line_status(line: AttackLine) -> String:
 		return "looking for a target" if Clock.days_elapsed >= line.wait else "no target at these odds"
 	var name: String = MapData.provinces[c.target].name
 	return ("gathering to attack %s" if c.phase == "gather" else "advancing on %s") % name
-
-
-const PLAN_PUSH := 0
-const PLAN_SPEAR := 1
-const PLAN_PHASE := 2
-const PLAN_LAUNCH := 3
-const PLAN_CANCEL := 4
-const PLAN_AGGR := 10
-const AGGRESSIVENESS := [["careful", "Careful"], ["balanced", "Balanced"], ["aggressive", "Aggressive"]]
-
-
-## The plan of attack of the first selected army, or null.
-func _plan_of(armies: Array[Army]) -> Offensive:
-	if armies.is_empty():
-		return null
-	return Offensives.of_army(GameState, armies[0])
-
-
-func _fill_plan() -> void:
-	var popup := _plan.get_popup()
-	popup.clear()
-	var armies := _armies()
-	var o := _plan_of(armies)
-	if not armies.is_empty() and o != null:
-		var root := FrontSolver.root_of(GameState, armies[0])
-		var what := "Spearhead at %s" % MapData.provinces[o.targets()[0]].name if o.kind == "spearhead" and not o.targets().is_empty() else "Push to a line of %d provinces" % o.targets().size()
-		popup.add_separator("%s · phase %d of %d · planning %d%%" % [what, o.phase + 1, o.phases.size(), roundi(Offensives.planning_of(GameState, root) * 100.0)])
-	popup.add_item("Push to a line (click it)…", PLAN_PUSH)
-	popup.add_item("Spearhead (click a province)…", PLAN_SPEAR)
-	popup.add_item("Add a phase (click the next line)…", PLAN_PHASE)
-	popup.set_item_disabled(popup.get_item_index(PLAN_PHASE), o == null)
-	popup.add_separator()
-	popup.add_item("Halt the attack" if o != null and o.active else "Launch the attack", PLAN_LAUNCH)
-	popup.set_item_disabled(popup.get_item_index(PLAN_LAUNCH), o == null)
-	popup.add_item("Cancel the plan", PLAN_CANCEL)
-	popup.set_item_disabled(popup.get_item_index(PLAN_CANCEL), o == null)
-	popup.add_separator("Aggressiveness")
-	for i in AGGRESSIVENESS.size():
-		popup.add_radio_check_item(AGGRESSIVENESS[i][1], PLAN_AGGR + i)
-		var index := popup.get_item_index(PLAN_AGGR + i)
-		popup.set_item_checked(index, o != null and o.aggressiveness == AGGRESSIVENESS[i][0])
-		popup.set_item_disabled(index, o == null)
-
-
-func _on_plan(id: int) -> void:
-	var o := _plan_of(_armies())
-	var tag := GameState.player_tag
-	match id:
-		PLAN_PUSH:
-			get_tree().call_group("military_panel", "begin_plan", "push")
-		PLAN_SPEAR:
-			get_tree().call_group("military_panel", "begin_plan", "spearhead")
-		PLAN_PHASE:
-			get_tree().call_group("military_panel", "begin_plan", "phase")
-		PLAN_LAUNCH:
-			if o != null:
-				GameState.issue(SetOffensive.new(tag, o.id, "launch", not o.active))
-		PLAN_CANCEL:
-			if o != null:
-				GameState.issue(SetOffensive.new(tag, o.id, "cancel"))
-		_:
-			if o != null and id >= PLAN_AGGR and id < PLAN_AGGR + AGGRESSIVENESS.size():
-				GameState.issue(SetOffensive.new(tag, o.id, "aggressiveness", AGGRESSIVENESS[id - PLAN_AGGR][0]))
-	_refresh()
 
 
 func _fill_attack() -> void:

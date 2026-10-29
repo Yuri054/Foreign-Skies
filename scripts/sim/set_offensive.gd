@@ -2,7 +2,7 @@ class_name SetOffensive
 extends Command
 ## Changes a plan of attack: "launch" (true or false: attack, or halt and go on planning), "aggressiveness"
 ## ("careful", "balanced" or "aggressive"), "phase" (adds a further line to reach once the last is taken: a list of
-## provinces) or "cancel".
+## provinces), "targets" (reshapes the line being fought for: a list of provinces) or "cancel".
 
 var tag: String
 var offensive_id: int
@@ -38,6 +38,15 @@ func execute(gs: Node) -> bool:
 				line.append(int(p))
 			o.phases.append(line)
 			o.done = false
+		"targets":
+			if not value is Array or (value as Array).is_empty() or o.done or o.kind != "broad" and (value as Array).size() != 1:
+				return false
+			var line: Array[int] = []
+			for p in value:
+				if int(p) < 1 or int(p) >= gs.province_owner.size():
+					return false
+				line.append(int(p))
+			o.phases[o.phase] = line
 		"cancel":
 			gs.offensives.erase(o.id)
 		_:

@@ -8,8 +8,9 @@ var id := 0
 var tag := ""
 ## The army (not a detachment) whose plan it is.
 var army_id := 0
-## "broad" (every stack pushes toward the target line from where it stands) or "spearhead" (the army gathers and
-## strikes at one province after another on the way to the target).
+## "broad" (every stack pushes toward the target line from where it stands), "spearhead" (the army gathers and
+## strikes at one province after another on the way to the target) or "invasion" (the army gathers in `port` and
+## sails to land on the target, a coastal province).
 var kind := "broad"
 ## The objectives in order: each phase is a list of provinces (a target line; a spearhead's is one province).
 var phases: Array = []
@@ -17,6 +18,8 @@ var phases: Array = []
 var phase := 0
 ## "careful", "balanced" or "aggressive" (military.json offensive).
 var aggressiveness := "balanced"
+## An invasion's port of embarkation.
+var port := 0
 ## Launched (true) or only planned.
 var active := false
 ## Set once the stacks have planned enough for this phase (or straight away when aggressive); the attack goes on until
@@ -37,4 +40,4 @@ func targets() -> Array[int]:
 
 func to_dict() -> Dictionary:
 	return {"id": id, "tag": tag, "army": army_id, "kind": kind, "phases": phases, "phase": phase,
-			"aggressiveness": aggressiveness, "active": active, "done": done}
+			"aggressiveness": aggressiveness, "active": active, "done": done, "port": port}

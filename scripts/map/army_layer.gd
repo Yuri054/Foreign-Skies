@@ -25,6 +25,9 @@ var _font: Font = ThemeDB.fallback_font
 var _zoom := 0.0
 var _box := Rect2()
 var _draft: Array[int] = []
+## How the draft is drawn: "line" (joined and numbered, a front drawn in order), "path" (joined, a target line dragged
+## out) or "area" (markers only, the provinces of a garrison).
+var _draft_style := "line"
 var _selected_front := 0
 var _hover := 0
 ## The selected province, when it holds several armies: they are fanned out one by one.
@@ -212,8 +215,9 @@ func set_box(rect: Rect2) -> void:
 
 
 ## The front being drawn (province ids so far).
-func set_draft(line: Array[int]) -> void:
+func set_draft(line: Array[int], style := "line") -> void:
 	_draft = line
+	_draft_style = style
 	_update_preview()
 	queue_redraw()
 
@@ -655,11 +659,17 @@ func _front_stretches(f: Front) -> Array:
 ## lines of later phases dashed; and the ground the plan means to take striped (in the map's shader).
 func _draw_offensives(px: float) -> void:
 	var zone := {}
+	# With armies selected (a general's or a field marshal's card), only their plans are shown.
+	var focus := {}
+	for id in selected:
+		var picked: Army = GameState.armies.get(id)
+		if picked != null and FrontSolver.root_of(GameState, picked) != null:
+			focus[FrontSolver.root_of(GameState, picked).id] = true
 	for o: Offensive in GameState.offensives.values():
 		if o.tag != GameState.player_tag or o.done:
 			continue
 		var root: Army = GameState.armies.get(o.army_id)
-		if root == null:
+		if root == null or (not focus.is_empty() and not focus.has(root.id)):
 			continue
 		var colour: Color = army_colour_of(root) if army_colour_of(root) != null else GameState.nations[o.tag].color.lightened(0.3)
 		var stacks := FrontSolver.stacks_of(GameState, root)
@@ -677,6 +687,17 @@ func _draw_offensives(px: float) -> void:
 			line.append(MapData.provinces[p].center)
 		var aim: Vector2 = _midpoint(line) if line.size() > 1 else line[0]
 		var text := "%d divisions · %s" % [divisions, root.display_name]
+		if o.kind == "invasion":
+			# From the port over the sea to the beach: a narrow arrow, an anchor ring at the port, a ring on the beach.
+			var port: Vector2 = MapData.provinces[o.port].center
+			_draw_arrow(port, aim, colour, 11.0 * px, 5.0 * px, 0.9, 0.75, text, px)
+			draw_arc(port, 12.0 * px, 0, TAU, 32, Color(0.02, 0.03, 0.05, 0.8), 4.0 * px, true)
+			draw_arc(port, 12.0 * px, 0, TAU, 32, colour, 2.2 * px, true)
+			draw_arc(aim, 16.0 * px, 0, TAU, 32, Color(0.02, 0.03, 0.05, 0.8), 4.5 * px, true)
+			draw_arc(aim, 16.0 * px, 0, TAU, 32, colour, 2.4 * px, true)
+			if GameState.province_controller[aim_province(o)] != o.tag:
+				zone[aim_province(o)] = colour
+			continue
 		if o.kind == "spearhead":
 			_draw_arrow(source, aim, colour, 13.0 * px, 6.0 * px, 0.95, 0.85, text, px)
 			for r in [14.0, 22.0]:
@@ -721,6 +742,10 @@ func _draw_offensives(px: float) -> void:
 				if GameState.province_controller[id] != o.tag and GameState.province_owner[id] != o.tag and Geometry2D.is_point_in_polygon(MapData.provinces[id].center, hull):
 					zone[id] = colour
 	get_tree().call_group("map_view", "set_plan_zone", zone)
+
+
+static func aim_province(o: Offensive) -> int:
+	return o.targets()[0] if not o.targets().is_empty() else 0
 
 
 ## A curved arrow from `from` to `to` (a quadratic Bezier bending a little to one side), `wide` across at its base and
@@ -1047,13 +1072,14 @@ func _draw_draft(px: float) -> void:
 	var line := PackedVector2Array()
 	for p in _draft:
 		line.append(MapData.provinces[p].center)
-	if line.size() > 1:
+	if line.size() > 1 and _draft_style != "area":
 		draw_polyline(line, Color(0.03, 0.04, 0.07, 0.8), 10.0 * px, true)
 		draw_polyline(line, DRAFT_COLOR, 6.0 * px, true)
 	for i in line.size():
 		draw_circle(line[i], 8.0 * px, Color(0.03, 0.04, 0.07, 0.85))
 		draw_circle(line[i], 6.0 * px, DRAFT_COLOR)
-		_pill("%d" % (i + 1), line[i] + Vector2(0, -16.0 * px), px, DRAFT_COLOR, 10)
+		if _draft_style == "line":
+			_pill("%d" % (i + 1), line[i] + Vector2(0, -16.0 * px), px, DRAFT_COLOR, 10)
 
 
 ## The hover card: under the banners of the hovered province, a line and the unit symbols for

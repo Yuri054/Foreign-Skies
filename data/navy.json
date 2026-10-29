@@ -8,7 +8,13 @@
 		"patrol": "Patrol",
 		"blockade": "Blockade",
 		"escort": "Escort",
-		"raid": "Raid"
+		"raid": "Raid",
+		"support": "Shore support"
+	},
+	"shore_support": {
+		"_note": "Warships on Shore support in a sea zone off a coastal province add to the power of their nation's armies attacking there: per_squadron per warship squadron, at most max.",
+		"per_squadron": 0.05,
+		"max": 0.3
 	},
 	"types": {
 		"dreadnought": {

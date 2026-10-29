@@ -11,6 +11,9 @@ var display_name := ""
 ## Nation this front faces ("" for a hand-drawn line). The line is then every province the
 ## owner holds that touches ground held by that nation, and follows the war as it moves.
 var against := ""
+## For a border front: a province the player clicked to hold only the stretch of that border around it (0: the whole
+## border). The line is the stretch nearest to it as the border moves (Military.border_stretch).
+var anchor := 0
 ## The provinces of the line (a hand-drawn line is a chain: each borders the next).
 var provinces: Array[int] = []
 var army_ids: Array[int] = []

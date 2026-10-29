@@ -7,6 +7,8 @@ extends RefCounted
 ##     for the enemy province next to it that leads toward the target line; a spearhead gathers its army next to the next
 ##     enemy province on the way to its target and strikes it together. A stack attacks only at the odds and morale its
 ##     aggressiveness asks for;
+##   - an invasion gathers the army in its port and, once enough of it is there and a fleet in the port has room for it,
+##     sails it to the target (SendOverseas); the plan is then done;
 ##   - a phase whose provinces are all held is done: the plan turns to the next phase and plans for it again (the army's
 ##     border front has followed the ground taken, so the line it attacks from is the one it reached).
 ## Constants are in data/military.json "offensive".
@@ -27,10 +29,11 @@ static func of_army(gs: Node, a: Army) -> Offensive:
 	return null
 
 
-## Whether a plan has the army's stacks in hand (a launched spearhead): the front does not spread them meanwhile.
+## Whether a plan has the army's stacks in hand (a launched spearhead or invasion): the front does not spread them
+## meanwhile.
 static func controls(gs: Node, root: Army) -> bool:
 	var o := of_army(gs, root)
-	return o != null and o.active and o.kind == "spearhead"
+	return o != null and o.active and o.kind != "broad"
 
 
 ## The mean planning of an army's stacks, weighted by divisions.
@@ -51,6 +54,9 @@ static func step_day(gs: Node) -> void:
 			gs.offensives.erase(o.id)
 			continue
 		if o.done or not o.active:
+			continue
+		if o.kind == "invasion":
+			_invasion(gs, o, root)
 			continue
 		var targets := o.targets()
 		while not targets.is_empty() and targets.all(func(p: int) -> bool: return gs.province_controller[p] == o.tag):
@@ -230,6 +236,50 @@ static func _spearhead(gs: Node, o: Offensive, root: Army, target: int) -> void:
 			if _free(s) or (s.pin == s.province and s.path.is_empty()):
 				s.pin = 0
 				_send(gs, s, objective)
+
+
+## An invasion: the army's stacks march to the port; once `gather` of its divisions are there (all of them unless
+## aggressive) and a fleet of the nation in the port has room for them, they sail to land on the target.
+static func _invasion(gs: Node, o: Offensive, root: Army) -> void:
+	var target := o.targets()[0] if not o.targets().is_empty() else 0
+	if target == 0:
+		return
+	var total := 0
+	var there: Array[int] = []
+	var near := 0
+	var men := 0.0
+	for s in FrontSolver.stacks_of(gs, root):
+		total += s.units.size()
+		if s.province == o.port and s.path.is_empty() and not s.embarked():
+			there.append(s.id)
+			near += s.units.size()
+			men += s.men()
+		elif _free(s) and s.province != o.port:
+			_send(gs, s, o.port)
+	var share := 1.0 if o.aggressiveness != "aggressive" else float(cfg().get("gather", 0.7))
+	if there.is_empty() or float(near) < float(total) * share:
+		return
+	for f: Fleet in Navy.fleets_in_port(gs, o.port):
+		if f.tag == o.tag and Navy.free_capacity(gs, f) >= men:
+			var sail := SendOverseas.new(o.tag, f.id, there, target)
+			if sail.execute(gs):
+				o.done = true
+				o.active = false
+				return
+
+
+## Why an invasion is waiting, or "" (for the plan's label).
+static func invasion_wait(gs: Node, o: Offensive) -> String:
+	var root: Army = gs.armies.get(o.army_id)
+	if root == null:
+		return ""
+	var men := 0.0
+	for s in FrontSolver.stacks_of(gs, root):
+		men += s.men()
+	for f: Fleet in Navy.fleets_in_port(gs, o.port):
+		if f.tag == o.tag and Navy.free_capacity(gs, f) >= men:
+			return ""
+	return "waiting for transports in %s" % MapData.provinces[o.port].name
 
 
 ## The enemy province a spearhead strikes next on its way to `target`: the target itself if it borders the nation's

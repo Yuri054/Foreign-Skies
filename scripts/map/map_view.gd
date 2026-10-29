@@ -867,6 +867,18 @@ func _diplomacy_tip_text(id: int) -> String:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# A battle plan tool in hand (BattlePlanToolbar) takes the map's clicks and drags instead of selecting and moving.
+	var tool := get_tree().get_first_node_in_group("map_tool")
+	if tool != null and tool.is_active():
+		if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+			if event.pressed:
+				tool.map_press(maxi(_province_under_mouse(), 0), maxi(_zone_under_mouse(), 0), event.button_index, event.shift_pressed)
+			else:
+				tool.map_release(maxi(_province_under_mouse(), 0), event.button_index)
+			get_viewport().set_input_as_handled()
+			return
+		if event is InputEventMouseMotion and event.button_mask & (MOUSE_BUTTON_MASK_LEFT | MOUSE_BUTTON_MASK_RIGHT) != 0:
+			tool.map_drag(maxi(_province_under_mouse(), 0))
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Z 			and not event.ctrl_pressed and not event.alt_pressed:
 		set_show_zones(not show_zones)
 	elif event is InputEventMouseMotion:

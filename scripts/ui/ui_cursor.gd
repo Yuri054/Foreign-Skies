@@ -9,6 +9,15 @@ const SIZE := 32
 ## Where a click lands: the point of the arrow, and the tip of the finger.
 const HOTSPOT := Vector2(3, 3)
 const HAND_HOTSPOT := Vector2(13, 3)
+const CROSS_HOTSPOT := Vector2(16, 16)
+## The crosshair of the battle plan tools: four arms around the point, a gap at the middle.
+static var CROSS: Array = [
+	{"a": Vector2(16.0, 3.0), "b": Vector2(16.0, 11.5), "r": 1.6},
+	{"a": Vector2(16.0, 20.5), "b": Vector2(16.0, 29.0), "r": 1.6},
+	{"a": Vector2(3.0, 16.0), "b": Vector2(11.5, 16.0), "r": 1.6},
+	{"a": Vector2(20.5, 16.0), "b": Vector2(29.0, 16.0), "r": 1.6},
+	{"a": Vector2(16.0, 16.0), "b": Vector2(16.0, 16.0), "r": 1.7},
+]
 ## The arrow's outline, in pixels of the SIZE square.
 const ARROW: PackedVector2Array = [
 	Vector2(3.0, 3.0), Vector2(3.0, 25.0), Vector2(8.6, 19.8), Vector2(12.6, 29.0),
@@ -29,6 +38,7 @@ static var HAND: Array = [
 static var installed := false
 static var _arrow: Image
 static var _hand: Image
+static var _cross: Image
 
 
 ## Puts the pointers in place (once). Skipped when there is no screen to show them on.
@@ -38,12 +48,20 @@ static func install() -> void:
 	installed = true
 	Input.set_custom_mouse_cursor(arrow_image(), Input.CURSOR_ARROW, HOTSPOT)
 	Input.set_custom_mouse_cursor(hand_image(), Input.CURSOR_POINTING_HAND, HAND_HOTSPOT)
+	Input.set_custom_mouse_cursor(cross_image(), Input.CURSOR_CROSS, CROSS_HOTSPOT)
 
 
 static func arrow_image() -> Image:
 	if _arrow == null:
 		_arrow = _draw([{"poly": ARROW}], UiTheme.CREAM, UiTheme.GOLD)
 	return _arrow
+
+
+## The pointer while a battle plan tool is in hand (BattlePlanToolbar): a gold crosshair.
+static func cross_image() -> Image:
+	if _cross == null:
+		_cross = _draw(CROSS, UiTheme.GOLD.lightened(0.15), UiTheme.CREAM)
+	return _cross
 
 
 ## The pointer over a button or a link: a gold hand with a cream rule, one finger out.

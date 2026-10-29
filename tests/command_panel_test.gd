@@ -1,6 +1,6 @@
 extends SceneTree
 ## Drives the command panel through the main scene: its army and fleet cards, groups that fold to
-## their marshal, the show/hide toggle, and the orders strip (merge, split, detach, fronts, halt,
+## their marshal, the show/hide toggle, and the orders strip (merge, split, detach, halt,
 ## symbol, deselect, fleet orders).
 ## Run: godot --headless --path . -s res://tests/command_panel_test.gd
 
@@ -56,7 +56,6 @@ func _initialize() -> void:
 	_check(bar._army_orders.visible and bar._ids == panel._selected, "selecting an army brings up the orders strip")
 	_check(bar._title.text.contains("men") and bar._title.text.contains("Meurthe-et-Moselle"), "and names the army (%s)" % bar._title.text)
 	_check(bar._merge.disabled and not bar._split.disabled and not bar._detach.disabled, "one army can be split or detached from, not merged")
-	_check(bar._release.disabled and not bar._front.disabled, "it is on no front, so only assigning is open")
 	_check(bar._halt.disabled, "and it is not marching, so there is nothing to halt")
 	var rect: Rect2 = bar.get_global_rect()
 	var palette: Control = get_first_node_in_group("map_modes")
@@ -85,90 +84,9 @@ func _initialize() -> void:
 	bar._on_merge()
 	await process_frame
 
-	# Fronts.
-	bar._fill_fronts()
-	var menu: PopupMenu = bar._front.get_popup()
-	_check(menu.item_count == 3 and menu.get_item_id(0) == bar.DRAW_FRONT and menu.get_item_id(1) == bar.FACE_FRONT and menu.get_item_id(2) == bar.GARRISON_FRONT, "with no front and no war the menu offers to draw one, to face a nation or to garrison")
+	# The Battle Plans toolbar stands over the orders (its tools are tested in battle_plan_toolbar_test).
+	_check(bar._plans_bar.visible and bar._plans_bar.roots().size() == 1, "the Battle Plans toolbar shows, acting on the selected army")
 	gs.set_war("FRA", "GER", true)
-	bar._fill_fronts()
-	var face_id := -1
-	for i in menu.item_count:
-		if menu.get_item_text(i).begins_with("Face German"):
-			face_id = menu.get_item_id(i)
-	_check(face_id >= bar.NEW_FRONT_BASE and gs.fronts.is_empty(), "at war it offers a new front against the enemy it borders")
-	bar._on_front(face_id)
-	await process_frame
-	var assigned = gs.armies[panel._selected[0]]
-	_check(gs.fronts.size() == 1 and assigned.front_id != 0 and not bar._release.disabled, "choosing it makes the front and puts the army on it, and Release opens")
-	bar._on_release()
-	await process_frame
-	_check(gs.armies[panel._selected[0]].front_id == 0, "Release takes it off")
-	bar._fill_fronts()
-	var assign_id := -1
-	for i in menu.item_count:
-		if menu.get_item_text(i).begins_with("Assign to"):
-			assign_id = menu.get_item_id(i)
-	_check(assign_id == 0, "the front is now in the menu to assign to")
-	bar._on_front(assign_id)
-	await process_frame
-	_check(gs.armies[panel._selected[0]].front_id == gs.fronts.keys()[0], "and assigns")
-	# Draw a line from the bar: the armies go on it when it is finished.
-	bar._on_release()
-	var fronts_before: int = gs.fronts.size()
-	bar._on_front(bar.DRAW_FRONT)
-	await process_frame
-	_check(panel._drawing and panel._assign_new and panel.visible and panel._fronts_box.visible, "Draw opens the Fronts section of the Military page in drawing mode")
-	panel.set_province(nancy)
-	var neighbour := 0
-	for n in Mil.neighbors(nancy):
-		if gs.province_owner[n] == "FRA":
-			neighbour = n
-	panel.set_province(neighbour)
-	panel._finish_drawing()
-	await process_frame
-	_check(gs.fronts.size() == fronts_before + 1 and gs.armies[panel._selected[0]].front_id != 0, "finishing the line makes the front and puts the selected army on it")
-	bar._on_front(bar.FACE_FRONT)
-	_check(panel._picking_nation and panel._assign_new, "Face a nation waits for a click on that nation")
-	panel._end_drawing()
-	# A garrison from the bar: click provinces of yours, finish, and the army guards them.
-	bar._on_release()
-	bar._on_front(bar.GARRISON_FRONT)
-	await process_frame
-	_check(panel._drawing and panel._draft_mode == "garrison" and panel._assign_new, "Garrison provinces waits for clicks on provinces to guard")
-	panel.set_province(nancy)
-	panel._finish_drawing()
-	await process_frame
-	var guard_front = gs.fronts.get(gs.armies[panel._selected[0]].front_id)
-	_check(guard_front != null and guard_front.kind == "garrison", "finishing it makes a garrison and puts the army on it")
-	bar._on_release()
-
-	# A plan of attack from the bar.
-	var Off = load("res://scripts/sim/offensives.gd")
-	_check(not bar._plan.disabled and bar._plan.text == "Plan", "an army on land can be given a plan")
-	bar._fill_plan()
-	var plan_menu: PopupMenu = bar._plan.get_popup()
-	_check(plan_menu.is_item_disabled(plan_menu.get_item_index(bar.PLAN_LAUNCH)) and not plan_menu.is_item_disabled(plan_menu.get_item_index(bar.PLAN_PUSH)), "with no plan yet, the menu offers to make one, not to launch")
-	bar._on_plan(bar.PLAN_PUSH)
-	await process_frame
-	_check(panel._drawing and panel._draft_mode == "push" and panel._fronts_box.visible, "Push to a line waits for clicks on the line, with the Military page open to finish it")
-	for n in Mil.neighbors(nancy):
-		if gs.province_controller[n] == "GER":
-			panel.set_province(n)
-	var enter := InputEventKey.new()
-	enter.keycode = KEY_ENTER
-	enter.pressed = true
-	panel._unhandled_key_input(enter)
-	await process_frame
-	var plan = Off.of_army(gs, gs.armies[panel._selected[0]])
-	_check(plan != null and plan.kind == "broad" and not panel._drawing, "Enter finishes the line and the army has its push")
-	_check(bar._plan.text == "Plan: planning", "the bar shows the plan (%s)" % bar._plan.text)
-	bar._on_plan(bar.PLAN_AGGR + 2)
-	bar._on_plan(bar.PLAN_LAUNCH)
-	_check(plan != null and plan.aggressiveness == "aggressive" and plan.active and bar._plan.text == "Plan: attacking", "Aggressive and Launch from the menu (%s)" % bar._plan.text)
-	bar._fill_plan()
-	_check(plan_menu.get_item_text(plan_menu.get_item_index(bar.PLAN_LAUNCH)) == "Halt the attack" and plan_menu.is_item_checked(plan_menu.get_item_index(bar.PLAN_AGGR + 2)), "the menu then offers Halt, with Aggressive ticked")
-	bar._on_plan(bar.PLAN_CANCEL)
-	_check(Off.of_army(gs, gs.armies[panel._selected[0]]) == null and bar._plan.text == "Plan", "Cancel drops it")
 
 	# March and halt.
 	var dest := 0

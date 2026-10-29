@@ -104,6 +104,29 @@ sector in its own colour, two armies' arrows to their own target lines).
 
 This becomes a stage of its own (F7), after F2: lines first, then arrows with the attack orders.
 
+## The command UI: the Battle Plans toolbar (0.15.0)
+
+The player's brief for the command UI, with the reference picture of the Hearts of Iron toolbar, mapped onto the game.
+It is `BattlePlanToolbar` over the command panel's cards; every button gives a command, so orders save and replay.
+
+| Button | Here |
+|---|---|
+| Execute | Launches or halts the selected armies' plans (`SetOffensive` launch). |
+| Careful / Balanced / Aggressive | The plans' aggressiveness, and the one new plans get. Careful attacks at two to one or better and halts under 60% morale. |
+| Front line | Click a border: a front on the stretch of it there (`Front.anchor`); Shift: the whole border. |
+| Offensive line | Drag across enemy ground: a push to that line; Shift: the next phase. Needs a front. |
+| Spearhead | Click a province: a spearhead at it. Needs a front. |
+| Fallback line | Drag through own ground: a drawn line (a fallback line while no enemy touches it). |
+| Garrison | A checklist (ports, forts, cities, the capital) and clicks: the ticked kinds near each province clicked. |
+| Naval invasion | Click a port, then a coast: an invasion plan (gather in the port, sail with `SendOverseas`). |
+| Naval support | Click a coast: the nearest free warships sail off it on the Shore support mission (`Military.naval_support`). |
+| Paradrop | Off: the game has no aircraft. |
+| Unassign | Off the front, plan dropped. |
+| Edit | Drag over a target line or a drawn line to add or take off provinces (`SetOffensive` targets, `SetFrontLine`). |
+| Delete | Click an order to remove it (the selection's first); right click the button: every order of the selection, or all. |
+| Commander cards | Selecting a general's or a field marshal's card filters the map's plans to theirs. |
+| Add commander | The + card: a new army group of the selected armies, or the Group menu if they have one. |
+
 ## Stages
 
 | Stage | Work | Done when (playtest) |
