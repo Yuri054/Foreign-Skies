@@ -4,7 +4,7 @@ A historical-pressure sandbox on a map of Europe. There is no score and no victo
 
 ## Pillars
 
-- **The map is the interface.** A flat 2D map (or a 3D one with real relief, cities and unit models), map modes that carry most of the information, and one Nation screen for everything about running the country.
+- **The map is the interface.** A flat 2D map (or a 3D one with real relief, a moving sea, cities and unit models), map modes that carry most of the information, and one Nation screen for everything about running the country.
 - **History pushes, it does not script.** Crises and events arrive on a calendar, but every one is a choice and the outcome depends on the state of the world. Whether 1914 ends in a general war is not decided in advance.
 - **A few systems that fit together.** Money, industry and manpower are the whole economy. Diplomacy, war and the AI read the same numbers.
 

@@ -49,6 +49,13 @@ func _initialize() -> void:
 			layers_inside = layers_inside and c.get_parent() is SubViewport
 	_check(layers_inside, "and so is every layer drawn on it")
 	_check(main.camera.get_parent() is SubViewport and main.camera.is_current(), "the 2D camera goes with them and is the one in use")
+	var mat: ShaderMaterial = mode._material
+	var coast: Texture2D = mat.get_shader_parameter("coast")
+	_check(coast != null and is_equal_approx(float(mat.get_shader_parameter("coast_px")), float(root.get_node("MapData").map_size.x) / coast.get_width()), "the sea reads the coast map, a quarter of the map's size")
+	_check(float(mat.get_shader_parameter("water")) == 1.0, "the sea moves by default")
+	mode.water_on = false
+	_check(float(mat.get_shader_parameter("water")) == 0.0, "and the setting stills it")
+	mode.water_on = true
 	mode.tilt = 500.0
 	mode._apply_tilt()
 	_check(is_equal_approx(mode.tilt, M3.MAX_TILT), "the tilt stops at straight down")

@@ -14,6 +14,7 @@ var _note := Label.new()
 var _army_view := OptionButton.new()
 var _map_3d := CheckButton.new()
 var _quality := OptionButton.new()
+var _water := CheckButton.new()
 var _land := OptionButton.new()
 var _updating := false
 
@@ -125,6 +126,17 @@ func _ready() -> void:
 	)
 	quality_row.add_child(_quality)
 	box.add_child(quality_row)
+	_water.text = "Moving sea in 3D"
+	_water.focus_mode = Control.FOCUS_NONE
+	_water.tooltip_text = "Waves, the sun and sky on the water, lighter shallows and surf on the shores, on the 3D map. Off for a slower graphics card."
+	_water.toggled.connect(func(on: bool) -> void:
+		if _updating:
+			return
+		UiSettings.set_water_3d(on)
+		for m in get_tree().get_nodes_in_group("map_3d"):
+			m.water_on = on
+	)
+	box.add_child(_water)
 
 	box.add_child(HSeparator.new())
 	box.add_child(AudioPanel.new())
@@ -147,6 +159,7 @@ func _sync() -> void:
 		_map_3d.button_pressed = m.enabled
 	_land.select(maxi(0, UiSettings.LAND_STYLES.find(UiSettings.land_style)))
 	_quality.select(maxi(0, UiSettings.QUALITY_SCALES.keys().find(UiSettings.quality_3d)))
+	_water.button_pressed = UiSettings.water_3d
 	_slider.value = UiSettings.scale
 	_scale_label.text = "%d%%" % roundi(UiSettings.scale * 100.0)
 	for i in _army_view.item_count:

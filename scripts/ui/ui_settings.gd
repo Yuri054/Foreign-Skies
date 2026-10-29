@@ -26,6 +26,8 @@ const LAND_STYLES := ["satellite", "painted", "off"]
 ## sharper and costs the graphics card more.
 const QUALITY_SCALES := {"low": 0.75, "medium": 1.0, "high": 1.5}
 static var quality_3d := "medium"
+## Whether the 3D map's sea moves (waves, sun, shallows, surf). Off for a slower graphics card.
+static var water_3d := true
 ## Whether the command panel at the bottom shows its cards (C shows or hides them). It starts
 ## closed: only its small button shows.
 static var command_open := false
@@ -44,6 +46,7 @@ static func apply_saved(window: Window) -> void:
 		land_style = land if LAND_STYLES.has(land) else "satellite"
 		var quality := str(cfg.get_value("map", "quality_3d", "medium"))
 		quality_3d = quality if QUALITY_SCALES.has(quality) else "medium"
+		water_3d = bool(cfg.get_value("map", "water_3d", true))
 		command_open = bool(cfg.get_value("ui", "command_open", false))
 		province_details = bool(cfg.get_value("ui", "province_details", false))
 	window.theme = UiTheme.build()
@@ -99,6 +102,14 @@ static func set_quality_3d(quality: String) -> bool:
 	cfg.set_value("map", "quality_3d", quality)
 	cfg.save(path)
 	return true
+
+
+static func set_water_3d(on: bool) -> void:
+	water_3d = on
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	cfg.set_value("map", "water_3d", on)
+	cfg.save(path)
 
 
 static func set_province_details(on: bool) -> void:

@@ -11,7 +11,8 @@ extends Node
 ## the picture that lies under it, and sent to the layers, so selecting, ordering and box-selecting
 ## work unchanged (a click is followed down onto the raised ground, see `height_units`). The relief
 ## is real: data/map/relief.png (tools/build_relief.py) holds the ground's height, and the plane is
-## raised by it (exaggerated, `RELIEF_EXAGGERATION`) and lit from the north west. The windows and the top bar stay on the screen as they are. Off, the layers go
+## raised by it (exaggerated, `RELIEF_EXAGGERATION`) and lit from the north west. The sea moves (`water_on`): waves
+## anchored to the map, the sun and the sky on them, lighter shallows and surf, from data/map/coast.png. The windows and the top bar stay on the screen as they are. Off, the layers go
 ## back to where they were.
 
 signal toggled(on: bool)
@@ -31,6 +32,8 @@ const SEA := Color(0.045, 0.065, 0.1)
 ## The relief picture: grey is the square root of the height, TOP_M metres at 255 (tools/build_relief.py).
 const RELIEF_PATH := "res://data/map/relief.png"
 const RELIEF_TOP_M := 3000.0
+## The distance from the shore, for the water (tools/build_coast.py).
+const COAST_PATH := "res://data/map/coast.png"
 ## How much taller than true the ground is drawn, and the most it may rise (plane units).
 const RELIEF_EXAGGERATION := 16.0
 const RELIEF_MAX := 1.0
@@ -60,6 +63,12 @@ var _material: ShaderMaterial
 var _relief: Image
 ## Whether the ground is raised by its relief (off, the plane is flat).
 var relief_on := true
+## Whether the sea moves: waves, the sun and sky on them, lighter shallows and surf on the shores (UiSettings.water_3d).
+var water_on := true:
+	set(value):
+		water_on = value
+		if _material != null:
+			_material.set_shader_parameter("water", 1.0 if water_on else 0.0)
 ## Whether armies and fleets stand up as small models (a pole with a flag, a little ship) on the map,
 ## not as the flat banners (which stay for the flat map).
 var markers_on := true:
@@ -104,6 +113,7 @@ var _view_size := Vector2(1, 1)
 
 func _ready() -> void:
 	add_to_group("map_3d")
+	water_on = UiSettings.water_3d
 
 
 func toggle() -> void:
@@ -248,33 +258,124 @@ func _build_scene() -> void:
 render_mode unshaded, cull_disabled;
 uniform sampler2D picture : source_color, filter_linear;
 uniform sampler2D relief : hint_default_black, filter_linear, repeat_disable;
+// data/map/coast.png (tools/build_coast.py): red the signed distance to the shore, green how far out to sea.
+uniform sampler2D coast : hint_default_black, filter_linear, repeat_disable;
 uniform vec2 view_origin;
 uniform vec2 view_size;
 uniform vec2 map_size;
 // Plane units a relief metre rises (0 for a flat plane), and the metres a texel of the relief spans.
 uniform float rise;
 uniform float texel_m;
+// Map pixels a texel of the coast map spans, and how much of the water effect shows (0 off, 1 full).
+uniform float coast_px = 4.0;
+uniform float water = 1.0;
 varying vec2 ground_uv;
+
+const vec3 SUN = vec3(-0.55, 0.85, -0.6);
+const vec3 SUN_COLOR = vec3(1.0, 0.94, 0.8);
+const vec3 SKY = vec3(0.56, 0.66, 0.78);
+const vec3 FOAM = vec3(0.88, 0.92, 0.94);
+// The direction each wave train runs (radians from east, the map's y pointing south): mostly toward the east-north-east,
+// the shorter ones spread wider, so the chop crosses.
+const float ANGLES[8] = float[8](-0.32, 0.18, -0.85, 0.55, -1.25, 0.95, -0.05, -1.7);
+
 float metres(vec2 uv) {
 	float g = textureLod(relief, uv, 0.0).r;
 	return g * g * 3000.0;
 }
+
+float hash(vec2 p) {
+	p = fract(p * vec2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
+
+// Smooth value noise, 0 to 1.
+float noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+// The slope of the sea's surface at map pixel p: a sum of wave trains running mostly east-north-east (the westerlies),
+// from long swell to short chop, broken up by noise. Each train fades out once it is too fine for the screen (px: map
+// pixels a screen pixel spans), so the far sea is calm, not shimmering.
+vec2 wave_slope(vec2 p, float t, float px) {
+	vec2 slope = vec2(0.0);
+	float warp = noise(p / 160.0 + vec2(t * 0.01, 0.0)) * 6.28;
+	float groups = 0.55 + 0.9 * noise(p / 260.0 - vec2(0.0, t * 0.015));
+	float wavelength = 95.0;
+	for (int i = 0; i < 8; i++) {
+		float angle = ANGLES[i];
+		vec2 d = vec2(cos(angle), sin(angle));
+		float k = 6.2832 / wavelength;
+		float omega = 2.2 * sqrt(k);
+		float theta = k * dot(d, p) - omega * t + warp * (0.5 + 0.15 * float(i)) + float(i) * 1.7;
+		float cycles = px / wavelength;
+		float fade = 1.0 - smoothstep(0.18, 0.45, cycles);
+		float steep = 0.06 - 0.004 * float(i);
+		slope += d * cos(theta) * steep * fade * groups;
+		wavelength *= 0.62;
+	}
+	return slope;
+}
+
 void vertex() {
 	ground_uv = (view_origin + UV * view_size) / map_size;
 	VERTEX.y += metres(ground_uv) * rise;
 }
+
 void fragment() {
 	vec4 c = texture(picture, UV);
 	vec2 e = 1.0 / vec2(textureSize(relief, 0));
 	float dx = (metres(ground_uv + vec2(e.x, 0.0)) - metres(ground_uv - vec2(e.x, 0.0))) / (2.0 * texel_m);
 	float dz = (metres(ground_uv + vec2(0.0, e.y)) - metres(ground_uv - vec2(0.0, e.y))) / (2.0 * texel_m);
 	vec3 n = normalize(vec3(-dx * 3.5, 1.0, -dz * 3.5));
-	vec3 light = normalize(vec3(-0.55, 0.85, -0.6));
+	vec3 light = normalize(SUN);
 	float shade = dot(n, light) - light.y;
 	float lit = rise > 0.0 ? clamp(1.0 + shade * 0.8, 0.7, 1.3) : 1.0;
+	vec3 color = c.rgb * lit;
+
+	// The sea: waves, the sky and the sun on them, lighter shallows and surf on the shore, over the map's own colours.
+	if (water > 0.0) {
+		vec4 shore = texture(coast, ground_uv);
+		float dc = (shore.r * 255.0 - 128.0) / 8.0 * coast_px;    // map pixels out from the shore (negative inland)
+		float aa = max(fwidth(dc), 0.6);
+		float wet = smoothstep(-aa, aa, dc) * water;
+		if (wet > 0.0) {
+			vec2 p = ground_uv * map_size;
+			float px = max(length(fwidth(p)), 0.001);
+			float t = TIME;
+			vec2 g = wave_slope(p, t, px);
+			vec3 wn = normalize(vec3(-g.x, 1.0, -g.y));
+			vec3 world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+			vec3 v = normalize(INV_VIEW_MATRIX[3].xyz - world);
+			float depth = smoothstep(0.0, 0.85, shore.g);
+			vec3 shallow = c.rgb * vec3(1.12, 1.32, 1.28) + vec3(0.015, 0.045, 0.045);
+			vec3 deep = c.rgb * vec3(0.72, 0.8, 0.95);
+			vec3 body = mix(shallow, deep, depth) * (0.82 + 0.32 * max(dot(wn, light), 0.0));
+			float facing = max(dot(wn, v), 0.0);
+			float fresnel = 0.02 + 0.98 * pow(1.0 - facing, 5.0);
+			vec3 sea = mix(body, SKY, clamp(fresnel * 0.75, 0.0, 0.85));
+			vec3 r = reflect(-v, wn);
+			float sun = max(dot(r, light), 0.0);
+			// The sun's path on the water: a soft sheen, and fainter sparkle where the waves catch it.
+			sea += SUN_COLOR * (pow(sun, 260.0) * 0.32 + pow(sun, 24.0) * 0.1);
+			// Surf: a white line on the shore and bands rolling in on it, broken up, gone when the shore is too
+			// small on the screen to show them.
+			float near = 1.0 - smoothstep(0.0, max(5.0, px * 2.5), dc);
+			float rolling = sin(dc * 1.1 - t * 1.7 + noise(p / 28.0) * 5.0);
+			float bands = smoothstep(0.55, 1.0, rolling) * (1.0 - smoothstep(0.0, 10.0, dc));
+			float broken = smoothstep(0.2, 0.65, noise(p / 5.0 + vec2(t * 0.25, -t * 0.18)) + near * 0.45);
+			float surf = clamp(near * 0.9 + bands * 0.6, 0.0, 1.0) * broken * (1.0 - smoothstep(2.5, 7.0, px));
+			sea = mix(sea, FOAM, surf * 0.8);
+			color = mix(color, sea, wet);
+		}
+	}
 	// The edges of the picture melt into the background, so a tilt shows no hard border.
 	float edge = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
-	ALBEDO = c.rgb * lit;
+	ALBEDO = color;
 	ALPHA = smoothstep(0.0, 0.05, edge);
 }
 """
@@ -288,6 +389,11 @@ void fragment() {
 			_relief = tex.get_image()
 		_material.set_shader_parameter("map_size", Vector2(MapData.map_size))
 		_material.set_shader_parameter("texel_m", float(MapData.map_size.x) / float(tex.get_width()) * KM_PER_PX * 1000.0)
+	var coast: Texture2D = load(COAST_PATH)
+	if coast != null:
+		_material.set_shader_parameter("coast", coast)
+		_material.set_shader_parameter("coast_px", float(MapData.map_size.x) / float(coast.get_width()))
+	_material.set_shader_parameter("water", 1.0 if water_on else 0.0)
 	var plane := MeshInstance3D.new()
 	plane.mesh = mesh
 	plane.material_override = _material

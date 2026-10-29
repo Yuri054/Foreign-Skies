@@ -5,7 +5,15 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.0 (2026-10-28 02:39 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.1 (2026-10-29 01:53 UTC)
+
+- **The sea moves on the 3D map.** Waves run with the westerlies, from long swell to short chop, and stay put on the map
+  as you pan; the sun leaves a soft path on the water and the sky shows in it toward the horizon as you tilt; the
+  shallows near the coasts are lighter, and surf breaks on every shore and round every island. The map's own colours
+  and lines still show through. The settings (the gear) can still the sea on a slower graphics card.
+- `tools/build_coast.py` writes `data/map/coast.png`, how far each place is from the shore, which the water reads.
+
+## 0.12.0 (2026-10-28 02:39 UTC)
 
 The game stops trying to be a history simulation: your effort now compounds, and any nation can climb. What the game is
 for is written down in `VISION.md`.

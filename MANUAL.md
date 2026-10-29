@@ -19,7 +19,8 @@ Then pick a nation. Pause with Space; the game runs in real time at five speeds.
 Left click selects a province, an army or a fleet; a box drag selects several; right click gives an order to what is selected,
 or opens the country panel on another nation. The map has modes (keys 1 to 6): political, diplomacy (who likes whom, from any
 nation's point of view), economy, population, military (control, front line, strength, **supply**) and terrain. **V** turns on
-the 3D map. Hover a province for its card; with armies selected the mouse also shows what an order there would do (see
+the 3D map, with real relief and a moving sea (the settings, the gear at the top right, can still the sea on a slower
+graphics card). Hover a province for its card; with armies selected the mouse also shows what an order there would do (see
 *Armies*).
 
 ## The Nation screen (N)
