@@ -300,6 +300,8 @@ static func _station(st: SurfaceTool, at: Vector3, centre: Vector2, is_land: Cal
 	CityParts.cone(st, at + basis * Vector3(-5.0, 10.0, 3.6), 2.2, 3.5, SLATE)
 	var along := Vector2.from_angle(angle)
 	var rails := 2 + mini(rail, 3)
+	# The tracks run out of the hall to the edge of the town, not across the country (the town stands on one level, the
+	# land around it does not): a gravel bed with a pair of rails on it.
 	for t in rails:
 		var offset := (float(t) - (rails - 1) * 0.5) * 1.8
 		var side := Vector2(-along.y, along.x)
@@ -307,11 +309,14 @@ static func _station(st: SurfaceTool, at: Vector3, centre: Vector2, is_land: Cal
 			var start := Vector2(at.x, at.z) + side * (offset - 4.0) + along * direction * 8.0
 			var step := along * direction * 4.0
 			var p := start
-			for n in int(radius * 0.9 / 4.0) + 3:
+			for n in int(radius * 0.5 / 4.0) + 2:
 				var q := p + step
 				if not (is_land.call(centre + p) and is_land.call(centre + q)):
 					break
-				CityParts.strip(st, Vector3(p.x, 0, p.y), Vector3(q.x, 0, q.y), 0.9, Color(0.22, 0.2, 0.19), 0.35)
+				CityParts.strip(st, Vector3(p.x, 0, p.y), Vector3(q.x, 0, q.y), 1.1, Color(0.5, 0.46, 0.41), 0.3)
+				for r: float in [-0.3, 0.3]:
+					var o: Vector2 = side * r
+					CityParts.strip(st, Vector3(p.x + o.x, 0, p.y + o.y), Vector3(q.x + o.x, 0, q.y + o.y), 0.12, Color(0.24, 0.22, 0.21), 0.36)
 				p = q
 	return 10.0 + 3.5
 

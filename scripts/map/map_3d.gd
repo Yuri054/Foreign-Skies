@@ -710,6 +710,10 @@ func _unit_material() -> StandardMaterial3D:
 		_unit_mat.vertex_color_use_as_albedo = true
 		_unit_mat.roughness = 0.9
 		_unit_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		# A light rim round the figures, so they stand out from the ground at any colour.
+		_unit_mat.rim_enabled = true
+		_unit_mat.rim = 0.35
+		_unit_mat.rim_tint = 0.5
 	return _unit_mat
 
 
@@ -740,6 +744,10 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 	if model.visible:
 		var mesh := _unit_mesh(entry, colour)
 		model.mesh = mesh
+		# A fleet's white water is a surface of its own with its own see-through material; the rest is lit like the men.
+		model.material_override = null if fleet else _unit_material()
+		if fleet:
+			model.set_surface_override_material(0, _unit_material())
 		var heading: Variant = entry.get("heading")
 		if heading != null:
 			model.rotation.y = -float(heading)      # a marching army faces the way it goes
@@ -755,6 +763,17 @@ func _set_standee(node: Node3D, entry: Dictionary) -> void:
 		var scale_by := units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth
 		model.scale = Vector3.ONE * scale_by
 		lift = mesh.get_aabb().end.y * scale_by
+		if not fleet:
+			# An army stands at the height of the highest ground under its corners, so a hill does not cut through it.
+			var box := mesh.get_aabb()
+			var top: float = entry.ground.y
+			for corner: Vector2 in [Vector2(box.position.x, box.position.z), Vector2(box.end.x, box.position.z),
+					Vector2(box.position.x, box.end.z), Vector2(box.end.x, box.end.z)]:
+				var under: Variant = ground_point(entry.pos + corner.rotated(-model.rotation.y) * scale_by / units_per_px())
+				if under != null:
+					top = maxf(top, under.y)
+			model.position.y = top - entry.ground.y
+			lift += model.position.y
 	var battle: MultiMeshInstance3D = node.get_node("battle")
 	battle.visible = bool(entry.fighting) and model.visible
 	battle.scale = Vector3.ONE * units_per_px() * (FLEET_SCALE if fleet else UNIT_SCALE) * growth

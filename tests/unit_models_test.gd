@@ -40,6 +40,15 @@ func _initialize() -> void:
 		var m: ArrayMesh = UM.fleet_mesh([type], grey)
 		_check(_vertices(m) > 100 and m.get_aabb().size.x > 8.0, "a %s is a ship" % type)
 	_check(_vertices(UM.fleet_mesh(["dreadnought"], grey)) > _vertices(UM.fleet_mesh(["destroyer"], grey)), "a dreadnought has more to it than a destroyer")
+	# Readable at a glance: uniforms in the nation's colour and never black, every unit on a stand, and white water
+	# round the ships that can be seen through.
+	_check(UM.uniform_colour(Color(0.05, 0.05, 0.08)).get_luminance() >= 0.25, "a dark nation's uniforms are not black (%.2f)" % UM.uniform_colour(Color(0.05, 0.05, 0.08)).get_luminance())
+	var blue := Color(0.2, 0.35, 0.8)
+	_check(UM.uniform_colour(blue).b > UM.uniform_colour(blue).r, "a blue nation's men wear blue")
+	_check(small.get_aabb().position.y < 0.0, "an army stands on stands that reach below its foot")
+	var ships: ArrayMesh = UM.fleet_mesh(["cruiser", "destroyer"], grey)
+	var wake: StandardMaterial3D = ships.surface_get_material(1) if ships.get_surface_count() > 1 else null
+	_check(wake != null and wake.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA, "a fleet trails white water that can be seen through")
 	_check(Map3DC.model_growth(0.5) == 0.0 and Map3DC.model_growth(5.0) == 1.0 and Map3DC.model_growth(1.2) > 0.0, "the models come up between the far and the near zoom")
 
 	var gs: Node = root.get_node("GameState")

@@ -11,6 +11,7 @@ uniform float rise_mul = 1.0;    // how high they climb
 uniform float strength = 1.0;    // how thick
 
 varying float alpha;
+varying float seed;
 
 void vertex() {
 	float age = fract(TIME / life + INSTANCE_CUSTOM.x);
@@ -20,10 +21,18 @@ void vertex() {
 	float unit = length(MODEL_MATRIX[0].xyz);
 	vec4 eye = VIEW_MATRIX * centre + vec4(VERTEX.xy * size * unit, 0.0, 0.0);
 	POSITION = PROJECTION_MATRIX * eye;
-	alpha = (dark ? 0.75 : 0.5) * strength * (1.0 - age) * min(1.0, age * 8.0);
+	alpha = (dark ? 0.85 : 0.72) * strength * (1.0 - age) * min(1.0, age * 8.0);
+	seed = INSTANCE_CUSTOM.y * 1.37 + floor(TIME / life + INSTANCE_CUSTOM.x) * 2.11;
 }
 
 void fragment() {
-	ALBEDO = dark ? vec3(0.1, 0.1, 0.11) : vec3(0.78, 0.78, 0.8);
-	ALPHA = alpha;
+	// A round puff with a ragged edge (a few lobes, different for each puff), thicker in the middle, lit from above.
+	vec2 d = UV - 0.5;
+	float r = length(d) * 2.0;
+	float a = atan(d.y, d.x);
+	float lobes = 0.09 * sin(a * 3.0 + seed) + 0.06 * sin(a * 5.0 - seed * 1.7) + 0.04 * sin(a * 8.0 + seed * 0.6);
+	float puff = 1.0 - smoothstep(0.25 + lobes, 0.95 + lobes * 0.5, r);
+	vec3 base = dark ? vec3(0.1, 0.1, 0.11) : vec3(0.78, 0.78, 0.8);
+	ALBEDO = base * (0.82 + 0.3 * (1.0 - UV.y));
+	ALPHA = alpha * puff;
 }

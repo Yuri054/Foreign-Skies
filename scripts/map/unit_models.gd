@@ -12,7 +12,40 @@ const MAX_UNITS := 9           # units (divisions) drawn in one group, each a mo
 const MAX_SHIPS := 8
 const DEEP := 9                # ranks or columns of a block never go beyond this
 
+## Model units between the units of a group, and the height of the base they stand on.
+const SLOT := 4.2
+const BASE_H := 0.22
+
 static var _cache := {}
+
+
+## The colour of a nation's uniforms: mostly its own colour, a little toward field drab, and never so dark that the
+## figures turn black against the ground.
+static func uniform_colour(colour: Color) -> Color:
+	var c := colour.lerp(Color(0.52, 0.5, 0.42), 0.25)
+	if c.get_luminance() < 0.3:
+		c = c.lerp(Color(0.62, 0.62, 0.6), (0.3 - c.get_luminance()) * 1.6)
+	return c
+
+
+## The stand a unit is on, as on a wargames table: a low slab with cut corners in the nation's colour, a lighter
+## edge round it, `size` across (x along the way it faces), centred on `at`.
+static func _base(st: SurfaceTool, at: Vector3, size: Vector2, colour: Color) -> void:
+	var top := colour.darkened(0.15)
+	var hx := size.x * 0.5
+	var hz := size.y * 0.5
+	var cut := minf(hx, hz) * 0.35
+	var ring: Array[Vector3] = [Vector3(hx - cut, 0, -hz), Vector3(hx, 0, -hz + cut), Vector3(hx, 0, hz - cut), Vector3(hx - cut, 0, hz),
+			Vector3(-hx + cut, 0, hz), Vector3(-hx, 0, hz - cut), Vector3(-hx, 0, -hz + cut), Vector3(-hx + cut, 0, -hz)]
+	var up := Vector3(0, BASE_H, 0)
+	var centre := at + up
+	for i in ring.size():
+		var a: Vector3 = at + ring[i]
+		var b: Vector3 = at + ring[(i + 1) % ring.size()]
+		CityParts.tri(st, centre, b + up, a + up, top)
+		# The edge reaches down below the foot, so a stand lifted over a slope reads as a block, not a floating plate.
+		var skirt := Vector3(0, -1.5, 0)
+		CityParts.quad(st, b + skirt, a + skirt, a + up, b + up, colour.lightened(0.25))
 
 
 ## The most of each kind a formation shows, scaled so that all together are at most MAX_UNITS and each kind
@@ -43,7 +76,7 @@ static func army_mesh(counts: Dictionary, colour: Color) -> ArrayMesh:
 		return _cache[key]
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var uniform := colour.lerp(Color(0.5, 0.48, 0.4), 0.55).darkened(0.1)
+	var uniform := uniform_colour(colour)
 	var figures: Array[String] = []
 	for type: String in ["infantry", "artillery", "cavalry"]:
 		for i in int(counts.get(type, 0)):
@@ -51,9 +84,15 @@ static func army_mesh(counts: Dictionary, colour: Color) -> ArrayMesh:
 	var cols := mini(4, maxi(1, ceili(sqrt(figures.size()))))
 	var rows := ceili(float(figures.size()) / cols)
 	for i in figures.size():
-		var at := Vector3(((i / cols) - (rows - 1) * 0.5) * 4.2, 0, ((i % cols) - (cols - 1) * 0.5) * 4.2)
+		var foot := Vector3(((i / cols) - (rows - 1) * 0.5) * SLOT, 0, ((i % cols) - (cols - 1) * 0.5) * SLOT)
+		_base(st, foot, Vector2(3.4, 3.0) if figures[i] != "cavalry" else Vector2(3.6, 2.2), colour)
+		var at := foot + Vector3(0, BASE_H, 0)
 		match figures[i]:
-			"infantry": _soldier(st, at, uniform, colour, i == 0)
+			"infantry":
+				# A division is a file of three: the leader, and two behind (the first file carries the flag).
+				_soldier(st, at + Vector3(1.0, 0, 0), uniform, colour, i == 0)
+				_soldier(st, at + Vector3(-0.5, 0, -0.85), uniform, colour, false)
+				_soldier(st, at + Vector3(-0.5, 0, 0.85), uniform, colour, false)
 			"artillery": _gun(st, at, uniform)
 			"cavalry": _horseman(st, at, uniform)
 	var mesh := st.commit()
@@ -121,25 +160,27 @@ static func _horseman(st: SurfaceTool, at: Vector3, uniform: Color) -> void:
 	block(st, at + Vector3(1.4, 3.7, 0.3), Vector3(0.5, 0.3, 0.04), Color(0.75, 0.2, 0.18))
 
 
-## One field gun: a barrel on two wheels with a trail, a shield, and a gunner standing by it.
+## One field gun, three quarters of the size it would have beside the men so that it does not swamp them: a barrel
+## on two wheels with a trail and a shield, and two gunners by it.
 static func _gun(st: SurfaceTool, at: Vector3, uniform: Color) -> void:
-	var metal := Color(0.26, 0.28, 0.3)
-	var wood := Color(0.4, 0.3, 0.2)
-	CityParts.beam(st, at + Vector3(-0.3, 1.1, 0), at + Vector3(2.4, 1.5, 0), 0.3, metal)
-	block(st, at + Vector3(0, 0.5, 0), Vector3(1.2, 0.4, 0.7), wood)
-	block(st, at + Vector3(0.7, 0.9, 0), Vector3(0.1, 0.8, 1.0), metal.lightened(0.1))
-	CityParts.beam(st, at + Vector3(-0.2, 0.6, 0), at + Vector3(-2.2, 0.1, 0), 0.28, wood)
+	var k := 0.75
+	var g := func(v: Vector3) -> Vector3: return at + v * k
+	var metal := Color(0.38, 0.4, 0.36)
+	var wood := Color(0.48, 0.36, 0.24)
+	CityParts.beam(st, g.call(Vector3(-0.3, 1.1, 0)), g.call(Vector3(2.4, 1.45, 0)), 0.3 * k, metal)
+	block(st, g.call(Vector3(0, 0.5, 0)), Vector3(1.2, 0.4, 0.7) * k, wood)
+	block(st, g.call(Vector3(0.7, 0.9, 0)), Vector3(0.1, 0.8, 1.0) * k, metal.lightened(0.1))
+	CityParts.beam(st, g.call(Vector3(-0.2, 0.6, 0)), g.call(Vector3(-2.2, 0.1, 0)), 0.28 * k, wood)
 	for sz in [-0.55, 0.55]:
-		var wheel := at + Vector3(0.1, 0.55, sz)
-		CityParts.beam(st, wheel + Vector3(-0.55, 0, 0), wheel + Vector3(0.55, 0, 0), 0.14, wood)
-		CityParts.beam(st, wheel + Vector3(0, -0.55, 0), wheel + Vector3(0, 0.55, 0), 0.14, wood)
-		CityParts.beam(st, wheel + Vector3(-0.4, -0.4, 0), wheel + Vector3(0.4, 0.4, 0), 0.12, wood)
-		CityParts.beam(st, wheel + Vector3(-0.4, 0.4, 0), wheel + Vector3(0.4, -0.4, 0), 0.12, wood)
-	var crew := at + Vector3(-1.2, 0, 0.9)
-	block(st, crew, Vector3(0.36, 0.8, 0.45), uniform.darkened(0.2))
-	block(st, crew + Vector3(0, 0.8, 0), Vector3(0.36, 0.62, 0.5), uniform)
-	block(st, crew + Vector3(0, 1.42, 0), Vector3(0.28, 0.28, 0.28), Color(0.85, 0.7, 0.58))
-	block(st, crew + Vector3(0, 1.64, 0), Vector3(0.34, 0.12, 0.34), uniform.darkened(0.4))
+		var wheel: Vector3 = g.call(Vector3(0.1, 0.55, sz))
+		for spoke: Vector3 in [Vector3(0.55, 0, 0), Vector3(0, 0.55, 0), Vector3(0.4, 0.4, 0), Vector3(0.4, -0.4, 0)]:
+			CityParts.beam(st, wheel - spoke * k, wheel + spoke * k, 0.13 * k, wood)
+	for crew: Vector3 in [Vector3(-1.4, 0, 1.0), Vector3(0.2, 0, -1.25)]:
+		var c := at + crew
+		block(st, c, Vector3(0.36, 0.8, 0.45), uniform.darkened(0.2))
+		block(st, c + Vector3(0, 0.8, 0), Vector3(0.36, 0.62, 0.5), uniform)
+		block(st, c + Vector3(0, 1.42, 0), Vector3(0.28, 0.28, 0.28), Color(0.85, 0.7, 0.58))
+		block(st, c + Vector3(0, 1.64, 0), Vector3(0.34, 0.12, 0.34), uniform.darkened(0.4))
 
 
 # ------------------------------------------------------------------ ships
@@ -171,7 +212,8 @@ static func fleet_mesh(line: Array, colour: Color) -> ArrayMesh:
 		return _cache[key]
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var z := 0.0
+	var wakes := SurfaceTool.new()
+	wakes.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var total := 0.0
 	for type: String in line:
 		total += _ship_length(type) + 5.0
@@ -180,11 +222,58 @@ static func fleet_mesh(line: Array, colour: Color) -> ArrayMesh:
 		var type: String = line[i]
 		var length := _ship_length(type)
 		x += length * 0.5
-		_ship(st, Vector3(x, 0, (float(i % 2) - 0.5) * 4.0), type, colour)
+		var at := Vector3(x, 0, (float(i % 2) - 0.5) * 4.0)
+		_wake(wakes, at, length, type)
+		_ship(st, at, type, colour)
 		x += length * 0.5 + 5.0
 	var mesh := st.commit()
+	# The second surface is the white water, see-through and fading away behind (its own material, wake_material).
+	wakes.commit(mesh)
+	mesh.surface_set_material(1, wake_material())
 	_cache[key] = mesh
 	return mesh
+
+
+static var _wake_mat: StandardMaterial3D
+
+
+## The see-through material of the white water round the ships: the colour and how solid it is come from the vertices.
+static func wake_material() -> StandardMaterial3D:
+	if _wake_mat == null:
+		_wake_mat = StandardMaterial3D.new()
+		_wake_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_wake_mat.vertex_color_use_as_albedo = true
+		_wake_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_wake_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return _wake_mat
+
+
+## The white water a ship pushes, flat on the sea: a bow wave folding back from the stem along each side, and a wake
+## widening behind the stern, both fading out as they go.
+static func _wake(st: SurfaceTool, at: Vector3, length: float, type: String) -> void:
+	var y := 0.08
+	var beam := 2.2 if type in ["destroyer", "submarine"] else 4.0
+	var solid := Color(0.9, 0.95, 0.97, 0.55)
+	var clear := Color(0.9, 0.95, 0.97, 0.0)
+	var stem := at + Vector3(length * 0.5, y, 0)
+	for s: float in [-1.0, 1.0]:
+		var side := at + Vector3(length * 0.25, y, s * beam * 0.5)
+		var out := at + Vector3(-length * 0.05, y, s * (beam * 0.5 + 1.6))
+		var hull := at + Vector3(-length * 0.05, y, s * beam * 0.5)
+		_fan(st, [stem, side, out], [solid, solid, clear])
+		_fan(st, [side, hull, out], [solid, clear, clear])
+	var stern := at.x - length * 0.5
+	var tail := length * 0.7
+	_fan(st, [Vector3(stern, y, at.z + beam * 0.4), Vector3(stern, y, at.z - beam * 0.4), Vector3(stern - tail, y, at.z - beam * 1.1)], [solid, solid, clear])
+	_fan(st, [Vector3(stern, y, at.z + beam * 0.4), Vector3(stern - tail, y, at.z - beam * 1.1), Vector3(stern - tail, y, at.z + beam * 1.1)], [solid, clear, clear])
+
+
+## One triangle with a colour at each corner, facing up.
+static func _fan(st: SurfaceTool, points: Array, colours: Array) -> void:
+	for i in 3:
+		st.set_normal(Vector3.UP)
+		st.set_color(colours[i])
+		st.add_vertex(points[i])
 
 
 static func _ship_length(type: String) -> float:

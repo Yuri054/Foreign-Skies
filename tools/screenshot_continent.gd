@@ -19,7 +19,6 @@ func _initialize() -> void:
 	var cam: Camera2D = main.camera
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)
-	m3.markers_on = false
 	m3.set_enabled(false)
 	for i in 12:
 		await process_frame

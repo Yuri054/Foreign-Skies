@@ -5,7 +5,22 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.1 (2026-10-29 01:53 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.12.2 (2026-10-29 02:14 UTC)
+
+The 3D map's armies, fleets and cities, made easier to read.
+
+- **Armies stand on stands**, as on a wargames table: each division a small base in its nation's colour, with a file of
+  three soldiers on it (the first carrying the flag), a horseman or a gun. The uniforms are the nation's own colour,
+  never near-black, with a light rim so they stand out from the ground; French blue and German grey tell apart at a
+  glance. Guns are sized to the men and have two gunners. An army stands on the highest ground under it, so hills no
+  longer cut through it.
+- **Ships push white water**: a bow wave along each side and a wake behind, see-through and fading out.
+- **Smoke is round puffs**, ragged at the edge and lit from above, over factories, burning towns and battles; it was
+  square.
+- **Railways** run from the station to the edge of the town, a gravel bed with two rails, instead of dark bars floating
+  out over the country.
+
+## 0.12.1 (2026-10-29 01:53 UTC)
 
 - **The sea moves on the 3D map.** Waves run with the westerlies, from long swell to short chop, and stay put on the map
   as you pan; the sun leaves a soft path on the water and the sky shows in it toward the horizon as you tilt; the
