@@ -751,7 +751,7 @@ func _army_card(a: Army, tint: Color) -> Dictionary:
 			"executing": o != null and o.active, "army_colour": colour if colour != null else Color(0, 0, 0, 0),
 			"commands": true, "has_plan": o != null,
 			"waiting": o != null and not o.active and Offensives.planning_of(GameState, a) < float(Offensives.cfg().get("planning_ready", 0.5)),
-			"portrait": Portraits.for_name(a.general_name) if has_general else null}
+			"portrait": Portraits.for_general(a.general_name, a.tag) if has_general else null}
 
 
 func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
@@ -771,7 +771,7 @@ func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
 	var plans: Array = group.army_ids.filter(func(id: int) -> bool: return GameState.armies.has(id)).map(func(id: int) -> Variant: return Offensives.of_army(GameState, GameState.armies[id])).filter(func(o: Variant) -> bool: return o != null)
 	return {"kind": "marshal", "id": group.id, "title": group.display_name, "front": "front" if holds else "",
 			"commands": true, "has_plan": not plans.is_empty(), "executing": not plans.is_empty() and plans.all(func(o: Variant) -> bool: return o.active), "badge": CommandCard.initials(m.display_name) if m != null else "",
-			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true, "portrait": Portraits.for_name(m.display_name) if m != null else null,
+			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true, "portrait": Portraits.for_general(m.display_name, m.tag) if m != null else null,
 			"line1": "%d armies" % group.army_ids.size(),
 			"tint": tint, "selected": all_selected, "tip": tip}
 

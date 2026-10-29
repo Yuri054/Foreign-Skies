@@ -7,6 +7,13 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.16.3 (2026-10-29 16:39 UTC)
+
+- **More portraits**: three German generals in the spiked helmet. Germany's generals and field marshals now wear it;
+  every other nation's wear the peaked cap. Every general and field marshal of every nation has a portrait, kept by his
+  name.
+- **A silhouette** for the empty slots: armies with no general and the "+" New group / New army cards.
+
 ## 0.16.2 (2026-10-29 15:58 UTC)
 
 - No empty space under the generals' cards: each block of cards is as tall as its own cards and stands on the bottom

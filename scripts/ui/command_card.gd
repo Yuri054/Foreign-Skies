@@ -61,7 +61,8 @@ var executing := false
 var commands := false
 var has_plan := false
 var waiting := false
-## The commander's portrait (Portraits); without one, a head and shoulders stand in with his initials.
+## The commander's portrait (Portraits); an empty slot shows the silhouette, a card with neither (a fleet) a head and
+## shoulders with its badge.
 var portrait: Texture2D = null
 var _hover := false
 
@@ -157,21 +158,26 @@ func _draw() -> void:
 	var plate := Rect2(Vector2(2, ORDER_H + 1.0), Vector2(plate_w, PLATE_H * plate_w / (SIZE.x - 4.0)))
 	if portrait != null and not empty:
 		draw_texture_rect(portrait, plate, false)
+	elif empty:
+		# An empty slot (no general, a new army or group): the silhouette, a green plus over it.
+		draw_texture_rect(Portraits.placeholder(), plate, false)
+		var at := plate.get_center() + Vector2(0, -6)
+		draw_line(at + Vector2(-7, 0), at + Vector2(7, 0), Color(0.02, 0.03, 0.02), 5.0)
+		draw_line(at + Vector2(0, -7), at + Vector2(0, 7), Color(0.02, 0.03, 0.02), 5.0)
+		draw_line(at + Vector2(-6, 0), at + Vector2(6, 0), Color(0.4, 0.95, 0.45), 3.0)
+		draw_line(at + Vector2(0, -6), at + Vector2(0, 6), Color(0.4, 0.95, 0.45), 3.0)
 	else:
-		var top_colour := (Color(0.2, 0.22, 0.27) if empty else tint.darkened(0.25))
-		var bottom_colour := (Color(0.1, 0.11, 0.14) if empty else tint.darkened(0.65))
+		# No portrait (a fleet): a head and shoulders in the nation's colour, the badge over the chest.
+		var top_colour := tint.darkened(0.25)
+		var bottom_colour := tint.darkened(0.65)
 		draw_polygon(PackedVector2Array([plate.position, Vector2(plate.end.x, plate.position.y), plate.end, Vector2(plate.position.x, plate.end.y)]),
 				PackedColorArray([top_colour, top_colour, bottom_colour, bottom_colour]))
 		var c := plate.get_center() + Vector2(0, -8)
-		var figure := Color(0.05, 0.06, 0.08, 0.85) if not empty else Color(0.32, 0.35, 0.4, 0.9)
+		var figure := Color(0.05, 0.06, 0.08, 0.85)
 		draw_circle(c + Vector2(0, -9), 8.0, figure)
 		draw_colored_polygon(PackedVector2Array([c + Vector2(-20, 22), c + Vector2(-16, 4), c + Vector2(-6, 0),
 				c + Vector2(6, 0), c + Vector2(16, 4), c + Vector2(20, 22)]), figure)
-		if empty:
-			draw_line(c + Vector2(-6, 11), c + Vector2(6, 11), Color(0.4, 0.95, 0.45), 2.5)
-			draw_line(c + Vector2(0, 5), c + Vector2(0, 17), Color(0.4, 0.95, 0.45), 2.5)
-		else:
-			_text(font, badge, Vector2(plate.position.x, c.y + 14.0), plate.size.x, 12, Color.WHITE)
+		_text(font, badge, Vector2(plate.position.x, c.y + 14.0), plate.size.x, 12, Color.WHITE)
 	# A shade over the foot of the plate, so the name and figures read over the painting.
 	var shade_top := plate.end.y - 30.0
 	draw_polygon(PackedVector2Array([Vector2(plate.position.x, shade_top), Vector2(plate.end.x, shade_top), plate.end, Vector2(plate.position.x, plate.end.y)]),

@@ -162,7 +162,21 @@ func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
 	var card = _by_title(bar, first.display_name)
 	_check(card.badge == CommandCardC.initials(first.general_name) and card.skill == "%.2f" % first.general_skill and not card.empty, "an army's card carries its general's initials and skill (%s %s)" % [card.badge, card.skill])
 	var bare = mine.filter(func(a) -> bool: return a.general_id == 0)
-	_check(card.portrait != null and card.portrait == load("res://scripts/ui/portraits.gd").for_name(first.general_name), "and his portrait, the same one each time for his name")
+	var Portraits = load("res://scripts/ui/portraits.gd")
+	_check(card.portrait != null and card.portrait == Portraits.for_general(first.general_name, "FRA"), "and his portrait, the same one each time for his name")
+	_check(Portraits.CAPS.has(card.portrait.resource_path), "a French general wears the cap")
+	# Every general and field marshal of every nation has a portrait; the German ones the spiked helmet.
+	var missing := 0
+	var german_ok := true
+	for g in gs.generals.values():
+		var tex = Portraits.for_general(g.display_name, g.tag)
+		if tex == null:
+			missing += 1
+		elif g.tag == "GER" and not Portraits.HELMETS.has(tex.resource_path):
+			german_ok = false
+	_check(gs.generals.size() > 20 and missing == 0, "all %d generals of every nation have a portrait" % gs.generals.size())
+	_check(german_ok, "and the German ones wear the spiked helmet")
+	_check(Portraits.placeholder() != null and bar._add_army.empty and bar._add_group.empty, "the + cards show the silhouette")
 	if not bare.is_empty():
 		_check(_by_title(bar, bare[0].display_name).empty and _by_title(bar, bare[0].display_name).portrait == null, "an army without a general shows an empty slot, no portrait")
 

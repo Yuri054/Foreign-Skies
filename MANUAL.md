@@ -71,7 +71,7 @@ upkeep stops; the guns go last. It works in peace only.
 **The command panel** (C) stands in the middle of the bottom edge, as in Hearts of Iron: the **Battle Plans** toolbar
 over a row of commander cards. Each army has one card (however many provinces it is spread over): on top a **red
 square (Halt)** and a **green arrow (Advance)**, then an icon for its plan or the front it holds, and a red "!" while
-its plan is not yet planned enough; under them its general's portrait and skill, its divisions and men, strength and
+its plan is not yet planned enough; under them its general's portrait (a silhouette if it has none) and skill, its divisions and men, strength and
 morale, and its map colour down both sides. **Advance** sets its plan going (lit green while it advances; press again to
 stop); **Halt** stops it and stands its stacks still. A group opens with its field marshal's card (bigger, gold, with
 three stars and a FIELD MARSHAL ribbon), whose halt and advance act on the whole group. **Right click a card** for the army's orders (merge, split, halt the march, detach,
