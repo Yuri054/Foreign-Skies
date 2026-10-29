@@ -34,6 +34,8 @@ var _preview_etas: Array[float] = []
 var _preview_from := 0
 ## Front labels waiting to be drawn over the banners: [front, position, colour, chosen].
 var _labels: Array = []
+## The chips of front labels already drawn this frame, so the next one is moved clear of them.
+var _label_rects: Array[Rect2] = []
 ## While true the banners are not drawn: each is listed in `markers` instead, for the 3D map to stand
 ## up as models ({province, tag, men, count, picked, fighting, guess, pos in map pixels}).
 var markers_only := false:
@@ -257,6 +259,7 @@ func _draw() -> void:
 		return
 	var px := 1.0 / maxf(_zoom, 0.05)
 	_labels.clear()
+	_label_rects.clear()
 	markers.clear()
 	_draw_fronts(px)
 	_draw_offensives(px)
@@ -868,7 +871,7 @@ func _sector_label(army_id: int, at: Vector2, color: Color, px: float, chosen: b
 	var w := MapText.size_of(_font, text, fs, px).x
 	var pad := 3.5 * px
 	var size := Vector2(w + pad * 2.0 + 5.0 * px, fs * px + pad * 1.6)
-	var rect := Rect2(at - Vector2(size.x * 0.5, size.y + 12.0 * px), size)
+	var rect := _clear_of_labels(Rect2(at - Vector2(size.x * 0.5, size.y + 12.0 * px), size), px)
 	draw_rect(rect.grow(1.2 * px), Color(0, 0, 0, 0.55))
 	draw_rect(rect, Color(0.06, 0.08, 0.12, 0.9))
 	draw_rect(Rect2(rect.position, Vector2(4.0 * px, rect.size.y)), color)
@@ -958,6 +961,21 @@ static func _normal(line: PackedVector2Array, index: int, toward: Vector2) -> Ve
 	return n if n.dot(toward) >= 0.0 else -n
 
 
+## A label's chip moved up, a step at a time, until it no longer covers one drawn before it; then kept.
+func _clear_of_labels(rect: Rect2, px: float) -> Rect2:
+	for _i in 8:
+		var hit := false
+		for r in _label_rects:
+			if r.grow(1.5 * px).intersects(rect):
+				hit = true
+				rect.position.y = r.position.y - rect.size.y - 3.0 * px
+				break
+		if not hit:
+			break
+	_label_rects.append(rect)
+	return rect
+
+
 ## A chip on the line with the front's name, its armies, their divisions and men.
 func _front_label(f: Front, at: Vector2, color: Color, px: float, chosen: bool) -> void:
 	var men := 0.0
@@ -974,7 +992,7 @@ func _front_label(f: Front, at: Vector2, color: Color, px: float, chosen: bool) 
 	var w := MapText.size_of(_font, text, fs, px).x
 	var pad := 4.0 * px
 	var size := Vector2(w + pad * 2.0 + 5.0 * px, fs * px + pad * 1.6)
-	var rect := Rect2(at - Vector2(size.x * 0.5, size.y + 14.0 * px), size)
+	var rect := _clear_of_labels(Rect2(at - Vector2(size.x * 0.5, size.y + 14.0 * px), size), px)
 	draw_rect(rect.grow(1.2 * px), Color(0, 0, 0, 0.6))
 	draw_rect(rect, Color(0.06, 0.08, 0.12, 0.94))
 	draw_rect(Rect2(rect.position, Vector2(4.0 * px, rect.size.y)), color)

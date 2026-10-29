@@ -7,6 +7,12 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.14.1 (2026-10-29 03:47 UTC)
+
+- The fronts list on the Military tab counts the men of every detachment along a front, not only the army's own stack
+  (the Eastern Front read 36k for 282k), and says "1 army".
+- Front labels on the map no longer cover one another: a label that would lie on another is moved up clear of it.
+
 ## 0.14.0 (2026-10-29 03:42 UTC)
 
 Fallback lines, garrisons and plans of attack: the rest of the front system in `docs/FRONTLINES.md`.

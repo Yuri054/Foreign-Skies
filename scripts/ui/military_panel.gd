@@ -632,9 +632,12 @@ func _refresh_fronts() -> void:
 		var men := 0.0
 		for id in mine[i].army_ids:
 			if GameState.armies.has(id):
-				men += GameState.armies[id].men()
+				# With its detachments along the line.
+				for st: Army in FrontSolver.stacks_of(GameState, GameState.armies[id]):
+					men += st.men()
 		var kind := " (garrison)" if mine[i].kind == "garrison" else (" (fallback line)" if mine[i].is_fallback(GameState) else "")
-		_fronts_list.set_item_text(i, "%s%s · %d armies · %s" % [mine[i].display_name, kind, mine[i].army_ids.size(), Fmt.people(men)])
+		var count: int = mine[i].army_ids.size()
+		_fronts_list.set_item_text(i, "%s%s · %d %s · %s" % [mine[i].display_name, kind, count, "army" if count == 1 else "armies", Fmt.people(men)])
 		if mine[i].id == _front_selected:
 			_fronts_list.select(i)
 	if not ids.has(_front_selected):
