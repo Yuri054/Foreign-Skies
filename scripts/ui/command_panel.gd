@@ -9,14 +9,12 @@ extends PanelContainer
 
 const GAP := 8.0
 const RIGHT_MARGIN := 12.0
-const BOTTOM := 34.0
-## Room the build queue takes at the right while it shows.
-const QUEUE_ROOM := 318.0
+const BOTTOM := 4.0
 const MIN_CARDS := 220.0
-## The share of the screen width the panel may take; the cards scroll beyond it.
-const MAX_SHARE := 0.7
+## The share of the screen width the panel may take.
+const MAX_SHARE := 0.6
 ## Room under the cards for the scroll bar.
-const SCROLLBAR := 12.0
+const SCROLLBAR := 8.0
 
 ## Selected armies and fleets (the Military and Navy windows hold the selection).
 var _ids: Array[int] = []
@@ -34,8 +32,13 @@ var _title := Label.new()
 var _top := PanelContainer.new()
 var _div_frame := PanelContainer.new()
 var _tabs_col := PanelContainer.new()
-## The frame over the cards: the Battle Plans toolbar, then the orders and the divisions of the selection.
+## The frame over the cards: the tabs, the Battle Plans tools and the orders of the selection.
 var _command_frame := PanelContainer.new()
+## Merge, Split, Halt and the "more" button, as icons after the Battle Plans tools.
+var _quick := HBoxContainer.new()
+var _more := Button.new()
+## Whether the row of the rarer orders and the division chips is open.
+var _more_open := false
 ## The "+" cards at the two ends of the row: a new army group of the selection, and a new army.
 var _add_group := CommandCard.new()
 var _add_army := CommandCard.new()
@@ -104,50 +107,52 @@ func _ready() -> void:
 	# Smaller text than the rest of the interface keeps the panel short.
 	theme = UiTheme.compact()
 
-	# As in Hearts of Iron, in the lower middle of the screen: a little strip of tabs, the Battle Plans frame (its
-	# toolbar, then the orders and divisions of the selection) and the row of commander cards, a "+" card at each end.
+	# As in Hearts of Iron, in the lower middle of the screen and kept low: one framed row (the Armies and Fleets
+	# tabs, the Battle Plans tools, Merge, Split, Halt and a "more" button that opens a second row with the rarer
+	# orders and the division chips), and under it the row of commander cards with a "+" card at each end.
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 0)
+	box.add_theme_constant_override("separation", 2)
 	add_child(box)
-	_tabs_col.add_theme_stylebox_override("panel", _tab_style())
-	_tabs_col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_command_frame.add_theme_stylebox_override("panel", _compact_frame())
+	_command_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var command := VBoxContainer.new()
+	command.add_theme_constant_override("separation", 2)
+	_command_frame.add_child(command)
+	box.add_child(_command_frame)
+	_top.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	_div_frame.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	command.add_child(_top)
+	command.add_child(_div_frame)
+	var main_row := HBoxContainer.new()
+	main_row.add_theme_constant_override("separation", 2)
+	command.add_child(main_row)
+	main_row.add_child(_tabs_col)
+	_tabs_col.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 2)
 	tabs.add_child(_tab_army)
 	tabs.add_child(_tab_navy)
 	tabs.add_child(_toggle)
 	_tabs_col.add_child(tabs)
-	box.add_child(_tabs_col)
-	_command_frame.add_theme_stylebox_override("panel", frame_style())
-	_command_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var command := VBoxContainer.new()
-	command.add_theme_constant_override("separation", 2)
-	_command_frame.add_child(command)
-	box.add_child(_command_frame)
-	command.add_child(_plans_bar)
+	main_row.add_child(_plans_bar)
 	_plans_bar.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	_top.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	_div_frame.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	command.add_child(_top)
-	command.add_child(_div_frame)
-	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(0, 3)
-	box.add_child(gap)
+	_plans_bar.compact = true
+	_quick.add_theme_constant_override("separation", 2)
+	_quick.add_child(VSeparator.new())
+	main_row.add_child(_quick)
 	var strip := HBoxContainer.new()
 	strip.add_theme_constant_override("separation", 4)
 	strip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(strip)
 	_toggle.tooltip_text = "Show or hide the command panel (C)."
 	_toggle.pressed.connect(toggle)
-	_tab_army.text = "Armies"
 	_tab_army.icon = Icons.get_icon("soldier", 16)
 	_tab_army.toggle_mode = true
-	_tab_army.tooltip_text = "Your armies under their field marshals."
+	_tab_army.tooltip_text = "Armies: your armies under their field marshals."
 	_tab_army.pressed.connect(func() -> void: _set_mode("army"))
-	_tab_navy.text = "Fleets"
 	_tab_navy.icon = Icons.get_icon("anchor", 16)
 	_tab_navy.toggle_mode = true
-	_tab_navy.tooltip_text = "Your fleets. They also show when you select one."
+	_tab_navy.tooltip_text = "Fleets: your fleets. They also show when you select one."
 	_tab_navy.pressed.connect(func() -> void: _set_mode("navy"))
 	_army_orders.add_theme_constant_override("h_separation", 2)
 	_fleet_orders.add_theme_constant_override("h_separation", 2)
@@ -228,7 +233,27 @@ func _ready() -> void:
 	_deselect.text = "Deselect"
 	_deselect.tooltip_text = "Clear the selection (Esc, or click empty ground)."
 	_deselect.pressed.connect(func() -> void: get_tree().call_group("military_panel", "clear_selection"))
-	for c: Control in [_merge, _split, _home, _detach, _halt, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
+	# Merge, Split and Halt are icons on the main row; the rest of the orders wait in the row "more" opens.
+	for pair: Array in [[_merge, "merge"], [_split, "split"], [_halt, "halt"]]:
+		var b: Button = pair[0]
+		b.icon = Icons.get_icon(pair[1], 18)
+		b.tooltip_text = "%s: %s" % [b.text, b.tooltip_text]
+		b.text = ""
+		b.custom_minimum_size = Vector2(28, 26)
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.focus_mode = Control.FOCUS_NONE
+		_quick.add_child(b)
+	_more.icon = Icons.get_icon("more", 18)
+	_more.toggle_mode = true
+	_more.custom_minimum_size = Vector2(28, 26)
+	_more.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_more.focus_mode = Control.FOCUS_NONE
+	_more.tooltip_text = "More orders: send home, detach, general, group, attack line, symbol, board and land, show, deselect, and the divisions of one army to move or make a new army of."
+	_more.toggled.connect(func(on: bool) -> void:
+		_more_open = on
+		_refresh())
+	_quick.add_child(_more)
+	for c: Control in [_home, _detach, _board, _land, _general, _group, _attack, _symbol, _show, _deselect]:
 		c.focus_mode = Control.FOCUS_NONE
 		_army_orders.add_child(c)
 
@@ -342,7 +367,7 @@ func _refresh() -> void:
 	visible = GameState.get_player() != null and not _picking()
 	if not visible:
 		return
-	_toggle.text = "Hide (C)" if _open else "Command (C)"
+	_toggle.text = "▾" if _open else "Command (C)"
 	_tab_army.set_pressed_no_signal(_mode == "army")
 	_tab_navy.set_pressed_no_signal(_mode == "navy")
 	_tab_army.visible = _open
@@ -352,18 +377,20 @@ func _refresh() -> void:
 	_add_army.visible = _open and _mode == "army"
 	var armies := _armies()
 	var fleets := _fleets()
-	_army_orders.visible = _open and _mode == "army" and not armies.is_empty()
+	_army_orders.visible = _open and _mode == "army" and not armies.is_empty() and _more_open
 	_fleet_orders.visible = _open and _mode == "navy" and not fleets.is_empty()
 	_top.visible = _army_orders.visible or _fleet_orders.visible
 	_plans_bar.visible = _open and _mode == "army"
 	_plans_bar.set_armies(armies)
-	_command_frame.visible = _open and (_plans_bar.visible or _top.visible)
+	_quick.visible = _open and _mode == "army"
+	_more.disabled = armies.is_empty()
+	_more.set_pressed_no_signal(_more_open)
 	if not _plans_bar.visible and _plans_bar.is_active():
 		_plans_bar.set_tool("")
 	_title.text = _army_title(armies) if _mode == "army" else _fleet_title(fleets)
 	tooltip_text = _title.text
 	_refresh_divisions(armies)
-	if _army_orders.visible:
+	if _mode == "army":
 		_refresh_army_orders(armies)
 	if _fleet_orders.visible:
 		_refresh_fleet_orders(fleets)
@@ -375,7 +402,7 @@ func _refresh() -> void:
 ## The divisions of the one selected army, as small buttons to pick (the letter is the type, the
 ## number the strength). The picked ones move to another army when you right click its card.
 func _refresh_divisions(armies: Array[Army]) -> void:
-	var show := _open and _mode == "army" and armies.size() == 1 and not armies[0].embarked()
+	var show := _open and _mode == "army" and _more_open and armies.size() == 1 and not armies[0].embarked()
 	_div_row.visible = show
 	_div_frame.visible = show
 	if not show:
@@ -549,64 +576,54 @@ func _place() -> void:
 	if not visible or not is_inside_tree():
 		return
 	var view := get_viewport_rect().size
+	# In the lower middle of the screen, its cards on the bottom edge, clear of the map modes (and the build queue
+	# over them) in the bottom right corner.
 	var left := GAP
-	var bottom := BOTTOM
-	var palette := get_tree().get_first_node_in_group("map_modes") as Control
-	if palette != null and palette.visible:
-		bottom = maxf(view.y - palette.get_global_rect().position.y + GAP, BOTTOM)
 	var right := view.x - RIGHT_MARGIN
-	var n := GameState.get_player()
-	if n != null and not (n.construction.is_empty() and n.shipbuilding.is_empty()):
-		right -= QUEUE_ROOM
-	var room := minf(maxf(right - left, 320.0), view.x * MAX_SHARE)
-	# The cards as wide as they need (they scroll beyond the room there is), between the two "+" cards.
+	for group in ["map_modes", "build_queue"]:
+		var other := get_tree().get_first_node_in_group(group) as Control
+		if other != null and other.visible and other.get_global_rect().size.x > 0.0:
+			right = minf(right, other.get_global_rect().position.x - GAP)
+	# Centred, and no wider than MAX_SHARE of the screen: the cards scroll beyond it.
+	var room := maxf(minf(minf(view.x * 0.5 - left, right - view.x * 0.5) * 2.0, view.x * MAX_SHARE), 320.0)
 	var plus_w := 0.0
 	if _add_group.visible:
 		plus_w = _add_group.get_combined_minimum_size().x + _add_army.get_combined_minimum_size().x + 8.0
 	var cards_w := clampf(_cards.get_combined_minimum_size().x + 4.0, MIN_CARDS, maxf(room - plus_w, MIN_CARDS))
 	_scroll.custom_minimum_size = Vector2(cards_w, _cards.get_combined_minimum_size().y + SCROLLBAR)
-	# The frame over the cards: wide enough for the toolbar and for the orders to stay on one line.
-	var orders_w := _natural_width(_army_orders) if _army_orders.visible else (_natural_width(_fleet_orders) if _fleet_orders.visible else 0.0)
-	var frame_w := 0.0
-	if _command_frame.visible:
-		frame_w = minf(maxf(_plans_bar.get_combined_minimum_size().x if _plans_bar.visible else 0.0, orders_w) + 16.0, room)
-	_top.custom_minimum_size.x = minf(orders_w, room - 16.0)
-	_div_frame.custom_minimum_size.x = minf(_natural_width(_div_row), room - 16.0)
-	var want := maxf(cards_w + plus_w, frame_w) if _open else _tabs_col.get_combined_minimum_size().x
-	want = minf(maxf(want, _tabs_col.get_combined_minimum_size().x), room)
-	# In the lower middle of the screen, short of the build queue.
-	var x := clampf(view.x * 0.5 - want * 0.5, left, maxf(right - want, left))
+	# The row of orders, when open, wraps to the width of the frame.
+	var frame_w := _command_frame.get_combined_minimum_size().x
+	_top.custom_minimum_size.x = 0.0
+	_div_frame.custom_minimum_size.x = 0.0
+	var want := maxf(cards_w + plus_w, frame_w) if _open else frame_w
+	want = minf(want, room)
+	var x := view.x * 0.5 - want * 0.5
 	offset_left = x
 	offset_right = x + want
-	offset_top = -bottom
-	offset_bottom = -bottom
+	offset_top = -BOTTOM
+	offset_bottom = -BOTTOM
 
 
-## The little strip of tabs on top of the frame: brass edged, no edge at the bottom so it joins the frame.
-static func _tab_style() -> StyleBoxFlat:
+## The frame of the command row: the brass frame with tighter margins.
+static func _compact_frame() -> StyleBoxFlat:
 	var style := UiTheme.frame().duplicate() as StyleBoxFlat
-	style.border_width_bottom = 0
-	style.corner_radius_bottom_left = 0
-	style.corner_radius_bottom_right = 0
+	style.content_margin_left = 4
+	style.content_margin_right = 4
 	style.content_margin_top = 2
 	style.content_margin_bottom = 2
+	return style
+
+
+## A thin frame round a group's cards.
+static func _block_style() -> StyleBoxFlat:
+	var style := UiTheme.frame().duplicate() as StyleBoxFlat
+	style.set_content_margin_all(2)
 	return style
 
 
 ## The dark, brass-edged frame the blocks of the panel sit in.
 static func frame_style() -> StyleBoxFlat:
 	return UiTheme.frame()
-
-
-## The width a flow of buttons needs to stay on one line.
-func _natural_width(flow: Control) -> float:
-	var total := 0.0
-	var n := 0
-	for c in flow.get_children():
-		if c is Control and c.visible:
-			total += (c as Control).get_combined_minimum_size().x
-			n += 1
-	return total + 2.0 * maxf(n - 1, 0)
 
 
 # ------------------------------------------------------------------ cards
@@ -660,38 +677,18 @@ func _on_add_army() -> void:
 	get_tree().call_group("event_feed", "say", "Select one army and pick some of its divisions (the chips over the cards) to make a new army of them.", Fmt.WARN)
 
 
-## One column of the strip: an optional header (fold button and a Select button) over a row of
-## cards.
+## One block of the strip: a group's cards (or the armies in no group) in a thin frame.
 func _make_block(block: Dictionary) -> Control:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 2)
-	if block.has("header"):
-		var head := HBoxContainer.new()
-		head.add_theme_constant_override("separation", 2)
-		var fold := Button.new()
-		fold.text = ("▸ " if block.collapsed else "▾ ") + block.header
-		fold.flat = true
-		fold.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		fold.focus_mode = Control.FOCUS_NONE
-		fold.tooltip_text = "Fold the group down to its marshal, or open it again."
-		fold.pressed.connect(_on_fold.bind(block.group))
-		head.add_child(fold)
-		if block.group != 0:
-			var pick := Button.new()
-			pick.text = "Select"
-			pick.flat = true
-			pick.focus_mode = Control.FOCUS_NONE
-			pick.tooltip_text = "Select every army of the group."
-			pick.pressed.connect(_on_select_group.bind(block.group, false))
-			head.add_child(pick)
-		col.add_child(head)
+	# No header strip: a group is told by its field marshal's card at its head (right click it to fold the group).
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	for spec: Dictionary in block.cards:
 		row.add_child(_make_card(spec))
 	col.add_child(row)
 	var framed := PanelContainer.new()
-	framed.add_theme_stylebox_override("panel", frame_style())
+	framed.add_theme_stylebox_override("panel", _block_style())
 	framed.add_child(col)
 	return framed
 
@@ -941,6 +938,8 @@ func _on_card_context(at: Vector2, kind: String, id: int) -> void:
 			if grp.marshal_id != 0:
 				items.append({"text": "Relieve the marshal", "call": func() -> void: GameState.issue(SetMarshal.new(tag, grp.id, 0))})
 			items.append({"sep": ""})
+			var folded: bool = _collapsed.get(grp.id, false)
+			items.append({"text": "Open the group" if folded else "Fold the group down to its marshal", "call": func() -> void: _on_fold(grp.id)})
 			items.append({"text": "Disband %s" % grp.display_name, "call": func() -> void: GameState.issue(DisbandArmyGroup.new(tag, grp.id))})
 	if not items.is_empty():
 		_open_menu(items, at)

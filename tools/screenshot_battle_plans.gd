@@ -1,6 +1,6 @@
 extends SceneTree
 ## Pictures of the Battle Plans toolbar: Germany at war with Russia, two armies on the eastern front, the 8th Army
-## selected with a push planned; then the Offensive line tool in hand mid-drag, the Garrison checklist, a landing, and 3D:
+## selected with a push planned; then the Offensive line tool in hand mid-drag, the Garrison checklist, a landing, an army group, the more row and the map modes list, and 3D:
 ##   godot --path . --resolution 1600x900 --rendering-driver opengl3 -s res://tools/screenshot_battle_plans.gd -- out_dir
 func _initialize() -> void:
 	await process_frame
@@ -142,6 +142,14 @@ func _initialize() -> void:
 	for i in 8:
 		await process_frame
 	root.get_texture().get_image().save_png("%s/toolbar_7_army_group.png" % out)
+	# The more button's row of orders, and the map modes' list, open.
+	cmd._more.button_pressed = true
+	get_first_node_in_group("map_modes").set_open(true)
+	for i in 8:
+		await process_frame
+	root.get_texture().get_image().save_png("%s/toolbar_8_more_and_map_modes.png" % out)
+	cmd._more.button_pressed = false
+	get_first_node_in_group("map_modes").set_open(false)
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)
 	cam.zoom = Vector2.ONE * 0.95

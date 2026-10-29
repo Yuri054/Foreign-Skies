@@ -68,12 +68,15 @@ province takes it at once; cavalry takes ground after a battle in half the time 
 back. After a war, **Send home** (the command panel) sends an army's men back to the reserve and its
 upkeep stops; the guns go last. It works in peace only.
 
-**The command panel** (C) stands in the lower middle of the screen, as in Hearts of Iron: a strip of tabs (Armies,
-Fleets, Hide), the **Battle Plans** frame, and a row of commander cards. Each army has one card (however many
-provinces it is spread over): its general's initials and skill, its divisions and men, strength and morale, icons on
-top for the front it holds and its plan (green while executing), and its map colour down both sides. A group opens with
-its field marshal's card (gold); the **+** card at the left forms an army group of the selected armies, the one at the
-right a new army of the divisions picked in the selected army (or chooses its general).
+**The command panel** (C) stands in the middle of the bottom edge, as in Hearts of Iron: one framed row (the Armies
+and Fleets tabs, the **Battle Plans** tools, then **Merge**, **Split**, **Halt** and **⋯**, which opens a second row
+with the rarer orders: send home, detach, general, group, attack line, symbol, board and land, show, deselect, and the
+division chips of one army) over a row of commander cards. Each army has one card (however many provinces it is spread
+over): its general's initials and skill, its divisions and men, strength and morale, icons on top for the front it
+holds and its plan (green while executing), and its map colour down both sides. A group opens with its field marshal's
+card (gold; right click it to fold the group); the **+** card at the left forms an army group of the selected armies,
+the one at the right a new army of the divisions picked in the selected army (or chooses its general). The map modes
+are a drop-down in the bottom right corner (or the keys 1 to 6).
 
 **Battle Plans.** Select an army (its card, or a field marshal's to take the whole group) and the **Battle Plans**
 toolbar gives it orders; while a tool is in hand the pointer is a crosshair, a hint follows it,

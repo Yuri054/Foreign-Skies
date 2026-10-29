@@ -15,6 +15,9 @@ var _groups: Array[Dictionary] = []
 var map_view: Sprite2D
 
 var _buttons: Array[Button] = []
+## The drop-down button and the list of map modes it opens.
+var _drop := Button.new()
+var _list_panel := PanelContainer.new()
 var _chips: Dictionary = {}
 var _last: Dictionary = {}
 var _active := 0
@@ -41,16 +44,16 @@ func _ready() -> void:
 	add_to_group("map_modes")
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_groups()
-	# Bottom left corner; grows upward.
-	anchor_left = 0.0
-	anchor_right = 0.0
+	# Bottom right corner, as in Hearts of Iron (the command panel has the lower middle); grows up and to the left.
+	anchor_left = 1.0
+	anchor_right = 1.0
 	anchor_top = 1.0
 	anchor_bottom = 1.0
-	offset_left = 10.0
-	offset_right = 10.0
+	offset_left = -10.0
+	offset_right = -10.0
 	offset_top = -8.0
 	offset_bottom = -8.0
-	grow_horizontal = Control.GROW_DIRECTION_END
+	grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_theme_constant_override("separation", 4)
 
@@ -103,6 +106,7 @@ func _build_groups() -> void:
 func _boxed(content: Control, panel: PanelContainer) -> void:
 	panel.add_theme_stylebox_override("panel", _panel_style)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_END
 	panel.add_child(content)
 	add_child(panel)
 
@@ -150,23 +154,41 @@ func _build_strip() -> void:
 	_boxed(row, _strip_panel)
 
 
+## A drop-down in the corner: one button naming the map shown; pressed, it opens the kinds of map as a vertical list
+## above it (the number keys 1 to 6 pick them too).
 func _build_palette() -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 3)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 2)
 	var group := ButtonGroup.new()
 	for i in _groups.size():
 		var b := Button.new()
 		b.text = _groups[i].label
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.toggle_mode = true
 		b.button_group = group
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(72, 22)
+		b.custom_minimum_size = Vector2(128, 22)
 		b.tooltip_text = "%s (%d)\n%s" % [_groups[i].label, i + 1, _groups[i].tip]
-		b.pressed.connect(func() -> void: pick_group(i))
-		row.add_child(b)
+		b.pressed.connect(func() -> void:
+			pick_group(i)
+			set_open(false))
+		list.add_child(b)
 		_buttons.append(b)
-	var panel := PanelContainer.new()
-	_boxed(row, panel)
+	_boxed(list, _list_panel)
+	_list_panel.visible = false
+	_drop.toggle_mode = true
+	_drop.focus_mode = Control.FOCUS_NONE
+	_drop.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_drop.custom_minimum_size = Vector2(128, 24)
+	_drop.tooltip_text = "Map modes: what the map shows. Click to choose; the keys 1 to 6 pick them too."
+	_drop.toggled.connect(set_open)
+	_boxed(_drop, PanelContainer.new())
+
+
+## Opens or closes the list of map modes.
+func set_open(on: bool) -> void:
+	_list_panel.visible = on
+	_drop.set_pressed_no_signal(on)
 
 
 ## Picks a kind of map: the variant used last in it, or its first.
@@ -208,6 +230,7 @@ func _sync() -> void:
 	var at := _locate()
 	if at.x < 0:
 		_strip_title.text = "%s ›" % map_view.MODE_NAMES.get(map_view.mode, "")
+		_drop.text = "Map: %s  ▴" % map_view.MODE_NAMES.get(map_view.mode, "")
 		for c in _strip.get_children():
 			_strip.remove_child(c)
 			c.queue_free()
@@ -218,6 +241,7 @@ func _sync() -> void:
 	_last[at.x] = at.y
 	_buttons[at.x].set_pressed_no_signal(true)
 	var group: Dictionary = _groups[at.x]
+	_drop.text = "Map: %s  ▴" % group.label
 	_strip_title.text = "%s ›" % group.label
 	for c in _strip.get_children():
 		_strip.remove_child(c)

@@ -44,7 +44,7 @@ func _initialize() -> void:
 	await process_frame
 	gs.set_player("FRA")
 	await process_frame
-	_check(bar.visible and not bar._army_orders.visible, "it shows with no selection, without the orders strip")
+	_check(bar.visible and not bar._army_orders.visible and bar._more.disabled, "it shows with no selection, the orders closed")
 	_check(bar._title.text.contains("armies"), "and totals the armies (%s)" % bar._title.text)
 
 	var nancy := 0
@@ -53,7 +53,10 @@ func _initialize() -> void:
 			nancy = id
 	main.map_view.select(nancy)
 	await process_frame
-	_check(bar._army_orders.visible and bar._ids == panel._selected, "selecting an army brings up the orders strip")
+	_check(bar._quick.visible and not bar._more.disabled and bar._ids == panel._selected, "selecting an army opens its orders: Merge, Split, Halt and more")
+	bar._more.button_pressed = true
+	await process_frame
+	_check(bar._army_orders.visible and bar._army_orders.get_parent().get_parent() == bar._top and bar._top.get_parent().get_parent() == bar._command_frame, "the more button opens the rarer orders in the same middle frame")
 	_check(bar._title.text.contains("men") and bar._title.text.contains("Meurthe-et-Moselle"), "and names the army (%s)" % bar._title.text)
 	_check(bar._merge.disabled and not bar._split.disabled and not bar._detach.disabled, "one army can be split or detached from, not merged")
 	_check(bar._halt.disabled, "and it is not marching, so there is nothing to halt")
@@ -61,7 +64,10 @@ func _initialize() -> void:
 	var palette: Control = get_first_node_in_group("map_modes")
 	await process_frame
 	rect = bar.get_global_rect()
-	_check(rect.end.y <= palette.get_global_rect().position.y + 1.0 and rect.position.x >= 0.0, "it sits at the bottom, above the map modes (y %d)" % rect.end.y)
+	var view0: Vector2 = root.get_visible_rect().size
+	_check(rect.end.y >= view0.y - 12.0 and rect.position.x >= 0.0 and not rect.intersects(palette.get_global_rect()), "it sits on the bottom edge, clear of the map modes (y %d of %d)" % [rect.end.y, view0.y])
+	_check(palette.get_global_rect().end.x >= view0.x - 16.0 and palette.get_global_rect().end.y >= view0.y - 16.0 and palette._drop.is_visible_in_tree() and not palette._list_panel.visible, "the map modes are a drop-down in the bottom right corner")
+	_check(absf(rect.get_center().x - view0.x * 0.5) < 2.0, "it stands in the middle of the screen (%d of %d)" % [rect.get_center().x, view0.x])
 
 	# Split in half, then merge back.
 	var army = gs.armies[panel._selected[0]]
@@ -110,11 +116,11 @@ func _initialize() -> void:
 	main.map_view.select(nancy)
 	panel.select_in_rect(Rect2(Vector2.ZERO, Vector2(100000, 100000)))
 	await process_frame
-	_check(bar._army_orders.visible and panel._selected.size() > 3 and bar._title.text.contains("armies"), "a box selection shows the total (%s)" % bar._title.text)
+	_check(bar._quick.visible and panel._selected.size() > 3 and bar._title.text.contains("armies"), "a box selection shows the total (%s)" % bar._title.text)
 	_check(bar._merge.disabled, "armies in different provinces cannot merge")
 	bar._deselect.pressed.emit()
 	await process_frame
-	_check(not bar._army_orders.visible and panel._selected.is_empty(), "Deselect clears the selection and the orders strip goes")
+	_check(not bar._army_orders.visible and bar._more.disabled and panel._selected.is_empty(), "Deselect clears the selection and the orders close")
 
 	await _test_cards(bar, panel, gs)
 	await _test_toggle(bar, Settings)
@@ -135,10 +141,6 @@ func _by_title(bar: Node, title: String):
 		if c.title == title:
 			return c
 	return null
-
-
-func _headers(bar: Node, word: String) -> Array:
-	return bar._cards.find_children("*", "Button", true, false).filter(func(b) -> bool: return b.text.contains(word))
 
 
 func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
@@ -184,16 +186,15 @@ func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
 	var marshals := _cards(bar).filter(func(c) -> bool: return c.marshal)
 	_check(marshals.size() == 1 and marshals[0].badge == CommandCardC.initials(free[0].display_name), "the group's block opens with a gold marshal card")
 	var total_before := _cards(bar).size()
-	var heads := _headers(bar, "Test Group")
-	_check(heads.size() == 1 and heads[0].text.begins_with("▾"), "the group has an open header (%s)" % heads[0].text)
+	_check(marshals[0].title == "Test Group" and marshals[0].line1 == "3 armies", "the marshal's card names the group and counts its armies (%s, %s)" % [marshals[0].title, marshals[0].line1])
 
 	# Fold it down to the marshal.
 	bar._on_fold(made.group_id)
 	await process_frame
 	_check(_cards(bar).size() == total_before - 3, "folding the group hides its armies and leaves the marshal (%d to %d)" % [total_before, _cards(bar).size()])
 	_check(_cards(bar).filter(func(c) -> bool: return c.marshal).size() == 1, "the marshal card stays")
-	var folded := _headers(bar, "Test Group")
-	_check(folded[0].text.begins_with("▸") and folded[0].text.contains("3 armies"), "the header shows it folded with the army count (%s)" % folded[0].text)
+	bar._on_card_context(Vector2(300, 300), "marshal", made.group_id)
+	_check(bar._menu_calls.size() >= 2 and bar._menu.get_item_text(bar._menu.get_item_index(bar._menu_calls.size() - 2)).begins_with("Open the group"), "the marshal's right click menu offers to open it again")
 	_cards(bar).filter(func(c) -> bool: return c.marshal)[0].pressed.emit(false)
 	await process_frame
 	_check(panel._selected.size() == 3 and panel._selected.has(mine[0].id), "clicking the folded marshal selects every army of the group")
@@ -232,11 +233,11 @@ func _test_toggle(bar: Node, Settings) -> void:
 	await process_frame
 	_check(bar.is_open() and bar._scroll.visible and Settings.command_open, "the C key opens it again")
 	var palette: Control = get_first_node_in_group("map_modes")
-	_check(bar.get_global_rect().end.y <= palette.get_global_rect().position.y + 1.0 and bar.get_global_rect().end.x <= root.get_visible_rect().size.x, "it sits above the map modes and inside the screen")
+	_check(not bar.get_global_rect().intersects(palette.get_global_rect()) and bar.get_global_rect().end.x <= root.get_visible_rect().size.x, "it keeps clear of the map modes and inside the screen")
 	var view: Vector2 = root.get_visible_rect().size
 	var middle: float = bar.get_global_rect().get_center().x
-	_check(absf(middle - view.x * 0.5) < 2.0 or bar.get_global_rect().end.x >= view.x - 340.0, "it stands in the lower middle of the screen (centre at %d of %d)" % [middle, view.x])
-	_check(bar._tabs_col.get_global_rect().end.y <= bar._command_frame.get_global_rect().position.y + 1.0 and bar._command_frame.get_global_rect().end.y <= bar._scroll.get_global_rect().position.y, "tabs on top, then the Battle Plans frame, then the cards")
+	_check(middle > view.x * 0.3 and middle < view.x * 0.7 and bar.get_global_rect().size.y < view.y * 0.35, "it stands in the lower middle of the screen and takes under a third of its height (centre %d of %d, %d high)" % [middle, view.x, bar.get_global_rect().size.y])
+	_check(bar._command_frame.get_global_rect().encloses(bar._tabs_col.get_global_rect()) and bar._command_frame.get_global_rect().end.y <= bar._scroll.get_global_rect().position.y, "one framed row (tabs and Battle Plans) over the cards")
 
 
 func _test_fleets(bar: Node, gs: Node) -> void:
@@ -310,7 +311,9 @@ func _test_divisions(bar: Node, panel: Node, gs: Node) -> void:
 	var one: Array[int] = [a.id]
 	panel.select_ids(one)
 	await process_frame
-	_check(bar._div_row.visible, "one selected army shows its divisions row")
+	bar._more.button_pressed = true
+	await process_frame
+	_check(bar._div_row.visible, "one selected army shows its divisions row under the more button")
 	var chips: Array = bar._div_row.find_children("*", "Button", true, false).filter(func(c) -> bool: return c.toggle_mode)
 	_check(chips.size() == a.units.size(), "with a chip for each division (%d)" % chips.size())
 	_check(bar._div_new.disabled, "New army waits for a pick")

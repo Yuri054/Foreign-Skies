@@ -63,9 +63,15 @@ const AGGRESSIVENESS := [
 const GARRISON_KINDS := [["port", "Ports"], ["fort", "Forts"], ["city", "Cities"], ["capital", "The capital"]]
 ## How far from a clicked province a garrison looks for what is ticked (provinces).
 const AREA_HOPS := 2
-const ICON := 22
+const ICON := 18
 
 var tool := ""
+## Set by the command panel: no title line; what the selection is doing goes in the tooltip instead.
+var compact := false:
+	set(value):
+		compact = value
+		_head.visible = not compact
+var _head := HBoxContainer.new()
 ## The aggressiveness new plans get (and the selected plans have).
 var aggressiveness := "balanced"
 var _armies: Array[Army] = []
@@ -93,7 +99,8 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
 	add_child(box)
-	var head := HBoxContainer.new()
+	var head := _head
+	head.visible = not compact
 	var title := Label.new()
 	title.text = "Battle Plans"
 	title.modulate = UiTheme.GOLD.lightened(0.2)
@@ -165,7 +172,7 @@ func _icon_button(icon: String, tip: String) -> Button:
 	b.icon = Icons.get_icon(icon, ICON)
 	b.tooltip_text = tip
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(34, 32)
+	b.custom_minimum_size = Vector2(28, 26)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return b
 
@@ -287,6 +294,7 @@ func _refresh() -> void:
 	for key in ["offensive", "spearhead", "invasion", "edit"]:
 		_buttons[key].disabled = roots().is_empty() and tool != key
 	_status.text = _status_text(plans)
+	tooltip_text = "Battle Plans · " + _status.text
 
 
 func _status_text(plans: Array[Offensive]) -> String:

@@ -84,9 +84,13 @@ func _initialize() -> void:
 	_check(view.selected_id == before, "clicking the economy panel does not select a province")
 
 	# The mode bar buttons work with real clicks.
+	bar.set_open(true)
+	await process_frame
 	var economy_button: Button = bar._buttons[2]
 	await _click(economy_button.get_global_rect().get_center())
 	_check(view.mode == view.Mode.INCOME, "clicking the Economy button switches the map mode")
+	_check(not bar._list_panel.visible, "and closes the list")
+	await _click(bar._drop.get_global_rect().get_center())
 	var pop_button: Button = bar._buttons[3]
 	await _click(pop_button.get_global_rect().get_center())
 	_check(view.mode == view.Mode.POPULATION, "clicking the Population button switches the map mode")

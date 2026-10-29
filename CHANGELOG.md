@@ -7,6 +7,21 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.15.2 (2026-10-29 13:52 UTC)
+
+The command panel made compact and centred, closer to the Hearts of Iron layout.
+
+- **One framed row** in the middle of the bottom edge: the Armies and Fleets tabs, the Battle Plans tools, then
+  **Merge**, **Split** and **Halt** as icons and a **⋯** button that opens a second row with the rarer orders (send
+  home, detach, general, group, attack line, symbol, board and land, show, deselect) and the division chips. The row of
+  orders that stood over the cards is gone.
+- **Smaller commander cards** on the bottom edge, no header strips over the groups (the field marshal's card heads its
+  group; right click it to fold the group).
+- **The map modes are a drop-down** in the bottom right corner: "Map: Political ▴" opens the six kinds as a list (the
+  keys 1 to 6 still pick them); the build queue stands above it.
+- Adding troops to a front is the Front line tool (clicking a front they already hold reuses it); taking them off is
+  Unassign.
+
 ## 0.15.1 (2026-10-29 13:18 UTC)
 
 The command panel laid out as in Hearts of Iron, in the lower middle of the screen.

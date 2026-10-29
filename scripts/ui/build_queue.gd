@@ -10,8 +10,9 @@ var _list := VBoxContainer.new()
 
 
 func _ready() -> void:
+	add_to_group("build_queue")
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	# Bottom-right corner, above the hint line (the map modes have the bottom left); grows upward.
+	# Bottom-right corner, above the map modes; grows upward.
 	anchor_left = 1.0
 	anchor_right = 1.0
 	anchor_top = 1.0
@@ -30,6 +31,17 @@ func _ready() -> void:
 	GameState.player_changed.connect(func(_t: String) -> void: _refresh())
 	Clock.day_ticked.connect(_refresh)
 	_refresh()
+
+
+## Stands just above the map modes palette, whatever height its legend and strip give it.
+func _process(_delta: float) -> void:
+	var palette := get_tree().get_first_node_in_group("map_modes") as Control
+	if palette == null or not visible:
+		return
+	var top := palette.get_global_rect().position.y - get_viewport_rect().size.y - 6.0 if palette.visible else -32.0
+	if not is_equal_approx(offset_bottom, top):
+		offset_top = top
+		offset_bottom = top
 
 
 func _refresh() -> void:
