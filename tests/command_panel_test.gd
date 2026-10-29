@@ -88,7 +88,7 @@ func _initialize() -> void:
 	# Fronts.
 	bar._fill_fronts()
 	var menu: PopupMenu = bar._front.get_popup()
-	_check(menu.item_count == 2 and menu.get_item_id(0) == bar.DRAW_FRONT and menu.get_item_id(1) == bar.FACE_FRONT, "with no front and no war the menu offers to draw one or to face a nation")
+	_check(menu.item_count == 3 and menu.get_item_id(0) == bar.DRAW_FRONT and menu.get_item_id(1) == bar.FACE_FRONT and menu.get_item_id(2) == bar.GARRISON_FRONT, "with no front and no war the menu offers to draw one, to face a nation or to garrison")
 	gs.set_war("FRA", "GER", true)
 	bar._fill_fronts()
 	var face_id := -1
@@ -130,6 +130,45 @@ func _initialize() -> void:
 	bar._on_front(bar.FACE_FRONT)
 	_check(panel._picking_nation and panel._assign_new, "Face a nation waits for a click on that nation")
 	panel._end_drawing()
+	# A garrison from the bar: click provinces of yours, finish, and the army guards them.
+	bar._on_release()
+	bar._on_front(bar.GARRISON_FRONT)
+	await process_frame
+	_check(panel._drawing and panel._draft_mode == "garrison" and panel._assign_new, "Garrison provinces waits for clicks on provinces to guard")
+	panel.set_province(nancy)
+	panel._finish_drawing()
+	await process_frame
+	var guard_front = gs.fronts.get(gs.armies[panel._selected[0]].front_id)
+	_check(guard_front != null and guard_front.kind == "garrison", "finishing it makes a garrison and puts the army on it")
+	bar._on_release()
+
+	# A plan of attack from the bar.
+	var Off = load("res://scripts/sim/offensives.gd")
+	_check(not bar._plan.disabled and bar._plan.text == "Plan", "an army on land can be given a plan")
+	bar._fill_plan()
+	var plan_menu: PopupMenu = bar._plan.get_popup()
+	_check(plan_menu.is_item_disabled(plan_menu.get_item_index(bar.PLAN_LAUNCH)) and not plan_menu.is_item_disabled(plan_menu.get_item_index(bar.PLAN_PUSH)), "with no plan yet, the menu offers to make one, not to launch")
+	bar._on_plan(bar.PLAN_PUSH)
+	await process_frame
+	_check(panel._drawing and panel._draft_mode == "push" and panel._fronts_box.visible, "Push to a line waits for clicks on the line, with the Military page open to finish it")
+	for n in Mil.neighbors(nancy):
+		if gs.province_controller[n] == "GER":
+			panel.set_province(n)
+	var enter := InputEventKey.new()
+	enter.keycode = KEY_ENTER
+	enter.pressed = true
+	panel._unhandled_key_input(enter)
+	await process_frame
+	var plan = Off.of_army(gs, gs.armies[panel._selected[0]])
+	_check(plan != null and plan.kind == "broad" and not panel._drawing, "Enter finishes the line and the army has its push")
+	_check(bar._plan.text == "Plan: planning", "the bar shows the plan (%s)" % bar._plan.text)
+	bar._on_plan(bar.PLAN_AGGR + 2)
+	bar._on_plan(bar.PLAN_LAUNCH)
+	_check(plan != null and plan.aggressiveness == "aggressive" and plan.active and bar._plan.text == "Plan: attacking", "Aggressive and Launch from the menu (%s)" % bar._plan.text)
+	bar._fill_plan()
+	_check(plan_menu.get_item_text(plan_menu.get_item_index(bar.PLAN_LAUNCH)) == "Halt the attack" and plan_menu.is_item_checked(plan_menu.get_item_index(bar.PLAN_AGGR + 2)), "the menu then offers Halt, with Aggressive ticked")
+	bar._on_plan(bar.PLAN_CANCEL)
+	_check(Off.of_army(gs, gs.armies[panel._selected[0]]) == null and bar._plan.text == "Plan", "Cancel drops it")
 
 	# March and halt.
 	var dest := 0

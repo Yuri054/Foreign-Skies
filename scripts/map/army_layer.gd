@@ -304,6 +304,13 @@ func _draw_banners(px: float) -> void:
 			by_province[a.province] = []
 		by_province[a.province].append(a)
 	var fanned := _expanded_armies().size() >= 2
+	# The armies of the selected stacks: every stack of theirs is outlined in its army's colour.
+	var chosen_roots := {}
+	for id in selected:
+		var picked_army: Army = GameState.armies.get(id)
+		var root := FrontSolver.root_of(GameState, picked_army) if picked_army != null else null
+		if root != null:
+			chosen_roots[root.id] = true
 	for id: int in by_province:
 		var here: Array = by_province[id]
 		if fanned and id == _expanded:
@@ -349,6 +356,9 @@ func _draw_banners(px: float) -> void:
 				if biggest == null or a.men() > biggest.men():
 					biggest = a
 			var rect := Rect2(Vector2(centre.x - size.x * 0.5, top + i * (size.y + gap)), size)
+			if not _collecting:
+				# Labels keep clear of the banner; in 3D the card stands higher, above its model.
+				_label_rects.append(rect.grow_individual(2.0 * px, (size.y * 2.0 if markers_only else 2.0 * px), 2.0 * px, 2.0 * px))
 			if markers_only or _collecting:
 				markers.append({"province": id, "tag": tag, "men": men, "count": 1 if guess else count, "picked": picked,
 						"fighting": fighting, "guess": guess, "pos": rect.get_center(), "comp": make_up, "shown_comp": comp,
@@ -362,6 +372,9 @@ func _draw_banners(px: float) -> void:
 				var army_colour: Variant = army_colour_of(biggest)
 				if army_colour != null:
 					draw_rect(Rect2(rect.position + Vector2(0, rect.size.y - 3.5 * px), Vector2(rect.size.x, 3.5 * px)), army_colour)
+				if not picked and here.any(func(a: Army) -> bool: return a.tag == tag and chosen_roots.has(FrontSolver.root_of(GameState, a).id)):
+					draw_rect(rect.grow(2.0 * px), Color(0.02, 0.03, 0.05, 0.9), false, 3.5 * px)
+					draw_rect(rect.grow(2.0 * px), army_colour if army_colour != null else SELECT_COLOR, false, 2.0 * px)
 				if tag == GameState.player_tag:
 					_draw_status(rect, biggest, px)
 			if not comp.is_empty():
@@ -534,17 +547,45 @@ func _draw_routes(px: float) -> void:
 		var picked := selected.has(a.id)
 		var etas := Military.army_etas(GameState, a)
 		var from: Vector2 = MapData.provinces[a.province].center
-		var color := SELECT_COLOR if picked else Color(1, 1, 1, 0.45)
+		# A stack going to its place on a front marches in its army's colour.
+		var army_colour: Variant = army_colour_of(a)
+		var color: Color = SELECT_COLOR if picked else (Color(army_colour, 0.85) if army_colour != null else Color(1, 1, 1, 0.45))
+		var rail_ok := Military.railway_ok(GameState, a.tag)
+		var train_at := Vector2.ZERO
+		var longest := 0.0
 		for i in a.path.size():
 			var to: Vector2 = MapData.provinces[a.path[i]].center
-			draw_line(from, to, color, (2.5 if picked else 1.5) * px)
+			# By rail where a railway runs on its own ground: dashed, with a train on the longest run.
+			var rail: bool = rail_ok and GameState.province_controller[a.path[i]] == a.tag and GameState.province_buildings[a.path[i]].get("railway", 0) > 0
+			if rail:
+				draw_line(from, to, Color(0.02, 0.03, 0.05, 0.6), (4.0 if picked else 3.0) * px)
+				draw_dashed_line(from, to, color, (2.5 if picked else 1.8) * px, 5.0 * px)
+				if from.distance_to(to) > longest:
+					longest = from.distance_to(to)
+					train_at = from.lerp(to, 0.5)
+			else:
+				draw_line(from, to, color, (2.5 if picked else 1.5) * px)
 			if picked and i < a.path.size() - 1:
 				_pill("%dd" % roundi(etas[i]), to + Vector2(0, -(row * 14.0 + 12.0) * px), px, color, 10)
 			from = to
+		if longest > 0.0:
+			_draw_train(train_at, color, px)
 		draw_circle(from, (5.0 if picked else 3.5) * px, color)
-		_pill(_arrival(etas.back()), from + Vector2(0, -(row * 14.0 + 12.0) * px), px, color, 11 if picked else 10)
+		if picked or army_colour == null:
+			_pill(_arrival(etas.back()), from + Vector2(0, -(row * 14.0 + 12.0) * px), px, color, 11 if picked else 10)
 		if picked:
 			row += 1
+
+
+## A small locomotive on a route, where it goes by rail.
+func _draw_train(at: Vector2, color: Color, px: float) -> void:
+	var body := Rect2(at + Vector2(-7, -6) * px, Vector2(14, 8) * px)
+	draw_rect(body.grow(1.2 * px), Color(0.02, 0.03, 0.05, 0.9))
+	draw_rect(body, color)
+	draw_rect(Rect2(at + Vector2(2, -10) * px, Vector2(3, 4) * px), color)
+	for x in [-4.0, 0.5, 4.5]:
+		draw_circle(at + Vector2(x, 3.5) * px, 2.2 * px, Color(0.02, 0.03, 0.05, 0.95))
+		draw_circle(at + Vector2(x, 3.5) * px, 1.2 * px, color)
 
 
 func _draw_preview(px: float) -> void:
@@ -768,7 +809,8 @@ static func army_colors(f: Front) -> Dictionary:
 	spans.sort()
 	var out := {}
 	for k in spans.size():
-		out[spans[k][1]] = ARMY_COLORS[k % ARMY_COLORS.size()]
+		# The colour the front keeps for the army (FrontSolver.keep_colours); by its place until it has one.
+		out[spans[k][1]] = ARMY_COLORS[int(f.colours.get(spans[k][1], k)) % ARMY_COLORS.size()]
 	return out
 
 

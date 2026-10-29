@@ -170,6 +170,7 @@ static func step(gs: Node, f: Front, routes_left: int) -> int:
 		if fallback:
 			for s in stacks_of(gs, root):
 				s.prepared = s.path.is_empty() and line.has(s.province)
+	keep_colours(f)
 	return routes_left
 
 
@@ -431,3 +432,38 @@ static func _promote(gs: Node, a: Army) -> void:
 
 static func _centre(p: int) -> Vector2:
 	return MapData.provinces[p].center
+
+
+## Gives every army on the front a colour of its own for the map and keeps it while the army stays: one that joins
+## takes the first colour neither of its neighbours along the line has, and none of the others change.
+static func keep_colours(f: Front, palette := 8) -> void:
+	for id: int in f.colours.keys():
+		if not f.sectors.has(id):
+			f.colours.erase(id)
+	var spans: Array = []
+	for id: int in f.sectors:
+		spans.append([(f.sectors[id] as Vector2i).x, id])
+	spans.sort()
+	for k in spans.size():
+		var id: int = spans[k][1]
+		if f.colours.has(id):
+			continue
+		var near := {}
+		for j in [k - 1, k + 1]:
+			if j >= 0 and j < spans.size() and f.colours.has(spans[j][1]):
+				near[f.colours[spans[j][1]]] = true
+		var used := {}
+		for c in f.colours.values():
+			used[c] = true
+		var pick := -1
+		# A colour nobody on the front has, else one at least its neighbours do not.
+		for c in palette:
+			if not used.has(c) and not near.has(c):
+				pick = c
+				break
+		if pick < 0:
+			for c in palette:
+				if not near.has(c):
+					pick = c
+					break
+		f.colours[id] = maxi(pick, 0)

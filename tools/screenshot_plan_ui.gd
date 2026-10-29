@@ -1,7 +1,7 @@
 extends SceneTree
 ## Pictures of the 0.14.0 front UI: the plans of tools/screenshot_plans.gd, a fallback line behind them held by a
 ## reserve army and a garrison on three cities; the Military tab open on the Fronts section with the 8th Army
-## selected (its attack plan), and the same in 3D:
+## selected (its attack plan); the command bar's Plan menu; and the same in 3D:
 ##   godot --path . --resolution 1600x900 --rendering-driver opengl3 -s res://tools/screenshot_plan_ui.gd -- out_dir
 func _initialize() -> void:
 	await process_frame
@@ -132,6 +132,25 @@ func _initialize() -> void:
 	gs.issue(load("res://scripts/sim/assign_to_front.gd").new("GER", gar.front_id, [guard.id] as Array[int]))
 	for d in 16:
 		clock.advance_day()
+	# A fresh army put on the Eastern Front marches its detachments to their places; an army from the west goes east by
+	# rail.
+	var fresh = Mil.new_army(gs, "GER", "10th Army", guarded[0])
+	for i in 10:
+		fresh.units.append(UnitC.new("infantry"))
+	gs.issue(load("res://scripts/sim/assign_to_front.gd").new("GER", front.id, [fresh.id] as Array[int]))
+	var western = null
+	for a in Mil.armies_of(gs, "GER"):
+		if a.front_id == 0 and a.parent_id == 0 and (MD.provinces[a.province].center as Vector2).x < anchor.x - 500.0:
+			western = a
+			break
+	if western != null:
+		gs.issue(load("res://scripts/sim/move_army.gd").new("GER", western.id, back[back.size() / 2]))
+	clock.advance_day()
+	var rail := 0
+	for p in range(1, gs.province_controller.size()):
+		if gs.province_controller[p] == "GER" and gs.province_buildings[p].get("railway", 0) > 0:
+			rail += 1
+	print("RAIL provinces %d western %s path %d" % [rail, western.display_name if western != null else "-", western.path.size() if western != null else 0])
 	var cam: Camera2D = main.camera
 	cam.position = MD.provinces[line[line.size() / 2]].center + Vector2(120, 0)
 	cam.zoom = Vector2.ONE * 0.6
@@ -146,8 +165,18 @@ func _initialize() -> void:
 	for i in 6:
 		await process_frame
 	root.get_texture().get_image().save_png("%s/plan_ui_2d.png" % out)
-	print("SELECTED %s PANEL %s" % [panel._selected, panel.is_visible_in_tree()])
 	call_group("nation_screen", "close_screen")
+	# The command bar with its Plan menu open.
+	var bar: Node = get_first_node_in_group("command_panel")
+	if not bar.is_open():
+		bar.toggle()
+	for i in 4:
+		await process_frame
+	bar._plan.show_popup()
+	for i in 6:
+		await process_frame
+	root.get_texture().get_image().save_png("%s/plan_bar_2d.png" % out)
+	bar._plan.get_popup().hide()
 	var m3: Node = get_first_node_in_group("map_3d")
 	m3.set_enabled(true)
 	cam.zoom = Vector2.ONE * 0.9

@@ -42,6 +42,9 @@ var weights_day := -1
 var deploying: Dictionary = {}
 ## Each army's sector of the ordered line on a broad front: army id -> Vector2i(first index, one past the last).
 var sectors: Dictionary = {}
+## Each army's colour on the map (army id -> index into ArmyLayer.ARMY_COLORS), kept while it stays on the front, so an
+## army joining or leaving does not repaint the others (FrontSolver.keep_colours).
+var colours: Dictionary = {}
 
 
 ## A line drawn in the nation's own ground that touches no enemy: the armies on it dig in deeper and faster

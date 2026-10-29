@@ -53,6 +53,12 @@ var _plan_phase := Button.new()
 var _plan_launch := Button.new()
 var _plan_cancel := Button.new()
 var _plan_aggr := OptionButton.new()
+const GARRISON_HINT := "Click the provinces to guard; click one again to drop it. Enter or Finish when done."
+const PLAN_HINTS := {
+	"push": "Click the enemy provinces of the line to reach; click one again to drop it. Enter or Finish when done.",
+	"spearhead": "Click the province to strike at.",
+	"phase": "Click the provinces of the next line; click one again to drop it. Enter or Finish when done.",
+}
 const AGGRESSIVENESS := [["careful", "Careful"], ["balanced", "Balanced"], ["aggressive", "Aggressive"]]
 var _draw_hint := Label.new()
 var _face_row := VBoxContainer.new()
@@ -173,7 +179,7 @@ func _ready() -> void:
 	_draw_button.pressed.connect(_begin_drawing)
 	_garrison_button.text = "Garrison"
 	_garrison_button.tooltip_text = "Click provinces of yours to guard (ports, cities, the capital): an army put on the garrison keeps a share of its divisions in each. A line drawn in your own ground, away from the enemy, is a fallback line: armies on it dig in deeper and faster."
-	_garrison_button.pressed.connect(func() -> void: _begin_picking("garrison", "Click the provinces to guard; click one again to drop it."))
+	_garrison_button.pressed.connect(func() -> void: _begin_picking("garrison", GARRISON_HINT))
 	_assign_button.text = "Assign"
 	_assign_button.tooltip_text = "Put the selected armies on the chosen front; they spread along it and hold it."
 	_assign_button.pressed.connect(_on_assign)
@@ -214,13 +220,13 @@ func _ready() -> void:
 	var plan_row := HBoxContainer.new()
 	_plan_push.text = "Push to line"
 	_plan_push.tooltip_text = "Click the enemy provinces to reach: every division of the army on its front pushes toward them from where it stands, once it has planned."
-	_plan_push.pressed.connect(func() -> void: _begin_picking("push", "Click the provinces of the line to reach; click one again to drop it."))
+	_plan_push.pressed.connect(func() -> void: _begin_picking("push", PLAN_HINTS.push))
 	_plan_spear.text = "Spearhead"
 	_plan_spear.tooltip_text = "Click one province: the army gathers and strikes toward it with its whole weight, one province at a time."
-	_plan_spear.pressed.connect(func() -> void: _begin_picking("spearhead", "Click the province to strike at."))
+	_plan_spear.pressed.connect(func() -> void: _begin_picking("spearhead", PLAN_HINTS.spearhead))
 	_plan_phase.text = "Add phase"
 	_plan_phase.tooltip_text = "Click a further line to reach once the present one is taken: the army digs in on the line it reached, plans again, and pushes on."
-	_plan_phase.pressed.connect(func() -> void: _begin_picking("phase", "Click the provinces of the next line; click one again to drop it."))
+	_plan_phase.pressed.connect(func() -> void: _begin_picking("phase", PLAN_HINTS.phase))
 	_plan_launch.tooltip_text = "Launch the attack (it goes once the divisions have planned, at once if aggressive), or halt it and go on planning."
 	_plan_launch.pressed.connect(_on_launch)
 	_plan_cancel.text = "Cancel"
@@ -733,9 +739,17 @@ func begin_front(mode: String) -> void:
 	show_tab("Fronts")
 	if mode == "draw":
 		_begin_drawing()
+	elif mode == "garrison":
+		_begin_picking("garrison", GARRISON_HINT)
 	else:
 		_begin_picking_nation()
 	_assign_new = true
+
+
+## Starts picking the provinces of a plan of attack from the action bar: "push", "spearhead" or "phase".
+func begin_plan(mode: String) -> void:
+	show_tab("Fronts")
+	_begin_picking(mode, PLAN_HINTS[mode])
 
 
 ## Puts the selected armies on a front that has just been made, if the order came from the bar.
@@ -1217,6 +1231,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_M:
 			toggle()
+		elif (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER) and _drawing and not _draft.is_empty():
+			_finish_drawing()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_ESCAPE:
 			if _drawing or _picking_nation:
 				_end_drawing()

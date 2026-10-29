@@ -7,6 +7,17 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.14.2 (2026-10-29 10:13 UTC)
+
+- **Plans from the command bar.** A new **Plan** menu on the command bar: push to a line, spearhead, add a phase,
+  launch or halt, cancel, and the aggressiveness. The button shows how the plan stands (planning, ready, attacking).
+  The bar's front menu also has **Garrison provinces**. Enter finishes a line, garrison or plan being clicked out.
+- **Each army keeps its colour** on a front: an army joining or leaving no longer repaints the others.
+- **Paths and rail**: stacks marching to their place on a front draw their road in their army's colour; stretches by
+  rail are dashed, with a small train.
+- **Selected army outlined**: selecting a stack outlines every stack of its army in the army's colour.
+- In 3D, front labels keep clear of the unit cards instead of hiding behind them.
+
 ## 0.14.1 (2026-10-29 03:47 UTC)
 
 - The fronts list on the Military tab counts the men of every detachment along a front, not only the army's own stack

@@ -186,6 +186,8 @@ func _test_broad() -> void:
 	var spans: Array = [front.sectors[roots[0].id], front.sectors[roots[1].id], front.sectors[roots[2].id]]
 	_check(spans[0].y <= spans[1].x and spans[1].y <= spans[2].x and spans[2].y == front.order.size() and spans[0].x == 0, "the sectors cover the line end to end without overlap (%s)" % str(spans))
 	_check(spans[0].y - spans[0].x >= spans[2].y - spans[2].x, "the bigger army holds the longer stretch")
+	var colours_before: Array = [front.colours.get(roots[0].id), front.colours.get(roots[1].id), front.colours.get(roots[2].id)]
+	_check(colours_before[0] != null and colours_before[0] != colours_before[1] and colours_before[1] != colours_before[2] and colours_before[0] != colours_before[2], "each army has a colour of its own (%s)" % str(colours_before))
 	# A fourth army joins at the south end: it takes a stretch there, and the others keep their order.
 	var fourth = Mil.new_army(gs, "GER", "Army 4", border[border.size() - 1])
 	for i in 10:
@@ -199,6 +201,8 @@ func _test_broad() -> void:
 		if h > 0 and not order.has(h):
 			order.append(h)
 	_check(not who.has(-1) and order.size() == 4 and order.find(roots[0].id) < order.find(roots[1].id) and order.find(roots[1].id) < order.find(roots[2].id), "with a fourth army the front holds four stretches, the first three still in order (%s)" % str(who))
+	var colours_after: Array = [front.colours.get(roots[0].id), front.colours.get(roots[1].id), front.colours.get(roots[2].id)]
+	_check(colours_after == colours_before and front.colours.has(fourth.id) and not colours_before.has(front.colours[fourth.id]), "the first three keep their colours and the fourth takes a new one (%s, %s)" % [str(colours_after), str(front.colours.get(fourth.id))])
 
 
 ## Deploys one army of 20 along the Russian border, wipes out what holds the southern end, and returns
