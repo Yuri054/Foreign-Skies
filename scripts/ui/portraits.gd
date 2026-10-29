@@ -1,14 +1,16 @@
 class_name Portraits
 extends RefCounted
 ## Portraits of commanders for the command panel's cards. Placeholder art for now: a few painted generals in
-## assets/portraits, in two uniforms: the Prussian spiked helmet for the German Empire, the peaked cap for every other
-## nation. Each commander is given one of his nation's by his name, so he keeps the same face from game to game; every
+## assets/portraits, in the uniforms of the great armies: the Prussian spiked helmet for the German Empire, the kepi for
+## France, the green Russian cap for Russia, and the khaki peaked cap for every other nation. Each commander is given one of his nation's by his name, so he keeps the same face from game to game; every
 ## commander of every nation gets one. An empty slot (no general, a new army or group) shows a dark silhouette.
 
 const CAPS := ["res://assets/portraits/general_1.jpg", "res://assets/portraits/general_2.jpg", "res://assets/portraits/general_3.jpg"]
 const HELMETS := ["res://assets/portraits/german_1.jpg", "res://assets/portraits/german_2.jpg", "res://assets/portraits/german_3.jpg"]
-## The portraits by nation tag; a nation not listed wears the cap.
-const BY_NATION := {"GER": HELMETS}
+const KEPIS := ["res://assets/portraits/french_1.jpg", "res://assets/portraits/french_2.jpg", "res://assets/portraits/french_3.jpg"]
+const RUSSIAN := ["res://assets/portraits/russian_1.jpg", "res://assets/portraits/russian_2.jpg"]
+## The portraits by nation tag; a nation not listed wears the khaki cap.
+const BY_NATION := {"GER": HELMETS, "FRA": KEPIS, "RUS": RUSSIAN}
 const PLACEHOLDER := "res://assets/portraits/placeholder.jpg"
 
 static var _cache := {}

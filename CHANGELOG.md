@@ -7,6 +7,12 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.16.4 (2026-10-29 17:42 UTC)
+
+- **French and Russian portraits**: three French generals in the kepi and two Russian generals in the green cap. Each
+  nation's commanders now wear their own army's uniform (Germany the spiked helmet, France the kepi, Russia the green
+  cap); every other nation keeps the khaki peaked cap.
+
 ## 0.16.3 (2026-10-29 16:39 UTC)
 
 - **More portraits**: three German generals in the spiked helmet. Germany's generals and field marshals now wear it;

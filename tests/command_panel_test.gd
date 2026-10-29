@@ -164,18 +164,22 @@ func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
 	var bare = mine.filter(func(a) -> bool: return a.general_id == 0)
 	var Portraits = load("res://scripts/ui/portraits.gd")
 	_check(card.portrait != null and card.portrait == Portraits.for_general(first.general_name, "FRA"), "and his portrait, the same one each time for his name")
-	_check(Portraits.CAPS.has(card.portrait.resource_path), "a French general wears the cap")
+	_check(Portraits.KEPIS.has(card.portrait.resource_path), "a French general wears the kepi")
 	# Every general and field marshal of every nation has a portrait; the German ones the spiked helmet.
 	var missing := 0
 	var german_ok := true
+	var faces := {}
 	for g in gs.generals.values():
 		var tex = Portraits.for_general(g.display_name, g.tag)
 		if tex == null:
 			missing += 1
-		elif g.tag == "GER" and not Portraits.HELMETS.has(tex.resource_path):
-			german_ok = false
+		else:
+			faces[tex.resource_path] = true
+			var pool: Array = Portraits.BY_NATION.get(g.tag, Portraits.CAPS)
+			german_ok = german_ok and pool.has(tex.resource_path)
 	_check(gs.generals.size() > 20 and missing == 0, "all %d generals of every nation have a portrait" % gs.generals.size())
-	_check(german_ok, "and the German ones wear the spiked helmet")
+	_check(german_ok, "each in his nation's uniform (the German helmet, the French kepi, the Russian cap, else the khaki cap)")
+	_check(faces.size() >= 9, "and the faces vary (%d portraits in use)" % faces.size())
 	_check(Portraits.placeholder() != null and bar._add_army.empty and bar._add_group.empty, "the + cards show the silhouette")
 	if not bare.is_empty():
 		_check(_by_title(bar, bare[0].display_name).empty and _by_title(bar, bare[0].display_name).portrait == null, "an army without a general shows an empty slot, no portrait")
