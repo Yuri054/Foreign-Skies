@@ -123,7 +123,21 @@
 		"fort_weight": 0.15,
 		"reweigh_days": 7,
 		"rigid_hops": 2,
-		"balanced_hops": 6
+		"balanced_hops": 6,
+		"_fallback": "On a fallback line (a line drawn in one's own ground, touching no enemy) a stack digs in fallback_extra_levels deeper than anywhere else, fallback_dig_speed times as fast. A garrison deals its divisions evenly over its provinces, sent by distance.",
+		"fallback_extra_levels": 2,
+		"fallback_dig_speed": 1.5
+	},
+	"offensive": {
+		"_note": "Offensives (docs/FRONTLINES.md). A stack of an army with a plan, standing on its front, builds planning to 1 in planning_days; marching or fighting spends it in planning_decay_days. Attacking, it adds planning_max times planning to its power. A plan is launched once the stacks' mean planning reaches planning_ready (at once when aggressive). A stack attacks a province when its power (with planning) over the defenders' (with their terrain and works) reaches the aggressiveness' odds and its morale is at least its morale. A spearhead strikes once gather of the army's divisions stand next to the objective.",
+		"planning_days": 14,
+		"planning_decay_days": 5,
+		"planning_max": 0.3,
+		"planning_ready": 0.5,
+		"gather": 0.7,
+		"careful": {"odds": 2.0, "morale": 0.7},
+		"balanced": {"odds": 1.3, "morale": 0.5},
+		"aggressive": {"odds": 0.8, "morale": 0.0}
 	},
 	"front_pathing": {
 		"_note": "Armies sent to their front slot are routed by find_path, which is costly in a big war: at most paths_per_day routes are worked out in one day's step_fronts (the rest wait for the next day).",

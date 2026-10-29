@@ -158,12 +158,18 @@ static func step(gs: Node, f: Front, routes_left: int) -> int:
 			roots.append(root)
 	var sectors := sectors_of(gs, f.order, f.weights, roots)
 	f.sectors = {}
+	var fallback := f.is_fallback(gs)
 	for root in roots:
 		var span: Vector2i = sectors[root.id]
 		f.sectors[root.id] = span
 		var line: Array[int] = f.order.slice(span.x, span.y)
 		var w: Array[float] = f.weights.slice(span.x, span.y)
-		routes_left = _redeploy(gs, f, root, line, w, routes_left)
+		# A launched spearhead has the army's stacks in hand; the sector waits for them.
+		if not Offensives.controls(gs, root):
+			routes_left = _redeploy(gs, f, root, line, w, routes_left)
+		if fallback:
+			for s in stacks_of(gs, root):
+				s.prepared = s.path.is_empty() and line.has(s.province)
 	return routes_left
 
 
@@ -278,7 +284,8 @@ static func _redeploy(gs: Node, f: Front, root: Army, line: Array[int], w: Array
 			for s: Army in idle[p]:
 				surplus += s.units.size()
 		while surplus > 0 and routes_left > 0:
-			var to := _nearest_short(line, want, have, index.get(p, -1), p, reach)
+			# A garrison's provinces are not a line: what is short is found by distance, anywhere.
+			var to := _nearest_short(line, want, have, -1 if f.kind == "garrison" else index.get(p, -1), p, -1 if f.kind == "garrison" else reach)
 			if to < 0:
 				break
 			var stack := _giver(idle[p], surplus)
@@ -360,6 +367,8 @@ static func step_detachments(gs: Node) -> void:
 	for a: Army in gs.armies.values().duplicate():
 		if not gs.armies.has(a.id):
 			continue
+		# Set again by the fronts' step, for those standing on a fallback line today.
+		a.prepared = false
 		# A stack sent by hand is let go once it has stopped: there, or wherever its road ended.
 		if a.pin != 0 and a.path.is_empty():
 			a.pin = 0

@@ -75,6 +75,21 @@ the "Assign army group" list), each army holds a stretch of its own, side by sid
 different armies never mix. **Cohesion** says how far a division may be sent to fill a gap: *Rigid* two provinces,
 *Balanced* six, *Flexible* anywhere. A detachment or army you send somewhere by hand stays on its front and is left alone
 until it gets there; "Release" takes the army off the front, and its detachments march back and join it again.
+A front drawn in your own ground, away from the enemy, is a **fallback line** (dashed on the map): armies on it dig in
+two levels deeper and half again as fast. **Garrison** (the Military tab) marks provinces of yours to guard, such as ports,
+cities or the capital: an army on a garrison keeps divisions in each, the nearest first.
+
+**Attack plans.** Select an army on a front and, under "Attack plan" on the Military tab, click **Push to line** and then
+the enemy provinces to reach, or **Spearhead** and one province to strike toward. **Add phase** adds a further line to
+reach once the first is taken. While an army with a plan stands on its front its divisions **plan**: up to +30% to their
+attacks after two weeks, ready to go after one (a green tick on the banner); marching or fighting spends it. **Launch**
+sets the plan going once the army is ready; **Halt** stops it and the army plans again. **Aggressiveness**: *Careful* attacks only at
+two to one and stops when morale is low, *Balanced* at fair odds, *Aggressive* at even odds, at once, whatever the morale.
+A push sends each stack at the enemy province next to it that leads toward the line, stacks going for the same province
+together; a spearhead gathers the whole army next to the next province on the way and strikes it together. On the map a
+push is a wide arrow in the army's colour to its target line, the enemy ground between hatched; a spearhead is a narrow
+arrow ringed at its target; later phases are dashed. A yellow triangle on a banner means low supply, a red "!" an army at
+war on no front.
 Armies can be grouped under a field marshal.
 In a battle you are in, the battle screen has a **staff report**: how it goes, how long each side lasts, and what a quarter
 more power, a weaker enemy or another level of trench would do.

@@ -25,6 +25,9 @@ var line_stamp := -1
 var dirty := true
 ## Army id -> the day before which no route to its slot is looked for again (it found none).
 var retry: Dictionary = {}
+## "line" (a border with a nation, or a chain drawn by hand; one touching no enemy is a fallback line, see
+## is_fallback) or "garrison" (provinces picked one by one, not joined: ports, cities, the capital, to guard).
+var kind := "line"
 ## Whether the armies on it spread their divisions along the line as detachments (FrontSolver); off, each army holds
 ## one province (the slots). The player's fronts spread; the AI's do not yet.
 var spread := false
@@ -39,6 +42,19 @@ var weights_day := -1
 var deploying: Dictionary = {}
 ## Each army's sector of the ordered line on a broad front: army id -> Vector2i(first index, one past the last).
 var sectors: Dictionary = {}
+
+
+## A line drawn in the nation's own ground that touches no enemy: the armies on it dig in deeper and faster
+## (FrontSolver, military.json fronts fallback_*). It turns into a fighting front when an enemy comes up to it.
+func is_fallback(gs: Node) -> bool:
+	if kind != "line" or not against.is_empty():
+		return false
+	for p in provinces:
+		for n: int in Military.neighbors(p):
+			var holder: String = gs.province_controller[n]
+			if holder != tag and gs.at_war(tag, holder):
+				return false
+	return true
 
 
 func to_dict() -> Dictionary:

@@ -259,6 +259,7 @@ func _draw() -> void:
 	_labels.clear()
 	markers.clear()
 	_draw_fronts(px)
+	_draw_offensives(px)
 	_draw_routes(px)
 	_draw_preview(px)
 	_draw_banners(px)
@@ -358,8 +359,30 @@ func _draw_banners(px: float) -> void:
 				var army_colour: Variant = army_colour_of(biggest)
 				if army_colour != null:
 					draw_rect(Rect2(rect.position + Vector2(0, rect.size.y - 3.5 * px), Vector2(rect.size.x, 3.5 * px)), army_colour)
+				if tag == GameState.player_tag:
+					_draw_status(rect, biggest, px)
 			if not comp.is_empty():
 				_draw_composition(comp, rect.get_center().x, rect.end.y + 3.0 * px, px)
+
+
+## The marks on a stack's banner, at its top right: a green tick when its plan of attack is planned, a yellow triangle
+## when it is out of supply, a red mark when its army is on no front in a war.
+func _draw_status(rect: Rect2, a: Army, px: float) -> void:
+	var at := rect.position + Vector2(rect.size.x + 2.0 * px, -2.0 * px)
+	var dark := Color(0.02, 0.03, 0.05, 0.9)
+	var root := FrontSolver.root_of(GameState, a)
+	if not a.supplied:
+		var tri := PackedVector2Array([at + Vector2(0, 9) * px, at + Vector2(5, 0) * px, at + Vector2(10, 9) * px])
+		draw_colored_polygon(tri, Color(1.0, 0.82, 0.2))
+		draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), dark, 1.2 * px, true)
+		at.x += 12.0 * px
+	if root != null and Offensives.of_army(GameState, root) != null and a.planning >= float(Offensives.cfg().get("planning_ready", 0.5)):
+		draw_polyline(PackedVector2Array([at + Vector2(0, 5) * px, at + Vector2(3.5, 9) * px, at + Vector2(10, 0) * px]), dark, 4.0 * px, true)
+		draw_polyline(PackedVector2Array([at + Vector2(0, 5) * px, at + Vector2(3.5, 9) * px, at + Vector2(10, 0) * px]), Color(0.35, 0.95, 0.4), 2.2 * px, true)
+		at.x += 12.0 * px
+	if root != null and root.front_id == 0 and not GameState.wars_of(a.tag).is_empty() and Offensives.of_army(GameState, root) == null:
+		draw_circle(at + Vector2(5, 5) * px, 5.0 * px, Color(0.9, 0.2, 0.18))
+		MapText.draw(self, _font, at + Vector2(0, 9) * px, "!", HORIZONTAL_ALIGNMENT_CENTER, 10.0 * px, 9, Color.WHITE, px)
 
 
 ## The way an army is marching, as an angle on the map (radians, 0 east, turning toward south), or null if it stands.
@@ -549,8 +572,10 @@ func _draw_fronts(px: float) -> void:
 		if f.provinces.is_empty():
 			continue
 		var chosen := f.id == _selected_front
-		var stretches := _front_stretches(f)
-		if stretches.is_empty():
+		var stretches := _front_stretches(f) if f.kind != "garrison" else []
+		if f.kind == "garrison":
+			_draw_garrison(f, color, chosen, px)
+		elif stretches.is_empty():
 			_draw_reserve_line(f, color, chosen, px)
 		else:
 			_draw_border_line(f, stretches, color, chosen, px)
@@ -576,6 +601,135 @@ func _front_stretches(f: Front) -> Array:
 			for line: PackedVector2Array in MapData.border_lines(p, n):
 				out.append({"line": line, "enemy": n, "province": p})
 	return out
+
+
+# ------------------------------------------------------------------ plans of attack
+
+## The player's plans of attack, as on a Hearts of Iron war map: a wide translucent arrow curving from the army to the
+## middle of its target line (solid at the base, fading toward the point, its divisions and name along it), or for a
+## spearhead a narrow bold arrow at its target with rings round it; the target line barbed in the army's colour, the
+## lines of later phases dashed; and the ground the plan means to take striped (in the map's shader).
+func _draw_offensives(px: float) -> void:
+	var zone := {}
+	for o: Offensive in GameState.offensives.values():
+		if o.tag != GameState.player_tag or o.done:
+			continue
+		var root: Army = GameState.armies.get(o.army_id)
+		if root == null:
+			continue
+		var colour: Color = army_colour_of(root) if army_colour_of(root) != null else GameState.nations[o.tag].color.lightened(0.3)
+		var stacks := FrontSolver.stacks_of(GameState, root)
+		var divisions := 0
+		var source := Vector2.ZERO
+		for st in stacks:
+			divisions += st.units.size()
+			source += MapData.provinces[st.province].center
+		source /= maxf(stacks.size(), 1.0)
+		var targets := o.targets()
+		if targets.is_empty():
+			continue
+		var line := PackedVector2Array()
+		for p in FrontSolver.order_line(targets):
+			line.append(MapData.provinces[p].center)
+		var aim: Vector2 = _midpoint(line) if line.size() > 1 else line[0]
+		var text := "%d divisions · %s" % [divisions, root.display_name]
+		if o.kind == "spearhead":
+			_draw_arrow(source, aim, colour, 13.0 * px, 6.0 * px, 0.95, 0.85, text, px)
+			for r in [14.0, 22.0]:
+				draw_arc(aim, r * px, 0, TAU, 32, Color(0.02, 0.03, 0.05, 0.8), 4.5 * px, true)
+				draw_arc(aim, r * px, 0, TAU, 32, colour, 2.4 * px, true)
+		else:
+			_draw_arrow(source, aim, colour, 30.0 * px, 14.0 * px, 0.7, 0.2, text, px)
+			if line.size() > 1:
+				var smooth := _smooth(line, 2)
+				draw_polyline(smooth, Color(0.02, 0.03, 0.05, 0.8), 7.0 * px, true)
+				var length := _length(smooth)
+				var count := int(length / (10.0 * px))
+				for i in count:
+					var spot := _point_along(smooth, (i + 0.5) * length / maxf(count, 1))
+					var n := _normal(smooth, spot.index, source - spot.point)
+					var along := Vector2(n.y, -n.x)
+					var at: Vector2 = spot.point
+					draw_colored_polygon(PackedVector2Array([at + along * 3.0 * px, at + n * 7.5 * px, at - along * 3.0 * px]), colour)
+				draw_polyline(smooth, colour, 4.2 * px, true)
+		# The lines of the phases after this one, dashed.
+		for k in range(o.phase + 1, o.phases.size()):
+			var later := PackedVector2Array()
+			var ids: Array[int] = []
+			for p in o.phases[k]:
+				ids.append(int(p))
+			for p in FrontSolver.order_line(ids):
+				later.append(MapData.provinces[p].center)
+			for i in range(1, later.size()):
+				draw_dashed_line(later[i - 1], later[i], Color(colour, 0.75), 2.6 * px, 8.0 * px)
+		# The ground to take: enemy provinces inside the hull of the army and its targets.
+		var hull_points := PackedVector2Array([source])
+		for st in stacks:
+			hull_points.append(MapData.provinces[st.province].center)
+		for p in targets:
+			hull_points.append(MapData.provinces[p].center)
+		var hull := Geometry2D.convex_hull(hull_points)
+		for p in targets:
+			if GameState.province_controller[p] != o.tag:
+				zone[p] = colour
+		if hull.size() >= 3:
+			for id in range(1, GameState.province_controller.size()):
+				if GameState.province_controller[id] != o.tag and GameState.province_owner[id] != o.tag and Geometry2D.is_point_in_polygon(MapData.provinces[id].center, hull):
+					zone[id] = colour
+	get_tree().call_group("map_view", "set_plan_zone", zone)
+
+
+## A curved arrow from `from` to `to` (a quadratic Bezier bending a little to one side), `wide` across at its base and
+## `narrow` before its head, solid (`base_alpha`) at the base and fading to `tip_alpha`, with a label along its body.
+func _draw_arrow(from: Vector2, to: Vector2, colour: Color, wide: float, narrow: float, base_alpha: float, tip_alpha: float, text: String, px: float) -> void:
+	var length := from.distance_to(to)
+	if length < 1.0:
+		return
+	var dir := (to - from) / length
+	var side := Vector2(-dir.y, dir.x)
+	var head_len := minf(wide * 1.5, length * 0.35)
+	var body_end := to - dir * head_len
+	var control := (from + body_end) * 0.5 + side * length * 0.12
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	var colours_l := PackedColorArray()
+	var colours_r := PackedColorArray()
+	var steps := 24
+	var last := from
+	for i in steps + 1:
+		var t := float(i) / steps
+		var p := from.lerp(control, t).lerp(control.lerp(body_end, t), t)
+		var tangent := (control - from).lerp(body_end - control, t).normalized()
+		var normal := Vector2(-tangent.y, tangent.x)
+		var half := lerpf(wide, narrow, t) * 0.5
+		left.append(p + normal * half)
+		right.append(p - normal * half)
+		var c := Color(colour, lerpf(base_alpha, tip_alpha, t))
+		colours_l.append(c)
+		colours_r.append(c)
+		last = p
+	var poly := left.duplicate()
+	var cols := colours_l.duplicate()
+	for i in range(right.size() - 1, -1, -1):
+		poly.append(right[i])
+		cols.append(colours_r[i])
+	draw_polygon(poly, cols)
+	var end_dir := (body_end - control).normalized()
+	var end_side := Vector2(-end_dir.y, end_dir.x)
+	var head := PackedVector2Array([last + end_side * wide * 0.8, to, last - end_side * wide * 0.8])
+	draw_colored_polygon(head, Color(colour, maxf(tip_alpha, 0.35) + 0.15))
+	draw_polyline(PackedVector2Array([head[0], head[1], head[2]]), Color(0.02, 0.03, 0.05, 0.6), 1.5 * px, true)
+	# The label along the body, upright.
+	var mid := from.lerp(control, 0.5).lerp(control.lerp(body_end, 0.5), 0.5)
+	var angle := (body_end - from).angle()
+	if angle > PI * 0.5 or angle < -PI * 0.5:
+		angle += PI
+	var fs := 13
+	var w := MapText.size_of(_font, text, fs, px).x
+	draw_set_transform(mid, angle, Vector2(px, px))
+	draw_string_outline(_font, Vector2(-w / px * 0.5, fs * 0.35), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0.02, 0.03, 0.05, 0.85))
+	draw_string(_font, Vector2(-w / px * 0.5, fs * 0.35), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## The colour of a stack's army on the front it holds a sector of, or null (not on a front dealt in sectors).
@@ -737,16 +891,37 @@ static func _smooth(line: PackedVector2Array, passes: int) -> PackedVector2Array
 	return out
 
 
-## For a front with no enemy across it (a line drawn in friendly land): a dashed line through its
-## provinces.
+## A garrison: a shield ring on each province it guards, in the colour of the army holding it (or the front's).
+func _draw_garrison(f: Front, color: Color, chosen: bool, px: float) -> void:
+	var colours := army_colors(f)
+	for p in f.provinces:
+		var c: Vector2 = MapData.provinces[p].center + Vector2(0, -22.0 * px)
+		var tint: Color = colours.get(sector_owner(f, p), color)
+		var r := (8.0 if chosen else 7.0) * px
+		var shield := PackedVector2Array([c + Vector2(-r, -r * 0.8), c + Vector2(r, -r * 0.8), c + Vector2(r, r * 0.1), c + Vector2(0, r * 1.1), c + Vector2(-r, r * 0.1)])
+		draw_colored_polygon(shield, Color(0.06, 0.08, 0.12, 0.9))
+		draw_polyline(PackedVector2Array(Array(shield) + [shield[0]]), tint, 2.2 * px, true)
+		draw_line(c + Vector2(0, -r * 0.5), c + Vector2(0, r * 0.6), tint, 1.6 * px, true)
+	if not f.provinces.is_empty():
+		_labels.append([f, MapData.provinces[f.provinces[0]].center + Vector2(0, -34.0 * px), color, chosen])
+
+
+## For a front with no enemy across it (a line drawn in friendly land, a fallback line): a striped, dashed line through
+## its provinces, with short stripes across it.
 func _draw_reserve_line(f: Front, color: Color, chosen: bool, px: float) -> void:
 	var line := PackedVector2Array()
 	for p in f.provinces:
 		line.append(MapData.provinces[p].center)
 	if line.size() > 1:
-		draw_polyline(line, Color(0.02, 0.03, 0.05, 0.6), (7.0 if chosen else 5.0) * px, true)
+		draw_polyline(line, Color(0.02, 0.03, 0.05, 0.6), (8.0 if chosen else 6.5) * px, true)
 	for i in range(1, line.size()):
-		draw_dashed_line(line[i - 1], line[i], color, (3.6 if chosen else 2.6) * px, 9.0 * px)
+		draw_dashed_line(line[i - 1], line[i], color, (4.0 if chosen else 3.2) * px, 9.0 * px)
+		var seg := line[i] - line[i - 1]
+		var across := Vector2(-seg.y, seg.x).normalized() * 5.0 * px
+		var stripes := int(seg.length() / (14.0 * px))
+		for k in stripes:
+			var at := line[i - 1].lerp(line[i], (k + 0.5) / maxf(stripes, 1))
+			draw_line(at - across, at + across, Color(color, 0.8), 1.6 * px, true)
 	for p in line:
 		draw_circle(p, 4.0 * px, Color(0.02, 0.03, 0.05, 0.9))
 		draw_circle(p, 2.6 * px, color)

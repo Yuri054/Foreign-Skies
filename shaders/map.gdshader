@@ -14,6 +14,8 @@ uniform bool show_zones = false;
 uniform sampler2D zone_colors : filter_nearest, repeat_disable; // 64x1: tint of each sea zone, alpha 0 = none
 uniform bool zone_paint = false;
 uniform bool hatch_marks = false; // hatch the provinces `marks` flags, outside the diplomacy mode too
+uniform sampler2D plans : filter_nearest, repeat_disable;   // plans of attack: stripe colour, alpha > 0.5 = in a planned advance
+uniform bool plan_stripes = false;
 uniform int selected_zone = 0;
 uniform int hover_zone = 0;
 uniform bool diplomacy = false;
@@ -129,6 +131,18 @@ void fragment() {
 			float px_per_screen = max(fwidth(UV.x) * map_size.x, 0.001);
 			float band = fract((map_px.x - map_px.y) / (px_per_screen * stripe_px * 0.7));
 			col = band < 0.5 ? col : mark.rgb;
+		}
+	}
+
+	if (plan_stripes && id > 0) {
+		ivec2 pp = ivec2(id % lookup_width, id / lookup_width);
+		vec4 plan = texelFetch(plans, pp, 0);
+		if (plan.a > 0.5) {
+			// The ground a plan of attack means to take: wide diagonal stripes in the army's colour, half seen through.
+			vec2 map_px = UV * map_size;
+			float px_per_screen = max(fwidth(UV.x) * map_size.x, 0.001);
+			float band = fract((map_px.x - map_px.y) / (px_per_screen * stripe_px * 1.6));
+			col = mix(col, plan.rgb, band < 0.35 ? 0.55 : 0.12);
 		}
 	}
 

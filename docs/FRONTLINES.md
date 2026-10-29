@@ -111,10 +111,10 @@ This becomes a stage of its own (F7), after F2: lines first, then arrows with th
 | F1 (done, 0.13.0) | Detachments; ordered lines and weights; one army's divisions spread along its front; regroup on release | A German army of 20 divisions put on the Belgian border spreads over it in a few days, more where the enemy is; released, it marches back into one army. |
 | F2 (done, 0.13.0) | Broad fronts: a front given to an army group, contiguous sectors per army | Three armies of a group on the French border hold three sectors side by side, none mixed; a fourth army added takes a sector without the others crossing. |
 | F3 (done, 0.13.0) | Cohesion modes and manual pinning | On Rigid, a gap at one end is not filled from the other end; a division sent by hand is left alone until it arrives, then rejoins. |
-| F4 | Fallback lines and garrisons | A fallback line drawn behind the border is held and dug in deeper than the border; ports on garrison keep a division each. |
-| F5 | Spearheads, planning, aggressiveness | A spearhead takes one province with the force of the whole army; planning shows and raises the attack; Careful stops where Aggressive goes on. |
-| F7 (lines done, 0.13.1; arrows, striping and status marks with F5 and F6) | The visual design above: barbed lines in army colours, sector brackets, arrows, striping, badges | On the flat map and in 3D, a player can tell at a glance which army holds which stretch, where each attack goes and what it is aiming at. |
-| F6 | Phase lines; the AI uses broad fronts | A two-phase offensive digs in on line A and goes on to line B; AI-only campaign runs keep the road to 1914 and wars that end. |
+| F4 (done, 0.14.0) | Fallback lines and garrisons | A fallback line drawn behind the border is held and dug in deeper than the border; ports on garrison keep a division each. |
+| F5 (done, 0.14.0) | Spearheads, planning, aggressiveness | A spearhead takes one province with the force of the whole army; planning shows and raises the attack; Careful stops where Aggressive goes on. |
+| F7 (lines 0.13.1; arrows, striping and status marks 0.14.0; path lines and rail marks to come) | The visual design above: barbed lines in army colours, sector brackets, arrows, striping, badges | On the flat map and in 3D, a player can tell at a glance which army holds which stretch, where each attack goes and what it is aiming at. |
+| F6 (phase lines done, 0.14.0; the AI still to come) | Phase lines; the AI uses broad fronts | A two-phase offensive digs in on line A and goes on to line B; AI-only campaign runs keep the road to 1914 and wars that end. |
 
 Every stage keeps the full test suite green, adds tests of its own, and updates `DESIGN.md`, `MANUAL.md` and the
 changelog.

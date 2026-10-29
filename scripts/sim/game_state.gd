@@ -123,6 +123,9 @@ var sea_control: Dictionary = {}
 ## front id -> Front.
 var fronts: Dictionary = {}
 var next_front_id := 1
+## Plans of attack by id (see Offensive) and the next id.
+var offensives: Dictionary = {}
+var next_offensive_id := 1
 ## Province id -> {tag, days}: an army is taking the province and has held it for this long.
 var occupation: Dictionary = {}
 ## Wars being fought, keyed "A|B" with the tags in sorted order (id -> War for the record,
@@ -386,6 +389,8 @@ func load_scenario(dir: String) -> void:
 	occupation.clear()
 	fronts.clear()
 	next_front_id = 1
+	offensives.clear()
+	next_offensive_id = 1
 	scenario_dir = dir
 	scenario = JSON.parse_string(FileAccess.get_file_as_string(dir + "scenario.json"))
 	assert(scenario is Dictionary, "scenario.json is invalid")

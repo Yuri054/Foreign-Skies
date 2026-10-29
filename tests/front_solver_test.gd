@@ -33,6 +33,7 @@ func _initialize() -> void:
 	_test_spread()
 	_test_broad()
 	_test_cohesion()
+	_test_fallback_and_garrison()
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
 
@@ -242,3 +243,62 @@ func _test_cohesion() -> void:
 	_check(rigid[2] < n - 3, "rigid: the northern end does not march to fill a gap at the southern end (farthest %d of %d)" % [rigid[2], n])
 	var flexible := _gap_after("flexible")
 	_check(not gs.issue(load("res://scripts/sim/set_front_policy.gd").new("GER", flexible[0].id, "cohesion", "loose")), "an unknown cohesion is refused")
+
+
+func _test_fallback_and_garrison() -> void:
+	gs.load_scenario(gs.DEFAULT_SCENARIO)
+	gs.set_player("GER")
+	gs.ai_enabled = false
+	for w in gs.wars.values().duplicate():
+		gs.set_war(w.a, w.b, false)
+	gs.pending_joins.clear()
+	var UnitC = load("res://scripts/sim/unit.gd")
+	var Designate = load("res://scripts/sim/designate_front.gd")
+	var Assign = load("res://scripts/sim/assign_to_front.gd")
+	# A fallback line: a chain of three German provinces from the capital inland.
+	var capital: int = gs.nations["GER"].capital
+	var chain: Array[int] = [capital]
+	while chain.size() < 3:
+		var next := 0
+		for n: int in Mil.neighbors(chain.back()):
+			if gs.province_controller[n] == "GER" and not chain.has(n):
+				next = n
+				break
+		if next == 0:
+			break
+		chain.append(next)
+	var line_cmd = Designate.new("GER", "Berlin line", chain)
+	_check(gs.issue(line_cmd), "a line is drawn round Berlin")
+	var line_front = gs.fronts[line_cmd.front_id]
+	_check(line_front.is_fallback(gs), "touching no enemy, it is a fallback line")
+	var army = Mil.new_army(gs, "GER", "Reserve Army", capital)
+	for i in 6:
+		army.units.append(UnitC.new("infantry"))
+	gs.issue(Assign.new("GER", line_front.id, [army.id] as Array[int]))
+	_days(60)
+	var top: int = Mil.cfg.combat.max_entrenchment
+	var deepest := 0
+	for st in FS.stacks_of(gs, army):
+		deepest = maxi(deepest, st.entrenchment())
+	_check(deepest > top, "on the fallback line the army digs in deeper than anywhere else (%d, against %d)" % [deepest, top])
+	# A garrison of three ports far apart.
+	var ports: Array[int] = []
+	for p in gs.nations["GER"].provinces:
+		if root.get_node("MapData").port_zones.has(p) and ports.size() < 3:
+			if ports.all(func(q: int) -> bool: return (root.get_node("MapData").provinces[q].center as Vector2).distance_to(root.get_node("MapData").provinces[p].center) > 150.0):
+				ports.append(p)
+	_check(not gs.issue(Designate.new("GER", "", [gs.nations["FRA"].provinces[0]] as Array[int], "", "garrison")), "a garrison guards only provinces the nation holds")
+	var g_cmd = Designate.new("GER", "Ports", ports, "", "garrison")
+	_check(gs.issue(g_cmd) and gs.fronts[g_cmd.front_id].kind == "garrison" and not gs.fronts[g_cmd.front_id].is_fallback(gs), "a garrison of %d ports is set up" % ports.size())
+	var guard = Mil.new_army(gs, "GER", "Coast Guard", capital)
+	for i in 6:
+		guard.units.append(UnitC.new("infantry"))
+	gs.issue(Assign.new("GER", g_cmd.front_id, [guard.id] as Array[int]))
+	_days(90)
+	var guarded := 0
+	for p in ports:
+		for st in FS.stacks_of(gs, guard):
+			if st.province == p and st.path.is_empty():
+				guarded += 1
+				break
+	_check(guarded == ports.size(), "each port keeps some of the army's divisions (%d of %d)" % [guarded, ports.size()])

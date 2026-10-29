@@ -5,7 +5,33 @@ most updates, features included, bump the patch number (`0.5.1`, `0.5.2`, ...). 
 finished.
 The version lives in `project.godot` (`application/config/version`), shows in the corner of the main menu, and names
 the Windows build the CI attaches to each release.
-From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.13.1 (2026-10-29 03:12 UTC)
+From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
+
+## 0.14.0 (2026-10-29 03:42 UTC)
+
+Fallback lines, garrisons and plans of attack: the rest of the front system in `docs/FRONTLINES.md`.
+
+- **Attack plans.** Select an army on a front and, on the Military tab, click **Push to line** and the enemy provinces to
+  reach, or **Spearhead** and one province to strike toward. A push sends each stack at the enemy province next to it
+  that leads toward the line, stacks bound for the same province attacking together; a spearhead gathers the whole army
+  next to the next province on the way and strikes it at once.
+- **Planning**: an army with a plan standing on its front plans, up to +30% to its attacks after two weeks, ready to go
+  after one (a green tick on its banners). Marching or fighting spends it. **Launch** sets the plan going once it is
+  ready; **Halt** stops it.
+- **Aggressiveness**: Careful attacks only at two to one and stops when morale is low; Balanced at fair odds; Aggressive
+  at even odds, at once, whatever the morale.
+- **Phase lines**: **Add phase** gives a plan a further line. Once the first is taken the army plans again from where it
+  stands and pushes on.
+- **Fallback lines**: a front drawn in your own ground, away from the enemy, is dashed on the map; armies on it dig in
+  two levels deeper and half again as fast.
+- **Garrisons**: the Garrison button marks provinces of yours to guard (ports, cities, the capital); an army on a
+  garrison keeps divisions in each.
+- **On the map**: a push is a wide translucent arrow in its army's colour, curving from its stretch of the front to a
+  barbed target line, with the enemy ground in between hatched until taken; a spearhead is a narrow arrow ringed at its
+  target; later phases are dashed. Banners show a yellow triangle for low supply and a red "!" for an army at war on no
+  front. On the flat map and in 3D.
+
+## 0.13.1 (2026-10-29 03:12 UTC)
 
 Fronts drawn as on a Hearts of Iron war map (the first part of the visual brief in `docs/FRONTLINES.md`).
 

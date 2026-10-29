@@ -101,6 +101,39 @@ func _initialize() -> void:
 	panel._end_drawing()
 	panel._on_delete_front()
 
+	# Plans of attack: select an army, mark a line to push to, add a phase, launch, halt; then a spearhead.
+	main.map_view.select(nancy)
+	await process_frame
+	var planner = gs.armies[panel._selected[0]]
+	panel._refresh_fronts()
+	_check(not panel._plan_push.disabled and panel._plan_launch.disabled and panel._plan_label.text.contains("no plan"), "with an army selected, a plan can be made: %s" % panel._plan_label.text)
+	var targets: Array[int] = []
+	for n: int in Mil.neighbors(nancy):
+		if gs.province_controller[n] == "GER":
+			targets.append(n)
+	panel._begin_picking("push", "")
+	for t in targets:
+		panel._add_to_draft(t)
+	panel._finish_drawing()
+	var plan = load("res://scripts/sim/offensives.gd").of_army(gs, planner)
+	_check(plan != null and plan.kind == "broad" and plan.targets().size() == targets.size(), "clicking German provinces and Finish makes a push to them (%d)" % targets.size())
+	panel._begin_picking("phase", "")
+	panel._add_to_draft(german)
+	panel._finish_drawing()
+	_check(plan != null and plan.phases.size() == 2, "Add phase adds a second line")
+	panel._plan_aggr.item_selected.emit(2)
+	_check(plan != null and plan.aggressiveness == "aggressive", "the aggressiveness is set from the list")
+	panel._on_launch()
+	_check(plan != null and plan.active and panel._plan_launch.text == "Halt", "Launch launches it, and the button turns to Halt")
+	panel._on_launch()
+	_check(plan != null and not plan.active, "Halt halts it")
+	panel._begin_picking("spearhead", "")
+	panel._add_to_draft(german)
+	var spear = load("res://scripts/sim/offensives.gd").of_army(gs, planner)
+	_check(spear != null and spear.kind == "spearhead" and spear.targets() == [german], "Spearhead and one click aims the army at one province, replacing the push")
+	panel._plan_cancel.pressed.emit()
+	_check(load("res://scripts/sim/offensives.gd").of_army(gs, planner) == null, "Cancel drops the plan")
+
 	# Battle screen.
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
 	gs.wars.clear()  # the scenario starts with Austria-Hungary at war with Serbia; these tests want a clean slate

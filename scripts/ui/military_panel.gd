@@ -41,6 +41,20 @@ var _fronts_list := ItemList.new()
 var _front_detail := Label.new()
 var _face_button := Button.new()
 var _draw_button := Button.new()
+var _garrison_button := Button.new()
+## What the provinces being picked on the map are for: "line" (a front, joined), "garrison" (one by one), "push" (a
+## plan's target line), "phase" (a further line for the plan) or "spearhead" (one province).
+var _draft_mode := "line"
+## The selected army's plan of attack: its state, the buttons and the aggressiveness.
+var _plan_label := Label.new()
+var _plan_push := Button.new()
+var _plan_spear := Button.new()
+var _plan_phase := Button.new()
+var _plan_launch := Button.new()
+var _plan_cancel := Button.new()
+var _plan_aggr := OptionButton.new()
+const AGGRESSIVENESS := [["careful", "Careful"], ["balanced", "Balanced"], ["aggressive", "Aggressive"]]
+var _draw_hint := Label.new()
 var _face_row := VBoxContainer.new()
 var _assign_button := Button.new()
 var _release_button := Button.new()
@@ -157,6 +171,9 @@ func _ready() -> void:
 	_draw_button.text = "Draw line"
 	_draw_button.tooltip_text = "Click provinces on the map, one after another, to lay out a line by hand."
 	_draw_button.pressed.connect(_begin_drawing)
+	_garrison_button.text = "Garrison"
+	_garrison_button.tooltip_text = "Click provinces of yours to guard (ports, cities, the capital): an army put on the garrison keeps a share of its divisions in each. A line drawn in your own ground, away from the enemy, is a fallback line: armies on it dig in deeper and faster."
+	_garrison_button.pressed.connect(func() -> void: _begin_picking("garrison", "Click the provinces to guard; click one again to drop it."))
 	_assign_button.text = "Assign"
 	_assign_button.tooltip_text = "Put the selected armies on the chosen front; they spread along it and hold it."
 	_assign_button.pressed.connect(_on_assign)
@@ -165,7 +182,7 @@ func _ready() -> void:
 	_release_button.pressed.connect(_on_release)
 	_delete_button.text = "Delete"
 	_delete_button.pressed.connect(_on_delete_front)
-	for b in [_face_button, _draw_button, _assign_button, _release_button, _delete_button]:
+	for b in [_face_button, _draw_button, _garrison_button, _assign_button, _release_button, _delete_button]:
 		b.focus_mode = Control.FOCUS_NONE
 		front_buttons.add_child(b)
 	fronts_box.add_child(front_buttons)
@@ -186,6 +203,53 @@ func _ready() -> void:
 	_group_pick.item_selected.connect(_on_group_picked)
 	policy_row.add_child(_group_pick)
 	fronts_box.add_child(policy_row)
+	# The selected army's plan of attack.
+	var plan_title := Label.new()
+	plan_title.text = "Attack plan (selected army)"
+	plan_title.modulate = Fmt.DIM
+	fronts_box.add_child(plan_title)
+	_plan_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_plan_label.custom_minimum_size = Vector2(320, 0)
+	fronts_box.add_child(_plan_label)
+	var plan_row := HBoxContainer.new()
+	_plan_push.text = "Push to line"
+	_plan_push.tooltip_text = "Click the enemy provinces to reach: every division of the army on its front pushes toward them from where it stands, once it has planned."
+	_plan_push.pressed.connect(func() -> void: _begin_picking("push", "Click the provinces of the line to reach; click one again to drop it."))
+	_plan_spear.text = "Spearhead"
+	_plan_spear.tooltip_text = "Click one province: the army gathers and strikes toward it with its whole weight, one province at a time."
+	_plan_spear.pressed.connect(func() -> void: _begin_picking("spearhead", "Click the province to strike at."))
+	_plan_phase.text = "Add phase"
+	_plan_phase.tooltip_text = "Click a further line to reach once the present one is taken: the army digs in on the line it reached, plans again, and pushes on."
+	_plan_phase.pressed.connect(func() -> void: _begin_picking("phase", "Click the provinces of the next line; click one again to drop it."))
+	_plan_launch.tooltip_text = "Launch the attack (it goes once the divisions have planned, at once if aggressive), or halt it and go on planning."
+	_plan_launch.pressed.connect(_on_launch)
+	_plan_cancel.text = "Cancel"
+	_plan_cancel.tooltip_text = "Drop the plan."
+	_plan_cancel.pressed.connect(func() -> void:
+		var o := _plan()
+		if o != null:
+			GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "cancel"))
+	)
+	for b in [_plan_push, _plan_spear, _plan_phase, _plan_launch, _plan_cancel]:
+		b.focus_mode = Control.FOCUS_NONE
+		plan_row.add_child(b)
+	fronts_box.add_child(plan_row)
+	var aggr_row := HBoxContainer.new()
+	var aggr_label := Label.new()
+	aggr_label.text = "Aggressiveness"
+	aggr_row.add_child(aggr_label)
+	_plan_aggr.focus_mode = Control.FOCUS_NONE
+	_plan_aggr.tooltip_text = "Careful attacks only at odds of two to one and stops when morale is low; Balanced attacks at fair odds; Aggressive attacks at even odds and does not stop for morale or losses."
+	for a in AGGRESSIVENESS:
+		_plan_aggr.add_item(a[1])
+	_plan_aggr.select(1)
+	_plan_aggr.item_selected.connect(func(i: int) -> void:
+		var o := _plan()
+		if o != null:
+			GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "aggressiveness", AGGRESSIVENESS[i][0]))
+	)
+	aggr_row.add_child(_plan_aggr)
+	fronts_box.add_child(aggr_row)
 	var face_hint := Label.new()
 	face_hint.text = "Click a province of the nation to face. Esc cancels."
 	face_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -194,7 +258,7 @@ func _ready() -> void:
 	_face_row.add_child(face_hint)
 	_face_row.visible = false
 	fronts_box.add_child(_face_row)
-	var draw_hint := Label.new()
+	var draw_hint := _draw_hint
 	draw_hint.text = "Click provinces along the line. Click the last one again to remove it."
 	draw_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	draw_hint.custom_minimum_size = Vector2(320, 0)
@@ -569,7 +633,8 @@ func _refresh_fronts() -> void:
 		for id in mine[i].army_ids:
 			if GameState.armies.has(id):
 				men += GameState.armies[id].men()
-		_fronts_list.set_item_text(i, "%s · %d armies · %s" % [mine[i].display_name, mine[i].army_ids.size(), Fmt.people(men)])
+		var kind := " (garrison)" if mine[i].kind == "garrison" else (" (fallback line)" if mine[i].is_fallback(GameState) else "")
+		_fronts_list.set_item_text(i, "%s%s · %d armies · %s" % [mine[i].display_name, kind, mine[i].army_ids.size(), Fmt.people(men)])
 		if mine[i].id == _front_selected:
 			_fronts_list.select(i)
 	if not ids.has(_front_selected):
@@ -580,6 +645,7 @@ func _refresh_fronts() -> void:
 	if chosen != null:
 		_cohesion.select(maxi(0, COHESIONS.map(func(c: Array) -> String: return c[0]).find(chosen.cohesion)))
 	_refresh_group_pick(chosen)
+	_refresh_plan()
 	_delete_button.disabled = chosen == null
 	_assign_button.disabled = chosen == null or _selected.is_empty()
 	_release_button.disabled = _selected.is_empty()
@@ -708,6 +774,15 @@ func _pick_nation(id: int) -> void:
 func _begin_drawing() -> void:
 	_end_drawing()
 	_drawing = true
+	_draft_mode = "line"
+	_draw_hint.text = "Click provinces along the line. Click the last one again to remove it."
+
+
+## Starts picking provinces on the map for a garrison, a plan's target line or phase, or a spearhead's target.
+func _begin_picking(mode: String, hint: String) -> void:
+	_begin_drawing()
+	_draft_mode = mode
+	_draw_hint.text = hint
 	_draft.clear()
 	_draw_row.visible = true
 	_front_name.text = ""
@@ -730,6 +805,17 @@ func _end_drawing() -> void:
 func _add_to_draft(id: int) -> void:
 	if id < 1:
 		return
+	if _draft_mode == "spearhead":
+		_draft = [id]
+		_finish_drawing()
+		return
+	if _draft_mode != "line":
+		if _draft.has(id):
+			_draft.erase(id)
+		elif _draft_mode != "garrison" or GameState.province_controller[id] == GameState.player_tag:
+			_draft.append(id)
+		get_tree().call_group("army_layer", "set_draft", _draft.duplicate())
+		return
 	if _draft.is_empty():
 		_draft.append(id)
 	elif id == _draft.back():
@@ -749,7 +835,11 @@ func _add_to_draft(id: int) -> void:
 
 
 func _finish_drawing() -> void:
-	var cmd := DesignateFront.new(GameState.player_tag, _front_name.text.strip_edges(), _draft.duplicate())
+	if _draft_mode in ["push", "spearhead", "phase"]:
+		_finish_plan()
+		return
+	var kind := "garrison" if _draft_mode == "garrison" else "line"
+	var cmd := DesignateFront.new(GameState.player_tag, _front_name.text.strip_edges(), _draft.duplicate(), "", kind)
 	if GameState.issue(cmd):
 		_assign_to_new(cmd.front_id)
 		_front_selected = cmd.front_id
@@ -757,7 +847,67 @@ func _finish_drawing() -> void:
 		_end_drawing()
 		_refresh_fronts()
 	else:
-		get_tree().call_group("event_feed", "say", DesignateFront.problem(GameState, GameState.player_tag, _draft), Fmt.WARN)
+		get_tree().call_group("event_feed", "say", DesignateFront.problem(GameState, GameState.player_tag, _draft, "", kind), Fmt.WARN)
+
+
+## The army the plan buttons act on: the first selected stack's army.
+func _plan_army() -> Army:
+	if _selected.is_empty() or not GameState.armies.has(_selected[0]):
+		return null
+	return FrontSolver.root_of(GameState, GameState.armies[_selected[0]])
+
+
+func _plan() -> Offensive:
+	var root := _plan_army()
+	return Offensives.of_army(GameState, root) if root != null else null
+
+
+func _finish_plan() -> void:
+	var root := _plan_army()
+	var draft := _draft.duplicate()
+	var mode := _draft_mode
+	_end_drawing()
+	if root == null or draft.is_empty():
+		return
+	var aggr: String = AGGRESSIVENESS[maxi(0, _plan_aggr.selected)][0]
+	var ok := false
+	if mode == "phase":
+		var o := _plan()
+		ok = o != null and GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "phase", draft))
+	else:
+		ok = GameState.issue(PlanOffensive.new(GameState.player_tag, root.id, "spearhead" if mode == "spearhead" else "broad", draft, aggr))
+	if not ok:
+		get_tree().call_group("event_feed", "say", PlanOffensive.problem(GameState, GameState.player_tag, root.id, "spearhead" if mode == "spearhead" else "broad", draft, aggr) if mode != "phase" else "Make a plan first.", Fmt.WARN)
+	_refresh_fronts()
+
+
+func _on_launch() -> void:
+	var o := _plan()
+	if o != null:
+		GameState.issue(SetOffensive.new(GameState.player_tag, o.id, "launch", not o.active))
+
+
+## The selected army's plan: what it is, how far it has got, and the buttons that fit.
+func _refresh_plan() -> void:
+	var root := _plan_army()
+	var o := _plan()
+	for b in [_plan_push, _plan_spear]:
+		b.disabled = root == null
+	_plan_phase.disabled = o == null
+	_plan_launch.disabled = o == null
+	_plan_cancel.disabled = o == null
+	_plan_aggr.disabled = o == null
+	_plan_launch.text = "Halt" if o != null and o.active else "Launch"
+	if root == null:
+		_plan_label.text = "Select an army to plan its attack."
+		return
+	if o == null:
+		_plan_label.text = "%s has no plan of attack." % root.display_name
+		return
+	_plan_aggr.select(maxi(0, AGGRESSIVENESS.map(func(a: Array) -> String: return a[0]).find(o.aggressiveness)))
+	var what := "a spearhead at %s" % MapData.provinces[o.targets()[0]].name if o.kind == "spearhead" and not o.targets().is_empty() else "a push to a line of %d provinces" % o.targets().size()
+	var state := "attacking" if o.active and o.launched else ("launched, planning first" if o.active else "planned, not launched")
+	_plan_label.text = "%s: %s, phase %d of %d, %s; planning %d%%." % [root.display_name, what, o.phase + 1, o.phases.size(), state, roundi(Offensives.planning_of(GameState, root) * 100.0)]
 
 
 func _on_assign() -> void:

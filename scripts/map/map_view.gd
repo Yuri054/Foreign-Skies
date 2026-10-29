@@ -120,6 +120,10 @@ var _lookup_texture: ImageTexture
 var _owner_image: Image
 var _owner_texture: ImageTexture
 var _marks_image: Image
+## Provinces a plan of attack means to take, painted with stripes in the army's colour (set_plan_zone).
+var _plans_image: Image
+var _plans_texture: ImageTexture
+var _plan_signature := []
 var _marks_texture: ImageTexture
 var _blocs_image: Image
 var _blocs_texture: ImageTexture
@@ -181,6 +185,9 @@ func _ready() -> void:
 	_material.set_shader_parameter("lookup", _lookup_texture)
 	_material.set_shader_parameter("owners", _owner_texture)
 	_material.set_shader_parameter("marks", _marks_texture)
+	_plans_image = _lookup_image.duplicate()
+	_plans_texture = ImageTexture.create_from_image(_plans_image)
+	_material.set_shader_parameter("plans", _plans_texture)
 	_material.set_shader_parameter("blocs", _blocs_texture)
 	_material.set_shader_parameter("sea_zones", ImageTexture.create_from_image(MapData.sea_zones_image))
 	_zone_image = Image.create(ZONE_TEXTURE_WIDTH, 1, false, Image.FORMAT_RGBA8)
@@ -895,3 +902,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			province_ordered.emit(target)
 		elif _zone_under_mouse() > 0:
 			zone_ordered.emit(_zone_under_mouse())
+
+
+## Stripes the provinces plans of attack mean to take: province id -> colour (empty: none). Only repaints when it changes.
+func set_plan_zone(zone: Dictionary) -> void:
+	if _plans_image == null:
+		return
+	var signature := []
+	for id in zone:
+		signature.append([id, zone[id]])
+	signature.sort()
+	if signature == _plan_signature:
+		return
+	_plan_signature = signature
+	_plans_image.fill(Color(0, 0, 0, 0))
+	for id: int in zone:
+		_plans_image.set_pixelv(Vector2i(id % LOOKUP_WIDTH, id / LOOKUP_WIDTH), Color(zone[id], 1.0))
+	_plans_texture.update(_plans_image)
+	_material.set_shader_parameter("plan_stripes", not zone.is_empty())

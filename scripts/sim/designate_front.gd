@@ -7,19 +7,29 @@ var front_name: String
 var provinces: Array[int]
 ## For a border front: the nation it faces (the line is then worked out, not given).
 var against: String
+## "line" or "garrison" (provinces picked one by one, of the nation's own, not joined).
+var kind := "line"
 ## Id of the new front (filled in by execute).
 var front_id := 0
 
 
-func _init(p_tag := "", p_name := "", p_provinces: Array[int] = [], p_against := "") -> void:
+func _init(p_tag := "", p_name := "", p_provinces: Array[int] = [], p_against := "", p_kind := "line") -> void:
 	tag = p_tag
 	front_name = p_name
 	provinces = p_provinces
 	against = p_against
+	kind = p_kind
 
 
 ## Why the line is not valid, or "" if it is.
-static func problem(gs: Node, p_tag: String, line: Array[int], p_against := "") -> String:
+static func problem(gs: Node, p_tag: String, line: Array[int], p_against := "", p_kind := "line") -> String:
+	if p_kind == "garrison":
+		if not gs.nations.has(p_tag) or line.is_empty():
+			return "Pick the provinces to guard."
+		for p in line:
+			if p < 1 or p >= gs.province_owner.size() or gs.province_controller[p] != p_tag:
+				return "A garrison guards provinces you hold."
+		return ""
 	if not p_against.is_empty():
 		if not gs.nations.has(p_tag) or not gs.nations.has(p_against) or p_against == p_tag:
 			return "Choose another nation to face."
@@ -37,7 +47,7 @@ static func problem(gs: Node, p_tag: String, line: Array[int], p_against := "") 
 
 
 func execute(gs: Node) -> bool:
-	if not problem(gs, tag, provinces, against).is_empty():
+	if not problem(gs, tag, provinces, against, kind).is_empty():
 		return false
 	var f := Front.new()
 	f.id = gs.next_front_id
@@ -45,8 +55,9 @@ func execute(gs: Node) -> bool:
 	f.tag = tag
 	f.display_name = front_name
 	if f.display_name.is_empty():
-		f.display_name = "Front vs %s" % gs.nations[against].display_name if not against.is_empty() else "Front %d" % f.id
+		f.display_name = "Front vs %s" % gs.nations[against].display_name if not against.is_empty() else ("Garrison %d" if kind == "garrison" else "Front %d") % f.id
 	f.against = against
+	f.kind = kind
 	f.provinces = Military.border_provinces(gs, tag, against) if not against.is_empty() else provinces.duplicate()
 	# The player's armies spread their divisions along the line (FrontSolver); the AI's hold a province each.
 	f.spread = tag == gs.player_tag
@@ -57,7 +68,7 @@ func execute(gs: Node) -> bool:
 
 
 func to_dict() -> Dictionary:
-	return {"type": "DesignateFront", "tag": tag, "name": front_name, "provinces": provinces, "against": against}
+	return {"type": "DesignateFront", "tag": tag, "name": front_name, "provinces": provinces, "against": against, "kind": kind}
 
 
 func changes_economy() -> bool:

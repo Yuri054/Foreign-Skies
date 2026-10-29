@@ -864,6 +864,7 @@ static func step_day(gs: Node) -> void:
 	# Detachments first: one whose army was destroyed takes its place before the fronts drop the army.
 	_timed("detachments", func() -> void: FrontSolver.step_detachments(gs))
 	_timed("fronts", func() -> void: step_fronts(gs))
+	_timed("offensives", func() -> void: Offensives.step_day(gs))
 	prune_groups(gs)
 	AttackLines.step_day(gs)
 	release_orphan_generals(gs)

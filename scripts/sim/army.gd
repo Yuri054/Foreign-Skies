@@ -38,6 +38,11 @@ var parent_id := 0
 ## Province a hand-given order is taking the stack to, on a spreading front (0: none). The front leaves it alone until
 ## it has stopped there; see FrontSolver.
 var pin := 0
+## Standing on a fallback line today (FrontSolver): it digs in deeper and faster.
+var prepared := false
+## Planning for its army's attack, 0 to 1 (Offensives): built up standing on the front with a plan, spent marching
+## and fighting; when attacking it adds up to offensive.planning_max to the stack's power.
+var planning := 0.0
 ## Fleet the army is embarked in (0 = on land). An embarked army stands in the port it left
 ## until it lands; it cannot fight, move or be supplied by land (see Navy).
 var fleet_id := 0
@@ -75,7 +80,8 @@ func power() -> float:
 	for u in units:
 		total += u.power()
 	var landing: float = Military.cfg.landing.power_mult if landing_days > 0 else 1.0
-	return total * general_skill * Military.marshal_mult(self) * landing
+	var planned := 1.0 + float(Military.cfg.get("offensive", {}).get("planning_max", 0.0)) * planning if attacking else 1.0
+	return total * general_skill * Military.marshal_mult(self) * landing * planned
 
 
 ## Mean morale, weighted by men.
@@ -108,7 +114,13 @@ func shown_icon() -> String:
 func entrenchment() -> int:
 	if not path.is_empty() or landing_days > 0:
 		return 0
-	return mini(Military.cfg.combat.max_entrenchment, still_days / int(Military.cfg.combat.entrench_days_per_level))
+	var top: int = Military.cfg.combat.max_entrenchment
+	var days := float(still_days)
+	if prepared:
+		var fc: Dictionary = Military.cfg.get("fronts", {})
+		top += int(fc.get("fallback_extra_levels", 2))
+		days *= float(fc.get("fallback_dig_speed", 1.5))
+	return mini(top, int(days) / int(Military.cfg.combat.entrench_days_per_level))
 
 
 func speed() -> float:
