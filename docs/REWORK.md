@@ -21,7 +21,7 @@ check the world still reaches 1914 and wars still end.
 
 | Stage | Work | Done when (playtest) |
 |---|---|---|
-| R1 | Capitulation and an automatic peace conference, with war score for it; province value counts cities and buildings | A nation that loses its capital and 80% of its province value capitulates: its armies lay down their arms and a peace conference opens on its own, the winners' war score showing the capitulation. |
+| R1 | Capitulation and an automatic peace conference, with war score for it; province value counts cities and buildings; the capital is a large share of it, and can move | Taking Paris costs France a third of its value; France, still holding Lyon and Marseille, moves its capital and fights on, and capitulates once 80% of its value is lost, a peace conference opening on its own. Belgium, holding little but Brussels, capitulates when Brussels falls. |
 | R2 | Backup, then the resource economy taken out of the game and the interface | No coal, iron, wood, food, IC, materials, munitions or investment anywhere in the game or its text; a test searches the interface text and fails on any of them. The old system is kept on a branch and in docs/archive. |
 | R3 | The new economy: gold, base income, civilian factories, construction sectors and CP, building upkeep, the per-province caps, one project per province | Germany makes about 25 gold a month in 1914; a civilian factory pays back in three to four years; every nation starts with a civilian factory and a construction sector, and a small nation at peace visibly grows its income every year. |
 | R4 | Manpower and devastation: the mobilization slider, reconstruction in the budget | Raising France's mobilization raises its manpower a day and its reconstruction bill by what the tooltip said; when the treasury cannot pay it, devastation builds up and France's military factories and supply suffer where it does. |
@@ -38,16 +38,25 @@ tests, screenshots checked for faults, the manual and changelog, the release.
 Today a nation only "collapses" when it holds no land at all, and nothing opens a peace conference by itself.
 
 - **Province value**: one measure of what a province is worth, used everywhere the war needs one (war score for
-  occupying it, capitulation, its price in a peace deal): its population, plus its **city** (more for a bigger one, most
-  for the capital), plus its **buildings** (each counted by what it cost). A built-up industrial province is worth
-  far more to take, and costs more to demand in peace, than empty farmland.
-- **Capitulation**: a nation capitulates when the enemy holds its capital and at least 80% of its province value. Its
-  armies lay down their arms (they are disbanded; their men return to manpower), and its allies fight on without it.
-- **The conference opens by itself**: the war with the capitulated nation goes straight to a peace conference
-  (scripts/sim/conference.gd), the winners taking turns as they do today.
-- **War score for it**: capitulation adds `capitulation_score` to every enemy's war score against that nation, so the
-  conference has the points to take what was won. The breakdown in the war panel shows the line "Capitulation".
-- A bar on each war card shows how close a nation is to capitulating (its province value lost against the 80%), so the
+  occupying it, capitulation, its price in a peace deal): its population, plus its **city** (more for a bigger one),
+  plus its **buildings** (each counted by what it cost). A built-up industrial province is worth far more to take, and
+  costs more to demand in peace, than empty farmland.
+- **The capital is a large part of it**: the capital carries a capital bonus sized so that it is about a third of the
+  nation's whole value (`capital_share`). Taking it is the biggest single blow in a war, in war score and towards
+  capitulation.
+- **Capitulation progress** is the share of the nation's value, counted at the start of the war, that the enemy holds
+  (a lost capital counting with its bonus). At 80% the nation capitulates.
+- **Moving the capital**: when its capital falls, a nation that still holds enough value (at least `relocation_share`
+  of its value at the start of the war, about 25%, and a city to move to) moves its capital to its most valuable city
+  it still holds and fights on. The new capital is a capital for everything else (supply, the map, the interface) and
+  carries a **smaller** capital bonus (half), so taking a second capital still hurts but a nation cannot be counted
+  as losing a whole capital twice. A nation that does not hold enough value to move its capital capitulates when it
+  falls. Retaking the old capital moves the capital back.
+- **Capitulation**: its armies lay down their arms (they are disbanded; their men return to manpower), and its allies
+  fight on without it. The war with it goes straight to a **peace conference** (scripts/sim/conference.gd), the
+  winners taking turns as they do today; capitulation adds `capitulation_score` to every enemy's war score against
+  that nation, shown as the line "Capitulation" in the war panel.
+- A bar on each war card shows capitulation progress against the 80%, with a mark where the capital stands, so the
   player sees it coming.
 
 ## R2: taking the resource economy out
@@ -178,9 +187,22 @@ Population no longer grows. Manpower comes from a **mobilization slider** instea
 ## R6: units
 
 Every unit type gets: **soft attack** (against unarmored targets), **hard attack** (against armor), **armor**,
-**maximum entrenchment**, **speed**, **gold cost**, **equipment cost**, and keeps its size and upkeep.
+**maximum entrenchment**, **speed**, and four flat costs: **gold to raise**, **gold upkeep a month**, **equipment to
+raise** and **equipment upkeep a month** (wear: rifles lost, guns worn out), besides its men from the manpower pool.
 
-- A division raised costs its gold and equipment at once, and its men from the manpower pool.
+| Unit | Gold to raise | Gold a month | Equipment to raise | Equipment a month | Men |
+|---|---|---|---|---|---|
+| Infantry division | 15 | 0.10 | 400 | 4 | 12,000 |
+| Cavalry division | 15 | 0.12 | 300 | 3 | 4,000 |
+| Artillery brigade | 25 | 0.15 | 600 | 8 | 3,000 |
+
+- **The balance**: gold to raise is what a great power can find for a new division every week or two in war; the real
+  limit on raising an army is **equipment**. A military factory makes about 10 equipment a day, so one factory
+  equips an infantry division about every 40 days, and Germany's military factories several divisions a month.
+  Gold upkeep is what keeps a peacetime army at about a fifth of a great power's income (Germany's 50 divisions in
+  peace: about 5 gold a month).
+- A division raised costs its gold and equipment at once, and its men from the manpower pool; its upkeep in gold and
+  equipment is charged monthly. Without the equipment upkeep, its strength wears down.
 - Losses in battle draw replacement men from manpower and equipment from the stockpile.
 - In battle, damage is the attacker's soft or hard attack, by the share of the target that is armored, less what the
   defender's armor blocks; the battle screen breaks this down.
@@ -208,5 +230,5 @@ planned in its own document once R1 to R7 have settled.
   never build again. A small CP a day from the capital (about a quarter of a sector) would keep it able to rebuild.
 - **The CP stockpile**: no cap is simplest (CP saved up is spent later); a cap would stop a nation hoarding years of CP
   for one burst of building.
-- **What happens to the build-up of the old economy in saves**: saves from before R2 will not load into the new
-  economy; old saves are kept readable only on the archive branch.
+- **Old saves**: saves from before R2 will not load into the new economy; old saves stay readable on the archive branch.
+- **Moving the capital**: automatic (to the most valuable city held), or the player picks the city from a list?
