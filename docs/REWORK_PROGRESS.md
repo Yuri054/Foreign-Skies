@@ -27,6 +27,10 @@ taken out, the gold economy put in), not yet released.
 
 ## Still to do before releasing 0.18.0
 
+Test build 0.18.0-test.1 is published as a pre-release from this branch (project.godot is at that version; set it to
+0.18.0 for the real release). Faults seen in its screenshots: the Build tab's description is cut off at the bottom
+(scrolls), and the top bar's construction points lag the panels by a day.
+
 A suite run that began mid-edit (so some failures may already be fixed) failed 15 of 102: ai_ambition, demand and
 scandinavia timed out at 400 s (look first: a slow or stuck loop in the new economy or the AI budget), and ai_forces,
 ai_navy, front_solver, history_book, infrastructure, military, pressure, pressures, province_panel, rankings,
