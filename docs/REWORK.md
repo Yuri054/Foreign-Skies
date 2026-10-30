@@ -4,9 +4,10 @@ The plan for the next round of work, agreed with the player. It replaces the res
 IC, materials, munitions, investment, population growth) with a few simple systems, each one readable at a glance:
 
 - **Gold** pays for everything: building, armies, upkeep.
-- **Construction points (CP)** decide how fast you build.
+- **Construction points (CP)**, a second currency made by construction sectors, are spent with gold to start a
+  building.
 - **Equipment**, made by military factories, arms your divisions.
-- **Manpower** comes from a mobilization slider that costs you **devastation**.
+- **Manpower** comes from a mobilization slider; it causes **devastation**, which the budget pays to repair.
 - **Supply** flows from logistics hubs and ports.
 
 Every rule here answers to VISION.md. Where a number is given it is a starting point for tuning, not a promise; the
@@ -20,10 +21,10 @@ check the world still reaches 1914 and wars still end.
 
 | Stage | Work | Done when (playtest) |
 |---|---|---|
-| R1 | Capitulation and an automatic peace conference, with war score for it | A nation that loses its capital and most of its key ground capitulates: its armies lay down their arms and a peace conference opens on its own, the winners' war score showing the capitulation. |
+| R1 | Capitulation and an automatic peace conference, with war score for it; province value counts cities and buildings | A nation that loses its capital and 80% of its province value capitulates: its armies lay down their arms and a peace conference opens on its own, the winners' war score showing the capitulation. |
 | R2 | Backup, then the resource economy taken out of the game and the interface | No coal, iron, wood, food, IC, materials, munitions or investment anywhere in the game or its text; a test searches the interface text and fails on any of them. The old system is kept on a branch and in docs/archive. |
-| R3 | The new economy: gold, base income, civilian factories, construction sectors and CP, building upkeep, the per-province caps, one project per province | Germany makes about 25 gold a month in 1914; a civilian factory pays back in three to four years; a small nation at peace visibly grows its income every year. |
-| R4 | Manpower and devastation: the mobilization slider | Raising France's mobilization raises its manpower a day and the devastation of its provinces, and its income falls by what the tooltip said it would. |
+| R3 | The new economy: gold, base income, civilian factories, construction sectors and CP, building upkeep, the per-province caps, one project per province | Germany makes about 25 gold a month in 1914; a civilian factory pays back in three to four years; every nation starts with a civilian factory and a construction sector, and a small nation at peace visibly grows its income every year. |
+| R4 | Manpower and devastation: the mobilization slider, reconstruction in the budget | Raising France's mobilization raises its manpower a day and its reconstruction bill by what the tooltip said; when the treasury cannot pay it, devastation builds up and France's military factories and supply suffer where it does. |
 | R5 | The other buildings: ports, logistics hubs (replacing railways), forts, trenches; military factories and equipment | Each building's effect shows as a number in its tooltip and on the map; a nation with military factories fills an equipment stockpile shown in the top bar. |
 | R6 | Units: soft attack, hard attack, armor, maximum entrenchment, speed, gold cost, equipment cost | The battle screen says why a fight goes as it does; a division cannot be raised without its equipment, and losses draw on the stockpile. |
 | R7 | Supply and logistics | A big army pushing far from its hubs slows and weakens; a logistics hub behind the front fixes it; a supply map mode shows it. |
@@ -36,16 +37,18 @@ tests, screenshots checked for faults, the manual and changelog, the release.
 
 Today a nation only "collapses" when it holds no land at all, and nothing opens a peace conference by itself.
 
-- **Capitulation**: a nation capitulates when the enemy holds its capital and at least `capitulation_share` (about 0.8)
-  of its **key ground**, weighed by province value (population and buildings, the capital counting heavily), as in
-  Hearts of Iron. Its armies lay down their arms (they are disbanded; their men return to manpower), and its allies
-  fight on without it.
+- **Province value**: one measure of what a province is worth, used everywhere the war needs one (war score for
+  occupying it, capitulation, its price in a peace deal): its population, plus its **city** (more for a bigger one, most
+  for the capital), plus its **buildings** (each counted by what it cost). A built-up industrial province is worth
+  far more to take, and costs more to demand in peace, than empty farmland.
+- **Capitulation**: a nation capitulates when the enemy holds its capital and at least 80% of its province value. Its
+  armies lay down their arms (they are disbanded; their men return to manpower), and its allies fight on without it.
 - **The conference opens by itself**: the war with the capitulated nation goes straight to a peace conference
   (scripts/sim/conference.gd), the winners taking turns as they do today.
 - **War score for it**: capitulation adds `capitulation_score` to every enemy's war score against that nation, so the
   conference has the points to take what was won. The breakdown in the war panel shows the line "Capitulation".
-- The bar showing how close a nation is to capitulating sits on its war card (the share of key ground lost against the
-  threshold), so the player sees it coming.
+- A bar on each war card shows how close a nation is to capitulating (its province value lost against the 80%), so the
+  player sees it coming.
 
 ## R2: taking the resource economy out
 
@@ -68,8 +71,8 @@ One currency, called **gold** everywhere (interface, tooltips, manual). A nation
 
 ```
 income = base income (from population, fixed) + civilian factories × 1.5 + ports × 0.3
-         all of it × (1 − devastation of the province it comes from) × war and blockade modifiers
-expenses = army upkeep + building upkeep (+ navy upkeep)
+         × war and blockade modifiers
+expenses = army upkeep + building upkeep + navy upkeep + reconstruction (R4)
 ```
 
 - **Base income** comes from each province's population, slightly concave (so small nations get relatively more),
@@ -82,17 +85,20 @@ expenses = army upkeep + building upkeep (+ navy upkeep)
 
 ### Construction points
 
-- Every nation has **base CP** from its capital, about 1 a day, so a nation with no construction sector can still
-  build its first.
-- A **construction sector** adds about 1 CP a day. Germany starts with about 2, a small nation with none.
-- All CP goes into one national pool, shared down the build queue in order. Each project takes at most
-  `project_cp_cap` (about 10) CP a day, so even a giant cannot finish a factory in a day.
-- **Gold is paid when a project starts**; a project the treasury cannot pay for waits at the head of the queue.
-- **One project per province at a time**: a second project in a province waits until the first is done, even with CP
-  to spare. Projects in different provinces run side by side.
-- **The balance**: a typical nation's spare gold a month should buy about what its CP can build. In peace, gold is
-  usually what limits you; once rich, CP does, and that is when construction sectors pay. Both have to matter, or
-  one of them is pointless.
+- **CP is a currency**, like gold: construction sectors add it to a national stockpile every day, and starting a
+  building spends its gold and its CP at once. There is no pool shared out over the queue.
+- **Every nation starts with at least one civilian factory and one construction sector**, so even the smallest can
+  earn and build from the first day; no special help for small nations is needed.
+- A **construction sector** adds about 1 CP a day. Germany starts with about 2 or 3.
+- **Building takes time**: once paid for, each kind of building takes a fixed number of days to finish (a civilian
+  factory about 60, a fort 30, a trench 7). Paying more does not make it faster.
+- **One project per province at a time**: a second building in a province can only be started once the first is done.
+  Projects in different provinces run side by side; how many is limited only by gold and CP.
+- **The queue**: the player can still queue several buildings; the queue starts each one as soon as its province is
+  free and the gold and CP are there, in the order queued.
+- **The balance**: a typical nation's spare gold a month should buy about what its sectors make in CP a month. In peace
+  gold is usually what limits you; once rich, CP does, and that is when a construction sector pays. Both have to
+  matter, or one of them is pointless.
 
 ### Buildings and their caps
 
@@ -112,49 +118,50 @@ costs the same in Berlin as in Belgrade, which keeps it readable.
 | Air base | 30 | 120 | 0.05 | aircraft (R8) |
 | Research center | 80 | 300 | 0.20 | research (R8) |
 
-The civilian factory pays back in 40 months. A small nation's first factory takes it a few years of saving; after
-that each one comes sooner. Ports, at 30 gold for 0.3 a month, pay back slower, in 100 months; they are built for
+The civilian factory pays back in 40 months. A small nation starts with one already earning, and its next takes a few
+years of saving; after that each one comes sooner. Ports, at 30 gold for 0.3 a month, pay back slower, in 100 months; they are built for
 what else they do.
 
 **Air bases and research centers wait for R8**: they are not offered until the systems behind them exist, so the
 player never pays upkeep on a building that does nothing.
 
 **Starting buildings**: each scenario's nations get civilian factories, construction sectors and the rest worked out
-from today's industry, railways and works, so the shape of 1914 stays about the same.
+from today's industry, railways and works, so the shape of 1914 stays about the same; every nation gets at least one
+civilian factory and one construction sector, in its capital if nowhere else.
 
-## R4: manpower and devastation
+## R4: manpower, devastation and reconstruction
 
 Population no longer grows. Manpower comes from a **mobilization slider** instead.
 
 - **The slider** has marked levels, from 0 (no manpower) to 5 (the whole country under arms). Each level gives a daily
-  manpower from the nation's population:
+  manpower from the nation's population, the same rate per head for every nation, and wears its provinces down:
 
-  | Level | Name | Manpower a day (France) | Devastation |
+  | Level | Name | Manpower a day (France) | Devastation a month, every province |
   |---|---|---|---|
-  | 0 | Disarmed | 0 | 0% |
-  | 1 | Volunteers | 100 | 2% |
-  | 2 | Limited | 300 | 6% |
-  | 3 | Partial | 700 | 12% |
-  | 4 | General | 1,500 | 22% |
-  | 5 | Total | 3,000 | 35% |
+  | 0 | Disarmed | 0 | 0 |
+  | 1 | Volunteers | 100 | 0.5 |
+  | 2 | Limited (the peacetime ceiling) | 300 | 1.5 |
+  | 3 | Partial | 700 | 3 |
+  | 4 | General | 1,500 | 6 |
+  | 5 | Total | 3,000 | 10 |
 
-  Other nations get the same rate per head of population. At level 1 France fills an infantry division (12,000 men)
-  in four months; at level 5, in four days.
-- **Devastation** is a share, 0 to 100%, of each province's output that is lost. It comes from two places:
-  - **mobilization**: every province of the nation carries the level's devastation. Raising the level takes it there
-    over a month or so; lowering it, the provinces recover over several months, so the slider cannot be flicked up
-    for a day and back for free;
-  - **war**: battles fought in a province, and enemy occupation, add devastation there, which recovers slowly after.
-  The two add up, never past 90%.
-- **What devastation does**: it cuts the province's income and its military factories' output by its share, and its
-  supply capacity by half of it (a little strain on logistics).
+  At level 1 France fills an infantry division (12,000 men) in four months; at level 5, in four days.
+- **Devastation** is a number, 0 to 100, in each province. Mobilization adds to it every day in every province of the
+  nation; battles fought in a province and enemy occupation add more there.
+- **Reconstruction is a line in the national budget**: every month the nation spends gold to bring devastation down in
+  the provinces it holds, `reconstruction_cost` gold for each point repaired, scaled by the province's value. Paid in
+  full, devastation is repaired as fast as mobilization adds it, so a mobilized country pays for its manpower in gold
+  every month, and the slider's tooltip says how much. Not paid (an empty treasury, or the player turns reconstruction
+  down), it builds up.
+- **What devastation does, where it is**: it cuts that province's military factory output by its share, and its supply
+  capacity by half of it. It does **not** cut income: that cost is the reconstruction bill. A Devastation map mode
+  shades every province.
+- **Occupied provinces** are not repaired: their owner cannot reach them and the occupier does not pay for them.
 - **The manpower pool has a cap**, about two months of the current level's generation plus what the army would need
   to refill, so a nation cannot bank years of manpower at level 1 and then disarm. Disbanding divisions and sending
   armies home return their men to the pool.
-- **Mobilization in peace and war**: in peace the slider goes up to level 2 (higher alarms the neighbours, as
-  mobilizing does today); at war, to 5.
-- **The slider shows its price**: each mark's tooltip gives the manpower a day it brings and the gold a month its
-  devastation will cost, worked out from the nation's own economy. A Devastation map mode shades every province.
+- **In peace** the slider goes up to level 2 (going above level 1 alarms the neighbours, as mobilizing does today); at
+  war, to 5.
 
 ## R5: the other buildings, military factories and equipment
 
@@ -195,6 +202,11 @@ planned in its own document once R1 to R7 have settled.
 
 ## Open questions
 
-- Should small nations get a discount on buildings, or are a few years to a first factory right?
-- Capitulation threshold: about 80% of key ground and the capital, or tuned per scenario?
-- Mobilization in peace: is level 2 the right ceiling?
+- **Reconstruction control**: is reconstruction always paid in full while the treasury allows, or does the player get a
+  setting (paused, normal, priority) to save gold and live with the damage for a while? A setting adds a real choice.
+- **Losing every construction sector**: a nation whose sectors are all occupied or ceded would make no CP and could
+  never build again. A small CP a day from the capital (about a quarter of a sector) would keep it able to rebuild.
+- **The CP stockpile**: no cap is simplest (CP saved up is spent later); a cap would stop a nation hoarding years of CP
+  for one burst of building.
+- **What happens to the build-up of the old economy in saves**: saves from before R2 will not load into the new
+  economy; old saves are kept readable only on the archive branch.
