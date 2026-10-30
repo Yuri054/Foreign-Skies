@@ -277,7 +277,7 @@ func _test_terms() -> void:
 	var score: float = P.war_score(gs, war, "FRA")
 	_check(c.forced and c.budget > score, "a nation with no support left is beaten: France may ask more than its score (%.1f of %.1f)" % [c.budget, score])
 	var months := 12
-	var share := snappedf(c.budget * 0.9 / (float(P.cfg().price.indemnity_points_per_year) * months / 12.0), 0.01)
+	var share := floorf(c.budget * 0.9 / (float(P.cfg().price.indemnity_points_per_year) * months / 12.0) * 1000.0) / 1000.0
 	var more: Array = [{"kind": "indemnity", "share": share, "months": months}]
 	var m: Dictionary = P.check(gs, "FRA", "GER", "demand", more)
 	_check(m.ok and m.cost > score, "and must pay more than the score pays for (%.1f)" % m.cost)

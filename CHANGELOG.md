@@ -7,6 +7,23 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.17.0 (2026-10-30 14:34 UTC)
+
+The first stage of the big rework (docs/REWORK.md, R1): wars now end when a nation is beaten.
+
+- **Province value**: every province is worth its people, its city and its buildings, and war score for holding it is
+  that value's share of the nation. A built-up industrial province is worth far more than farmland.
+- **The capital is a third of the country**: taking it is the biggest single blow in a war, in war score and towards
+  capitulation (it replaces the flat 25 points and the double price of a capital in peace terms).
+- **Moving the capital**: when its capital falls, a nation that still holds a quarter of its value moves its government
+  and fights on. The AI moves to its most valuable city (or best town); **you pick the city** from a list, time stopped
+  until you do. The new capital counts half as much; retaking the old one brings the government home.
+- **Capitulation**: when its enemies hold 80% of its value, or its capital falls with less than a quarter left, a
+  nation capitulates. Its armies lay down their arms (the men go back to the reserve), it raises no more until peace, its
+  enemies gain 25 war score against it, and each AI victor dictates its peace at once. If your enemy capitulates, the
+  peace screen opens for you to dictate yours; if you capitulate, the victors' terms are imposed. Allies fight on.
+- The war panel and the peace screen show each side's capitulation progress, and "capitulation" in the war score.
+
 ## 0.16.4 (2026-10-29 17:42 UTC)
 
 - **French and Russian portraits**: three French generals in the kepi and two Russian generals in the green cap. Each

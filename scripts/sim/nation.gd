@@ -9,8 +9,12 @@ var government := ""
 var treasury := 0.0          # GBP millions
 ## Standing among the powers; diplomacy spends and earns it (war support arrives in step 6).
 var prestige := 0.0
-## Province id of the capital; losing it to an enemy weighs on peace talks.
+## Province id of the capital; losing it to an enemy weighs on peace talks (see Capitulation).
 var capital := 0
+## The capital the nation had before a war moved it (0: the capital has not moved); see Capitulation.
+var home_capital := 0
+## Has laid down its arms in its present wars (Capitulation); cleared at peace.
+var capitulated := false
 ## Diplomacy points: a stock of diplomatic effort. Only the number exists so far; nothing
 ## earns or spends it yet.
 var diplomacy_points := 0.0

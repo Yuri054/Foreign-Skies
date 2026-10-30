@@ -5,8 +5,9 @@ extends RefCounted
 ## are in data/diplomacy.json under "peace".
 ##
 ## War score is one number per pairwise war, from a nation's side: positive means it is
-## winning. It is the ground each holds of the other (by population and GDP share), the
-## enemy capital, and the battles won, which fade with time.
+## winning. It is the ground each holds of the other (by province value: people, cities and
+## buildings, the capital weighing about a third, see Capitulation), the battles won, which fade
+## with time, and a capitulation.
 ##
 ## A peace offer is a set of demands. In "demand" mode the proposer takes them from the
 ## target; in "offer" mode the proposer gives them to the target. The side that takes can
@@ -28,25 +29,64 @@ static func nation_gdp(gs: Node, tag: String) -> float:
 	return total
 
 
-## Share of a nation's weight (population and GDP) that one province carries, 0..1.
+## What a province is worth in a war (diplomacy.json capitulation.value): its people, its city and its buildings. The
+## capital's bonus is added by Capitulation.value_of. Worked out once a day.
+static func province_value(gs: Node, id: int) -> float:
+	var stamp := [Clock.days_elapsed, gs.get_instance_id()]
+	if stamp != _value_stamp:
+		_value_cache.clear()
+		_city_pop.clear()
+		for c in gs.cities:
+			_city_pop[int(c.province)] = _city_pop.get(int(c.province), 0) + Cities.population(gs, c)
+		_value_stamp = stamp
+	if _value_cache.has(id):
+		return _value_cache[id]
+	var w: Dictionary = Diplomacy.cfg.capitulation.value
+	var v: float = float(w.population) * gs.province_population[id] / 1e6 + float(w.city) * float(_city_pop.get(id, 0)) / 1e6
+	var built: Dictionary = gs.province_buildings[id]
+	for type: String in built:
+		v += float(w.buildings.get(type, 0.0)) * float(built[type])
+	v = maxf(v, float(w.minimum))
+	_value_cache[id] = v
+	return v
+
+
+static var _value_cache := {}
+static var _city_pop := {}
+static var _value_stamp: Array = []
+
+
+## Forgets the day's province values (a new game or a loaded save).
+static func clear_cache() -> void:
+	_value_stamp = []
+	Capitulation._stamp = []
+
+
+## Share of a nation's whole value (Capitulation.whole_value) that one province carries, the capital bonus included, 0..1.
 static func province_share(gs: Node, id: int, tag: String) -> float:
-	var c: Dictionary = cfg().score
-	var pop_total := maxf(float(gs.nations[tag].population), 1.0)
-	var gdp_total := maxf(nation_gdp(gs, tag), 0.001)
-	return c.pop_weight * gs.province_population[id] / pop_total + c.gdp_weight * gs.province_gdp[id] / gdp_total
+	var whole := Capitulation.whole_value(gs, tag)
+	return Capitulation.value_of(gs, id, tag) / whole if whole > 0.0 else 0.0
 
 
-## Score `holder` earns for the share of `owner`'s land it holds.
+## Score `holder` earns for the share of `owner`'s value it holds.
 static func occupation_points(gs: Node, holder: String, owner: String) -> float:
-	var c: Dictionary = cfg().score
-	var n: Nation = gs.nations[owner]
-	var pop_total := maxf(float(n.population), 1.0)
-	var gdp_total := maxf(nation_gdp(gs, owner), 0.001)
-	var share := 0.0
-	for id: int in n.provinces:
-		if gs.province_controller[id] == holder:
-			share += c.pop_weight * gs.province_population[id] / pop_total + c.gdp_weight * gs.province_gdp[id] / gdp_total
-	return share * c.occupation_points
+	return Capitulation.progress(gs, owner, holder) * float(cfg().score.occupation_points)
+
+
+## The part of occupation_points that is the capital bonus: what `holder` earns for holding `owner`'s capital (home, and
+## a moved one).
+static func capital_points(gs: Node, holder: String, owner: String) -> float:
+	var whole := Capitulation.whole_value(gs, owner)
+	if whole <= 0.0:
+		return 0.0
+	var bonus := Capitulation.capital_bonus(gs, owner)
+	var held := 0.0
+	var home := Capitulation.home_capital(gs, owner)
+	if home > 0 and gs.province_controller[home] == holder:
+		held += bonus
+	if Capitulation.relocated(gs, owner) and gs.province_controller[gs.nations[owner].capital] == holder:
+		held += bonus * float(Diplomacy.cfg.capitulation.relocated_bonus)
+	return held / whole * float(cfg().score.occupation_points)
 
 
 ## The share of `owner`'s weight (people and output) that `holder` occupies, 0..1.
@@ -66,6 +106,8 @@ static func _owned_by(gs: Node, ids: Array, tag: String) -> bool:
 ## Whether `giver` is beaten badly enough that `taker` may dictate terms (see check): its people will not fight on,
 ## or the taker holds its capital and its war support is at the floor, or the taker holds most of it.
 static func is_forced(gs: Node, taker: String, giver: String) -> bool:
+	if Capitulation.capitulated(gs, giver):
+		return true
 	var support: float = gs.nations[giver].war_support
 	var ws: Dictionary = Diplomacy.cfg.war_support
 	if support <= float(ws.surrender_at):
@@ -75,29 +117,31 @@ static func is_forced(gs: Node, taker: String, giver: String) -> bool:
 	return occupied_share(gs, taker, giver) >= float(cfg().forced.occupied_share)
 
 
-## Who holds a nation's capital if it is not the nation itself, else "".
+## Who holds a nation's (home) capital if it is not the nation itself, else "".
 static func capital_taken_by(gs: Node, tag: String) -> String:
-	var n: Nation = gs.nations[tag]
-	if n.capital <= 0:
+	var home := Capitulation.home_capital(gs, tag)
+	if home <= 0:
 		return ""
-	var holder: String = gs.province_controller[n.capital]
+	var holder: String = gs.province_controller[home]
 	return "" if holder == tag else holder
 
 
-## The parts of `tag`'s war score in a war, and their sum (clamped): occupation, capital,
-## battles and total.
+## The parts of `tag`'s war score in a war, and their sum (clamped): occupation (ground held, by province value), capital
+## (the part of that ground that is the capital bonus), battles, capitulation and total.
 static func score_parts(gs: Node, war: War, tag: String) -> Dictionary:
 	var c: Dictionary = cfg().score
 	var other := war.other(tag)
-	var occupation := occupation_points(gs, tag, other) - occupation_points(gs, other, tag)
-	var capital := 0.0
-	if capital_taken_by(gs, other) == tag:
-		capital += c.capital_points
-	if capital_taken_by(gs, tag) == other:
-		capital -= c.capital_points
+	var capital := capital_points(gs, tag, other) - capital_points(gs, other, tag)
+	var occupation := occupation_points(gs, tag, other) - occupation_points(gs, other, tag) - capital
 	var battles: float = war.battle_points.get(tag, 0.0) - war.battle_points.get(other, 0.0)
-	return {"occupation": occupation, "capital": capital, "battles": battles,
-			"total": clampf(occupation + capital + battles, -c.max, c.max)}
+	var surrender := 0.0
+	var points := float(Diplomacy.cfg.capitulation.score)
+	if war.capitulated.has(other):
+		surrender += points
+	if war.capitulated.has(tag):
+		surrender -= points
+	return {"occupation": occupation, "capital": capital, "battles": battles, "capitulation": surrender,
+			"total": clampf(occupation + capital + battles + surrender, -c.max, c.max)}
 
 
 static func war_score(gs: Node, war: War, tag: String) -> float:
@@ -121,15 +165,13 @@ static func record_battle(war: War, record: Dictionary) -> void:
 
 # --- Prices and checks ---------------------------------------------------------------------
 
-## Score a province costs to take from `giver`: its share of the nation's weight, cheaper if
-## the taker already holds it, dearer if it is the capital.
+## Score a province costs to take from `giver`: its share of the nation's value (the capital's bonus included), cheaper
+## if the taker already holds it.
 static func province_price(gs: Node, id: int, taker: String, giver: String) -> float:
 	var p: Dictionary = cfg().price
 	var price: float = p.province_scale * province_share(gs, id, giver)
 	if gs.province_controller[id] == taker:
 		price *= p.occupied_discount
-	if id == gs.nations[giver].capital:
-		price *= p.capital_multiplier
 	return price
 
 
@@ -390,6 +432,13 @@ static func propose(gs: Node, from: String, to: String, mode: String, demands: A
 		"forced": c.forced, "day": Clock.days_elapsed,
 	}
 	gs.next_offer_id += 1
+	if to == gs.player_tag and Capitulation.capitulated(gs, to) and mode == "demand":
+		# The player has capitulated: the victor's terms are not asked, they are imposed.
+		result.accepted = true
+		_resolve(gs, offer, true)
+		gs.news_posted.emit("%s dictates its peace: %s." % [gs.nations[from].display_name,
+				"; ".join(demands.map(func(d: Dictionary) -> String: return describe_demand(gs, d))) if not demands.is_empty() else "a white peace"], 2)
+		return result
 	if to == gs.player_tag:
 		gs.pending_offers.append(offer)
 		Clock.paused = true
@@ -541,13 +590,14 @@ static func _apply_demand(gs: Node, taker: String, giver: String, d: Dictionary,
 	return ""
 
 
-## A nation that loses its capital province moves to its most populous remaining one.
+## A nation that loses its capital province moves to its most populous remaining one (its new home capital).
 static func _move_capital(gs: Node, tag: String) -> void:
 	var best := 0
 	for id: int in gs.nations[tag].provinces:
 		if best == 0 or gs.province_population[id] > gs.province_population[best]:
 			best = id
 	gs.nations[tag].capital = best
+	gs.nations[tag].home_capital = best
 
 
 ## Armies that now stand on ground their nation may not enter go to the nearest ground it may.

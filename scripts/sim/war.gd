@@ -15,6 +15,8 @@ var b := ""
 ## directly) and the conflict it belongs to: pairwise wars opened together share a group.
 ## tag -> war score earned from battles won; fades monthly (see Peace).
 var battle_points: Dictionary = {}
+## tag -> date of the side that capitulated in this war (Capitulation).
+var capitulated: Dictionary = {}
 ## How the war ended, if by an accepted peace: {taker, giver, terms, white, score, forced, date}.
 var peace: Dictionary = {}
 var casus_belli := ""

@@ -146,9 +146,8 @@ static func _defensive(gs: Node, tag: String, enemy: String) -> bool:
 static func _worth(gs: Node, tag: String, enemy: String, target: int) -> float:
 	var w: Dictionary = AI.cfg.offense
 	var owner: String = gs.province_owner[target]
+	# The share includes the capital's bonus (Capitulation).
 	var points := Peace.province_share(gs, target, owner) * float(Diplomacy.cfg.peace.score.occupation_points)
-	if target == gs.nations[owner].capital:
-		points += float(Diplomacy.cfg.peace.score.capital_points)
 	points /= float(Diplomacy.cfg.peace.score.max)
 	return float(w.w_plan) * _plan_weight(gs, tag, enemy, target) + float(w.w_value) * AI.value(gs, target) + float(w.w_score) * points
 

@@ -1104,7 +1104,8 @@ func _show_war(w: War) -> void:
 			w.battles.size(), "battle" if w.battles.size() == 1 else "battles", name_a, w.battle_count(w.a, "won"), name_b, w.battle_count(w.b, "won"), drew]
 	if w.active():
 		var parts := Peace.score_parts(GameState, w, w.a)
-		_war_summary.text += "\nWar score: %s %+.1f (ground %+.1f, capital %+.1f, battles %+.1f)." % [name_a, parts.total, parts.occupation, parts.capital, parts.battles]
+		_war_summary.text += "\nWar score: %s %+.1f (%s)." % [name_a, parts.total, Capitulation.parts_text(parts)]
+		_war_summary.text += "\n" + Capitulation.progress_text(GameState, w)
 	elif not w.peace.is_empty():
 		_war_summary.text += "\nPeace: %s." % (("%s took %s" % [GameState.nations[w.peace.taker].display_name, "; ".join(w.peace.terms)]) if not w.peace.white else "white peace")
 	if w.casus_belli != "" and Diplomacy.cfg.war.casus_belli.has(w.casus_belli):

@@ -30,6 +30,14 @@ signal ship_built(tag: String, province: int, type: String)
 signal war_changed(a: String, b: String, at_war: bool)
 ## A nation lost its last province and its armies broke up.
 signal nation_collapsed(tag: String, men: int)
+## The player's capital fell and it must pick where the government goes (see Capitulation); time is held until then.
+signal capital_choice_posted(choice: Dictionary)
+## A nation moved its capital (Capitulation).
+signal capital_moved(tag: String, from: int, to: int)
+## A nation capitulated (Capitulation).
+signal nation_capitulated(tag: String)
+## An enemy of the player capitulated: the player dictates the peace of this war.
+signal dictate_peace(war_id: int)
 ## A treaty was signed (added is true) or ended.
 signal treaty_changed(treaty: Treaty, added: bool)
 signal relations_changed(a: String, b: String)
@@ -187,6 +195,8 @@ var chronicle: Array[Dictionary] = []
 var tension_history: Array[float] = []
 ## Peace offers waiting for the player's answer, oldest first.
 var pending_offers: Array[Dictionary] = []
+## The player's capital choice while one is open: {tag, candidates (province ids), lost}; see Capitulation.
+var capital_choice: Dictionary = {}
 var next_offer_id := 1
 ## Pair key -> day until which a refused proposer may not ask again.
 var peace_cooldown: Dictionary = {}
@@ -450,6 +460,8 @@ func load_scenario(dir: String) -> void:
 	Crisis.load_scenario(self)
 	History.load_scenario(self)
 	conference_counter = {}
+	capital_choice = {}
+	Peace.clear_cache()
 	economy_dirty = false
 	budget_dirty = false
 	standings_history.clear()
@@ -495,6 +507,7 @@ func finish_load() -> void:
 	AI._worth_cache.clear()
 	AINavy._weight_day = -1
 	AINavy._cordons.clear()
+	Peace.clear_cache()
 	Diplomacy._neighbor_version = -1
 	economy_dirty = false
 	budget_dirty = false
@@ -512,7 +525,7 @@ func finish_load() -> void:
 
 ## Whether the player owes an answer (a join decision or a peace offer) before time may run.
 func has_pending() -> bool:
-	return not pending_joins.is_empty() or not pending_offers.is_empty() or not pending_events.is_empty()
+	return not pending_joins.is_empty() or not pending_offers.is_empty() or not pending_events.is_empty() or not capital_choice.is_empty()
 
 
 func set_player(tag: String) -> void:

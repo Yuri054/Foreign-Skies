@@ -44,11 +44,13 @@ Today a nation only "collapses" when it holds no land at all, and nothing opens 
 - **The capital is a large part of it**: the capital carries a capital bonus sized so that it is about a third of the
   nation's whole value (`capital_share`). Taking it is the biggest single blow in a war, in war score and towards
   capitulation.
-- **Capitulation progress** is the share of the nation's value, counted at the start of the war, that the enemy holds
-  (a lost capital counting with its bonus). At 80% the nation capitulates.
+- **Capitulation progress** is the share of the nation's value that its enemies hold (a lost capital counting with
+  its bonus). At 80% the nation capitulates. Since the capital is a third, no nation reaches 80% with its capital
+  still in its hands.
 - **Moving the capital**: when its capital falls, a nation that still holds enough value (at least `relocation_share`
-  of its value at the start of the war, about 25%, and a city to move to) moves its capital to its most valuable city
-  it still holds and fights on. The new capital is a capital for everything else (supply, the map, the interface) and
+  of its value, about 25%) moves its capital and fights on: the AI to its most valuable city (or its best town when it
+  has no city left),
+  the **player picks** the city from a list (time stops until they do). The new capital is a capital for everything else (supply, the map, the interface) and
   carries a **smaller** capital bonus (half), so taking a second capital still hurts but a nation cannot be counted
   as losing a whole capital twice. A nation that does not hold enough value to move its capital capitulates when it
   falls. Retaking the old capital moves the capital back.
@@ -56,8 +58,8 @@ Today a nation only "collapses" when it holds no land at all, and nothing opens 
   fight on without it. The war with it goes straight to a **peace conference** (scripts/sim/conference.gd), the
   winners taking turns as they do today; capitulation adds `capitulation_score` to every enemy's war score against
   that nation, shown as the line "Capitulation" in the war panel.
-- A bar on each war card shows capitulation progress against the 80%, with a mark where the capital stands, so the
-  player sees it coming.
+- The war panel and the peace screen show each side's capitulation progress against the 80%, so the player sees it
+  coming.
 
 ## R2: taking the resource economy out
 
@@ -157,11 +159,15 @@ Population no longer grows. Manpower comes from a **mobilization slider** instea
   At level 1 France fills an infantry division (12,000 men) in four months; at level 5, in four days.
 - **Devastation** is a number, 0 to 100, in each province. Mobilization adds to it every day in every province of the
   nation; battles fought in a province and enemy occupation add more there.
-- **Reconstruction is a line in the national budget**: every month the nation spends gold to bring devastation down in
+- **Reconstruction is a line in the national budget**, with a setting: **paused** (pay nothing, devastation builds
+  up), **normal** (repair as fast as mobilization adds it, the bill the slider's tooltip shows) or **priority** (twice
+  the spending, to clear old devastation after a war). Paused and priority are real choices: save gold now and live
+  with weaker factories and supply, or pay to recover faster.
+- **Reconstruction** spends gold: every month the nation spends gold to bring devastation down in
   the provinces it holds, `reconstruction_cost` gold for each point repaired, scaled by the province's value. Paid in
   full, devastation is repaired as fast as mobilization adds it, so a mobilized country pays for its manpower in gold
-  every month, and the slider's tooltip says how much. Not paid (an empty treasury, or the player turns reconstruction
-  down), it builds up.
+  every month, and the slider's tooltip says how much. Not paid (an empty treasury, or reconstruction paused), it builds
+  up.
 - **What devastation does, where it is**: it cuts that province's military factory output by its share, and its supply
   capacity by half of it. It does **not** cut income: that cost is the reconstruction bill. A Devastation map mode
   shades every province.
@@ -224,11 +230,11 @@ planned in its own document once R1 to R7 have settled.
 
 ## Open questions
 
-- **Reconstruction control**: is reconstruction always paid in full while the treasury allows, or does the player get a
-  setting (paused, normal, priority) to save gold and live with the damage for a while? A setting adds a real choice.
 - **Losing every construction sector**: a nation whose sectors are all occupied or ceded would make no CP and could
   never build again. A small CP a day from the capital (about a quarter of a sector) would keep it able to rebuild.
 - **The CP stockpile**: no cap is simplest (CP saved up is spent later); a cap would stop a nation hoarding years of CP
   for one burst of building.
 - **Old saves**: saves from before R2 will not load into the new economy; old saves stay readable on the archive branch.
-- **Moving the capital**: automatic (to the most valuable city held), or the player picks the city from a list?
+
+Decided: the player picks the city a capital moves to (the AI moves to its most valuable); reconstruction has a setting
+(paused, normal, priority).

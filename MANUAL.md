@@ -156,6 +156,15 @@ beaten enemy (its people will not fight on, or you hold its capital and its war 
 gives more than your score pays for, but only the ground you hold, your war's goal and money. Land lost at a peace is not
 forgotten: the loser keeps a claim to it for 25 years and resents the winner, and is likely to demand it back.
 
+**War score and capitulation.** Every province is worth its people, its city and its buildings; a nation's **capital** is
+worth a third of the whole country. The war panel and the peace screen show how much of each side the other holds. When
+your capital falls and you still hold a quarter of the country, time stops and you **choose where the
+government goes**; the new capital counts half as much, and retaking the old one brings the government home. Lose the
+capital with less than a quarter left, or let the enemy hold **80%** of the country, and the nation **capitulates**: its armies lay
+down their arms (the men go back to the reserve), it raises no more until peace, its enemies gain 25 war score against
+it, and each victor dictates its peace at once. If your enemy capitulates, the peace screen opens for you to dictate
+yours; its allies fight on.
+
 ## Events and tension
 
 Europe's **tension** (top bar) rises with the arms race, mobilization, rivalry and recent crises; the bolder the AI nations

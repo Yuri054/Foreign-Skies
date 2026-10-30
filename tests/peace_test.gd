@@ -121,8 +121,11 @@ func _test_score() -> void:
 	var parts: Dictionary = P.score_parts(gs, war, "FRA")
 	_check(parts.occupation == 0.0 and parts.capital == 0.0 and parts.battles == 0.0, "the parts are all zero again")
 	gs.set_controller(368, "FRA")
-	_check(P.capital_taken_by(gs, "GER") == "FRA" and P.score_parts(gs, war, "FRA").capital == 25.0, "holding the enemy capital is worth 25")
-	_check(P.score_parts(gs, war, "GER").capital == -25.0, "and costs the other side the same")
+	var cap: float = P.score_parts(gs, war, "FRA").capital
+	var whole: float = P.score_parts(gs, war, "FRA").capital + P.score_parts(gs, war, "FRA").occupation
+	_check(P.capital_taken_by(gs, "GER") == "FRA" and cap > 20.0 and cap < 33.0, "the capital's bonus is a large part of the score (%.1f)" % cap)
+	_check(is_equal_approx(whole, 33.0), "Berlin with its bonus is a third of Germany's value (%.1f)" % whole)
+	_check(is_equal_approx(P.score_parts(gs, war, "GER").capital, -cap), "and costs the other side the same")
 	gs.set_controller(368, "GER")
 
 	P.record_battle(war, {"winner": "FRA", "lost": {"FRA": 5000.0, "GER": 20000.0}})
@@ -135,6 +138,7 @@ func _test_score() -> void:
 	for id in range(1, gs.province_owner.size()):
 		if gs.province_owner[id] == "GER":
 			gs.set_controller(id, "FRA")
+	war.battle_points["FRA"] = 20.0
 	_check(P.war_score(gs, war, "FRA") == 100.0 and P.war_score(gs, war, "GER") == -100.0, "the score is capped at 100")
 	gs.set_war("FRA", "GER", false)
 	war = _war()
@@ -157,7 +161,7 @@ func _test_prices_and_checks() -> void:
 	_check(held_price > 0.0 and free_price > 0.0, "provinces have a price (%.2f held, %.2f free)" % [held_price, free_price])
 	var same_weight: float = P.province_share(gs, held, "GER") * 100.0
 	_check(is_equal_approx(held_price, same_weight * 0.5), "ground already held costs half")
-	_check(is_equal_approx(P.province_price(gs, 368, "FRA", "GER"), 2.0 * P.province_share(gs, 368, "GER") * 100.0), "a capital costs double")
+	_check(is_equal_approx(P.province_price(gs, 368, "FRA", "GER"), P.province_share(gs, 368, "GER") * 100.0) and is_equal_approx(P.province_share(gs, 368, "GER"), 0.33), "a capital costs its bonus: a third of the country")
 	_check(P.demand_cost(gs, "FRA", "GER", {"kind": "province", "ids": [233]}) == -1.0, "a province the other side does not own cannot be demanded")
 	_check(P.demand_cost(gs, "FRA", "GER", {"kind": "indemnity", "share": 0.9, "months": 12}) == -1.0, "nor an indemnity past the share limit")
 	_check(is_equal_approx(P.demand_cost(gs, "FRA", "GER", {"kind": "indemnity", "share": 0.25, "months": 60}), 25.0), "an indemnity of a quarter of revenue for five years costs 25")
@@ -343,10 +347,11 @@ func _test_capital() -> void:
 	# Once its people's will is spent as well, Germany is beaten: more than the score pays, but only what is held.
 	gs.nations["GER"].war_support = float(D.cfg.war_support.floor)
 	var score: float = P.war_score(gs, war, "FRA")
-	var modest: Array = [{"kind": "province", "ids": held}, {"kind": "indemnity", "share": 0.4, "months": 48}]
+	var modest: Array = [{"kind": "province", "ids": held}, {"kind": "indemnity", "share": 0.5, "months": 48}]
 	c = P.check(gs, "FRA", "GER", "demand", modest)
 	_check(c.ok and c.forced and c.cost > score and c.cost <= c.budget, "a beaten nation gives more than the score (%.1f of %.1f, up to %.1f)" % [c.cost, score, c.budget])
-	_check(P.check(gs, "FRA", "GER", "demand", dear).reason == "too_expensive", "but not without limit")
+	var dearer: Array = dear + [{"kind": "release_ally", "nation": "AUH"}]
+	_check(P.check(gs, "FRA", "GER", "demand", dearer).reason == "too_expensive", "but not without limit")
 	var not_held := 0
 	for id: int in gs.nations["GER"].provinces:
 		if gs.province_controller[id] != "FRA" and id != 368 and P.province_problem(gs, "FRA", "GER", [id]) == "":

@@ -929,6 +929,7 @@ static func step_day(gs: Node) -> void:
 	var captured := _upkeep_and_occupy(gs)
 	_note("occupy", t_occupy)
 	_collapse_nations(gs)
+	Capitulation.step_day(gs)
 	refresh_men(gs)
 	if captured:
 		_timed("recompute", func() -> void: Economy.request(gs))

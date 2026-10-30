@@ -25,6 +25,8 @@ static func problem(gs: Node, p_tag: String, p_province: int, p_type: String, p_
 		return "Choose a province."
 	if gs.province_owner[p_province] != p_tag or gs.province_controller[p_province] != p_tag:
 		return "You must own and hold the province."
+	if n.capitulated:
+		return "A nation that has capitulated raises no armies until peace."
 	var def: Dictionary = Military.cfg.unit_types[p_type]
 	if n.manpower < def.size * p_count:
 		return "Not enough recruits."

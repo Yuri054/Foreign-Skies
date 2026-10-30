@@ -51,6 +51,9 @@ var _box := VBoxContainer.new()
 
 func _ready() -> void:
 	add_to_group("peace_screen")
+	GameState.dictate_peace.connect(func(war_id: int) -> void:
+		Clock.paused = true
+		open_war(war_id))
 	visible = false
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -432,7 +435,8 @@ func _refresh_cost() -> void:
 	var taker := _taker()
 	var score := Peace.war_score(GameState, _war, taker)
 	var parts := Peace.score_parts(GameState, _war, _me())
-	_score.text = "War score: you %+.1f (ground %+.1f, capital %+.1f, battles %+.1f)." % [parts.total, parts.occupation, parts.capital, parts.battles]
+	_score.text = "War score: you %+.1f (%s).\n%s" % [parts.total, Capitulation.parts_text(parts),
+			Capitulation.progress_text(GameState, _war)]
 	_cost_bar.max_value = maxf(score, 1.0)
 	_cost_bar.value = clampf(check.cost, 0.0, maxf(score, 1.0))
 	var who: String = "You" if taker == _me() else GameState.nations[taker].display_name
