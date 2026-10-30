@@ -2,7 +2,8 @@ name: build
 
 # Builds the Windows game on every push to main and keeps it as a downloadable artifact.
 # When the version in project.godot (application/config/version) is new, it also publishes
-# a GitHub Release named v<version> with the zip attached.
+# a GitHub Release named v<version> with the zip attached. Run by hand (workflow_dispatch) on another branch with a
+# version like 0.18.0-test.1, it publishes a pre-release: a test build that does not touch main.
 
 on:
   push:
@@ -69,6 +70,9 @@ jobs:
           if gh release view "$tag" > /dev/null 2>&1; then
             echo "Release $tag exists; the artifact is the build for this commit."
           else
-            gh release create "$tag" "ForeignSkies-${tag}-windows.zip" --title "Foreign Skies $tag" --target "$GITHUB_SHA" \
+            # A version with a suffix (0.18.0-test.1) is a test build: a pre-release, never the latest.
+            pre=""
+            case "$tag" in *-*) pre="--prerelease" ;; esac
+            gh release create "$tag" "ForeignSkies-${tag}-windows.zip" --title "Foreign Skies $tag" --target "$GITHUB_SHA" $pre \
               --notes "Windows build of $tag. See CHANGELOG.md for what changed."
           fi

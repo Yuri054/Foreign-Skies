@@ -7,6 +7,24 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.18.0-test.1 (2026-10-30 15:30 UTC)
+
+A **test build** of the next big stage (docs/REWORK.md, R2 and R3), from the branch `rework-r2-r3`: not finished, and
+some automated tests still fail. Saves from 0.17 and earlier do not load in it.
+
+- **The resource economy is gone**: coal, iron, timber, food, raw materials, IC, munitions, taxes, investment and
+  population growth. The old system is kept on the branch `archive/resource-economy`.
+- **Gold**: each month your provinces pay their base income (from their people), each civilian factory 1.5 gold and
+  each port 0.3. Out go the army (each unit's upkeep), the navy, the buildings' upkeep and interest on debt. Germany
+  earns about 25 gold a month, Britain 28, France 20, Russia 18.
+- **Construction points**: construction sectors make one a day, the capital a quarter. A building costs gold and points
+  when it starts and takes fixed days (a civilian factory 60 gold, 240 points, 60 days). One project at a time in a
+  province, at most ten of each building; the queue starts each one when it can, in order.
+- National foci now raise base income, build civilian factories or add construction points.
+- The top bar shows gold and construction points; the Economy tab shows income by source, spending and points; the
+  Build tab shows costs and the queue (under way and waiting). The Resources map mode is gone; Income shows gold.
+- Forts are +10% defence a level and trenches +4% (they are now cheap and the same price everywhere).
+
 ## 0.17.0 (2026-10-30 14:34 UTC)
 
 The first stage of the big rework (docs/REWORK.md, R1): wars now end when a nation is beaten.
