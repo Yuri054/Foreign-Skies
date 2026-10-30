@@ -144,6 +144,10 @@ civilian factory and one construction sector, in its capital if nowhere else.
 
 Population no longer grows. Manpower comes from a **mobilization slider** instead.
 
+- **Raising a unit costs manpower once**: its men (12,000 for an infantry division) leave the manpower pool when its
+  training begins, so the slider is what limits how fast an army grows, and the gold and equipment of R6 what it
+  costs to arm. Losses are replaced from the pool; disbanding returns the men to it.
+
 - **The slider** has marked levels, from 0 (no manpower) to 5 (the whole country under arms). Each level gives a daily
   manpower from the nation's population, the same rate per head for every nation, and wears its provinces down:
 
@@ -193,22 +197,24 @@ Population no longer grows. Manpower comes from a **mobilization slider** instea
 ## R6: units
 
 Every unit type gets: **soft attack** (against unarmored targets), **hard attack** (against armor), **armor**,
-**maximum entrenchment**, **speed**, and four flat costs: **gold to raise**, **gold upkeep a month**, **equipment to
-raise** and **equipment upkeep a month** (wear: rifles lost, guns worn out), besides its men from the manpower pool.
+**maximum entrenchment**, **speed**, and five flat costs: a one-time **manpower cost to raise** (the unit's men, taken
+from the manpower pool when training begins), **gold to raise**, **gold upkeep a month**, **equipment to raise** and
+**equipment upkeep a month** (wear: rifles lost, guns worn out).
 
-| Unit | Gold to raise | Gold a month | Equipment to raise | Equipment a month | Men |
+| Unit | Manpower to raise (once) | Gold to raise | Gold a month | Equipment to raise | Equipment a month |
 |---|---|---|---|---|---|
-| Infantry division | 15 | 0.10 | 400 | 4 | 12,000 |
-| Cavalry division | 15 | 0.12 | 300 | 3 | 4,000 |
-| Artillery brigade | 25 | 0.15 | 600 | 8 | 3,000 |
+| Infantry division | 12,000 | 15 | 0.10 | 400 | 4 |
+| Cavalry division | 4,000 | 15 | 0.12 | 300 | 3 |
+| Artillery brigade | 3,000 | 25 | 0.15 | 600 | 8 |
 
 - **The balance**: gold to raise is what a great power can find for a new division every week or two in war; the real
   limit on raising an army is **equipment**. A military factory makes about 10 equipment a day, so one factory
   equips an infantry division about every 40 days, and Germany's military factories several divisions a month.
   Gold upkeep is what keeps a peacetime army at about a fifth of a great power's income (Germany's 50 divisions in
   peace: about 5 gold a month).
-- A division raised costs its gold and equipment at once, and its men from the manpower pool; its upkeep in gold and
-  equipment is charged monthly. Without the equipment upkeep, its strength wears down.
+- A division raised costs its manpower, gold and equipment once, when training begins (it cannot start without all
+  three; the raise panel shows each); only gold and equipment are charged monthly after that. The manpower is not a
+  monthly cost: the men leave the pool once and come back to it when the unit is disbanded. Without the equipment upkeep, its strength wears down.
 - Losses in battle draw replacement men from manpower and equipment from the stockpile.
 - In battle, damage is the attacker's soft or hard attack, by the share of the target that is armored, less what the
   defender's armor blocks; the battle screen breaks this down.
@@ -230,11 +236,8 @@ planned in its own document once R1 to R7 have settled.
 
 ## Open questions
 
-- **Losing every construction sector**: a nation whose sectors are all occupied or ceded would make no CP and could
-  never build again. A small CP a day from the capital (about a quarter of a sector) would keep it able to rebuild.
-- **The CP stockpile**: no cap is simplest (CP saved up is spent later); a cap would stop a nation hoarding years of CP
-  for one burst of building.
 - **Old saves**: saves from before R2 will not load into the new economy; old saves stay readable on the archive branch.
 
 Decided: the player picks the city a capital moves to (the AI moves to its most valuable); reconstruction has a setting
-(paused, normal, priority).
+(paused, normal, priority); a nation's capital makes a quarter of a construction sector's CP a day, so one that has lost
+every sector can still rebuild; the CP stockpile has no cap.

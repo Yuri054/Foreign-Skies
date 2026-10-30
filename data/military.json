@@ -1,5 +1,5 @@
 {
-	"_note": "Military constants. Money is GBP millions; sizes are men; speeds are km per day; attack is per 1000 men at full morale.",
+	"_note": "Military constants. Money is gold (cost to raise, upkeep a month, per unit); sizes are men; speeds are km per day; attack is per 1000 men at full morale.",
 	"field_share": 0.9,
 	"icons": {
 		"auto": "Automatic",
@@ -30,7 +30,8 @@
 			"size": 12000,
 			"attack": 1.0,
 			"speed": 15.0,
-			"cost": 0.6,
+			"cost": 6,
+			"upkeep": 0.08,
 			"train_days": 30,
 			"color": "#5b6f8a",
 			"share": 0.75
@@ -40,7 +41,8 @@
 			"size": 4000,
 			"attack": 0.8,
 			"speed": 25.0,
-			"cost": 0.5,
+			"cost": 5,
+			"upkeep": 0.04,
 			"train_days": 45,
 			"color": "#8a7a4a",
 			"share": 0.05
@@ -49,9 +51,10 @@
 			"name": "Artillery brigade",
 			"size": 3000,
 			"attack": 3.0,
-			"shells": 0.9,
+			"guns": true,
 			"speed": 12.0,
-			"cost": 1.2,
+			"cost": 10,
+			"upkeep": 0.05,
 			"train_days": 60,
 			"color": "#8a4a4a",
 			"share": 0.2
@@ -103,7 +106,6 @@
 	},
 	"combat": {
 		"casualties_per_point": 7.0,
-		"shell_penalty": 0.75,
 		"morale_floor_effect": 0.5,
 		"morale_loss_per_casualty": 8.0,
 		"morale_loss_base": 0.01,
@@ -179,7 +181,7 @@
 	"movement": {
 		"min_days": 1,
 		"railway_speedup": 0.6,
-		"home_rail": 1.5,
+		"home_rail": 1.2,
 		"strait_days": 2,
 		"sea_link_days": 4
 	},

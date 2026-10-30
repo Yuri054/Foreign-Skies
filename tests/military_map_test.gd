@@ -66,7 +66,7 @@ func _initialize() -> void:
 	_check(with_army != without and view.legend().has("high"), "a province with an army is shaded apart from one without")
 	_check(view.legend().high != "none", "the legend gives the biggest garrison (%s)" % view.legend().high)
 
-	view.set_mode(Mode.CONSTRUCTION, "factory")
+	view.set_mode(Mode.CONSTRUCTION, "civilian_factory")
 	_check(view.legend().get("swatches", []).size() == 5, "the Construction legend has a swatch for each colour")
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

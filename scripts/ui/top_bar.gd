@@ -14,6 +14,8 @@ var _flag := FlagIcon.new()
 var _nation := Label.new()
 var _treasury := Label.new()
 var _net := Label.new()
+var _cp := Label.new()
+var _cp_gain := Label.new()
 var _manpower := Label.new()
 ## Recruits are shown while the nation is mobilized or at war; in quiet peace they are a number nobody needs.
 var _manpower_wanted := false
@@ -63,6 +65,12 @@ func _ready() -> void:
 	money.add_child(_treasury)
 	money.add_child(_net)
 	_chips["treasury"] = _chip(money)
+	var cp_box := HBoxContainer.new()
+	cp_box.add_theme_constant_override("separation", 5)
+	cp_box.add_child(Icons.rect("hammer"))
+	cp_box.add_child(_cp)
+	cp_box.add_child(_cp_gain)
+	_chips["cp"] = _chip(cp_box)
 	_chips["manpower"] = _chip(_with_icon("soldier", _manpower))
 	var points_box := HBoxContainer.new()
 	points_box.add_theme_constant_override("separation", 5)
@@ -71,9 +79,10 @@ func _ready() -> void:
 	points_box.add_child(_points_gain)
 	_chips["points"] = _chip(points_box)
 	_chips["tension"] = _chip(_with_icon("flame", _tension))
-	for key in ["treasury", "manpower", "points", "tension"]:
+	for key in ["treasury", "cp", "manpower", "points", "tension"]:
 		_row.add_child(_chips[key])
-	_chips["treasury"].tooltip_text = "Treasury (GBP millions), and what it gains or loses each month."
+	_chips["treasury"].tooltip_text = "Gold in the treasury, and what it gains or loses each month."
+	_chips["cp"].tooltip_text = "Construction points in hand, and what the construction sectors add a month. Starting a building spends its gold and its points."
 	_chips["manpower"].tooltip_text = "Recruits in reserve, ready to be raised into units."
 	_chips["points"].tooltip_text = "Diplomacy points."
 
@@ -208,11 +217,14 @@ func _refresh() -> void:
 	if n and not picking:
 		_flag.tag = n.tag
 		_nation.text = n.display_name
-		_treasury.text = "£%.1fM" % n.treasury
+		_treasury.text = Fmt.money(n.treasury)
 		_treasury.modulate = Fmt.BAD if n.treasury < 0.0 else Color.WHITE
-		var net: float = n.budget.get("net", 0.0) / 12.0
+		var net: float = n.budget.get("net", 0.0)
 		_net.text = "%+.1f" % net
 		_net.modulate = Fmt.GOOD if net >= 0.0 else Fmt.BAD
+		_cp.text = "%d" % roundi(n.cp)
+		_cp_gain.text = "+%d" % roundi(float(n.budget.get("cp", 0.0)) * 30.0)
+		_cp_gain.modulate = Fmt.GOOD
 		_manpower.text = "%dk" % roundi(n.manpower / 1000.0)
 		_manpower_wanted = n.mobilization > 0.005 or not GameState.wars_of(n.tag).is_empty()
 		_points.text = "%d" % roundi(n.diplomacy_points)
@@ -228,6 +240,8 @@ func _refresh() -> void:
 		_nation.text = "Choosing a nation" if picking else "Spectator"
 		_treasury.text = ""
 		_net.text = ""
+		_cp.text = ""
+		_cp_gain.text = ""
 		_manpower.text = ""
 		_tension.text = "%d" % roundi(GameState.tension)
 		_points.text = ""

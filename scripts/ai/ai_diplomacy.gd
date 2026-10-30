@@ -81,7 +81,7 @@ static func join_value(gs: Node, d: Dictionary) -> float:
 	if mine + theirs > 0.0:
 		v += float(j.w_odds) * ((mine / (mine + theirs)) - 0.5) * 2.0
 	v += float(j.w_support) * (n.war_support - 50.0) / 50.0
-	var monthly_revenue := maxf(float(n.budget.get("revenue", 0.0)), 1.0) / 12.0
+	var monthly_revenue := maxf(float(n.budget.get("income", 0.0)), 1.0 / 12.0)
 	v -= float(j.w_debt) * minf(1.0, maxf(0.0, -n.treasury) / monthly_revenue)
 	var cost: Dictionary = d.decline_cost
 	v += float(j.w_decline) * (absf(float(cost.ally_relations)) / 40.0 + absf(float(cost.prestige)) / 10.0) / 2.0

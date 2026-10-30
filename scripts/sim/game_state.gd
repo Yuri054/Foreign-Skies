@@ -83,21 +83,13 @@ var province_population := PackedInt32Array()
 ## What each province's people numbered when the scenario began (read again on every load; never saved):
 ## the cities grow and shrink with the ratio (see Cities).
 var province_pop_base := PackedInt32Array()
-## The part of a person each province's growth has not yet added (see Population).
+## The part of a person each province's losses have not yet taken (see Population).
 var province_pop_frac := PackedFloat32Array()
-## Province output before nation-wide modifiers; filled by Economy.recompute.
-## The summed province output of each nation from the last Economy.recompute (kept so the daily
-## refresh need not go through the provinces again).
+## The summed provinces of each nation from the last Economy.recompute (kept so the daily refresh need not go through
+## the provinces again).
 var economy_sums: Dictionary = {}
-var province_gdp := PackedFloat32Array()       # GBP millions per year
-var province_industry := PackedFloat32Array()  # GBP millions per year
-## Kt of raw materials a year one GBP million of industrial output needs (see Economy.calibrate_materials);
-## worked out from the scenario at its start, not saved.
-var materials_k := 0.0
-var province_food := PackedFloat32Array()      # people the land can feed
-var province_pool := PackedFloat32Array()      # recruitable men
-## Indexed by province id: resource id -> potential output in thousand tonnes per year.
-var province_deposit: Array[Dictionary] = []
+## Each province's base income, gold a month, from its people at the start (Economy.base_income); not saved.
+var province_base_income := PackedFloat32Array()
 ## The major cities (data/scenarios/<scenario>/cities.tsv), biggest first: {id, name, province, pos
 ## (a point on the map), pop, rank (1 a capital, 2 a great city, 3 a large one), est}.
 var cities: Array[Dictionary] = []
@@ -412,13 +404,8 @@ func load_scenario(dir: String) -> void:
 	province_pop_frac.resize(count)
 	province_pop_frac.fill(0.0)
 	province_buildings.clear()
-	province_deposit.clear()
 	for i in count:
 		province_buildings.append({})
-		province_deposit.append({})
-	for row in MapData.read_table(dir + "resources.tsv"):
-		for r in Economy.deposit_ids():
-			province_deposit[int(row.id)][r] = float(row[r])
 	_load_cities(dir)
 	for id in range(1, count):
 		province_owner[id] = MapData.provinces[id].owner
@@ -427,7 +414,7 @@ func load_scenario(dir: String) -> void:
 	var by_name := {}
 	for id in range(1, count):
 		by_name[MapData.provinces[id].name] = id
-	# The works a scenario's big cities already have (tools/make_start_buildings.py).
+	# The buildings each nation starts with (tools/make_start_economy.py).
 	for pname: String in scenario.get("buildings", {}):
 		for type: String in scenario.buildings[pname]:
 			province_buildings[by_name[pname]][type] = int(scenario.buildings[pname][type])
@@ -443,12 +430,9 @@ func load_scenario(dir: String) -> void:
 	for tag in MapData.nations:
 		nations[tag] = Nation.new(tag, MapData.nations[tag], scenario.nations.get(tag, {}))
 	_rebuild_nation_provinces()
-	materials_k = 0.0
 	Military.deploy_starting(self)
 	Navy.deploy_starting(self, dir)
-	# Arms shares and stockpiles before the first budget, so that the calibration counts them.
-	Munitions.load_scenario(self)
-	Economy.absorb_works(self)
+	Economy.load_scenario(self)
 	Economy.recompute(self)
 
 	var d: Array = scenario.start_date

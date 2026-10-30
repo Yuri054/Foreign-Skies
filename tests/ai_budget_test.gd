@@ -1,6 +1,6 @@
 extends SceneTree
-## Headless test for the AI's budget: taxes, buildings and buying diplomacy points,
-## and that nations climb out of debt over two years of the crisis.
+## Headless test for the AI's budget: buildings (factories in peace, a construction sector when gold runs ahead of
+## the points, works on a front at war), buying diplomacy points, and that nations stay out of ruin over two years.
 ## Run: godot --headless --path . -s res://tests/ai_budget_test.gd
 ## Class names are loaded at runtime because this script compiles before the autoloads exist.
 
@@ -9,7 +9,6 @@ var gs: Node
 var clock: Node
 var B
 var A
-var Eco
 
 
 func _check(cond: bool, msg: String) -> void:
@@ -26,9 +25,7 @@ func _initialize() -> void:
 	clock = root.get_node("Clock")
 	B = load("res://scripts/ai/ai_budget.gd")
 	A = load("res://scripts/ai/ai.gd")
-	Eco = load("res://scripts/sim/economy.gd")
 
-	_test_taxes()
 	_test_buildings()
 	_test_points()
 	_test_recovery()
@@ -46,88 +43,60 @@ func _fresh() -> void:
 	A.cfg.budget.enabled = true
 
 
-## Tax changes in the command log (the monthly step sets the arms share by the same command).
-func _tax_commands() -> int:
-	return gs.command_log.filter(func(c: Dictionary) -> bool: return c.type == "SetEconomyPolicy" and c.policy == "tax_rate").size()
-
-
 func _log_count(kind: String) -> int:
 	return gs.command_log.filter(func(c: Dictionary) -> bool: return c.type == kind).size()
 
 
-func _test_taxes() -> void:
-	_fresh()
-	var n = gs.nations["FRA"]
-	n.tax_rate = 0.1
-	n.treasury = -50.0
-	n.budget["net"] = -24.0
-	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), 0.1 + A.cfg.budget.tax_step), "a nation in debt and in deficit raises its tax")
-	n.treasury = 5.0
-	_check(B.wanted_tax(gs, "FRA") > 0.1, "so does one whose treasury cannot carry the deficit for six months")
-	n.treasury = 500.0
-	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), 0.1), "but a deficit it can easily carry changes nothing")
-	n.tax_rate = A.cfg.budget.tax_max
-	n.treasury = -50.0
-	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), A.cfg.budget.tax_max), "at peace it never goes past the ceiling")
-	gs.set_war("FRA", "GER", true)
-	_check(B.wanted_tax(gs, "FRA") > A.cfg.budget.tax_max, "at war the ceiling is higher")
-	gs.set_war("FRA", "GER", false)
-	n.tax_rate = 0.2
-	n.treasury = 1000.0
-	n.budget["net"] = 12.0
-	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), 0.2 - A.cfg.budget.tax_step), "a rich nation in surplus lowers its tax")
-	n.tax_rate = 0.1
-	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), A.cfg.budget.tax_min), "under the default too (light taxes help growth)")
-	n.tax_rate = A.cfg.budget.tax_min
-	_check(is_equal_approx(B.wanted_tax(gs, "FRA"), A.cfg.budget.tax_min), "but never below its floor")
-	n.tax_rate = 0.1
-	n.treasury = -50.0
-	n.budget["net"] = -24.0
-	B.step(gs, "FRA")
-	_check(is_equal_approx(n.tax_rate, 0.1 + A.cfg.budget.tax_step) and _tax_commands() == 1, "the monthly step makes the change by command")
-	B.step(gs, "FRA")
-	_check(_tax_commands() == 1, "once a month")
+func _started(n: Object, type: String) -> int:
+	return n.construction.filter(func(j: Dictionary) -> bool: return j.type == type).size()
 
 
 func _test_buildings() -> void:
+	# In peace with gold and points to spare, a nation builds civilian factories, several a month, keeping its reserve.
 	_fresh()
-	var n = gs.nations["FRA"]
-	n.budget["net"] = 20.0
+	var n = gs.nations["ITA"]
 	n.treasury = 200.0
-	B.step(gs, "FRA")
-	_check(n.construction.size() == 1 and _log_count("ConstructBuilding") == 1, "a nation in surplus starts a building")
-	var job = n.construction[0]
-	_check(gs.province_owner[job.province] == "FRA", "in its own province (%s)" % job.type)
-	gs.ai_budget_stamp.clear()
-	B.step(gs, "FRA")
-	gs.ai_budget_stamp.clear()
-	B.step(gs, "FRA")
-	_check(n.construction.size() <= int(A.cfg.budget.max_construction), "never more than max_construction jobs at once")
+	n.cp = 2000.0
+	B.step(gs, "ITA")
+	var factories := _started(n, "civilian_factory")
+	_check(factories >= 2, "a rich nation in peace starts civilian factories (%d)" % factories)
+	_check(n.treasury >= B.reserve(gs, "ITA") - 0.001, "and keeps its reserve (%.1f)" % n.treasury)
+	_check(n.construction.size() <= int(A.cfg.budget.max_starts), "at most max_starts a month")
+	var places := {}
+	for job in n.construction:
+		places[job.province] = places.get(job.province, 0) + 1
+	_check(places.values().all(func(v: int) -> bool: return v == 1), "one project a province")
+	B.step(gs, "ITA")
+	_check(n.construction.size() == factories, "and once a month")
+
+	# Without the gold, nothing.
 	_fresh()
+	n = gs.nations["ITA"]
+	n.treasury = 5.0
+	n.cp = 2000.0
+	B.step(gs, "ITA")
+	_check(n.construction.is_empty(), "a nation without gold to spare builds nothing")
+
+	# Gold piling up faster than the points: a construction sector.
+	_fresh()
+	n = gs.nations["ITA"]
+	n.treasury = 1000.0
+	n.cp = 300.0
+	n.budget.net = 40.0
+	B.step(gs, "ITA")
+	_check(_started(n, "construction_sector") >= 1, "with gold to spare and few points it builds a construction sector")
+
+	# At war, works on the front come first.
+	_fresh()
+	gs.set_war("FRA", "GER", true)
 	n = gs.nations["FRA"]
-	n.budget["net"] = -2.0
-	n.treasury = 200.0
+	var front = load("res://scripts/sim/designate_front.gd").new("FRA", "Eastern Front", [] as Array[int], "GER")
+	gs.issue(front)
+	n.treasury = 300.0
+	n.cp = 2000.0
 	B.step(gs, "FRA")
-	_check(n.construction.is_empty(), "no building while the budget is in deficit")
-	_fresh()
-	n = gs.nations["FRA"]
-	n.budget["net"] = 20.0
-	n.treasury = 11.0
-	B.step(gs, "FRA")
-	_check(n.construction.size() == 1, "buildings cost IC, not money, so a low treasury does not stop it")
-	# Railways behind a front score higher than elsewhere.
-	_fresh()
-	gs.set_war("GER", "BEL", true)
-	var line: Array = load("res://scripts/sim/military.gd").border_provinces(gs, "BEL", "GER")
-	var plan: Dictionary = Eco.build_plan(gs, line[0], "railway")
-	var near: float = B.build_return(gs, "BEL", line[0], "railway", plan)
-	gs.set_war("GER", "BEL", false)
-	var d = load("res://scripts/sim/designate_front.gd")
-	gs.set_war("GER", "BEL", true)
-	var none: Array[int] = []
-	gs.issue(d.new("BEL", "", none, "GER"))
-	var with_front: float = B.build_return(gs, "BEL", line[0], "railway", plan)
-	_check(with_front > near, "a railway on a front is worth more than the same one in peace (%.3f against %.3f)" % [with_front, near])
+	var works := _started(n, "trench") + _started(n, "fortification")
+	_check(works >= 1, "at war, with a front, it digs in (%d works started)" % works)
 
 
 func _test_points() -> void:

@@ -61,22 +61,24 @@ func _initialize() -> void:
 	clock.advance_day()
 	_check(n.focus.days_left == days - 1, "a day passes on it")
 	_check(gs.issue(Set.new("FRA", "")) and n.focus.is_empty(), "it can be dropped")
-	# Lasting effects: output.
+	# Lasting effects: base income.
 	_fresh()
 	n = gs.nations["FRA"]
-	var gdp: float = n.budget.gdp
+	var base: float = n.budget.base
 	_finish("FRA", "industrial_drive")
 	_check("industrial_drive" in n.focus_done and n.focus.is_empty(), "the focus is done after its days")
-	_check(n.budget.gdp > gdp * 1.01, "output rises (%.1f to %.1f)" % [gdp, n.budget.gdp])
+	_check(is_equal_approx(n.budget.base, base * 1.06), "base income rises by 6%% (%.2f to %.2f)" % [base, n.budget.base])
 	_check(F.block(gs, "FRA", "industrial_drive") == "done", "and cannot be taken again")
-	var ic: float = n.budget.construction_points
+	var factories: int = int(n.budget.levels.civilian_factory)
+	var cp: float = n.budget.cp
 	_finish("FRA", "lorraine_iron")
 	_finish("FRA", "creusot_and_schneider")
-	_check(n.budget.construction_points >= ic + 5.0, "the arms works add construction capacity (%.0f to %.0f)" % [ic, n.budget.construction_points])
-	var food: float = n.budget.food_production
+	_check(int(n.budget.levels.civilian_factory) == factories + 2, "the industrial foci build civilian factories at once (%d to %d)" % [factories, int(n.budget.levels.civilian_factory)])
+	_check(is_equal_approx(n.budget.cp, cp + 0.25), "and the arms works add construction points (%.2f to %.2f)" % [cp, n.budget.cp])
+	base = n.budget.base
 	_finish("FRA", "laic_republic")
 	_finish("FRA", "small_farms")
-	_check(n.budget.food_production > food * 1.03, "the small farms feed more people (%.0f to %.0f)" % [food, n.budget.food_production])
+	_check(n.budget.base > base * 1.03, "the republic's foci add base income (%.2f to %.2f)" % [base, n.budget.base])
 	var income: float = D.point_income(gs, "FRA")
 	_finish("FRA", "franco_russian_alliance")
 	_check(D.point_income(gs, "FRA") >= income + 0.49, "the alliance's diplomacy adds half a point a month")
@@ -115,7 +117,7 @@ func _initialize() -> void:
 	_check(gs.nations["DEN"].focus_done.is_empty(), "a fresh game has no foci done")
 	save.read(gs, path)
 	DirAccess.remove_absolute(path)
-	_check("administrative_reform" in gs.nations["DEN"].focus_done and gs.nations["DEN"].focus.id == "farm_cooperatives" and gs.nations["DEN"].focus_fx.get("gdp", 0.0) > 0.0, "a loaded save keeps the foci, the one in hand and their effects")
+	_check("administrative_reform" in gs.nations["DEN"].focus_done and gs.nations["DEN"].focus.id == "farm_cooperatives" and gs.nations["DEN"].focus_fx.get("income", 0.0) > 0.0, "a loaded save keeps the foci, the one in hand and their effects")
 
 	# The AI picks, finishes and moves on.
 	_fresh()

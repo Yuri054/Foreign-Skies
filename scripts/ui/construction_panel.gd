@@ -3,8 +3,8 @@ extends FloatingWindow
 ## kinds of building. Picking one switches the map to Construction mode for it: green provinces
 ## are where you can build it, blue where it stands and no more can, teal where it stands and
 ## more can follow, grey where it cannot be built (hover for why), dark where the land is not
-## yours. A click on a green province queues the building at once (it is paid for then); with
-## Ctrl a click on a province retools one of its other factories into the factory picked.
+## yours. A click on a green province queues the building: it starts (and is paid for, in gold and
+## construction points) as soon as the province is free and the gold and points are there.
 ## Mass building (many provinces at once, best first) is folded away at the bottom. Closing the
 ## panel puts the map back as it was.
 
@@ -85,7 +85,7 @@ func _ready() -> void:
 	_mass_box.add_theme_constant_override("separation", 4)
 	box.add_child(_mass_box)
 	_mass_box.add_child(_mass_row("Up to provinces", _mass_count, 1.0, 999.0, 10.0))
-	_mass_box.add_child(_mass_row("Queue at most IC (0 = any)", _mass_spend, 0.0, 9999.0, 0.0))
+	_mass_box.add_child(_mass_row("Queue at most gold (0 = any)", _mass_spend, 0.0, 9999.0, 0.0))
 	_mass_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_mass_preview.custom_minimum_size = Vector2(330, 0)
 	_mass_box.add_child(_mass_preview)
@@ -166,7 +166,9 @@ func act_on(id: int, _retool := false) -> bool:
 		return false
 	var plan := Economy.build_plan(GameState, id, type)
 	if GameState.issue(ConstructBuilding.new(tag, id, type)):
-		_say("%s in %s: %s IC, at least %d days." % [Economy.cfg.buildings[type].name, MapData.provinces[id].name, Fmt.thousands(int(plan.ic)), plan.days], Fmt.GOOD)
+		var started: bool = GameState.get_player().construction.back().started
+		_say("%s in %s: %s and %d points, %d days%s." % [Economy.cfg.buildings[type].name, MapData.provinces[id].name, Fmt.gold(plan.gold), roundi(plan.cp), plan.days,
+				"" if started else " (queued: it starts when the province is free and the gold and points are there)"], Fmt.GOOD)
 		return true
 	return false
 
@@ -189,7 +191,8 @@ func status_of(id: int) -> String:
 	var problem := Economy.build_problem(GameState, tag, id, type)
 	if problem.is_empty():
 		var plan := Economy.build_plan(GameState, id, type)
-		return "%s (%s): click to build for %s IC, at least %d days." % [pname, held, Fmt.thousands(int(plan.ic)), plan.days]
+		var busy := " (a project is under way here: it will wait)" if Economy.province_busy(GameState.get_player(), id) else ""
+		return "%s (%s): click to build for %s and %d points, %d days%s." % [pname, held, Fmt.gold(plan.gold), roundi(plan.cp), plan.days, busy]
 	return "%s (%s): %s." % [pname, held, problem]
 
 
@@ -209,7 +212,7 @@ func _refresh() -> void:
 		var can := 0
 		for id in n.provinces:
 			built += GameState.province_buildings[id].get(type, 0)
-			if Economy.build_problem(GameState, n.tag, id, type, false).is_empty():
+			if Economy.build_problem(GameState, n.tag, id, type).is_empty():
 				can += 1
 		_rows[type].text = "%s: %d built, %d provinces can build" % [Economy.cfg.buildings[type].name, built, can]
 	var type := picked()
@@ -225,13 +228,13 @@ func _refresh() -> void:
 	_refresh_queue()
 
 
-## The day's construction points and the projects they are going to, first served first.
+## The construction points in hand and the queue: projects under way, then those waiting, in order.
 func _refresh_queue() -> void:
 	var n := GameState.get_player()
 	if n == null or not visible:
 		return
-	var points: float = n.budget.get("construction_points", 0.0)
-	_pool.text = "A building is paid for in money when it is begun, and then built with industry (IC) over the days. Your industry gives %s IC a day; %s is going into projects now (buildings and ships). Projects are served in the order below and wait when the day's IC runs out." % [Fmt.thousands(roundi(points)), Fmt.thousands(roundi(n.construction_used))]
+	_pool.text = "A building is paid for in gold and construction points when it starts, and is finished after its days. You have %s and %d points (%.2f a day). One project at a time in a province; the queue starts the next as soon as it can." % [
+			Fmt.gold(n.treasury), roundi(n.cp), float(n.budget.get("cp", 0.0))]
 	for c in _queue.get_children():
 		_queue.remove_child(c)
 		c.queue_free()
@@ -250,19 +253,23 @@ func _queue_row(n: Nation, job: Dictionary, index: int) -> Control:
 	var label := Label.new()
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
-	var percent := roundi(100.0 * (1.0 - job.points_left / maxf(job.points_total, 1.0)))
-	var eta := "stalled" if job.days_left >= 1000 else "%dd" % job.days_left
-	label.text = "%s, %s  %d%%  %s" % [Economy.cfg.buildings[job.type].name, MapData.provinces[job.province].name, percent, eta]
-	if job.days_left >= 1000:
-		label.modulate = Fmt.WARN
-		label.tooltip_text = "Stalled: no IC reaches this project (no industry, or the projects above it take it all)."
+	var name_text := "%s, %s" % [Economy.cfg.buildings[job.type].name, MapData.provinces[job.province].name]
+	if job.started:
+		var percent := roundi(100.0 * (1.0 - float(job.days_left) / maxf(float(job.days_total), 1.0)))
+		label.text = "%s  %d%%  %dd" % [name_text, percent, job.days_left]
+		label.tooltip_text = "Paid for; finished in %d days." % job.days_left
 	else:
-		label.tooltip_text = "%s IC left. Paid from the daily IC, not from money." % Fmt.thousands(roundi(job.points_left))
+		var plan := Economy.build_plan(GameState, job.province, job.type)
+		label.text = "%s  waiting" % name_text
+		label.modulate = Fmt.WARN
+		var why := "another project is under way in the province" if Economy.province_busy(n, job.province) else \
+				("the province is occupied" if GameState.province_controller[job.province] != n.tag else "the gold or the points are not there yet")
+		label.tooltip_text = "Waiting: %s. It costs %s and %d points." % [why, Fmt.gold(plan.gold), roundi(plan.cp)]
 	label.mouse_filter = Control.MOUSE_FILTER_STOP
 	row.add_child(label)
 	var first := Button.new()
 	first.text = "^"
-	first.tooltip_text = "Serve this one first"
+	first.tooltip_text = "Start this one first"
 	first.focus_mode = Control.FOCUS_NONE
 	first.disabled = index == 0
 	var province: int = job.province
@@ -275,35 +282,30 @@ func _queue_row(n: Nation, job: Dictionary, index: int) -> Control:
 func _detail_text(type: String) -> String:
 	var def: Dictionary = Economy.cfg.buildings[type]
 	var lines: PackedStringArray = []
-	lines.append("Level 1 costs %s IC%s. At least %d days a level, at most %d levels." % [Fmt.thousands(int(def.ic)), ", each further level more" if def.get("ic_growth", 0.0) > 0.0 else "", def.min_days, def.max_level])
-	var effects := _effects_text(def.effects)
-	if effects != "":
-		lines.append("Per level: " + effects)
-	if type == "railway":
-		lines.append("Carries armies and supplies faster, as long as the nation has the raw materials to run it. The numbers on the map are levels out of the most.")
+	lines.append("Costs %s and %d construction points; takes %d days. At most %d in a province." % [Fmt.gold(float(def.gold)), int(def.cp), int(def.days), Economy.max_level()])
+	var effects: PackedStringArray = []
+	if def.has("income"):
+		effects.append("+%s a month" % Fmt.gold(float(def.income)))
+	if def.has("cp_per_day"):
+		effects.append("+%s construction points a day" % str(def.cp_per_day))
+	if def.has("defense"):
+		effects.append("+%d%% defence" % roundi(float(def.defense) * 100.0))
+	if float(def.get("upkeep", 0.0)) > 0.0:
+		effects.append("upkeep %s a month" % Fmt.gold(float(def.upkeep)))
+	if not effects.is_empty():
+		lines.append("Each: " + ", ".join(effects) + ".")
+	match type:
+		"railway":
+			lines.append("Carries armies and supplies faster. The numbers on the map are levels.")
+		"port":
+			lines.append("Ships dock and are built here, and landings set out from it.")
+		"trench":
+			lines.append("Cheap and quick: a line dug where the front will run.")
 	if def.get("requires", "") == "coastal":
 		lines.append("Coastal provinces only.")
-	# What it pays back, in the best place for it now.
-	var n := GameState.get_player()
-	if n != null and not def.effects.is_empty():
-		var best := Economy.mass_candidates(GameState, n.tag, type)
-		if not best.is_empty():
-			var id: int = best[0]
-			var plan := Economy.build_plan(GameState, id, type)
-			var gain := Economy.level_gain(GameState, n.tag, id, type)
-			var back := "never" if gain.net <= 0.0 else "%.0f years" % ceilf(float(plan.gold) / gain.net)
-			lines.append("In %s, the best place now: £%.1fM and %s IC; the budget gains £%.2fM a year%s. The money is back in %s." % [
-					MapData.provinces[id].name, plan.gold, Fmt.thousands(roundi(plan.ic)), gain.net,
-					(" and %.1f IC a day" % gain.ic) if gain.ic > 0.05 else "", back])
+	if def.has("income"):
+		lines.append("It pays its gold back in %d months." % ceili(float(def.gold) / float(def.income)))
 	return "\n".join(lines)
-
-
-func _effects_text(effects: Dictionary) -> String:
-	var names := {"gdp": "output", "industry": "industry", "food": "food", "trade": "trade income", "growth": "growth/yr"}
-	var parts: PackedStringArray = []
-	for k in effects:
-		parts.append("+%d%% %s" % [roundi(effects[k] * 100.0), names.get(k, k)])
-	return ", ".join(parts)
 
 
 # --- Mass building ---------------------------------------------------------------------------
@@ -334,16 +336,15 @@ func _refresh_mass() -> void:
 		_mass_button.disabled = true
 		return
 	var preview := _mass_command().preview(GameState)
-	var limits := {"all": "every eligible province", "count": "your province limit",
-			"spend": "your IC limit", "money": "your treasury"}
+	var limits := {"all": "every eligible province", "count": "your province limit", "spend": "your gold limit"}
 	if preview.count == 0:
 		_mass_preview.text = "No eligible province for this building." if preview.stopped_by == "all" \
 				else "Nothing can be built: the first one costs more than %s allows." % limits[preview.stopped_by]
 		_mass_button.text = "Build"
 		_mass_button.disabled = true
 	else:
-		_mass_preview.text = "%d buildings, %s IC and £%.1fM in all, best provinces first. Limited by %s." % [preview.count, Fmt.thousands(roundi(preview.spent)), preview.gold, limits[preview.stopped_by]]
-		_mass_button.text = "Build %d (%s IC, £%.0fM)" % [preview.count, Fmt.thousands(roundi(preview.spent)), preview.gold]
+		_mass_preview.text = "%d buildings, %s and %d points in all, best provinces first; each starts when the gold and points are there. Limited by %s." % [preview.count, Fmt.gold(preview.gold), roundi(preview.cp), limits[preview.stopped_by]]
+		_mass_button.text = "Queue %d (%s, %d points)" % [preview.count, Fmt.gold(preview.gold), roundi(preview.cp)]
 		_mass_button.disabled = false
 
 

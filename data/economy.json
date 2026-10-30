@@ -1,200 +1,86 @@
 {
-	"_note": "The economy has three pillars. MONEY (GBP millions a year): tax on output pays the army, the navy, the state's other costs, food and raw-material imports and interest on debt. INDUSTRY (construction points, IC, a day): the nation's industrial output times ic_per_industry, plus base_ic, scaled by the workers left (people under arms, famine, war weariness) and by its supply of raw materials; one queue of buildings and ships takes it (units are paid in money and recruits, not IC). MANPOWER: a pool from population, drawn on by raising units, refilled monthly toward what mobilization allows. Province output comes from people, density, deposits, the owner's development, the buildings and the nation's national focus.",
-	"gdp_per_capita": 40.0,
-	"reference_density": 100.0,
-	"density_exponent": 0.35,
-	"density_min": 0.6,
-	"density_max": 2.0,
-	"industry_share_min": 0.12,
-	"industry_share_max": 0.45,
-	"food_per_km2": 70.0,
-	"food_import_cost": 12.0,
-	"food_state_share": 0.1,
-	"famine_output_penalty": 0.6,
-	"blockade_trade_loss": 0.3,
-	"default_tax_rate": 0.1,
-	"min_tax_rate": 0.05,
-	"max_tax_rate": 0.4,
-	"tax_drag": 1.2,
-	"population": {
-		"_note": "People (Population.step_month, once a month). Each province grows by its nation's pop_growth (the scenario's yearly natural increase less emigration), less famine_decline times the share of food a nation lacks, and less occupation_decline a year while an enemy holds it. Soldiers killed (battle and attrition) leave the nation's provinces in proportion to their people, death_share of them. A province is never left under min_province.",
-		"famine_decline": 0.05,
-		"occupation_decline": 0.02,
-		"death_share": 1.0,
-		"min_province": 1000
-	},
-	"tax_relief": {
-		"_note": "What light taxes give. The relief is how far the rate is below the default toward the minimum, 0 to 1: growth_bonus is added to the yearly growth at full relief, support_bonus to the level war support settles at in peace.",
-		"growth_bonus": 0.006,
-		"support_bonus": 5.0
-	},
-	"invest": {
-		"_note": "State investment (Nation.investment, GBP millions a month, a policy): paid as an expense, it adds to yearly growth growth_per_share * share / (1 + share / soft_share), share being the yearly investment over the yearly output. There is no ceiling: a pound invested adds about growth_per_share pounds to the yearly output, a little less at a high share, so a nation that invests its surplus compounds (VISION.md, rule 1).",
-		"growth_per_share": 1.0,
-		"soft_share": 0.1
-	},
-	"tax_strain": {
-		"_note": "What heavy taxes cost beyond the revenue drag. The strain is how far the rate is above the default toward the maximum, 0 to 1, rising evenly. growth_penalty is taken off the yearly growth of the economy at full strain, support_penalty off the level war support settles at in peace, and war_weariness off war support each month at war.",
-		"growth_penalty": 0.03,
-		"support_penalty": 20.0,
-		"war_weariness": 1.0
-	},
-	"civil_share": 0.5,
-	"baseline_growth": 0.005,
-	"army_growth_share": 0.8,
-	"_standing_share": "The most men a nation may keep under arms in peace, as a share of its manpower pool (Economy.standing_cap). The player sets the standing army below it; the AI's grows with its people and output (army_growth_share).",
-	"standing_share": 0.2,
-	"manpower_share": 0.12,
-	"_start_surplus": "Each nation starts with a budget in surplus by this share of its revenue (Economy.calibrate sets its civil spending so): money to build with, arm with or invest.",
-	"start_surplus": 0.08,
-	"soldier_upkeep": 70.0,
-	"_soldier_upkeep_ref": "A soldier's upkeep is soldier_upkeep times the nation's output per head over soldier_upkeep_ref (GBP a year), within wage_min and wage_max (Economy.wage_factor): a poor nation's army is cheap, a rich one's dear.",
-	"soldier_upkeep_ref": 30.0,
-	"wage_min": 0.35,
-	"wage_max": 1.4,
-	"mobilization_output_penalty": 0.35,
-	"labor": {
-		"_note": "Factory output is multiplied by 1 - penalty times the share of the people under arms (never under floor). Peacetime armies cost a percent or two; a mass levy cripples the factories.",
-		"penalty": 1.2,
-		"floor": 0.2
-	},
-	"weariness": {
-		"_note": "War weariness takes civilian factories for the people's goods: per_100k of all civilian factories for every 100,000 men lost so far (up to max). In peace it eases by ease_per_day.",
-		"per_100k": 0.01,
-		"max": 0.4,
-		"ease_per_day": 0.0005
-	},
-	"starvation": {
-		"_note": "A nation that needs imports and gets less than `below` of them through the blockade starves: factory output falls by `output` and war support by `support_per_day` each day.",
-		"below": 0.3,
-		"output": 0.3,
-		"support_per_day": 0.1
-	},
-	"mobilization_rate": 0.15,
-	"ic_value": 0.00055,
-	"mobilization": {
-		"_note": "Mobilization is a single lever, 0 to 1. In peace it may go up to peace_max; at war it may go to 1 and never falls below the war floor of data/diplomacy.json.",
-		"peace_max": 0.4
+	"_note": "The economy (Economy): one currency, gold, and construction points (CP). Every figure is a month unless it says otherwise. Income is each province's base income (from its people at the start: per_million gold a month for each million, to the power exponent, so a small province earns a little more for its size), plus civilian factories and ports, times mobilization, blockade and war support. Expenses are the army (each unit's upkeep, military.json), the navy, the buildings' upkeep and interest on debt. CP is a stockpile: construction sectors add to it every day; starting a building spends its gold and CP at once, and it is finished after a fixed number of days. One project at a time in a province; at most max_level of each building in a province.",
+	"income": {
+		"_note": "per_million and exponent: base income. civilian_factory and port: gold a month a level (buildings). mobilization_loss: base income lost at full mobilization. blockade_factory_loss: share of factory income a full blockade takes (it takes all port income). occupied_share: share of a province's base income its occupier collects (its owner gets none of it).",
+		"per_million": 0.1,
+		"exponent": 0.8,
+		"mobilization_loss": 0.35,
+		"blockade_factory_loss": 0.3,
+		"occupied_share": 0.5
 	},
 	"construction": {
-		"_note": "Industry points (IC) a day: base_ic (small works everywhere; a share of it for an economy under base_ic_gdp_ref GBP millions a year, never under base_ic_min) plus the nation's industrial output (GBP millions a year, after its supply of materials) times ic_per_industry. A project costs `ic` and gold_share of its IC value (ic_value) in money, paid when it is begun (trenches and fortifications are paid in IC only) (scaled to the province: one with less output than cost_ref_gdp GBP millions a year pays that share, never under cost_min_factor; a building with size_by \"industry\" is measured on the province's industry against cost_ref_industry) and takes in at most its cost over `min_days` a day.",
-		"base_ic": 20.0,
-		"base_ic_gdp_ref": 200.0,
-		"base_ic_min": 4.0,
-		"cost_ref_gdp": 15.0,
-		"cost_ref_industry": 20.0,
-		"gold_share": 0.5,
-		"cost_min_factor": 0.02,
-		"ic_per_industry": 0.35
-	},
-	"materials": {
-		"_note": "Raw materials as one number. A nation's own supply is the deposits of its provinces (coal, iron and timber, kt a year) times extraction_base; its need is its industrial output times need_per_industry (kt a year per GBP million, set so the world just balances at the start of a scenario unless the scenario gives a figure). A shortfall is imported at import_price GBP a tonne times import_markup, up to import_cap of the need (all of it, at the price) and cut by the blockade; what is still short slows industry (never below floor of it). A surplus sells at export_share of the import price. The raw `deposits` of the province table are only the sources: coal, iron and timber stay as names for the province card.",
-		"extraction_base": 1.0,
-		"min_deposit": 50,
-		"need_per_industry": 160.0,
-		"import_price": 0.12,
-		"import_markup": 1.5,
-		"import_cap": 1.0,
-		"export_share": 0.5,
-		"floor": 0.3
-	},
-	"debt": {
-		"_note": "Interest a year on what a nation owes (a treasury below zero), as a share of the debt.",
-		"interest": 0.05
-	},
-	"resources": {
-		"coal": {
-			"name": "Coal",
-			"color": "#3a3a3a",
-			"price": 0.6,
-			"deposits": true
-		},
-		"iron": {
-			"name": "Iron / Steel",
-			"color": "#b5532a",
-			"price": 0.5,
-			"deposits": true
-		},
-		"wood": {
-			"name": "Timber",
-			"color": "#3f8f3a",
-			"price": 0.9,
-			"deposits": true
-		},
-		"_note": "The three deposit tables of the province card (coal, iron, timber): sources of a nation's raw materials."
+		"_note": "capital_cp: CP a day a nation's capital makes (so a nation that has lost every construction sector can still build). max_level: the most of one building in a province. Every nation starts with at least one civilian factory and one construction sector (Economy.load_scenario).",
+		"capital_cp": 0.25,
+		"max_level": 10
 	},
 	"buildings": {
-		"_note": "Province buildings. A level costs money when begun (construction.gold_share), then IC. ic is the cost of the first level; ic_growth raises the cost of each further level by that share of the one before; min_days is the fewest days a project takes. effects are fractional bonuses per level ('trade' is tariff income as a share of the province's output, lost to blockade). requires: 'coastal' needs a sea coast. defense, shell_reduction and hard_reduction are the works' effects in battle (Military).",
-		"factory": {
-			"name": "Factory",
-			"max_level": 10,
-			"ic": 3000,
-			"ic_growth": 0.15,
-			"min_days": 120,
-			"size_by": "industry",
-			"effects": {
-				"industry": 0.1,
-				"gdp": 0.03
-			}
+		"_note": "Province buildings. gold and cp are paid when a level is begun; days is how long it takes; upkeep is gold a month a level; income is gold a month a level; cp_per_day is CP a day a level. requires 'coastal' needs a sea coast. defense, shell_reduction and hard_reduction are the works' effects in battle, per level (Military.works_defense). The railway gives supply and faster marching (Military) until the logistics hub replaces it.",
+		"civilian_factory": {
+			"name": "Civilian factory",
+			"gold": 60,
+			"cp": 240,
+			"days": 60,
+			"upkeep": 0.0,
+			"income": 1.5
 		},
-		"railway": {
-			"name": "Railway network",
-			"max_level": 8,
-			"ic": 2500,
-			"ic_growth": 0.1,
-			"min_days": 45,
-			"effects": {
-				"gdp": 0.06,
-				"food": 0.04
-			}
+		"construction_sector": {
+			"name": "Construction sector",
+			"gold": 40,
+			"cp": 160,
+			"days": 60,
+			"upkeep": 0.05,
+			"cp_per_day": 1.0
 		},
 		"port": {
 			"name": "Port",
-			"max_level": 5,
-			"ic": 3000,
-			"ic_growth": 0.15,
-			"min_days": 60,
-			"requires": "coastal",
-			"effects": {
-				"gdp": 0.05,
-				"trade": 0.02
-			}
+			"gold": 30,
+			"cp": 120,
+			"days": 60,
+			"upkeep": 0.0,
+			"income": 0.3,
+			"requires": "coastal"
 		},
-		"trench": {
-			"name": "Trench complex",
-			"gold_share": 0.0,
-			"max_level": 10,
-			"ic": 1200,
-			"ic_growth": 0.0,
-			"min_days": 15,
-			"effects": {},
-			"defense": 0.15,
-			"shell_reduction": 0.05
+		"railway": {
+			"name": "Railway network",
+			"gold": 40,
+			"cp": 160,
+			"days": 45,
+			"upkeep": 0.02
 		},
 		"fortification": {
-			"name": "Heavy fortification",
-			"gold_share": 0.0,
-			"max_level": 10,
-			"ic": 8000,
-			"ic_growth": 0.5,
-			"min_days": 60,
-			"effects": {},
-			"defense": 0.3,
-			"hard_reduction": 0.1
+			"name": "Fort",
+			"gold": 15,
+			"cp": 80,
+			"days": 30,
+			"upkeep": 0.03,
+			"defense": 0.1,
+			"hard_reduction": 0.04
+		},
+		"trench": {
+			"name": "Trench",
+			"gold": 5,
+			"cp": 30,
+			"days": 7,
+			"upkeep": 0.01,
+			"defense": 0.04,
+			"shell_reduction": 0.02
 		}
 	},
-	"_calibration": "At the start of a scenario each nation's civil spending is scaled (Nation.civil_mult) so that its budget just balances, whatever its army, navy and imports cost: the 1914 budgets were about even. After that the multiplier is a fixed fact of the nation, saved with it.",
-	"munitions": {
-		"_note": "Munitions (scripts/sim/munitions.gd). A nation puts arms_share of each day's IC into a stockpile (in IC) before the hulls and buildings; the share also costs output_penalty times itself of the output (the factories making shells do not make the people's goods). The stock loses decay_per_year a year and costs storage_cost GBP millions a year a unit to keep. In battle an army burns per_gun_power a day for each point of its guns' power (artillery's power, see military.json shells); an army of a nation at war standing next to an enemy army burns idle_share of that (a line facing another). A nation short of the day's need fights with its guns weakened by military.json combat.shell_penalty times the share missing. Munitions bought abroad cost import_price GBP millions a unit, cut by the blockade. A stockpile's days of war are counted at the expected daily use: last month's, or engaged_share of what every army would burn fighting at once. default_share is the arms share a scenario starts with unless it says (scenario munitions.share; munitions.days is the stockpile, in days of war at the expected use).",
-		"default_share": 0.05,
-		"output_penalty": 0.25,
-		"decay_per_year": 0.1,
-		"storage_cost": 0.00005,
-		"per_gun_power": 4.0,
-		"engaged_share": 0.15,
-		"idle_share": 0.25,
-		"import_price": 0.0012
+	"start": {
+		"_note": "Starting buildings (Economy.load_scenario) come from the scenario's own (data/scenarios/*/scenario.json, buildings); a nation with none gets one civilian factory and one construction sector in its capital.",
+		"min_civilian_factories": 1,
+		"min_construction_sectors": 1
 	},
-	"reserve_upkeep": 0.2,
-	"_reserve_upkeep": "Share of a soldier's upkeep that a recruit still in the reserve (not in a unit) costs."
+	"debt": {
+		"_note": "Interest a year on what a nation owes (a treasury below zero), as a share of the debt, paid monthly.",
+		"interest": 0.05
+	},
+	"manpower_share": 0.12,
+	"_standing_share": "The most men a nation may keep under arms in peace, as a share of its manpower pool (Economy.standing_cap). The player sets the standing army below it; the AI's grows with its people and output (army_growth_share).",
+	"standing_share": 0.2,
+	"mobilization_rate": 0.15,
+	"mobilization": {
+		"_note": "Mobilization is a single lever, 0 to 1. In peace it may go up to peace_max; at war it may go to 1 and never falls below the war floor of data/diplomacy.json.",
+		"peace_max": 0.4
+	}
 }

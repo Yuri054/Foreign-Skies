@@ -59,50 +59,44 @@ func _test_open_and_colours() -> void:
 	_check(panel.visible and screen.visible, "B opens the screen on the Build tab")
 	var legend_zone := Rect2(0, root.get_visible_rect().size.y - 140.0, 620, 140)
 	_check(not screen.get_global_rect().intersects(legend_zone), "and the screen stays clear of the map legend and palette at the bottom left (%s, view %s)" % [str(screen.get_global_rect()), str(root.get_visible_rect().size)])
-	_check(map_view.mode == MapView.Mode.CONSTRUCTION and map_view.submode == "factory", "the map shows where a civilian factory can be built")
-	_check(panel.picked() == "factory" and panel._rows["factory"].button_pressed, "the first building is picked and lit")
+	_check(map_view.mode == MapView.Mode.CONSTRUCTION and map_view.submode == "civilian_factory", "the map shows where a civilian factory can be built")
+	_check(panel.picked() == "civilian_factory" and panel._rows["civilian_factory"].button_pressed, "the first building is picked and lit")
 	var eco_panel: Node = get_first_node_in_group("economy_panel")
-	_check(eco_panel._tax_slider.is_inside_tree() and eco_panel._industry.is_inside_tree() and eco_panel._mob_slider.is_inside_tree(), "the Economy window is one page of Money, Industry and People")
-	# Arms production: the slider sets the share by command, and the page says what it makes and costs.
+	_check(eco_panel._budget.is_inside_tree() and eco_panel._industry.is_inside_tree() and eco_panel._mob_slider.is_inside_tree(), "the Economy window is one page of Gold, Construction and People")
 	eco_panel.visible = true
 	eco_panel._refresh()
-	_check(eco_panel._arms_slider.is_inside_tree(), "Industry has an Arms production slider")
-	eco_panel._arms_slider.value = 0.3
-	_check(is_equal_approx(_ger().arms_share, 0.3) and gs.command_log.back().policy == "arms_share", "moving it sets the arms share by command")
-	gs.economy_updated.emit()
-	_check(eco_panel._arms_label.text == "30%" and eco_panel._arms_note.text.contains("IC a day into munitions") and eco_panel._arms_note.text.contains("days of war"), "and the page says what it makes, what it costs and how long the stock lasts: %s" % eco_panel._arms_note.text)
-	_ger().treasury = 100.0
-	var stock: float = _ger().munitions
-	eco_panel._buy.pressed.emit()
-	_check(_ger().munitions > stock and _ger().treasury < 100.0 and eco_panel._buy.text.contains("Buy munitions abroad"), "the buy button spends money on munitions from abroad (%s)" % eco_panel._buy.text)
+	var gold := _texts(eco_panel._budget)
+	_check(gold.contains("Provinces") and gold.contains("Civilian factories") and gold.contains("Army") and gold.contains("Net per month"), "Gold shows income by source and spending by kind")
+	var points := _texts(eco_panel._industry)
+	_check(points.contains("Construction points") and points.contains("Points a day"), "Construction shows the points and where they come from")
 	# What the money is for: the standing army is set by command, and People says what the budget and treasury buy.
 	var men0: int = _ger().peacetime_army
 	eco_panel._army_slider.value = eco_panel._army_slider.max_value
 	_check(_ger().peacetime_army > men0 and gs.command_log.back().policy == "standing_army", "the Standing army slider raises the army by command (%d to %d)" % [men0, _ger().peacetime_army])
 	gs.economy_updated.emit()
-	_check(eco_panel._army_note.text.contains("costs £") and eco_panel._army_note.text.contains("pays for"), "and says what a division costs and how many the surplus pays for: " + eco_panel._army_note.text)
+	_check(eco_panel._army_note.text.contains("gold a month") and eco_panel._army_note.text.contains("pays for"), "and says what a division costs and how many the surplus pays for: " + eco_panel._army_note.text)
 	var people := _texts(eco_panel._people)
 	_check(people.contains("Divisions the budget can keep") and people.contains("Divisions the treasury can raise") and people.contains("War chest"), "People shows what the money buys")
 	eco_panel.visible = false
-	_check(panel._detail_text("factory").contains("The money is back in"), "the Build tab says what a factory pays back: " + panel._detail_text("factory").get_slice("\n", panel._detail_text("factory").count("\n")))
+	_check(panel._detail_text("civilian_factory").contains("pays its gold back in 40 months"), "the Build tab says what a factory pays back: " + panel._detail_text("civilian_factory").get_slice("\n", panel._detail_text("civilian_factory").count("\n")))
 
 	var free := 0
 	var full := 0
 	for id in _ger().provinces:
-		if Eco.build_problem(gs, "GER", id, "factory", false).is_empty() and free == 0:
+		if Eco.build_problem(gs, "GER", id, "civilian_factory").is_empty() and free == 0:
 			free = id
-		elif not Eco.build_problem(gs, "GER", id, "factory", false).is_empty() and full == 0:
+		elif not Eco.build_problem(gs, "GER", id, "civilian_factory").is_empty() and full == 0:
 			full = id
 	var foreign: int = gs.nations["FRA"].provinces[0]
-	_check(free > 0 and map_view.construction_color(free, "factory") in [MapView.CONSTRUCT_BUILD, MapView.CONSTRUCT_BOTH], "a province with room is green (or teal if it has some)")
-	_check(map_view.construction_color(foreign, "factory") == MapView.CONSTRUCT_OTHER, "foreign land is dark")
+	_check(free > 0 and map_view.construction_color(free, "civilian_factory") in [MapView.CONSTRUCT_BUILD, MapView.CONSTRUCT_BOTH], "a province with room is green (or teal if it has some)")
+	_check(map_view.construction_color(foreign, "civilian_factory") == MapView.CONSTRUCT_OTHER, "foreign land is dark")
 	var cap: int = _ger().capital
-	gs.province_buildings[cap]["factory"] = Eco.cfg.buildings.factory.max_level
+	gs.province_buildings[cap]["civilian_factory"] = Eco.max_level()
 	gs.economy_updated.emit()
-	var c: Color = map_view.construction_color(cap, "factory")
+	var c: Color = map_view.construction_color(cap, "civilian_factory")
 	_check(c != MapView.CONSTRUCT_BUILD and c != MapView.CONSTRUCT_BOTH, "a province built to the full is no longer green")
 	var with_factory := cap
-	_check(map_view.construction_color(with_factory, "factory") in [MapView.CONSTRUCT_BOTH, MapView.CONSTRUCT_HAVE] or with_factory == cap, "a province with factories is blue or teal")
+	_check(map_view.construction_color(with_factory, "civilian_factory") in [MapView.CONSTRUCT_BOTH, MapView.CONSTRUCT_HAVE] or with_factory == cap, "a province with factories is blue or teal")
 	panel._rows["port"].pressed.emit()
 	await process_frame
 	_check(map_view.submode == "port" and panel.picked() == "port", "picking the port shows the port map")
@@ -115,27 +109,28 @@ func _test_open_and_colours() -> void:
 	_check("coastal" in panel.status_of(inland), "and hovering says why: " + panel.status_of(inland))
 	var lg: Dictionary = map_view.legend()
 	_check(lg.has("title") and "port" in lg.title.to_lower(), "the legend names the building")
-	_check(panel._rows["factory"].text.contains("built"), "each row counts what is built: " + panel._rows["factory"].text)
+	_check(panel._rows["civilian_factory"].text.contains("built"), "each row counts what is built: " + panel._rows["civilian_factory"].text)
 
 
 func _test_clicks() -> void:
-	panel._rows["factory"].pressed.emit()
+	panel._rows["civilian_factory"].pressed.emit()
 	await process_frame
 	var ger = _ger()
 	ger.treasury = 5000.0
+	ger.cp = 5000.0
 	var id := 0
 	for p in ger.provinces:
-		if p != ger.capital and Eco.build_problem(gs, "GER", p, "factory").is_empty():
+		if p != ger.capital and Eco.build_problem(gs, "GER", p, "civilian_factory").is_empty():
 			id = p
 			break
 	var jobs: int = ger.construction.size()
 	var cash: float = ger.treasury
 	map_view.select(id)
-	_check(ger.construction.size() == jobs + 1 and ger.treasury < cash, "a click on a green province queues a factory and pays for it (£%.1fM)" % (cash - ger.treasury))
-	_check(panel._status.text.contains("IC"), "and says what it cost: " + panel._status.text)
+	_check(ger.construction.size() == jobs + 1 and ger.treasury < cash, "a click on a green province queues a factory and pays for it (%.1f gold)" % (cash - ger.treasury))
+	_check(panel._status.text.contains("gold") and panel._status.text.contains("points"), "and says what it cost: " + panel._status.text)
 	# A province that cannot take it.
 	var blocked: int = ger.capital
-	gs.province_buildings[blocked]["factory"] = Eco.cfg.buildings.factory.max_level
+	gs.province_buildings[blocked]["civilian_factory"] = Eco.max_level()
 	jobs = ger.construction.size()
 	map_view.select(blocked)
 	_check(ger.construction.size() == jobs and panel._status.text.contains("built"), "a click where it cannot be built builds nothing and says why: " + panel._status.text)
@@ -145,12 +140,12 @@ func _test_clicks() -> void:
 	jobs = ger.construction.size()
 	var other := 0
 	for p in ger.provinces:
-		if p != id and Eco.build_problem(gs, "GER", p, "factory").is_empty():
+		if p != id and Eco.build_problem(gs, "GER", p, "civilian_factory").is_empty():
 			other = p
 			break
 	ger.treasury = 0.0
 	map_view.select(other)
-	_check(other > 0 and ger.construction.size() == jobs and panel._status.text.contains("money"), "with an empty treasury nothing is begun, and it says why: " + panel._status.text)
+	_check(other > 0 and ger.construction.size() == jobs + 1 and not ger.construction.back().started and panel._status.text.contains("queued"), "with an empty treasury it is queued to start later, and it says so: " + panel._status.text)
 	ger.treasury = 5000.0
 	ger.treasury = 5000.0
 
@@ -174,7 +169,7 @@ func _test_close_and_mass() -> void:
 	panel._rows["railway"].pressed.emit()
 	ger.treasury = 5000.0
 	panel._refresh()
-	_check(panel._mass_box.visible and panel._mass_preview.text.contains("IC and £"), "mass build previews: " + panel._mass_preview.text)
+	_check(panel._mass_box.visible and panel._mass_preview.text.contains("gold and") and panel._mass_preview.text.contains("points"), "mass build previews: " + panel._mass_preview.text)
 	var jobs: int = ger.construction.size()
 	panel._mass_button.pressed.emit()
 	_check(ger.construction.size() > jobs, "mass build queues the buildings")
@@ -186,7 +181,7 @@ func _test_close_and_mass() -> void:
 	map_view.select(ger.provinces[3])
 	_check(ger.construction.size() == jobs, "and a click then only selects")
 	map_view.set_mode(MapView.Mode.POLITICAL)
-	panel.select_type("factory")
+	panel.select_type("civilian_factory")
 	panel.toggle()
 	await process_frame
 	_check(not panel.visible and map_view.mode == MapView.Mode.POLITICAL, "closing the panel puts the map back")

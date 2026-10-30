@@ -574,13 +574,13 @@ func _refresh() -> void:
 	_set_row("reserve", "Recruit reserve", "%s / %s" % [_k(n.manpower), _k(maxf(0.0, b.manpower_max - n.men_in_units))])
 	_set_row("armed", "Under arms", _k(n.men_in_units))
 	_set_row("pool", "Manpower pool", _k(b.manpower_pool))
-	_set_row("army", "Army upkeep", "£%.2fM/mo" % (b.army / 12.0))
+	_set_row("army", "Army upkeep", "%s a month" % Fmt.gold(b.army))
 	_set_row("support", "War support", "%d" % roundi(n.war_support))
 	var tip := WarSupport.effects_text(GameState, n.tag) + "\nThis month so far:\n" + WarSupport.drivers_text(GameState, n.tag)
 	for part in _rows["support"]:
 		part.tooltip_text = tip
 		part.mouse_filter = Control.MOUSE_FILTER_PASS
-	_set_row("output", "Output lost", "%d%%, factories %d%%" % [roundi(Economy.cfg.mobilization_output_penalty * n.mobilization * 100.0), roundi((1.0 - Economy.worker_share(n)) * 100.0)])
+	_set_row("output", "Income lost", "%s a month" % Fmt.gold(Economy.mobilization_cost(GameState, n, n.mobilization)))
 	_selected = _selected.filter(func(id: int) -> bool: return GameState.armies.has(id))
 	if visible:
 		_refresh_fronts()
@@ -1212,7 +1212,7 @@ func _refresh_recruit() -> void:
 	var count := int(_count.value)
 	var problem := RaiseUnits.problem(GameState, GameState.player_tag, _province, type, count) if _province > 0 else "Select a province first."
 	_raise.disabled = not problem.is_empty()
-	var cost := "£%.1fM, %s recruits, %d days" % [def.cost * count, Fmt.people(def.size * count), def.train_days]
+	var cost := "%s, %s recruits, %d days, then %s a month" % [Fmt.gold(def.cost * count), Fmt.people(def.size * count), def.train_days, Fmt.gold(float(def.get("upkeep", 0.0)) * count)]
 	_raise_label.text = cost if problem.is_empty() else "%s (%s)" % [problem, cost]
 	_raise_label.modulate = Fmt.DIM
 

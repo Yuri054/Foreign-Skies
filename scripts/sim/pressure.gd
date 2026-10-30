@@ -279,7 +279,7 @@ static func _player_partner(gs: Node, sel: String) -> String:
 					continue
 				v = Diplomacy.relation(gs, tag, me)
 			"$trade_partner":
-				v = float(gs.nations[tag].budget.get("gdp", 0.0))
+				v = float(gs.nations[tag].budget.get("income", 0.0))
 			_:
 				if tag not in near:
 					continue
@@ -453,7 +453,7 @@ static func _both(gs: Node, roles: Dictionary, a: String, b: String) -> bool:
 static func _apply_to(gs: Node, key: String, n: Nation, v: float) -> void:
 	match key:
 		"treasury": n.treasury += v
-		"revenue": n.treasury += v * float(n.budget.get("revenue", 0.0)) / 12.0
+		"revenue": n.treasury += v * float(n.budget.get("income", 0.0))
 		"prestige": Diplomacy.gain_prestige(gs, n.tag, v)
 		"war_support":
 			n.war_support = clampf(n.war_support + v, 0.0, 100.0)
@@ -545,10 +545,10 @@ static func _other_name(gs: Node, roles: Dictionary, a: String, b: String) -> St
 
 static func _effect_text(key: String, v: float, n: Nation = null) -> String:
 	match key:
-		"treasury": return "Treasury %+.0fM" % v
+		"treasury": return "Treasury %s gold" % Fmt.money(v, true)
 		"revenue":
-			var m: float = v * float(n.budget.get("revenue", 0.0)) / 12.0 if n != null else 0.0
-			return "Treasury %+.1fM (%s months of revenue)" % [m, str(snappedf(v, 0.1))]
+			var m: float = v * float(n.budget.get("income", 0.0)) if n != null else 0.0
+			return "Treasury %s gold (%s months of income)" % [Fmt.money(m, true), str(snappedf(v, 0.1))]
 		"prestige": return "Prestige %+d" % roundi(v)
 		"war_support": return "War support %+d" % roundi(v)
 		"manpower": return "Reserve %+d%%" % roundi(v * 100.0)

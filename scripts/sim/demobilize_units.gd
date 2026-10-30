@@ -39,7 +39,7 @@ func execute(gs: Node) -> bool:
 				if sent >= to_send or (count < 0 and excess <= 0):
 					break
 				var u: Unit = a.units[i]
-				var guns: bool = float(Military.cfg.unit_types[u.type].get("shells", 0.0)) > 0.0
+				var guns: bool = Military.cfg.unit_types[u.type].get("guns", false)
 				if guns != pass_guns:
 					continue
 				n.manpower += roundi(u.men())

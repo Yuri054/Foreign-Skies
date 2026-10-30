@@ -19,7 +19,7 @@ static func population(gs: Node, city: Dictionary) -> int:
 ## How many chimneys the city shows: one for every few factories (civilian or military) in its province, at most six.
 static func chimneys(gs: Node, city: Dictionary) -> int:
 	var owned: Dictionary = gs.province_buildings[city.province]
-	return clampi(int(owned.get("factory", 0)), 0, 6)
+	return clampi(int(owned.get("civilian_factory", 0)), 0, 6)
 
 
 ## What the city shows besides its size: chimneys, the level of its port, whether there is a naval base, its

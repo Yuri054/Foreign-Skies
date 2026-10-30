@@ -1,6 +1,5 @@
 extends SceneTree
-## Headless test for step 3b: sending men home (the command and the AI), taxes that cost evenly above the default and help
-## below it, civil spending that follows the output, state investment, and the mobilization slider's cost line.
+## Headless test for step 3b: sending men home (the command and the AI), and the mobilization slider's cost line.
 ## Run: godot --headless --path . -s res://tests/demobilize_test.gd
 
 var _failures := 0
@@ -57,7 +56,7 @@ func _initialize() -> void:
 	_check(gs.issue(cmd) and cmd.sent == 3, "France sends three units home")
 	_check(fra.men_in_units == men0 - 36000 and fra.manpower == reserve0 + 36000, "their men leave the army for the reserve (%d)" % (men0 - fra.men_in_units))
 	E.recompute(gs)
-	_check(fra.budget.army < upkeep0, "and the army costs less at once (£%.2fM to £%.2fM a year)" % [upkeep0, fra.budget.army])
+	_check(fra.budget.army < upkeep0, "and the army costs less at once (%.2f to %.2f gold a month)" % [upkeep0, fra.budget.army])
 	_check(army.units.filter(func(u) -> bool: return u.type == "artillery").size() == 5, "the guns go last")
 	cmd = Demob.new("FRA", 0, -1)
 	_check(gs.issue(cmd) and fra.men_in_units <= fra.peacetime_army + 12000, "'to peacetime' sends home all above the peacetime army (%dk left, %dk peacetime)" % [fra.men_in_units / 1000, fra.peacetime_army / 1000])
@@ -106,62 +105,18 @@ func _initialize() -> void:
 	_check(mne.mobilization == 0.0 and gs.alarms.keys().filter(func(k: String) -> bool: return k.begins_with("MNE>")).is_empty(), "gone from the map, it stands down and its alarms lapse")
 	_check(gs.mobilization_calls.values().filter(func(c: Dictionary) -> bool: return c.against == "MNE").is_empty(), "and nobody is called up against it")
 
-	# --- Taxes ------------------------------------------------------------------------------------
-	_fresh()
-	var ita = gs.nations["ITA"]
-	var g10: float = E.growth_rate(ita)
-	gs.issue(Policy.new("ITA", "tax_rate", 0.05))
-	_check(E.growth_rate(ita) > g10 + 0.004, "a tax under the default spurs growth (%.2f%% to %.2f%% a year)" % [g10 * 100.0, E.growth_rate(ita) * 100.0])
-	gs.issue(Policy.new("ITA", "tax_rate", 0.15))
-	var g15: float = E.growth_rate(ita)
-	gs.issue(Policy.new("ITA", "tax_rate", 0.2))
-	var g20: float = E.growth_rate(ita)
-	_check(g15 < g10 and absf((g10 - g20) - 2.0 * (g10 - g15)) < 0.0001, "above it the cost rises evenly: 15%% costs %.2f points, 20%% twice that" % [(g10 - g15) * 100.0])
-	_check((g10 - g20) * 100.0 >= 0.9, "and a 20%% tax costs a real point of growth (%.2f)" % ((g10 - g20) * 100.0))
-
-	# --- Civil spending follows the output ----------------------------------------------------------
-	_fresh()
-	ger = gs.nations["GER"]
-	E.recompute(gs)
-	var civil0: float = ger.budget.civil
-	ger.mobilization = 0.4
-	E.recompute(gs)
-	_check(ger.budget.civil < civil0 * 0.9, "a mobilized state spends less on itself, as its output falls (£%.1fM to £%.1fM)" % [civil0, ger.budget.civil])
-	ger.mobilization = 0.0
-
-	# --- Investment --------------------------------------------------------------------------------
-	_fresh()
-	ita = gs.nations["ITA"]
-	E.recompute(gs)
-	var net0: float = ita.budget.net
-	_check(gs.issue(Policy.new("ITA", "investment", 1.0)) and is_equal_approx(ita.investment, 1.0), "Italy invests £1M a month")
-	E.recompute(gs)
-	_check(absf((net0 - ita.budget.net) - 12.0) < 0.01, "which is spent like any cost")
-	var g1: float = E.investment_growth(ita)
-	gs.issue(Policy.new("ITA", "investment", 2.0))
-	var g2: float = E.investment_growth(ita)
-	_check(g1 > 0.0 and g2 > g1 and g2 < 2.0 * g1, "and adds growth, each further pound a little less (%.2f, %.2f points)" % [g1 * 100.0, g2 * 100.0])
-	gs.issue(Policy.new("ITA", "investment", 1.0e6))
-	_check(ita.investment <= ita.budget.gdp / 12.0 * 0.1 + 0.001, "at most a tenth of the month's output")
-	var rich = gs.nations["GBR"]
-	rich.treasury = 500.0
-	rich.budget["net"] = 60.0
-	_check(AB.wanted_investment(gs, "GBR") > 0.0, "a rich AI nation in surplus invests")
-	rich.tax_rate = 0.1
-	_check(AB.wanted_tax(gs, "GBR") < 0.1, "and eases its taxes under the default")
-
 	# --- The cost of mobilizing, said before it is paid -------------------------------------------
 	_fresh()
 	ger = gs.nations["GER"]
 	E.recompute(gs)
 	var predicted: float = E.mobilization_cost(gs, ger, 0.4)
-	var before_net: float = ger.budget.net / 12.0
+	var before_net: float = ger.budget.income
 	gs.issue(Policy.new("GER", "mobilization", 0.4))
 	for i in 12:
 		E.step_month(gs)
 	E.recompute(gs)
-	var paid: float = before_net - ger.budget.net / 12.0
-	_check(predicted > 0.0 and absf(paid - predicted) <= 0.05 * predicted + 0.05, "mobilizing to 40%% costs what the slider says once the reserve is in (£%.2fM said, £%.2fM paid a month)" % [predicted, paid])
+	var paid: float = before_net - ger.budget.income
+	_check(predicted > 0.0 and absf(paid - predicted) <= 0.05 * predicted + 0.05, "mobilizing to 40%% costs the base income the slider says (%.2f said, %.2f lost a month)" % [predicted, paid])
 
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

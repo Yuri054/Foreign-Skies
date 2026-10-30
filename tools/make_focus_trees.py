@@ -1,11 +1,27 @@
 #!/usr/bin/env python3
 """Writes the great powers' own focus trees into data/focus.json (`nations.<TAG>.tree`, which replaces the template).
-Each focus: (id, name, desc, x, y, days, requires, effects, extras). The numbers keep a whole tree's lasting gains
-modest: gdp about 8%, industry about 12%, army_size about a third. Run from the project root."""
+Each focus: (id, name, desc, x, y, days, requires, effects, extras). The trees were written for the resource economy
+(gdp, trade, growth, food, industry, construction); gold_economy() turns those effects into the gold economy's (income,
+civilian_factories, cp) as they are written. Run from the project root."""
 import json
 
+
+def gold_economy(effects):
+    """Old effects to new: gdp, trade (x5), growth (x20) and food (x1) are a fraction of base income; industry is
+    civilian factories built at once (x25, at least one); construction (IC a day) is CP a day (/16, in quarters)."""
+    out = {k: v for k, v in effects.items() if k not in ("gdp", "trade", "growth", "food", "industry", "construction")}
+    income = sum(float(effects.get(k, 0.0)) * m for k, m in (("gdp", 5.0), ("trade", 5.0), ("growth", 20.0), ("food", 1.0)))
+    if income:
+        out["income"] = round(income, 3)
+    if "industry" in effects:
+        out["civilian_factories"] = max(1, round(float(effects["industry"]) * 25))
+    if "construction" in effects:
+        out["cp"] = max(0.25, round(float(effects["construction"]) / 16 * 4) / 4)
+    return out
+
+
 def F(id, name, desc, x, y, days, requires, effects, ai=1.0, **extra):
-    d = {"id": id, "name": name, "desc": desc, "x": x, "y": y, "days": days, "requires": requires, "effects": effects, "ai": ai}
+    d = {"id": id, "name": name, "desc": desc, "x": x, "y": y, "days": days, "requires": requires, "effects": gold_economy(effects), "ai": ai}
     d.update(extra)
     return d
 
@@ -14,7 +30,7 @@ TREES = {}
 TREES["GER"] = [
     F("industrial_drive", "Industrial drive", "Subsidise the factories and the railways that feed them.", 0, 0, 70, [], {"gdp": 0.012}),
     F("chemical_industry", "Chemicals and electricity", "Dyes, fertilisers, dynamos: the new industries.", 0, 1, 80, ["industrial_drive"], {"industry": 0.04}),
-    F("steel_cartels", "Steel and coal cartels", "Krupp, Thyssen and the Ruhr, working to one plan.", 0, 2, 90, ["chemical_industry"], {"industry": 0.03, "construction": 6}),
+    F("steel_cartels", "The steel cartels", "Krupp, Thyssen and the Ruhr, working to one plan.", 0, 2, 90, ["chemical_industry"], {"industry": 0.03, "construction": 6}),
     F("research_universities", "Universities and research", "The laboratories that the world copies.", 0, 3, 100, ["steel_cartels"], {"gdp": 0.012, "growth": 0.002}),
     F("naval_laws", "The Navy Laws", "Tirpitz's fleet, voted ship by ship.", 1, 0, 80, [], {"prestige": 4, "construction": 3}),
     F("weltpolitik", "Weltpolitik", "A place in the sun, in every ocean.", 1, 1, 90, ["naval_laws"], {"prestige": 6, "diplomacy": 0.5, "relation": [["GBR", -8]]}),
@@ -56,7 +72,7 @@ TREES["GBR"] = [
 
 TREES["FRA"] = [
     F("industrial_drive", "Industrial drive", "Subsidise the factories and the railways that feed them.", 0, 0, 70, [], {"gdp": 0.012}),
-    F("lorraine_iron", "Lorraine iron and Nord coal", "The basins that feed the forges.", 0, 1, 80, ["industrial_drive"], {"industry": 0.04}),
+    F("lorraine_iron", "Lorraine and the Nord", "The basins that feed the forges.", 0, 1, 80, ["industrial_drive"], {"industry": 0.04}),
     F("creusot_and_schneider", "Creusot and Schneider", "Guns, locomotives and steel.", 0, 2, 90, ["lorraine_iron"], {"industry": 0.03, "construction": 5}),
     F("paris_exposition", "The Paris Exposition", "A showcase that sells French goods and French taste.", 0, 3, 80, ["industrial_drive"], {"trade": 0.006, "prestige": 3}),
     F("revanche", "Revanche", "The lost provinces are not forgotten.", 1, 0, 90, [], {"war_support": 6}),
@@ -78,7 +94,7 @@ TREES["FRA"] = [
 TREES["RUS"] = [
     F("witte_system", "The Witte system", "State railways and state loans to build an industry.", 0, 0, 80, [], {"gdp": 0.012, "construction": 4}),
     F("trans_siberian", "The Trans-Siberian", "A railway across a continent.", 0, 1, 100, ["witte_system"], {"construction": 8, "trade": 0.004}),
-    F("donbas_and_baku", "Donbas coal and Baku oil", "The fuel of a modern state.", 0, 2, 90, ["trans_siberian"], {"industry": 0.04}),
+    F("donbas_and_baku", "The Donbas and Baku", "The fuel of a modern state.", 0, 2, 90, ["trans_siberian"], {"industry": 0.04}),
     F("putilov_works", "The Putilov works", "Guns and locomotives from St Petersburg.", 0, 3, 100, ["donbas_and_baku"], {"industry": 0.03, "construction": 4}),
     F("army_reform", "Army reform", "A bigger army after the Japanese lesson.", 1, 0, 80, [], {"army_size": 0.08}),
     F("great_programme", "The Great Programme", "A vast scheme of corps and railways to the frontier.", 1, 1, 110, ["army_reform"], {"army_size": 0.10, "construction": 10}),
@@ -138,7 +154,7 @@ TREES["ITA"] = [
 ]
 
 TREES["OTT"] = [
-    F("tanzimat_reforms", "The reform of the state", "Taxes, courts and a ministry that works.", 0, 0, 80, [], {"gdp": 0.014, "growth": 0.002}),
+    F("tanzimat_reforms", "The reform of the state", "Revenue, courts and a ministry that works.", 0, 0, 80, [], {"gdp": 0.014, "growth": 0.002}),
     F("hejaz_and_baghdad_rail", "Railways of the empire", "The Hejaz line and the Baghdad railway.", 0, 1, 100, ["tanzimat_reforms"], {"construction": 8, "trade": 0.004}),
     F("anatolian_agriculture", "Anatolian farming", "Better yields on the plateau.", 0, 2, 80, ["tanzimat_reforms"], {"food": 0.12}),
     F("public_debt_settlement", "Settle the public debt", "Foreign bondholders paid, credit won back.", 0, 3, 90, ["hejaz_and_baghdad_rail"], {"treasury": 6, "diplomacy": 0.3}),

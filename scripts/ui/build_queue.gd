@@ -57,12 +57,12 @@ func _refresh() -> void:
 	var jobs: Array[Dictionary] = []
 	for job in n.construction:
 		jobs.append({"label": Economy.cfg.buildings[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total,
-				"fraction": 1.0 - job.points_left / maxf(job.points_total, 1.0)})
+				"waiting": not job.started})
 	for job in n.shipbuilding:
 		jobs.append({"label": Navy.cfg.types[job.type].name, "province": job.province, "days_left": job.days_left, "days_total": job.days_total})
 	var title := Label.new()
-	title.text = "Under construction (%d), paid in IC" % jobs.size()
-	title.tooltip_text = "Buildings cost industry (IC a day), not money. \"stalled\" means no IC is reaching the project."
+	title.text = "Under construction (%d)" % jobs.size()
+	title.tooltip_text = "Buildings and ships, soonest finished first. \"waiting\" means the project has not started: its province is busy, or the gold or construction points are not there yet."
 	_list.add_child(title)
 	jobs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.days_left < b.days_left)
 	for i in mini(jobs.size(), MAX_ROWS):
@@ -82,8 +82,9 @@ func _make_row(job: Dictionary) -> Control:
 	button.flat = true
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
-	button.text = "%s, %s  (%s)" % [job.label, MapData.provinces[job.province].name, "stalled" if job.days_left >= 1000 else "%dd" % job.days_left]
-	button.tooltip_text = "Click to go to the province. %s" % ("Stalled: no IC reaches it." if job.days_left >= 1000 else "Paid from the daily IC, not from money.")
+	var waiting: bool = job.get("waiting", false)
+	button.text = "%s, %s  (%s)" % [job.label, MapData.provinces[job.province].name, "waiting" if waiting else "%dd" % job.days_left]
+	button.tooltip_text = "Click to go to the province. %s" % ("Waiting to start." if waiting else "Paid for; %d days to go." % job.days_left)
 	var id: int = job.province
 	button.pressed.connect(func() -> void: province_clicked.emit(id))
 	box.add_child(button)
@@ -92,6 +93,6 @@ func _make_row(job: Dictionary) -> Control:
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(0, 6)
 	bar.max_value = 1.0
-	bar.value = job.fraction if job.has("fraction") else 1.0 - float(job.days_left) / maxf(job.days_total, 1.0)
+	bar.value = 0.0 if job.get("waiting", false) else 1.0 - float(job.days_left) / maxf(job.days_total, 1.0)
 	box.add_child(bar)
 	return box

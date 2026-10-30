@@ -1,6 +1,6 @@
 extends SceneTree
-## Headless test of what the interface shows about raw materials and war support: where the
-## materials come from and what a shortage costs, and what war support is doing and what moves it.
+## Headless test of what the interface shows about the blockade, construction points and war support: what a
+## blockade costs, what the Construction section says, and what war support is doing and what moves it.
 ## Run: godot --headless --path . -s res://tests/visibility_test.gd
 
 var _failures := 0
@@ -45,13 +45,11 @@ func _initialize() -> void:
 
 func _test_budget() -> void:
 	var ger = gs.nations["GER"]
-	var mats: Dictionary = ger.budget.materials
-	_check(absf(mats.own + mats.imported - mats.need) < 0.01 or mats.own > mats.need, "own deposits and imports meet the need (%.0f + %.0f of %.0f)" % [mats.own, mats.imported, mats.need])
+	var ports: float = ger.budget.ports
 	ger.blockade_pinned = 1.0
 	ger.blockade = 1.0
 	load("res://scripts/sim/economy.gd").recompute(gs)
-	var cut: Dictionary = ger.budget.materials
-	_check(cut.imported == 0.0 and cut.ratio <= mats.ratio, "a blockade stops the imports (%d%% of the need)" % roundi(cut.ratio * 100.0))
+	_check(ports > 0.0 and ger.budget.ports == 0.0, "a blockade stops the port income (%.2f to nothing)" % ports)
 	ger.blockade_pinned = -1.0
 	ger.blockade = 0.0
 	load("res://scripts/sim/economy.gd").recompute(gs)
@@ -83,7 +81,7 @@ func _test_panels() -> void:
 	eco.toggle()
 	await process_frame
 	await process_frame
-	_check(_find_text(eco._industry, "raw materials") and _find_text(eco._industry, "Own deposits"), "the Industry section says where the raw materials come from")
+	_check(_find_text(eco._industry, "Construction points") and _find_text(eco._industry, "civilian factory costs"), "the Construction section says what points it has and what a factory costs")
 	var ger = gs.nations["GER"]
 	ger.war_support = 20.0
 	gs.set_war("GER", "FRA", true)

@@ -452,13 +452,13 @@ func _test_points_ui() -> void:
 	await process_frame
 
 	# Buying points.
-	_check(panel._buy.visible and panel._buy.text == "Buy 10 points (£3.0M)", "the Diplomacy window offers to buy points (%s)" % panel._buy.text)
+	_check(panel._buy.visible and panel._buy.text == "Buy 10 points (3.0 gold)", "the Diplomacy window offers to buy points (%s)" % panel._buy.text)
 	var money: float = gs.nations["FRA"].treasury
 	panel._on_buy()
 	await process_frame
 	await process_frame
 	_check(gs.nations["FRA"].diplomacy_points == 60.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 3.0), "buying gives ten points for £3M")
-	_check(panel._buy.text == "Buy 10 points (£3.8M)" and bar._points.text == "60", "the price rises, and the top bar follows (%s)" % panel._buy.text)
+	_check(panel._buy.text == "Buy 10 points (3.8 gold)" and bar._points.text == "60", "the price rises, and the top bar follows (%s)" % panel._buy.text)
 	gs.nations["FRA"].diplomacy_points = 200.0
 	panel._refresh()
 	_check(panel._buy.disabled and panel._buy.tooltip_text.contains("full"), "a full stock switches the button off")

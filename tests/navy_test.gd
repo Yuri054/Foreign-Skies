@@ -42,7 +42,7 @@ func _days(n: int) -> void:
 		Nav.step_day(gs)
 
 
-## Days with the economy too: the hulls draw their IC from the construction pool.
+## Days with the economy too: the hulls count down their build days in its step.
 func _econ_days(n: int) -> void:
 	var econ = load("res://scripts/sim/economy.gd")
 	for i in n:
@@ -113,7 +113,7 @@ func _test_upkeep() -> void:
 	_check(neg == 0, "no nation has negative overhead")
 	var gbr = gs.nations["GBR"]
 	_check(absf(Nav.ship_upkeep(gs, "GBR") + gbr.naval_overhead - gbr.naval_budget) < 0.001, "naval cost is overhead plus ship upkeep")
-	_check(absf(gbr.budget.naval - gbr.naval_budget) < 0.001, "the budget carries the naval cost")
+	_check(absf(gbr.budget.navy - gbr.naval_budget / 12.0) < 0.001, "the budget carries the naval cost, a twelfth a month")
 	var before: float = gbr.naval_budget
 	var dover = _fleet("GBR", "Dover Patrol")
 	dover.ships.append(ShipC.new("cruiser"))
@@ -177,17 +177,16 @@ func _test_building() -> void:
 	var plan: Dictionary = Nav.ship_plan(gs, "GER", "dreadnought", 1)
 	var treasury: float = n.treasury
 	_check(gs.issue(RaiseC.new("GER", 394, "dreadnought", 1)), "the order is accepted")
-	_check(n.shipbuilding.size() == 1 and absf(treasury - n.treasury - plan.total) < 0.001 and plan.gold > 0.0, "it costs money up front (%.1fM)" % plan.total)
-	_check(absf(n.shipbuilding[0].points_total - 10000.0) < 0.001, "the hull costs 10,000 IC")
+	_check(n.shipbuilding.size() == 1 and absf(treasury - n.treasury - plan.total) < 0.001 and plan.gold > 0.0, "it costs gold up front (%.1f)" % plan.total)
+	_check(n.shipbuilding[0].days_left == n.shipbuilding[0].days_total and n.shipbuilding[0].days_total > 100, "and takes its build days (%d)" % n.shipbuilding[0].days_total)
 	_check(Nav.build_problem(gs, "GER", 394, "dreadnought", 6) == "The yard is full", "a port builds only so many at once")
 	var seas = _fleet("GER", "High Seas Fleet")
 	var before: int = seas.ships.size()
 	_econ_days(1)
-	_check(n.shipbuilding.size() == 1 and n.shipbuilding[0].given > 0.0 and n.shipbuilding[0].points_left < 10000.0 and seas.ships.size() == before, "each day takes IC from the construction pool, nothing launches early")
-	_check(n.construction_used > 0.0, "and the pool shows it in use")
-	n.shipbuilding[0].points_left = n.shipbuilding[0].rate * 1.5
+	_check(n.shipbuilding.size() == 1 and n.shipbuilding[0].days_left == n.shipbuilding[0].days_total - 1 and seas.ships.size() == before, "a day passes on it, nothing launches early")
+	n.shipbuilding[0].days_left = 2
 	_econ_days(1)
-	_check(n.shipbuilding.size() == 1 and seas.ships.size() == before, "the last points are not yet in")
+	_check(n.shipbuilding.size() == 1 and seas.ships.size() == before, "not on the day before")
 	_econ_days(1)
 	_check(n.shipbuilding.is_empty() and seas.ships.size() == before + 1 and seas.ships[-1].type == "dreadnought", "the squadron joins the fleet in port")
 	var c = gs.nations["GBR"]
@@ -199,16 +198,16 @@ func _test_building() -> void:
 	_check(Nav.build_problem(gs, "XXX", 330, "destroyer", 1) != "", "an unknown nation builds nothing")
 	var poor = gs.nations["DEN"]
 	poor.treasury = 0.0
-	_check(Nav.build_problem(gs, "DEN", 91, "cruiser", 1).begins_with("Not enough money") or Nav.build_problem(gs, "DEN", 91, "cruiser", 1) == "Needs a level 2 port", "no money, no ships")
+	_check(Nav.build_problem(gs, "DEN", 91, "cruiser", 1).begins_with("Not enough gold") or Nav.build_problem(gs, "DEN", 91, "cruiser", 1) == "Needs a level 2 port", "no money, no ships")
 	_check(not gs.issue(RaiseC.new("DEN", 91, "cruiser", 1)), "and the order is refused")
 	var g = gs.nations["FRA"]
 	g.treasury = 100.0
 	g.blockade = 0.8
-	_check(Nav.build_problem(gs, "FRA", 247, "dreadnought", 1) == "", "a blockade does not stop a squadron: it takes money and IC, and no materials")
+	_check(Nav.build_problem(gs, "FRA", 247, "dreadnought", 1) == "", "a blockade does not stop a squadron: it takes only gold")
 	g.blockade = 0.0
 	n.treasury = 100.0
 	gs.issue(RaiseC.new("GER", 394, "destroyer", 1))
-	n.shipbuilding[0].points_left = 0.001
+	n.shipbuilding[0].days_left = 1
 	gs.set_controller(394, "FRA")
 	_econ_days(1)
 	_check(n.shipbuilding.is_empty() and seas.ships.size() == before + 1, "a captured yard launches nothing")

@@ -30,26 +30,21 @@ One window, a tab for each part of running the nation:
 - **Overview**: the **cabinet briefing** (the three things most worth your attention, each with the reason and a button to
   the tab that deals with it), your figures, Europe's tension (what it is made of, the worst rivalries, a chart of two years)
   and your wars with what each is being fought for.
-- **Economy (E)**: money, taxes, spending, industry, food, raw materials. Money pays the army, interest and what the state buys.
-  Every nation begins with a small surplus, and the economy is for spending it: on buildings, which grow it, or on the
-  army, which it keeps. The **Standing army** slider sets how many men you keep under arms in peace (up to a fifth of your
-  manpower): each division costs a sum a month, a soldier as dear as your people's wages, and the page says how many more
-  divisions your surplus keeps, how many the treasury can raise, how many your recruits fill and how many months the
-  treasury pays for a full mobilization. Raise the standing army, and the recruits come in over the next months; then
-  raise the divisions on the Military tab.
-  **Arms production** puts a share of your industry into munitions for the guns, before buildings: it costs a little output
-  and the stockpile costs money to keep, but in a war guns without shells fight much weaker. The page says how many days of
-  war the stockpile lasts; in a war you can also buy munitions abroad, if the sea is open.
-  **Taxes** above the usual 10% bring money and cost growth and the people's support, more with every point; under it they
-  bring less and the economy grows faster. **State investment** puts a sum a month into the country's development, and
-  it compounds: each pound invested a year adds about a pound to the yearly output, which brings more revenue to invest. **Mobilization** calls up the reserve: the slider says what it costs a month before you move
-  it. Raw materials and food are bought abroad by themselves: they matter when a blockade cuts the sea.
-- **Build (B)**: pick a building, then click a green province. **A building costs money when it is begun, then industry
-  (IC)**: the nation has a number of IC a day, projects are served in order and wait when the day's IC runs out. The queue
-  shows why a project is "stalled" (no IC reaches it). A small country has fewer IC, but its buildings cost less: they are
-  built to the size of the province. Each building says what it costs in its best place now, what it adds to the budget a
-  year and how many years the money takes to come back: a factory in a great city pays back in about ten years, one in a
-  small town much later. Trenches and fortifications cost only IC.
+- **Economy (E)**: the budget in **gold** and your **construction points**. Each month your provinces pay their **base
+  income** (from their people; it does not grow), each **civilian factory** 1.5 gold and each **port** 0.3 (a blockade cuts
+  ports and factories). Out go the **army** (each unit's upkeep), the **navy** and the **buildings' upkeep** (construction
+  sectors, railways, forts and trenches; factories and ports cost nothing to keep), and interest on any debt. The
+  **Standing army** slider sets how many men you keep under arms in peace (up to a fifth of your manpower): each division
+  costs its upkeep, and the page says how many more your surplus keeps, how many the treasury can raise, how many your
+  recruits fill and how many months the treasury pays for a full mobilization. **Mobilization** calls up the reserve and
+  costs base income: the slider says how much before you move it.
+- **Build (B)**: pick a building, then click a green province. **A building costs gold and construction points, paid
+  when it starts, and is finished after a fixed number of days**: a civilian factory 60 gold, 240 points and 60 days; a
+  construction sector (one more point a day) 40 gold and 160 points; a trench 5 gold, 30 points and a week. Every nation
+  has at least one civilian factory and one construction sector, and its capital makes a quarter of a point a day. One
+  project at a time in a province, at most ten of each building in a province; queue more and each starts as soon as its
+  province is free and the gold and points are there, in order. A civilian factory pays its gold back in 40 months, and
+  then earns for ever: build them, and when gold piles up faster than points, build construction sectors.
 - **Military (M)**, **Navy (Y)**: armies, army groups, fronts, fleets, yards.
 - **Diplomacy (F)**: opinions, treaties, wars, gifts, demands, peace.
 - **Focus (O)**: one national effort at a time, with lasting effects.
@@ -184,9 +179,10 @@ rotating slots. A save keeps the difficulty it was made at.
 ## Tips
 
 - Read the cabinet briefing each month; it is the quickest way to see what is wrong.
-- Your effort compounds: build, then put the surplus into state investment, and the economy grows faster every year.
+- Your effort compounds: every civilian factory earns gold that pays for the next one, and the economy grows faster every
+  year.
   Any nation, even the smallest, can climb to the top given time; each 1 January the news says how far you have come.
-- Guns or growth: every pound on the army is a pound not compounding. Money that lies idle in peace buys nothing but a
+- Guns or growth: every gold piece on the army is one not compounding. Money that lies idle in peace buys nothing but a
   war chest.
 - Do not send armies beyond supply without a plan to take ground that will carry them.
 - A claim is cheaper than a pretext, and a goal makes the peace you want cheap.

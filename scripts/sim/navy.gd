@@ -340,11 +340,11 @@ static func _drown(gs: Node, a: Army, frac: float, what: String) -> void:
 # ------------------------------------------------------------------ shipbuilding
 
 ## What building `count` squadrons of a type would cost, shaped like Economy.build_plan: money up front
-## and the hull's industry points (IC) from the nation's construction pool each day.
+## (in gold, paid when the hulls are laid down).
 static func ship_plan(_gs: Node, _tag: String, type: String, count: int) -> Dictionary:
 	var def: Dictionary = cfg.types[type]
 	var gold: float = float(def.cost) * count
-	return {"gold": gold, "ic": float(def.ic) * count, "total": gold, "blocked": ""}
+	return {"gold": gold, "total": gold, "blocked": ""}
 
 
 ## Squadrons being built in a province for a nation.
@@ -385,7 +385,7 @@ static func build_problem(gs: Node, tag: String, province: int, type: String, co
 	if not plan.blocked.is_empty():
 		return plan.blocked
 	if check_money and n.treasury < plan.total:
-		return "Not enough money (£%.1fM)" % plan.total
+		return "Not enough gold (%s)" % Fmt.gold(plan.total)
 	return ""
 
 
@@ -482,7 +482,7 @@ static func _build(gs: Node) -> bool:
 		var n: Nation = gs.nations[tag]
 		for i in range(n.shipbuilding.size() - 1, -1, -1):
 			var job: Dictionary = n.shipbuilding[i]
-			if job.points_left > 0.0001:
+			if int(job.days_left) > 0:
 				continue
 			n.shipbuilding.remove_at(i)
 			# A yard that has changed hands launches nothing.

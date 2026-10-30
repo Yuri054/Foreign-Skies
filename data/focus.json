@@ -1,5 +1,5 @@
 {
-	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): gdp, industry, food, trade, growth (fractions, as the national programs), diplomacy (points a month), construction (IC a day). One-off effects when it completes: prestige, points (diplomacy points), treasury (GBP millions), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci. A focus with repeatable and max can be taken again after finishing, up to max times in all (max 0: for ever) (Nation.focus_count); its effects apply each time. nations.<TAG>.tree, where present, is the nation's whole tree and replaces its template (the great powers have one of their own, written by tools/make_focus_trees.py).",
+	"_note": "National focus trees (Focus, scripts/sim/focus.gd). A nation works on one focus at a time; it takes `days`, needs every focus in `requires` done, and then its `effects` apply. Persistent effects (summed in Nation.focus_fx): income (a fraction added to the nation's base income), diplomacy (points a month), cp (construction points a day). One-off effects when it completes: civilian_factories (that many built at once in the nation's best provinces), prestige, points (diplomacy points), treasury (gold), war_support, army_size (fraction added to the peacetime army), relation ([[tag, change], ...]), claim ([tags]: a national_claim casus belli for war.cb_years). x and y place the focus on the tree window's grid; ai is how much the AI likes it (a focus with min_aggression is taken only by nations at least that aggressive). Every nation uses the tree of its template plus its own extra foci. A focus with repeatable and max can be taken again after finishing, up to max times in all (max 0: for ever) (Nation.focus_count); its effects apply each time. nations.<TAG>.tree, where present, is the nation's whole tree and replaces its template (the great powers have one of their own, written by tools/make_focus_trees.py).",
 	"templates": {
 		"major": [
 			{
@@ -11,7 +11,7 @@
 				"days": 70,
 				"requires": [],
 				"effects": {
-					"gdp": 0.04
+					"income": 0.2
 				},
 				"ai": 1.0
 			},
@@ -24,7 +24,7 @@
 				"days": 70,
 				"requires": [],
 				"effects": {
-					"food": 0.1
+					"income": 0.1
 				},
 				"ai": 1.0
 			},
@@ -52,8 +52,8 @@
 					"industrial_drive"
 				],
 				"effects": {
-					"industry": 0.08,
-					"construction": 8
+					"civilian_factories": 2,
+					"cp": 0.5
 				},
 				"ai": 1.0
 			},
@@ -68,8 +68,7 @@
 					"agrarian_reform"
 				],
 				"effects": {
-					"growth": 0.003,
-					"gdp": 0.02
+					"income": 0.16
 				},
 				"ai": 1.0
 			},
@@ -100,7 +99,7 @@
 				],
 				"effects": {
 					"war_support": 8,
-					"growth": 0.002
+					"income": 0.04
 				},
 				"ai": 1.0
 			},
@@ -130,7 +129,7 @@
 				"requires": [],
 				"effects": {
 					"army_size": 0.05,
-					"construction": 2
+					"cp": 0.25
 				},
 				"ai": 0.4,
 				"repeatable": true,
@@ -139,13 +138,13 @@
 			{
 				"id": "expansion",
 				"name": "Economic expansion",
-				"desc": "Another round of investment.",
+				"desc": "Another round of public works.",
 				"x": 1,
 				"y": 3,
 				"days": 90,
 				"requires": [],
 				"effects": {
-					"gdp": 0.015
+					"income": 0.075
 				},
 				"ai": 0.4,
 				"repeatable": true,
@@ -178,7 +177,7 @@
 				"days": 60,
 				"requires": [],
 				"effects": {
-					"gdp": 0.03
+					"income": 0.15
 				},
 				"ai": 1.0
 			},
@@ -191,7 +190,7 @@
 				"days": 60,
 				"requires": [],
 				"effects": {
-					"food": 0.08
+					"income": 0.08
 				},
 				"ai": 1.0
 			},
@@ -226,14 +225,14 @@
 			},
 			{
 				"id": "local_investment",
-				"name": "Local investment",
+				"name": "Local works",
 				"desc": "Roads, harbours and schools, a little at a time.",
 				"x": 0,
 				"y": 2,
 				"days": 70,
 				"requires": [],
 				"effects": {
-					"gdp": 0.01
+					"income": 0.05
 				},
 				"ai": 0.4,
 				"repeatable": true,
@@ -264,7 +263,7 @@
 				"days": 120,
 				"requires": [],
 				"effects": {
-					"growth": 0.0005
+					"income": 0.01
 				},
 				"ai": 0.6,
 				"repeatable": true,
@@ -300,8 +299,7 @@
 					"days": 80,
 					"requires": [],
 					"effects": {
-						"trade": 0.008,
-						"gdp": 0.01
+						"income": 0.09
 					},
 					"ai": 1.0
 				},
@@ -332,8 +330,8 @@
 						"colonial_office"
 					],
 					"effects": {
-						"trade": 0.006,
-						"construction": 3
+						"income": 0.03,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -368,7 +366,7 @@
 					"days": 90,
 					"requires": [],
 					"effects": {
-						"construction": 6
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -383,7 +381,6 @@
 						"two_power_standard"
 					],
 					"effects": {
-						"construction": 6,
 						"war_support": 2,
 						"prestige": 3,
 						"relation": [
@@ -391,7 +388,8 @@
 								"GER",
 								-6
 							]
-						]
+						],
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -420,8 +418,8 @@
 					"days": 70,
 					"requires": [],
 					"effects": {
-						"gdp": 0.014,
-						"treasury": 6
+						"treasury": 6,
+						"income": 0.07
 					},
 					"ai": 1.0
 				},
@@ -436,7 +434,7 @@
 						"city_of_london"
 					],
 					"effects": {
-						"industry": 0.04
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
@@ -451,8 +449,8 @@
 						"industrial_modernisation"
 					],
 					"effects": {
-						"industry": 0.03,
-						"construction": 4
+						"civilian_factories": 1,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -466,7 +464,7 @@
 					"requires": [],
 					"effects": {
 						"war_support": 4,
-						"growth": 0.002
+						"income": 0.04
 					},
 					"ai": 1.0
 				},
@@ -481,8 +479,7 @@
 						"liberal_reforms"
 					],
 					"effects": {
-						"gdp": 0.01,
-						"growth": 0.002
+						"income": 0.09
 					},
 					"ai": 1.0
 				},
@@ -587,14 +584,14 @@
 						"home_front"
 					],
 					"effects": {
-						"gdp": 0.008,
 						"diplomacy": 0.3,
 						"relation": [
 							[
 								"GER",
 								4
 							]
-						]
+						],
+						"income": 0.04
 					},
 					"ai": 1.0
 				},
@@ -607,7 +604,7 @@
 					"days": 120,
 					"requires": [],
 					"effects": {
-						"growth": 0.0005
+						"income": 0.01
 					},
 					"ai": 0.6,
 					"repeatable": true,
@@ -658,13 +655,13 @@
 					"days": 70,
 					"requires": [],
 					"effects": {
-						"gdp": 0.012
+						"income": 0.06
 					},
 					"ai": 1.0
 				},
 				{
 					"id": "lorraine_iron",
-					"name": "Lorraine iron and Nord coal",
+					"name": "Lorraine and the Nord",
 					"desc": "The basins that feed the forges.",
 					"x": 0,
 					"y": 1,
@@ -673,7 +670,7 @@
 						"industrial_drive"
 					],
 					"effects": {
-						"industry": 0.04
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
@@ -688,8 +685,8 @@
 						"lorraine_iron"
 					],
 					"effects": {
-						"industry": 0.03,
-						"construction": 5
+						"civilian_factories": 1,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -704,8 +701,8 @@
 						"industrial_drive"
 					],
 					"effects": {
-						"trade": 0.006,
-						"prestige": 3
+						"prestige": 3,
+						"income": 0.03
 					},
 					"ai": 1.0
 				},
@@ -797,8 +794,8 @@
 						"colonial_army"
 					],
 					"effects": {
-						"construction": 8,
-						"war_support": 2
+						"war_support": 2,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -812,7 +809,7 @@
 					"requires": [],
 					"effects": {
 						"war_support": 3,
-						"growth": 0.002
+						"income": 0.04
 					},
 					"ai": 1.0
 				},
@@ -827,7 +824,7 @@
 						"laic_republic"
 					],
 					"effects": {
-						"food": 0.1
+						"income": 0.1
 					},
 					"ai": 1.0
 				},
@@ -944,8 +941,7 @@
 						"savings_and_loans"
 					],
 					"effects": {
-						"gdp": 0.012,
-						"growth": 0.002
+						"income": 0.1
 					},
 					"ai": 1.0
 				},
@@ -958,7 +954,7 @@
 					"days": 120,
 					"requires": [],
 					"effects": {
-						"growth": 0.0005
+						"income": 0.01
 					},
 					"ai": 0.6,
 					"repeatable": true,
@@ -1009,7 +1005,7 @@
 					"days": 70,
 					"requires": [],
 					"effects": {
-						"gdp": 0.012
+						"income": 0.06
 					},
 					"ai": 1.0
 				},
@@ -1024,13 +1020,13 @@
 						"industrial_drive"
 					],
 					"effects": {
-						"industry": 0.04
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
 				{
 					"id": "steel_cartels",
-					"name": "Steel and coal cartels",
+					"name": "The steel cartels",
 					"desc": "Krupp, Thyssen and the Ruhr, working to one plan.",
 					"x": 0,
 					"y": 2,
@@ -1039,8 +1035,8 @@
 						"chemical_industry"
 					],
 					"effects": {
-						"industry": 0.03,
-						"construction": 6
+						"civilian_factories": 1,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -1055,8 +1051,7 @@
 						"steel_cartels"
 					],
 					"effects": {
-						"gdp": 0.012,
-						"growth": 0.002
+						"income": 0.1
 					},
 					"ai": 1.0
 				},
@@ -1070,7 +1065,7 @@
 					"requires": [],
 					"effects": {
 						"prestige": 4,
-						"construction": 3
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -1107,14 +1102,14 @@
 						"weltpolitik"
 					],
 					"effects": {
-						"construction": 5,
 						"war_support": 3,
 						"relation": [
 							[
 								"GBR",
 								-8
 							]
-						]
+						],
+						"cp": 0.25
 					},
 					"ai": 1.0,
 					"min_aggression": 0.4
@@ -1159,7 +1154,7 @@
 						"general_staff"
 					],
 					"effects": {
-						"construction": 10
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -1190,7 +1185,7 @@
 					"requires": [],
 					"effects": {
 						"war_support": 4,
-						"growth": 0.002
+						"income": 0.04
 					},
 					"ai": 1.0
 				},
@@ -1221,8 +1216,7 @@
 						"imperial_unity"
 					],
 					"effects": {
-						"food": 0.1,
-						"trade": 0.004
+						"income": 0.12
 					},
 					"ai": 1.0
 				},
@@ -1262,8 +1256,8 @@
 								15
 							]
 						],
-						"trade": 0.006,
-						"prestige": 3
+						"prestige": 3,
+						"income": 0.03
 					},
 					"ai": 1.0
 				},
@@ -1288,8 +1282,7 @@
 								6
 							]
 						],
-						"gdp": 0.012,
-						"trade": 0.004
+						"income": 0.08
 					},
 					"ai": 1.0
 				},
@@ -1306,7 +1299,7 @@
 					],
 					"effects": {
 						"prestige": 6,
-						"trade": 0.006
+						"income": 0.03
 					},
 					"ai": 1.0
 				},
@@ -1339,7 +1332,7 @@
 					"days": 120,
 					"requires": [],
 					"effects": {
-						"growth": 0.0005
+						"income": 0.01
 					},
 					"ai": 0.6,
 					"repeatable": true,
@@ -1390,7 +1383,7 @@
 					"days": 70,
 					"requires": [],
 					"effects": {
-						"gdp": 0.012
+						"income": 0.06
 					},
 					"ai": 1.0
 				},
@@ -1405,7 +1398,7 @@
 						"ausgleich_economy"
 					],
 					"effects": {
-						"industry": 0.04
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
@@ -1420,8 +1413,8 @@
 						"skoda_and_steyr"
 					],
 					"effects": {
-						"trade": 0.006,
-						"construction": 4
+						"income": 0.03,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -1436,7 +1429,7 @@
 						"ausgleich_economy"
 					],
 					"effects": {
-						"food": 0.12
+						"income": 0.12
 					},
 					"ai": 1.0
 				},
@@ -1481,8 +1474,8 @@
 						"conrad_plans"
 					],
 					"effects": {
-						"construction": 6,
-						"war_support": 2
+						"war_support": 2,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -1497,14 +1490,14 @@
 						"balkan_garrisons"
 					],
 					"effects": {
-						"construction": 6,
 						"prestige": 3,
 						"relation": [
 							[
 								"ITA",
 								-5
 							]
-						]
+						],
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -1517,8 +1510,7 @@
 					"days": 90,
 					"requires": [],
 					"effects": {
-						"gdp": 0.01,
-						"growth": 0.002
+						"income": 0.09
 					},
 					"ai": 1.0
 				},
@@ -1697,8 +1689,8 @@
 						"balkan_diplomacy"
 					],
 					"effects": {
-						"construction": 6,
-						"trade": 0.004
+						"income": 0.02,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -1711,7 +1703,7 @@
 					"days": 120,
 					"requires": [],
 					"effects": {
-						"growth": 0.0005
+						"income": 0.01
 					},
 					"ai": 0.6,
 					"repeatable": true,
@@ -1762,8 +1754,8 @@
 					"days": 80,
 					"requires": [],
 					"effects": {
-						"gdp": 0.012,
-						"construction": 4
+						"income": 0.06,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -1778,14 +1770,14 @@
 						"witte_system"
 					],
 					"effects": {
-						"construction": 8,
-						"trade": 0.004
+						"income": 0.02,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
 				{
 					"id": "donbas_and_baku",
-					"name": "Donbas coal and Baku oil",
+					"name": "The Donbas and Baku",
 					"desc": "The fuel of a modern state.",
 					"x": 0,
 					"y": 2,
@@ -1794,7 +1786,7 @@
 						"trans_siberian"
 					],
 					"effects": {
-						"industry": 0.04
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
@@ -1809,8 +1801,8 @@
 						"donbas_and_baku"
 					],
 					"effects": {
-						"industry": 0.03,
-						"construction": 4
+						"civilian_factories": 1,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -1839,7 +1831,7 @@
 					],
 					"effects": {
 						"army_size": 0.1,
-						"construction": 10
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -1869,8 +1861,7 @@
 					"days": 90,
 					"requires": [],
 					"effects": {
-						"food": 0.12,
-						"growth": 0.003
+						"income": 0.18
 					},
 					"ai": 1.0
 				},
@@ -1900,8 +1891,7 @@
 						"duma_and_order"
 					],
 					"effects": {
-						"trade": 0.006,
-						"gdp": 0.01
+						"income": 0.08
 					},
 					"ai": 1.0
 				},
@@ -1916,8 +1906,7 @@
 						"grain_exports"
 					],
 					"effects": {
-						"gdp": 0.01,
-						"growth": 0.002
+						"income": 0.09
 					},
 					"ai": 1.0
 				},
@@ -2043,8 +2032,8 @@
 						"anglo_russian_entente"
 					],
 					"effects": {
-						"construction": 6,
-						"prestige": 3
+						"prestige": 3,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -2074,7 +2063,7 @@
 					"days": 120,
 					"requires": [],
 					"effects": {
-						"growth": 0.0005
+						"income": 0.01
 					},
 					"ai": 0.6,
 					"repeatable": true,
@@ -2125,8 +2114,8 @@
 					"days": 80,
 					"requires": [],
 					"effects": {
-						"gdp": 0.012,
-						"industry": 0.02
+						"income": 0.06,
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
@@ -2141,7 +2130,7 @@
 						"northern_industry"
 					],
 					"effects": {
-						"industry": 0.04
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
@@ -2156,8 +2145,8 @@
 						"ansaldo_and_fiat"
 					],
 					"effects": {
-						"industry": 0.03,
-						"construction": 4
+						"civilian_factories": 1,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -2172,8 +2161,7 @@
 						"northern_industry"
 					],
 					"effects": {
-						"growth": 0.003,
-						"food": 0.08
+						"income": 0.14
 					},
 					"ai": 1.0
 				},
@@ -2201,8 +2189,8 @@
 						"army_of_the_north"
 					],
 					"effects": {
-						"construction": 6,
-						"prestige": 3
+						"prestige": 3,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -2238,7 +2226,7 @@
 					"requires": [],
 					"effects": {
 						"war_support": 4,
-						"growth": 0.002
+						"income": 0.04
 					},
 					"ai": 1.0
 				},
@@ -2269,7 +2257,7 @@
 					],
 					"effects": {
 						"treasury": 6,
-						"gdp": 0.008
+						"income": 0.04
 					},
 					"ai": 1.0
 				},
@@ -2349,13 +2337,13 @@
 					],
 					"effects": {
 						"prestige": 6,
-						"gdp": 0.008,
 						"relation": [
 							[
 								"OTT",
 								-10
 							]
-						]
+						],
+						"income": 0.04
 					},
 					"ai": 1.0,
 					"min_aggression": 0.4
@@ -2422,7 +2410,7 @@
 					"days": 120,
 					"requires": [],
 					"effects": {
-						"growth": 0.0005
+						"income": 0.01
 					},
 					"ai": 0.6,
 					"repeatable": true,
@@ -2467,14 +2455,13 @@
 				{
 					"id": "tanzimat_reforms",
 					"name": "The reform of the state",
-					"desc": "Taxes, courts and a ministry that works.",
+					"desc": "Revenue, courts and a ministry that works.",
 					"x": 0,
 					"y": 0,
 					"days": 80,
 					"requires": [],
 					"effects": {
-						"gdp": 0.014,
-						"growth": 0.002
+						"income": 0.11
 					},
 					"ai": 1.0
 				},
@@ -2489,8 +2476,8 @@
 						"tanzimat_reforms"
 					],
 					"effects": {
-						"construction": 8,
-						"trade": 0.004
+						"income": 0.02,
+						"cp": 0.5
 					},
 					"ai": 1.0
 				},
@@ -2505,7 +2492,7 @@
 						"tanzimat_reforms"
 					],
 					"effects": {
-						"food": 0.12
+						"income": 0.12
 					},
 					"ai": 1.0
 				},
@@ -2534,8 +2521,8 @@
 					"days": 90,
 					"requires": [],
 					"effects": {
-						"gdp": 0.012,
-						"war_support": 4
+						"war_support": 4,
+						"income": 0.06
 					},
 					"ai": 1.0
 				},
@@ -2590,8 +2577,8 @@
 						"german_military_mission"
 					],
 					"effects": {
-						"construction": 5,
-						"prestige": 3
+						"prestige": 3,
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -2636,7 +2623,7 @@
 					],
 					"effects": {
 						"war_support": 3,
-						"construction": 4
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -2725,7 +2712,7 @@
 					],
 					"effects": {
 						"war_support": 4,
-						"construction": 4
+						"cp": 0.25
 					},
 					"ai": 1.0
 				},
@@ -2757,7 +2744,7 @@
 					"days": 120,
 					"requires": [],
 					"effects": {
-						"growth": 0.0005
+						"income": 0.01
 					},
 					"ai": 0.6,
 					"repeatable": true,
@@ -2944,8 +2931,7 @@
 						"administrative_reform"
 					],
 					"effects": {
-						"gdp": 0.04,
-						"growth": 0.003
+						"income": 0.26
 					},
 					"ai": 1.0
 				}
@@ -2966,7 +2952,7 @@
 					],
 					"effects": {
 						"army_size": 0.1,
-						"construction": 3
+						"cp": 0.25
 					},
 					"ai": 1.0
 				}
@@ -2986,7 +2972,7 @@
 						"administrative_reform"
 					],
 					"effects": {
-						"trade": 0.012
+						"income": 0.06
 					},
 					"ai": 1.0
 				}
@@ -3006,8 +2992,7 @@
 						"farm_cooperatives"
 					],
 					"effects": {
-						"food": 0.1,
-						"gdp": 0.03
+						"income": 0.25
 					},
 					"ai": 1.0
 				}
@@ -3057,7 +3042,7 @@
 					],
 					"effects": {
 						"army_size": 0.1,
-						"construction": 3
+						"cp": 0.25
 					},
 					"ai": 1.0
 				}
@@ -3097,8 +3082,7 @@
 						"administrative_reform"
 					],
 					"effects": {
-						"gdp": 0.03,
-						"growth": 0.002
+						"income": 0.19
 					},
 					"ai": 1.0
 				}
@@ -3118,7 +3102,7 @@
 						"administrative_reform"
 					],
 					"effects": {
-						"trade": 0.01
+						"income": 0.05
 					},
 					"ai": 1.0
 				}
@@ -3138,8 +3122,8 @@
 						"administrative_reform"
 					],
 					"effects": {
-						"gdp": 0.04,
-						"industry": 0.02
+						"income": 0.2,
+						"civilian_factories": 1
 					},
 					"ai": 1.0
 				},
@@ -3154,8 +3138,8 @@
 						"minette_steel"
 					],
 					"effects": {
-						"trade": 0.006,
-						"diplomacy": 0.2
+						"diplomacy": 0.2,
+						"income": 0.03
 					},
 					"ai": 0.8
 				}

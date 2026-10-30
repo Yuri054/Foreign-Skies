@@ -89,7 +89,7 @@
 		}
 	},
 	"navy": {
-		"_note": "AINavy and AILanding. Fleets of a nation at war are split by role in port (transports and submarines apart, and cruisers and destroyers detached as patrols) and then given a sea zone each: the cordon that would seal an enemy's ports from the open sea (a path-blocking search, narrowest zones first), the zones next to its own ports where enemy ships lie, and the zones where an escort is wanted for a landing. A zone's score = w_blockade / cordon size (or w_defend * its share of the nation's port trade, w_kill for a zone with enemy ships, w_escort) - w_days * days to get there; a fleet goes only where its power (with what is already sent there) is at least the nation's required odds times the enemy power in or around the zone (adjacent zones count adj_decay, fleets in port opening on it port_share). Below min_score it stays in, or goes to, port. A fleet whose nation is weaker (times sortie_ratio) than its enemies within theatre_hops zones of it seeks out neither the cordon nor the enemy's ships, only the waters by its ports; submarines go anyway. A zone already held by fleets sent there is worth stack_decay of its value to the next. repair_below / ready_strength: strength to go home and to sail again; range_factor: days at sea as a multiple of the shortest range before going home. replan_days: the pause between a fleet being given orders and a change of mind (it changes only for a gain of hysteresis). Landings: with no enemy ground across a land border, a nation with transports in port picks an enemy coast by AIOffense worth + w_margin * margin - w_days * days, needing power over the defenders times odds divided by the landing penalty; it gathers the armies (reach_hops by land) and the transports in the port, waits for its ships to hold the landing zone and the route (escort_days), then sends them. Building: at war, below build_ratio times the enemy fleets' power, one squadron at a time (max_building), by the type furthest below its share in the mix, if the treasury keeps build_floor, the hulls on the slips (this one too) draw at most income_share of the construction pool a day and the budget carries the upkeep (tolerance of net).",
+		"_note": "AINavy and AILanding. Fleets of a nation at war are split by role in port (transports and submarines apart, and cruisers and destroyers detached as patrols) and then given a sea zone each: the cordon that would seal an enemy's ports from the open sea (a path-blocking search, narrowest zones first), the zones next to its own ports where enemy ships lie, and the zones where an escort is wanted for a landing. A zone's score = w_blockade / cordon size (or w_defend * its share of the nation's port trade, w_kill for a zone with enemy ships, w_escort) - w_days * days to get there; a fleet goes only where its power (with what is already sent there) is at least the nation's required odds times the enemy power in or around the zone (adjacent zones count adj_decay, fleets in port opening on it port_share). Below min_score it stays in, or goes to, port. A fleet whose nation is weaker (times sortie_ratio) than its enemies within theatre_hops zones of it seeks out neither the cordon nor the enemy's ships, only the waters by its ports; submarines go anyway. A zone already held by fleets sent there is worth stack_decay of its value to the next. repair_below / ready_strength: strength to go home and to sail again; range_factor: days at sea as a multiple of the shortest range before going home. replan_days: the pause between a fleet being given orders and a change of mind (it changes only for a gain of hysteresis). Landings: with no enemy ground across a land border, a nation with transports in port picks an enemy coast by AIOffense worth + w_margin * margin - w_days * days, needing power over the defenders times odds divided by the landing penalty; it gathers the armies (reach_hops by land) and the transports in the port, waits for its ships to hold the landing zone and the route (escort_days), then sends them. Building: at war, below build_ratio times the enemy fleets' power, one squadron at a time (max_building), by the type furthest below its share in the mix, if the treasury keeps build_floor, the hulls on the slips (this one too) cost at most income_share of a month's income spread over their build days, and the budget carries the upkeep (deficit_tolerance of the income).",
 		"cordon_max": 6,
 		"w_blockade": 2.0,
 		"w_defend": 3.0,
@@ -140,26 +140,19 @@
 		}
 	},
 	"budget": {
-		"_note": "AIBudget, once a month. Taxes: up by tax_step (to tax_max, or tax_max_war at war) when the nation is in debt and cannot repay it in repay_months, or runs a deficit its treasury cannot carry for cushion_months; down by tax_step to tax_min (under the default: light taxes help growth) when it is in surplus with more than rich_months of expenses in the bank, and then it also puts invest_share of its monthly surplus into state investment, at most invest_max_share of its output (the AI grows, but less well than a focused player: VISION.md, rule 3). Buildings: one a month, at most max_construction at a time, only when net is at least build_min_net; among the candidates richest provinces, the capital and ground behind the fronts, the one with the best yearly return per pound (min_return; food counts food_value, a railway near a front front_railway_bonus of the province's output, the capital times capital_multiplier), leaving build_floor in the treasury (double at war). Points: in a crisis, a batch is bought when the stock is under buy_below and buy_floor stays in the treasury.",
+		"_note": "AIBudget, once a month. Buildings: at most max_starts a month and max_construction under way, each the most wanted per gold (a civilian factory is worth 1, factory_war of that at war; a construction sector more as the nation's gold runs ahead of its construction points; a port port_want; at war a railway front_railway and works front_works in a province on or behind a front), keeping in the treasury build_floor plus cushion_months of any deficit (twice that at war); candidates are the provinces with the most base income, the capital and the ground behind the fronts. Army: in peace, with a surplus, the standing army grows army_growth_per_year while the upkeep of the men added takes at most army_surplus_share of the surplus, up to the standing cap. Points: in a crisis, a batch is bought when the stock is under buy_below and buy_floor stays in the treasury.",
 		"enabled": true,
-		"tax_min": 0.08,
-		"invest_share": 0.8,
-		"invest_max_share": 0.005,
-		"tax_step": 0.02,
-		"tax_max": 0.25,
-		"tax_max_war": 0.35,
-		"repay_months": 18,
-		"cushion_months": 6,
-		"rich_months": 6,
-		"max_construction": 2,
-		"build_min_net": 0.0,
+		"max_starts": 4,
+		"max_construction": 8,
 		"build_floor": 10,
-		"candidates": 8,
-		"min_return": 0.05,
-		"food_value": 0.5,
-		"front_railway_bonus": 0.05,
-		"front_works_bonus": 0.08,
-		"capital_multiplier": 1.5,
+		"cushion_months": 6,
+		"candidates": 10,
+		"factory_war": 0.4,
+		"port_want": 0.12,
+		"front_railway": 0.6,
+		"front_works": 2.5,
+		"army_growth_per_year": 0.03,
+		"army_surplus_share": 0.3,
 		"buy_below": 30,
 		"buy_floor": 10
 	},
@@ -262,15 +255,6 @@
 		"w_opportunity": 0.8,
 		"start_delay_days": 365,
 		"w_neutral": 1.0
-	},
-	"munitions": {
-		"_note": "AIBudget's arms share (see scripts/sim/munitions.gd): peace_share plus peace_per_tension times tension (0..1) in calm years, crisis_share when mobilized, in a crisis or with a case built against it, war_share at war. At war it buys munitions abroad when its stockpile would last fewer than min_days of all-out war, spending at most buy_treasury_share of its treasury a month.",
-		"peace_share": 0.03,
-		"peace_per_tension": 0.1,
-		"crisis_share": 0.2,
-		"war_share": 0.5,
-		"min_days": 60,
-		"buy_treasury_share": 0.2
 	},
 	"coalition": {
 		"_note": "Nations on one side of a war act as a coalition (scripts/ai/ai_coalition.gd). claim_penalty: utility an offence loses when an ally already aims a campaign at the same province, so allies do not crowd one front. hold (off in Historical, on in the Challenging difficulty): an AI nation does not make a separate peace while allies fight on, unless it is strained (war support at or below strain_support, its capital lost, or a war score at or below minus strain_score). partner_urge: the share of seek_threshold an ally's wish for peace must reach for it to join a joint peace (a conference) the nation proposes.",

@@ -1,7 +1,7 @@
 class_name ConstructBuilding
 extends Command
-## Starts building one level of a building in a province. Its money (Economy.build_plan's gold) is paid when it is
-## begun; then the project joins the queue and takes in what the nation's construction capacity (IC) gives it each day.
+## Queues one level of a building in a province. The queue starts it as soon as the province is free and its gold and
+## construction points are there (Economy.start_queued): they are paid then, and it is finished after its days.
 
 var tag: String
 var province: int
@@ -18,9 +18,8 @@ func execute(gs: Node) -> bool:
 	if not Economy.build_problem(gs, tag, province, type).is_empty():
 		return false
 	var n: Nation = gs.nations[tag]
-	var plan := Economy.build_plan(gs, province, type)
-	n.treasury -= float(plan.gold)
-	n.construction.append(Economy.new_job(province, type, plan.ic, plan.days))
+	n.construction.append(Economy.new_job(province, type, Economy.build_plan(gs, province, type).days))
+	Economy.start_queued(gs, tag)
 	return true
 
 

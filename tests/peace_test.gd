@@ -270,13 +270,13 @@ func _test_terms() -> void:
 	# An indemnity is paid over time.
 	war = _war()
 	_occupy("GER", "FRA", 60)
-	var revenue: float = gs.nations["GER"].budget.revenue
+	var income: float = gs.nations["GER"].budget.income
 	var ger0: float = gs.nations["GER"].treasury
 	var fra0: float = gs.nations["FRA"].treasury
 	var r: Dictionary = P.propose(gs, "FRA", "GER", "demand", [{"kind": "indemnity", "share": 0.1, "months": 3}])
 	_check(r.accepted == true and gs.indemnities.size() == 1, "an indemnity is agreed")
-	var monthly: float = revenue * 0.1 / 12.0
-	_check(is_equal_approx(gs.indemnities[0].monthly, monthly), "a tenth of annual revenue spread over the months (%.2f a month)" % monthly)
+	var monthly: float = income * 0.1
+	_check(is_equal_approx(gs.indemnities[0].monthly, monthly), "a tenth of the monthly income (%.2f a month)" % monthly)
 	for i in 3:
 		P.step_month(gs)
 	_check(gs.indemnities.is_empty(), "it ends after three payments")

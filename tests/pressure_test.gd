@@ -180,7 +180,7 @@ func _test_union_and_works() -> void:
 	for c in gs.cities:
 		if c.name == "London":
 			london = c.province
-	_check(gs.province_buildings[london].get("factory", 0) >= 2 and gs.province_buildings[london].get("railway", 0) >= 2, "London begins with factories and railways (%s)" % str(gs.province_buildings[london]))
+	_check(gs.province_buildings[london].get("civilian_factory", 0) >= 2 and gs.province_buildings[london].get("railway", 0) >= 2, "London begins with factories and railways (%s)" % str(gs.province_buildings[london]))
 	var army: int = gs.nations["FRA"].peacetime_army
 	_advance_to(1905, 1)
 	_check(gs.nations["FRA"].peacetime_army > army, "an AI nation's peacetime army grows with its people and output (%d to %d)" % [army, gs.nations["FRA"].peacetime_army])

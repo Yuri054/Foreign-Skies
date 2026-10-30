@@ -1,6 +1,6 @@
 extends FloatingWindow
 ## The country panel, docked on the left of the screen as in the Paradox games: one nation's
-## flag, name and standing in figures (overview, economy, military, politics, raw materials,
+## flag, name and standing in figures (overview, economy, military, politics,
 ## with its rank among all nations beside the figures that can be compared), and, for a
 ## nation that is not yours, everything you can do about it: declare war with a casus belli or
 ## ask for peace, propose a treaty, send a gift, tear up a treaty. Right-click a nation on the
@@ -196,20 +196,16 @@ func _refresh() -> void:
 		provinces_text += "  (%d occupied, %d held abroad)" % [lost, held_elsewhere]
 	_row(overview, "Provinces", provinces_text)
 	_row(overview, "Population", Fmt.people(n.population), _rank(ranks.population, tag))
-	var growth := Population.growth_rate(n)
-	_row(overview, "Growth", "%+.1f%% a year" % (growth * 100.0), "", Fmt.BAD if growth < 0.0 else Color.WHITE)
 	if n.war_dead >= 1000.0:
 		_row(overview, "Lost in war", Fmt.people(n.war_dead))
 
 	var economy := _section("Economy")
-	_row(economy, "Output a month", "£%.1fM" % Fmt.monthly(b.get("gdp", 0.0)), _rank(ranks.gdp, tag))
-	_row(economy, "Industry a month", "£%.1fM" % Fmt.monthly(b.get("industry", 0.0)))
-	_row(economy, "Income", Fmt.money(Fmt.monthly(b.get("revenue", 0.0)), true), _rank(ranks.revenue, tag))
-	_row(economy, "Spending", Fmt.money(-Fmt.monthly(b.get("expenses", 0.0)), true))
-	var net: float = Fmt.monthly(b.get("net", 0.0))
+	_row(economy, "Income a month", Fmt.gold(b.get("income", 0.0)), _rank(ranks.income, tag))
+	_row(economy, "Civilian factories", "%d" % int(b.get("levels", {}).get("civilian_factory", 0)), _rank(ranks.factories, tag))
+	_row(economy, "Spending", Fmt.money(-float(b.get("expenses", 0.0)), true))
+	var net: float = b.get("net", 0.0)
 	_row(economy, "Net per month", Fmt.money(net, true), "", Fmt.GOOD if net >= 0.0 else Fmt.BAD)
-	_row(economy, "Treasury", "£%.1fM" % n.treasury, _rank(ranks.treasury, tag), Fmt.BAD if n.treasury < 0.0 else Color.WHITE)
-	_row(economy, "Tax rate", "%d%%" % roundi(n.tax_rate * 100.0))
+	_row(economy, "Treasury", Fmt.gold(n.treasury), _rank(ranks.treasury, tag), Fmt.BAD if n.treasury < 0.0 else Color.WHITE)
 
 	var military := _section("Military")
 	var armies := Military.armies_of(GameState, tag)
@@ -225,11 +221,11 @@ func _refresh() -> void:
 	_row(military, "Recruit reserve", Fmt.people(n.manpower))
 	_row(military, "Manpower pool", Fmt.people(b.get("manpower_pool", 0.0)))
 	_row(military, "Mobilization", "%d%%" % roundi(n.mobilization * 100.0))
-	_row(military, "Army upkeep", "£%.1fM a month" % Fmt.monthly(b.get("army", 0.0)))
+	_row(military, "Army upkeep", "%s a month" % Fmt.gold(b.get("army", 0.0)))
 	if n.naval_budget > 0.0:
-		_row(military, "Navy upkeep", "£%.1fM a month" % Fmt.monthly(n.naval_budget))
+		_row(military, "Navy upkeep", "%s a month" % Fmt.gold(b.get("navy", 0.0)))
 	if n.blockade > 0.005:
-		_row(military, "Blockade", "%d%% of trade cut" % roundi(n.blockade * 100.0), "", Fmt.BAD)
+		_row(military, "Blockade", "%d%% of port income cut" % roundi(n.blockade * 100.0), "", Fmt.BAD)
 
 	var politics := _section("Politics")
 	var floor_support: float = Diplomacy.cfg.war_support.floor
@@ -246,14 +242,6 @@ func _refresh() -> void:
 		_row(politics, "Guarantees", guarantees)
 	_row(politics, "At war with", _wars_text(tag, at_war), "", Fmt.BAD if not at_war.is_empty() else Color.WHITE)
 
-	var resources := _section("Food and raw materials")
-	if not b.is_empty():
-		var food_balance: float = b.food_production - b.food_need
-		var food_short: bool = b.food_shortage > 0.0
-		_row(resources, "Food", "SHORT" if food_short else (("+" if food_balance >= 0.0 else "-") + Fmt.people(absf(food_balance))), "",
-				Fmt.BAD if food_short else (Fmt.GOOD if food_balance >= 0.0 else Fmt.WARN))
-		var mats: Dictionary = b.materials
-		_row(resources, "Raw materials", "%d%% of the need" % roundi(mats.ratio * 100.0), "", Fmt.GOOD if mats.ratio >= 0.999 else (Fmt.WARN if mats.ratio >= 0.7 else Fmt.BAD))
 	_refresh_actions(tag)
 
 
@@ -280,14 +268,14 @@ func _fill_picker(shown: String) -> void:
 
 ## Every nation with land, by each figure that can be ranked: tag -> value, per figure.
 func _ranks() -> Dictionary:
-	var out := {"population": {}, "gdp": {}, "revenue": {}, "treasury": {}, "army": {}, "navy": {}, "prestige": {}}
+	var out := {"population": {}, "income": {}, "factories": {}, "treasury": {}, "army": {}, "navy": {}, "prestige": {}}
 	for tag: String in GameState.nations:
 		var n: Nation = GameState.nations[tag]
 		if n.provinces.is_empty():
 			continue
 		out.population[tag] = float(n.population)
-		out.gdp[tag] = n.budget.get("gdp", 0.0)
-		out.revenue[tag] = n.budget.get("revenue", 0.0)
+		out.income[tag] = n.budget.get("income", 0.0)
+		out.factories[tag] = Standings.value(GameState, tag, "factories")
 		out.treasury[tag] = n.treasury
 		out.army[tag] = Military.men_in_service(GameState, tag)
 		out.navy[tag] = Standings.value(GameState, tag, "navy")
@@ -430,7 +418,7 @@ func _build_actions() -> void:
 	_actions_box.add_child(grid)
 
 	var gift_label := Label.new()
-	gift_label.text = "Gift £M"
+	gift_label.text = "Gift (gold)"
 	_gift_row.add_child(gift_label)
 	_gift_amount.min_value = 1.0
 	_gift_amount.max_value = 100.0
@@ -636,7 +624,7 @@ func _on_gift() -> void:
 	var amount := _gift_amount.value
 	var cmd := Gift.new(GameState.player_tag, tag, amount)
 	if GameState.issue(cmd):
-		_say("You sent £%.0fM to %s." % [amount, GameState.nations[tag].display_name], Fmt.GOOD)
+		_say("You sent %s to %s." % [Fmt.gold(amount), GameState.nations[tag].display_name], Fmt.GOOD)
 	else:
 		_say(DiplomacyPanel.BLOCKS["points"] if cmd.reason == "points" else "You cannot afford that.", Fmt.BAD)
 	_refresh()

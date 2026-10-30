@@ -65,11 +65,9 @@ PARAMS = [
     ("peace.aims_enough", 0.0, 1.0, False), ("peace.demand_budget_share", 0.3, 1.0, False),
     ("peace.indemnity_max_share", 0.0, 0.5, False), ("peace.k_quiet", 0.0, 14.0, False),
     ("peace.quiet_grace_months", 1, 12, True),
-    # Step 3's numbers: arming, buying abroad, investing and sending men home.
-    ("munitions.peace_share", 0.0, 0.2, False), ("munitions.peace_per_tension", 0.0, 0.3, False),
-    ("munitions.crisis_share", 0.05, 0.5, False), ("munitions.war_share", 0.1, 0.9, False),
-    ("munitions.min_days", 10, 180, True), ("munitions.buy_treasury_share", 0.0, 0.6, False),
-    ("budget.invest_share", 0.0, 1.0, False),
+    # The gold economy's building weights, and sending men home.
+    ("budget.factory_war", 0.0, 1.0, False), ("budget.port_want", 0.0, 0.5, False),
+    ("budget.front_railway", 0.0, 2.0, False), ("budget.front_works", 0.5, 5.0, False),
     ("forces.demob_after_days", 30, 720, True), ("forces.demob_margin", 1.0, 1.6, False), ("forces.demob_share", 0.05, 0.6, False),
 ]
 

@@ -28,8 +28,7 @@ func _initialize() -> void:
 		_check(n.provinces.size() >= 20, "%s holds %d provinces" % [tag, n.provinces.size()])
 		_check(n.population > 2.0e6, "%s has %.1f million people" % [tag, n.population / 1e6])
 		_check(gs.province_owner[n.capital] == tag, "%s's capital %s is its own" % [tag, md.provinces[n.capital].name])
-		_check(n.budget.net >= -0.05, "%s's budget balances at the start (%+.2fM a month's worth a year)" % [tag, n.budget.net])
-		_check(n.budget.food_production / n.population > 0.4, "%s grows a fair part of its food (%.2f)" % [tag, n.budget.food_production / n.population])
+		_check(n.budget.net >= -0.05, "%s's budget balances at the start (%+.2f gold a month)" % [tag, n.budget.net])
 		var armies := 0
 		for a in gs.armies.values():
 			if a.tag == tag:

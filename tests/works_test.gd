@@ -46,8 +46,9 @@ func _test_defense() -> void:
 	built["fortification"] = 2
 	var forted: float = Mil.defense_multiplier(a)
 	_check(forted > dug, "heavy fortifications raise it more (%.2f)" % forted)
-	_check(is_equal_approx(Mil.works_reduction(gs, a, 1.0), 0.2), "four trench levels take 20%% off shelling (%.2f)" % Mil.works_reduction(gs, a, 1.0))
-	_check(is_equal_approx(Mil.works_reduction(gs, a, 0.0), 0.2), "two fortification levels take 20%% off assault (%.2f)" % Mil.works_reduction(gs, a, 0.0))
+	var b: Dictionary = load("res://scripts/sim/economy.gd").cfg.buildings
+	_check(is_equal_approx(Mil.works_reduction(gs, a, 1.0), 4.0 * float(b.trench.shell_reduction)), "each trench level takes its share off shelling (%.2f for four)" % Mil.works_reduction(gs, a, 1.0))
+	_check(is_equal_approx(Mil.works_reduction(gs, a, 0.0), 2.0 * float(b.fortification.hard_reduction)), "each fort level its share off assault (%.2f for two)" % Mil.works_reduction(gs, a, 0.0))
 	var other: String = "GER" if a.tag != "GER" else "FRA"
 	var foreign = _army_of(other)
 	foreign.province = a.province
@@ -67,14 +68,4 @@ func _test_railway() -> void:
 	built["railway"] = 5
 	var five: float = Mil.hop_cost(gs, "FRA", id)
 	_check(is_equal_approx(one, Mil.cfg.supply.railway_hop_cost) and five < one, "each level makes a hop cheaper (%.2f, %.2f)" % [one, five])
-	var mats: Dictionary = fra.budget.materials
-	var was: float = mats.ratio
-	mats.ratio = 0.3
-	_check(Mil.hop_cost(gs, "FRA", id) == 1.0 and not Mil.railway_ok(gs, "FRA"), "with too few raw materials the railways stop helping supply")
-	var neighbor: int = Mil.neighbors(id)[0]
-	var days_dry: float = Mil.move_days(gs, "FRA", 15.0, neighbor, id)
-	mats.ratio = 1.0
-	var days_wet: float = Mil.move_days(gs, "FRA", 15.0, neighbor, id)
-	_check(gs.province_controller[id] != "FRA" or days_wet <= days_dry, "or movement (%.0f days against %.0f)" % [days_dry, days_wet])
-	mats.ratio = was
 	built.erase("railway")

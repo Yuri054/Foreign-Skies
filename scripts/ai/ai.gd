@@ -312,7 +312,7 @@ static func supplied(gs: Node, tag: String, province: int) -> bool:
 	return Military.supply_cost(gs, tag, province) < INF
 
 
-## A nation's output (GDP plus industry), kept for the day and while its land is unchanged.
+## A nation's income from its provinces (Economy.province_income), kept for the day and while its land is unchanged.
 static func _output_total(gs: Node, tag: String) -> float:
 	var key: int = Clock.days_elapsed * 1000003 + gs.owner_version
 	var entry: Variant = _worth_cache.get(tag)
@@ -320,13 +320,13 @@ static func _output_total(gs: Node, tag: String) -> float:
 		return entry.total
 	var total := 0.0
 	for id: int in gs.nations[tag].provinces:
-		total += gs.province_gdp[id] + gs.province_industry[id]
+		total += Economy.province_income(gs, id)
 	_worth_cache[tag] = {"key": key, "gs": gs.get_instance_id(), "total": total}
 	return total
 
 
 ## What a province is worth to its owner, 0 to about 1.5: its share of the owner's people and
-## of its output, with a bonus for the capital.
+## of its income, with a bonus for the capital.
 static func value(gs: Node, province: int) -> float:
 	var v: Dictionary = cfg.value
 	var owner: String = gs.province_owner[province]
@@ -337,7 +337,7 @@ static func value(gs: Node, province: int) -> float:
 		people = float(gs.province_population[province]) / n.population
 	var total := _output_total(gs, owner)
 	if total > 0.0:
-		output = (gs.province_gdp[province] + gs.province_industry[province]) / total
+		output = Economy.province_income(gs, province) / total
 	var score: float = float(v.people) * people + float(v.output) * output
 	if province == n.capital:
 		score += float(v.capital_bonus)

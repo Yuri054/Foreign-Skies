@@ -8,234 +8,167 @@
 	],
 	"default_player": "FRA",
 	"playable": true,
-	"munitions": {"share": 0.15, "days": 120},
 	"start_tension": 45,
 	"pressure_ai": true,
-	"_note": "Economic and military figures are rough estimates (GBP millions) meant to be refined. development, agri_yield and intensity are calibrated so default revenue, food self-sufficiency and 1913 coal, iron and timber consumption match estimates.",
+	"_note": "Military figures are rough estimates meant to be refined; money is in gold (about a million pounds of 1914). The starting buildings come from tools/make_start_economy.py.",
 	"nations": {
 		"GBR": {
-			"pop_growth": 0.009,
 			"war_support": 55,
 			"capital": 314,
-			"development": 0.755,
-			"agri_yield": 0.816,
 			"peacetime_army": 250000,
 			"naval_budget": 51,
 			"treasury": 35,
 			"government": "constitutional_monarchy"
 		},
 		"FRA": {
-			"pop_growth": 0.002,
 			"war_support": 65,
 			"capital": 233,
-			"development": 1.216,
-			"agri_yield": 1.069,
 			"peacetime_army": 790000,
 			"naval_budget": 19,
 			"treasury": 33,
 			"government": "republic"
 		},
 		"GER": {
-			"pop_growth": 0.012,
 			"war_support": 70,
 			"capital": 368,
-			"development": 0.903,
-			"agri_yield": 1.344,
 			"peacetime_army": 800000,
 			"naval_budget": 23,
 			"treasury": 45,
 			"government": "constitutional_monarchy"
 		},
 		"BEL": {
-			"pop_growth": 0.009,
 			"war_support": 70,
 			"capital": 83,
-			"development": 0.687,
-			"agri_yield": 1.812,
 			"peacetime_army": 48000,
 			"naval_budget": 0.5,
 			"treasury": 5,
 			"government": "constitutional_monarchy"
 		},
 		"NED": {
-			"pop_growth": 0.013,
 			"capital": 522,
-			"development": 0.825,
-			"agri_yield": 1.695,
 			"peacetime_army": 70000,
 			"naval_budget": 3,
 			"treasury": 4,
 			"government": "constitutional_monarchy"
 		},
 		"LUX": {
-			"pop_growth": 0.007,
 			"capital": 514,
-			"development": 1.901,
-			"agri_yield": 1.225,
 			"peacetime_army": 500,
 			"naval_budget": 0,
 			"treasury": 0.4,
 			"government": "constitutional_monarchy"
 		},
 		"SUI": {
-			"pop_growth": 0.009,
 			"capital": 546,
-			"development": 0.707,
-			"agri_yield": 0.795,
 			"peacetime_army": 40000,
 			"naval_budget": 0,
 			"treasury": 2,
 			"government": "republic"
 		},
 		"ITA": {
-			"pop_growth": 0.007,
 			"war_support": 40,
 			"capital": 493,
-			"development": 0.598,
-			"agri_yield": 1.715,
 			"peacetime_army": 300000,
 			"naval_budget": 11,
 			"treasury": 16,
 			"government": "constitutional_monarchy"
 		},
 		"ESP": {
-			"pop_growth": 0.007,
 			"capital": 140,
-			"development": 0.56,
-			"agri_yield": 0.688,
 			"peacetime_army": 100000,
 			"naval_budget": 4,
 			"treasury": 6,
 			"government": "constitutional_monarchy"
 		},
 		"POR": {
-			"pop_growth": 0.01,
 			"capital": 536,
-			"development": 0.591,
-			"agri_yield": 0.883,
 			"peacetime_army": 30000,
 			"naval_budget": 1,
 			"treasury": 2,
 			"government": "republic"
 		},
 		"DEN": {
-			"pop_growth": 0.012,
 			"capital": 91,
-			"development": 1.438,
-			"agri_yield": 1.066,
 			"peacetime_army": 20000,
 			"naval_budget": 2,
 			"treasury": 2,
 			"government": "constitutional_monarchy"
 		},
 		"AUH": {
-			"pop_growth": 0.009,
 			"war_support": 60,
 			"capital": 72,
-			"development": 0.743,
-			"agri_yield": 1.142,
 			"peacetime_army": 400000,
 			"naval_budget": 8,
 			"treasury": 24,
 			"government": "constitutional_monarchy"
 		},
 		"NOR": {
-			"pop_growth": 0.01,
 			"capital": 888,
-			"development": 1.29,
-			"agri_yield": 0.09,
 			"peacetime_army": 20000,
 			"naval_budget": 1.5,
 			"treasury": 3,
 			"government": "constitutional_monarchy"
 		},
 		"SWE": {
-			"pop_growth": 0.008,
 			"capital": 929,
-			"development": 1.21,
-			"agri_yield": 0.19,
 			"peacetime_army": 65000,
 			"naval_budget": 3,
 			"treasury": 10,
 			"government": "constitutional_monarchy"
 		},
 		"ALB": {
-			"pop_growth": 0.01,
 			"capital": 565,
-			"development": 0.465,
-			"agri_yield": 0.403,
 			"peacetime_army": 5000,
 			"naval_budget": 0,
 			"treasury": 0.1,
 			"government": "constitutional_monarchy"
 		},
 		"BUL": {
-			"pop_growth": 0.013,
 			"capital": 625,
-			"development": 0.637,
-			"agri_yield": 0.909,
 			"peacetime_army": 51500,
 			"naval_budget": 0.5,
 			"treasury": 2,
 			"government": "constitutional_monarchy"
 		},
 		"GRE": {
-			"pop_growth": 0.01,
 			"capital": 638,
-			"development": 0.726,
-			"agri_yield": 0.387,
 			"peacetime_army": 24500,
 			"naval_budget": 1.5,
 			"treasury": 3,
 			"government": "constitutional_monarchy"
 		},
 		"MNE": {
-			"pop_growth": 0.01,
 			"capital": 655,
-			"development": 0.62,
-			"agri_yield": 0.211,
 			"peacetime_army": 2000,
 			"naval_budget": 0,
 			"treasury": 0.1,
 			"government": "constitutional_monarchy"
 		},
 		"OTT": {
-			"pop_growth": 0.008,
 			"capital": 659,
-			"development": 0.455,
-			"agri_yield": 1.205,
 			"peacetime_army": 35000,
 			"naval_budget": 0.8,
 			"treasury": 6,
 			"government": "constitutional_monarchy"
 		},
 		"ROM": {
-			"pop_growth": 0.014,
 			"capital": 667,
-			"development": 0.652,
-			"agri_yield": 1.333,
 			"peacetime_army": 98000,
 			"naval_budget": 0.8,
 			"treasury": 5,
 			"government": "constitutional_monarchy"
 		},
 		"SRB": {
-			"pop_growth": 0.012,
 			"war_support": 75,
 			"capital": 689,
-			"development": 0.535,
-			"agri_yield": 0.839,
 			"peacetime_army": 45000,
 			"naval_budget": 0,
 			"treasury": 2,
 			"government": "constitutional_monarchy"
 		},
 		"RUS": {
-			"pop_growth": 0.015,
 			"war_support": 55,
 			"capital": 831,
-			"development": 0.667,
-			"agri_yield": 0.417,
 			"peacetime_army": 1219500,
 			"naval_budget": 35,
 			"treasury": 20,
@@ -1182,373 +1115,378 @@
 	],
 	"buildings": {
 		"London": {
-			"factory": 3,
+			"civilian_factory": 2,
+			"construction_sector": 1,
 			"railway": 3
 		},
 		"Paris": {
-			"factory": 3,
+			"civilian_factory": 3,
+			"construction_sector": 1,
 			"railway": 3
 		},
 		"Saint Petersburg": {
-			"factory": 3,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 3
 		},
 		"Berlin": {
-			"factory": 3,
+			"civilian_factory": 2,
+			"construction_sector": 1,
 			"railway": 3
 		},
 		"Wien": {
-			"factory": 3,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 3
 		},
 		"Moscow": {
-			"factory": 3,
+			"civilian_factory": 1,
 			"railway": 3
 		},
 		"Constantinople": {
-			"factory": 2,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Glasgow": {
-			"factory": 2,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Hamburg": {
-			"factory": 2,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Budapest": {
-			"factory": 2,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Masovian": {
-			"factory": 2,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Birmingham": {
-			"factory": 2,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Liverpool": {
-			"factory": 2,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Napoli": {
-			"factory": 2,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Brussels": {
-			"factory": 2,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Manchester": {
-			"factory": 2,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Bayern 5": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Prague": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Odessa": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Nordrhein-Westfalen 4": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Barcelona": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Milano": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Madrid": {
-			"factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Sachsen 2": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Roma": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Noord-Holland": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Hovedstaden": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Sachsen 1": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Bouches-du-Rhône": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Rhône": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Riga": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Kiev (city)": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Lower Silesian 3": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Zuid-Holland": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Łódź 1": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Derbyshire": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"North Yorkshire 2": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Nordrhein-Westfalen 3": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Hessen 3": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Lisboa": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Turin": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Edinburgh": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Dublin": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Belfast": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Somerset": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Bayern 1": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Stockholm City": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Palermo": {
-			"factory": 1,
 			"railway": 2
 		},
 		"Bucuresti": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Niedersachsen 4": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 2
 		},
 		"Baden-Württemberg 1": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"Sachsen-Anhalt 2": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Genova": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Gironde": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Nottinghamshire": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Bremen": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Kharkiv": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Konigsberg 2": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Christiania": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"West Pomeranian 3": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Hampshire": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Saratov 1": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Nordrhein-Westfalen 2": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Nova Goriška": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Firenze": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Valencia": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Nord": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Lemberg": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Yekaterinoslav": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Tatarstan": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Porto": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Vilniaus": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Uusimaa": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Cardiff": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Krakow": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Bologna": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Loire-Atlantique": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Vastra Gotaland 1": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Pomeranian 3": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Attica": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"Málaga": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Greater Poland 2": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Venezia": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Kentriki Makedonia 2": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Steiermark": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Alpes-Maritimes": {
-			"factory": 1,
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"Haute-Garonne": {
-			"factory": 1,
+			"civilian_factory": 1,
 			"railway": 1
 		},
 		"Astrakhan": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Sevilla 2": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Samara": {
-			"factory": 1,
 			"railway": 1
 		},
 		"Sofia": {
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"Bern": {
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"Belgrade": {
+			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
+		},
+		"Tiranë": {
+			"civilian_factory": 1,
+			"construction_sector": 1
+		},
+		"Luxembourg": {
+			"civilian_factory": 1,
+			"construction_sector": 1
+		},
+		"Cetinje": {
+			"civilian_factory": 1,
+			"construction_sector": 1
 		}
 	}
 }

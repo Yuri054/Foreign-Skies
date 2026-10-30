@@ -110,7 +110,7 @@ static func port_weights(gs: Node, tag: String) -> Dictionary:
 		if zones.is_empty():
 			continue
 		var b: Dictionary = gs.province_buildings[id]
-		var w: float = gs.province_gdp[id] * (cfg.base_weight + cfg.per_port_level * b.get("port", 0))
+		var w: float = gs.province_base_income[id] * (cfg.base_weight + cfg.per_port_level * b.get("port", 0))
 		if zones.size() == 1:
 			out[zones[0]] = out.get(zones[0], 0.0) + w
 		else:

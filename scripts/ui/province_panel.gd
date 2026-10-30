@@ -1,7 +1,7 @@
 extends PanelContainer
 ## The small card at the top left that says what the selected province (or sea zone) is: the
 ## owner's flag and the name, a line for who and what, and the three figures that matter at a
-## glance. The rest (economy, deposits, what stands, who is there) is behind a Details button, so
+## glance. The rest (economy, what stands, who is there) is behind a Details button, so
 ## the card stays out of the way until you ask. Nothing is shown until something is selected.
 
 const WIDTH := 236.0
@@ -126,15 +126,7 @@ func _table(rows: Array, into: Control = null) -> void:
 		var name := Label.new()
 		name.text = r[0]
 		name.modulate = Fmt.DIM
-		if r.size() > 3:
-			# A row may bring an icon: the deposits, which are told apart by it.
-			var named := HBoxContainer.new()
-			named.add_theme_constant_override("separation", 4)
-			named.add_child(Icons.rect(r[3], "", 14))
-			named.add_child(name)
-			grid.add_child(named)
-		else:
-			grid.add_child(name)
+		grid.add_child(name)
 		var value := Label.new()
 		value.text = r[1]
 		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -208,25 +200,16 @@ func show_province(id: int) -> void:
 		_table(city_rows, _box)
 	_table([
 		["People", Fmt.thousands(population)],
-		["Output", "£%.1fM a month" % Fmt.monthly(GameState.province_gdp[id])],
+		["Income", "%s a month" % Fmt.gold(Economy.province_income(GameState, id))],
 	], _box)
 	# The rest is under Details.
 	_section("Economy")
 	_table([
 		["Area", "~%s km²" % Fmt.thousands(int(p.area * MapData.KM2_PER_PX))],
-		["Feeds", Fmt.people(GameState.province_food[id])],
-		["Recruits", Fmt.people(GameState.province_pool[id])],
+		["Base income", "%s a month" % Fmt.gold(GameState.province_base_income[id])],
+		["Recruits", Fmt.people(float(population) * float(Economy.cfg.manpower_share))],
 		["Infrastructure", "%.1f" % Economy.infrastructure(GameState, id)],
 	])
-
-	var deposits: Array = []
-	for r in Economy.resource_ids():
-		var deposit: float = GameState.province_deposit[id].get(r, 0.0)
-		if deposit >= Economy.cfg.materials.min_deposit:
-			deposits.append([Economy.cfg.resources[r].name, "%s a month" % Fmt.kt(Fmt.monthly(deposit * Economy.cfg.materials.extraction_base)), Color.WHITE, r])
-	if not deposits.is_empty():
-		_section("Deposits")
-		_table(deposits)
 
 	var built: Array = []
 	for type in Economy.building_ids():

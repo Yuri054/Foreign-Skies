@@ -502,14 +502,16 @@ static func build(gs: Node, tag: String) -> void:
 	var plan: Dictionary = Navy.ship_plan(gs, tag, type, 1)
 	if n.treasury - plan.total < float(b.build_floor):
 		return
-	# The slips draw on the construction pool: hulls already building plus this one may take only a share of it.
-	var pool: float = n.budget.get("construction_points", 0.0)
-	var rate := float(def.ic) / maxf(float(def.build_days), 1.0)
+	# The hulls on the slips may cost at most income_share of a month's income spread over their build days, and the
+	# ship's upkeep must not sink the budget past deficit_tolerance of the income.
+	var income := maxf(float(n.budget.get("income", 0.0)), 0.0)
+	var rate: float = plan.total / maxf(float(def.build_days) / 30.0, 1.0)
 	for job in n.shipbuilding:
-		rate += float(job.rate)
-	if rate > float(b.income_share) * pool:
+		var d: Dictionary = Navy.cfg.types[job.type]
+		rate += float(d.cost) / maxf(float(d.build_days) / 30.0, 1.0)
+	if rate > float(b.income_share) * income:
 		return
-	if float(n.budget.get("net", 0.0)) - float(def.upkeep) < -float(b.deficit_tolerance) * float(n.budget.get("revenue", 0.0)):
+	if float(n.budget.get("net", 0.0)) - float(def.upkeep) / 12.0 < -float(b.deficit_tolerance) * income:
 		return
 	if gs.issue_quiet(RaiseShips.new(tag, yard, type, 1)) and type == "transport":
 		gs.ai_navy_need.erase(tag)

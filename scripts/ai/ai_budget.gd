@@ -1,9 +1,9 @@
 class_name AIBudget
 extends RefCounted
-## A light budget for AI nations, once a month, so they do not drift into ruin: the tax rate
-## against deficit and debt, one building at a time where it earns the most (the capital, the
-## richest provinces, the railways behind the front), ships, and diplomacy points bought when a
-## crisis finds the stock low.
+## A light budget for AI nations, once a month: buildings while the gold and construction points allow (civilian
+## factories for income, a construction sector when gold piles up faster than CP, works and railways behind the fronts
+## at war), a standing army that grows in peace while the surplus pays for it, ships, and diplomacy points bought when
+## a crisis finds the stock low.
 ## Everything goes through the commands the player uses. Weights are in ai.json ("budget").
 
 
@@ -16,113 +16,45 @@ static func step(gs: Node, tag: String) -> void:
 	if gs.ai_budget_stamp.get(tag, 0) == stamp or not cfg().enabled:
 		return
 	gs.ai_budget_stamp[tag] = stamp
-	_taxes(gs, tag)
-	_arms(gs, tag)
 	_buildings(gs, tag)
+	_army(gs, tag)
 	AINavy.build(gs, tag)
 	_points(gs, tag)
 
 
-## Monthly expenses of the nation (a twelfth of the annual figure).
-static func _monthly_expenses(n: Nation) -> float:
-	return maxf(float(n.budget.get("expenses", 0.0)) / 12.0, 0.1)
-
-
-# --- Taxes -------------------------------------------------------------------------------------------
-
-## The tax rate goes up a step while the nation is running short (in debt, or a deficit its
-## treasury cannot carry for cushion_months) and comes down when it is rich and in surplus.
-static func wanted_tax(gs: Node, tag: String) -> float:
+## The gold the nation keeps in hand: build_floor, plus cushion_months of a deficit, twice that at war.
+static func reserve(gs: Node, tag: String) -> float:
 	var c := cfg()
 	var n: Nation = gs.nations[tag]
-	var net_m := float(n.budget.get("net", 0.0)) / 12.0
-	var at_war: bool = not gs.wars_of(tag).is_empty()
-	var top: float = float(c.tax_max_war) if at_war else float(c.tax_max)
-	var rate := n.tax_rate
-	var short: bool = n.treasury < 0.0 and net_m * float(c.repay_months) < -n.treasury
-	short = short or (net_m < 0.0 and n.treasury < -net_m * float(c.cushion_months))
-	if short:
-		return minf(rate + float(c.tax_step), top)
-	var rich: bool = net_m > 0.0 and n.treasury > _monthly_expenses(n) * float(c.rich_months)
-	# A rich nation in surplus eases its taxes, under the default too (light taxes help growth), down to tax_min.
-	if rich and rate > float(c.get("tax_min", Economy.cfg.default_tax_rate)) + 0.0001:
-		return maxf(rate - float(c.tax_step), float(c.get("tax_min", Economy.cfg.default_tax_rate)))
-	return minf(rate, top)
-
-
-static func _taxes(gs: Node, tag: String) -> void:
-	var rate := wanted_tax(gs, tag)
-	if not is_equal_approx(rate, gs.nations[tag].tax_rate):
-		gs.issue_quiet(SetEconomyPolicy.new(tag, "tax_rate", rate))
-	var invest := wanted_investment(gs, tag)
-	if absf(invest - gs.nations[tag].investment) > 0.05:
-		gs.issue_quiet(SetEconomyPolicy.new(tag, "investment", invest))
-
-
-## What the nation puts into development a month: in peace, with a treasury past rich_months of its spending, a share
-## (invest_share) of its surplus before investment, at most invest_max_share of its output; nothing at war, in debt or
-## short.
-static func wanted_investment(gs: Node, tag: String) -> float:
-	var c := cfg()
-	var n: Nation = gs.nations[tag]
-	if not gs.wars_of(tag).is_empty() or n.treasury <= 0.0:
-		return 0.0
-	var surplus := (float(n.budget.get("net", 0.0)) + float(n.budget.get("investment", 0.0))) / 12.0
-	if surplus <= 0.0 or n.treasury < _monthly_expenses(n) * float(c.rich_months):
-		return 0.0
-	var most: float = float(n.budget.get("gdp", 0.0)) / 12.0 * float(c.get("invest_max_share", 1.0))
-	return snappedf(minf(surplus * float(c.get("invest_share", 0.0)), most), 0.1)
-
-
-# --- Munitions ---------------------------------------------------------------------------------------
-
-## The arms share the nation wants: a little in calm years, more as tension rises, a good deal in a crisis or when
-## mobilized, most of its industry at war (data/ai.json, "munitions").
-static func wanted_arms_share(gs: Node, tag: String) -> float:
-	var c: Dictionary = AI.cfg.munitions
-	var n: Nation = gs.nations[tag]
-	if not gs.wars_of(tag).is_empty():
-		return float(c.war_share)
-	var crisis: bool = n.mobilization >= float(Diplomacy.cfg.crisis.alarm_level) or not Crisis.of(gs, tag).is_empty()
-	if crisis:
-		return float(c.crisis_share)
-	return clampf(float(c.peace_share) + float(c.peace_per_tension) * gs.tension / 100.0, 0.0, 1.0)
-
-
-static func _arms(gs: Node, tag: String) -> void:
-	var c: Dictionary = AI.cfg.munitions
-	var n: Nation = gs.nations[tag]
-	var share := wanted_arms_share(gs, tag)
-	if absf(share - n.arms_share) > 0.005:
-		gs.issue_quiet(SetEconomyPolicy.new(tag, "arms_share", share))
-	# At war, a stockpile running low is filled from abroad while the treasury can bear it.
-	if gs.wars_of(tag).is_empty() or Munitions.days_left(gs, tag) >= float(c.min_days):
-		return
-	var want := (float(c.min_days) * Munitions.expected_daily(gs, tag) - n.munitions) * float(Munitions.cfg().import_price)
-	var spend := minf(want, maxf(0.0, n.treasury) * float(c.buy_treasury_share))
-	if spend > 0.1:
-		gs.issue_quiet(BuyMunitions.new(tag, spend))
+	var floor_gold := float(c.build_floor) + maxf(0.0, -float(n.budget.get("net", 0.0))) * float(c.cushion_months)
+	return floor_gold * (2.0 if not gs.wars_of(tag).is_empty() else 1.0)
 
 
 # --- Buildings ---------------------------------------------------------------------------------------
 
-## What a building would earn a year in a province, per pound it costs, with a bonus for the
-## capital and for railways behind a front.
-static func build_return(gs: Node, tag: String, id: int, type: String, plan: Dictionary) -> float:
+## How much the nation wants a building now, against a civilian factory (1): a construction sector when its gold runs
+## ahead of its CP, works and railways near a front at war (where `id` is), a port for its income.
+static func want(gs: Node, tag: String, id: int, type: String) -> float:
 	var c := cfg()
-	var def: Dictionary = Economy.cfg.buildings[type]
-	var effects: Dictionary = def.effects
-	var output: float = gs.province_gdp[id] + gs.province_industry[id]
-	var gain: float = float(effects.get("gdp", 0.0)) * gs.province_gdp[id] + float(effects.get("industry", 0.0)) * gs.province_industry[id]
-	gain += float(effects.get("trade", 0.0)) * output * 0.5
-	gain += float(effects.get("food", 0.0)) * output * float(c.food_value)
-	if type == "railway" and _near_front(gs, tag, id):
-		gain += output * float(c.front_railway_bonus)
-	if (type == "trench" or type == "fortification") and not gs.wars_of(tag).is_empty() and _near_front(gs, tag, id):
-		gain += output * float(c.front_works_bonus)
-	if id == gs.nations[tag].capital:
-		gain *= float(c.capital_multiplier)
-	return gain / maxf(plan.total, 0.01)
+	var n: Nation = gs.nations[tag]
+	var at_war: bool = not gs.wars_of(tag).is_empty()
+	match type:
+		"civilian_factory":
+			return float(c.factory_war) if at_war else 1.0
+		"construction_sector":
+			# Gold in hand that CP cannot keep up with: months of gold over months of CP for a factory.
+			var factory: Dictionary = Economy.build_plan(gs, id, "civilian_factory")
+			var cp_month := maxf(float(n.budget.get("cp", 0.0)) * 30.0, 0.01)
+			var gold_month := maxf(float(n.budget.get("net", 0.0)), 0.01)
+			var ratio: float = (factory.cp / cp_month) / maxf(factory.gold / gold_month, 0.01)
+			return clampf(ratio - 1.0, 0.0, 1.5)
+		"port":
+			return float(c.port_want)
+		"railway":
+			return float(c.front_railway) if at_war and _near_front(gs, tag, id) else 0.0
+		"trench", "fortification":
+			return float(c.front_works) if at_war and _near_front(gs, tag, id) else 0.0
+	return 0.0
 
 
 ## Whether a province lies on or just behind one of the nation's fronts.
@@ -136,22 +68,16 @@ static func _near_front(gs: Node, tag: String, id: int) -> bool:
 	return false
 
 
-## One building a month, where it earns most, if the treasury stays above the floor and few
-## jobs are already under way.
-static func _buildings(gs: Node, tag: String) -> void:
-	var c := cfg()
+## The provinces worth looking at: the best for income, the capital and the ground behind the fronts.
+static func _places(gs: Node, tag: String) -> Array[int]:
 	var n: Nation = gs.nations[tag]
-	if n.construction.size() >= int(c.max_construction) or float(n.budget.get("net", 0.0)) < float(c.build_min_net):
-		return
-	var places: Array[int] = []
 	var owned: Array = Array(n.provinces)
 	owned.sort_custom(func(x: int, y: int) -> bool:
-		var ox: float = gs.province_gdp[x] + gs.province_industry[x]
-		var oy: float = gs.province_gdp[y] + gs.province_industry[y]
-		return ox > oy or (ox == oy and x < y))
-	for id: int in owned.slice(0, int(c.candidates)):
+		return gs.province_base_income[x] > gs.province_base_income[y] or (gs.province_base_income[x] == gs.province_base_income[y] and x < y))
+	var places: Array[int] = []
+	for id: int in owned.slice(0, int(cfg().candidates)):
 		places.append(id)
-	if n.capital > 0 and n.capital not in places:
+	if n.capital > 0 and n.capital in n.provinces and n.capital not in places:
 		places.append(n.capital)
 	for f: Front in gs.fronts.values():
 		if f.tag == tag:
@@ -159,23 +85,56 @@ static func _buildings(gs: Node, tag: String) -> void:
 				for q: int in Military.neighbors(p):
 					if gs.province_owner[q] == tag and q not in places:
 						places.append(q)
-	var best_id := 0
-	var best_type := ""
-	var best_value := float(c.min_return)
-	for id in places:
-		for type in Economy.building_ids():
-			if not Economy.build_problem(gs, tag, id, type, false).is_empty():
+	return places
+
+
+## Starts buildings, the most wanted per gold first, while the gold (above the reserve) and the CP last, at most
+## max_starts a month and max_construction under way.
+static func _buildings(gs: Node, tag: String) -> void:
+	var c := cfg()
+	var n: Nation = gs.nations[tag]
+	var places := _places(gs, tag)
+	for i in int(c.max_starts):
+		if n.construction.size() >= int(c.max_construction):
+			return
+		var best_id := 0
+		var best_type := ""
+		var best_value := 0.0
+		for id in places:
+			if Economy.province_busy(n, id):
 				continue
-			var plan := Economy.build_plan(gs, id, type)
-			if plan.blocked != "":
-				continue
-			var value := build_return(gs, tag, id, type, plan)
-			if value > best_value + 0.000001:
-				best_id = id
-				best_type = type
-				best_value = value
-	if best_id > 0:
+			for type in Economy.building_ids():
+				if not Economy.build_problem(gs, tag, id, type, true).is_empty():
+					continue
+				var plan := Economy.build_plan(gs, id, type)
+				if n.treasury - plan.gold < reserve(gs, tag):
+					continue
+				var value := want(gs, tag, id, type) / maxf(plan.gold, 1.0)
+				if value > best_value + 0.000001:
+					best_id = id
+					best_type = type
+					best_value = value
+		if best_id == 0:
+			return
 		gs.issue_quiet(ConstructBuilding.new(tag, best_id, best_type))
+
+
+# --- The standing army ---------------------------------------------------------------------------
+
+## In peace, with a surplus, the standing army grows by army_growth_per_year (a twelfth a month), as long as the upkeep
+## of the men added takes at most army_surplus_share of the surplus, up to the standing cap.
+static func _army(gs: Node, tag: String) -> void:
+	var c := cfg()
+	var n: Nation = gs.nations[tag]
+	var net := float(n.budget.get("net", 0.0))
+	if not gs.wars_of(tag).is_empty() or net <= 0.0:
+		return
+	var per_man := Economy.division_upkeep(gs, n) / float(Military.cfg.unit_types.infantry.size)
+	var affordable := int(net * float(c.army_surplus_share) / maxf(per_man, 0.000001))
+	var grown := int(n.peacetime_army * float(c.army_growth_per_year) / 12.0)
+	var target := mini(n.peacetime_army + mini(grown, affordable), Economy.standing_cap(gs, n))
+	if target > n.peacetime_army:
+		gs.issue_quiet(SetEconomyPolicy.new(tag, "standing_army", float(target)))
 
 
 # --- Diplomacy points ----------------------------------------------------------------------------------

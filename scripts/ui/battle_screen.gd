@@ -157,9 +157,6 @@ func staff_report(battle: Dictionary) -> String:
 			ideas.append("one more level of trench would cut your daily loss by %d%%" % roundi(100.0 * (1.0 - dug.sides[me].loss / maxf(ours.loss, 1.0))))
 	if not ideas.is_empty():
 		lines.append("What would change it: " + "; ".join(ideas) + ". Terrain and the works of the province count already.")
-	var shells: float = GameState.nations[me].shell_ratio
-	if shells < 0.99:
-		lines.append("Your guns are short of shells: they got %d%% of what they needed and fight the weaker for it (more arms production, or buy abroad)." % roundi(shells * 100.0))
 	return "\n".join(lines)
 
 

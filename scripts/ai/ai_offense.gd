@@ -213,7 +213,7 @@ static func _pick_force(gs: Node, tag: String, target: int, armies: Array[Army],
 ## Roughly how many days an army needs to reach a province: the road over home ground goes faster by the nation's
 ## own railway net (see Military.move_days).
 static func _eta(gs: Node, tag: String, a: Army, target: int) -> float:
-	return _km(a.province, target) / a.speed() / (1.0 + float(Military.cfg.movement.home_rail) * gs.nations[tag].development)
+	return _km(a.province, target) / a.speed() / (1.0 + float(Military.cfg.movement.home_rail))
 
 
 ## A province we hold next to the target, nearest to the force.

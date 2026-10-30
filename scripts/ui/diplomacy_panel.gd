@@ -204,7 +204,7 @@ func _ready() -> void:
 
 	var gift_row := HBoxContainer.new()
 	var gift_label := Label.new()
-	gift_label.text = "Gift £M"
+	gift_label.text = "Gift (gold)"
 	gift_row.add_child(gift_label)
 	_action_labels.append(gift_label)
 	_gift_amount.min_value = 1.0
@@ -347,7 +347,7 @@ func _refresh() -> void:
 	_projects.visible = acting
 	if acting:
 		var price := Diplomacy.purchase_price(GameState, player)
-		_buy.text = "Buy %d points (£%.1fM)" % [int(Diplomacy.cfg.points.purchase.batch), price]
+		_buy.text = "Buy %d points (%s)" % [int(Diplomacy.cfg.points.purchase.batch), Fmt.gold(price)]
 		var buy_block := Diplomacy.purchase_block(GameState, player)
 		_buy.disabled = buy_block != ""
 		_buy.tooltip_text = BLOCKS[buy_block] if buy_block != "" else "Turn money into diplomacy points. The price rises with each purchase and eases back over the months."
@@ -606,7 +606,7 @@ func _refresh_actions() -> void:
 	var gift_cost := Diplomacy.cost_of("gift")
 	_gift_amount.max_value = maxf(1.0, floorf(treasury))
 	_gift.text = "Send gift (%d points)" % int(gift_cost)
-	_gift.tooltip_text = "Money for goodwill. £%dM would raise their opinion of you by about %.0f: more for a small nation, less for a big gift or after recent gifts." % [int(_gift_amount.value), Diplomacy.gift_effect(GameState, me, tag, _gift_amount.value)]
+	_gift.tooltip_text = "Gold for goodwill. %d gold would raise their opinion of you by about %.0f: more for a small nation, less for a big gift or after recent gifts." % [int(_gift_amount.value), Diplomacy.gift_effect(GameState, me, tag, _gift_amount.value)]
 	_gift.disabled = treasury < 1.0 or not Diplomacy.can_afford(GameState, me, gift_cost)
 
 
@@ -789,7 +789,7 @@ func _on_gift() -> void:
 	var amount := _gift_amount.value
 	var cmd := Gift.new(GameState.player_tag, _selected, amount)
 	if GameState.issue(cmd):
-		_status.text = "You sent £%.0fM to %s." % [amount, GameState.nations[_selected].display_name]
+		_status.text = "You sent %s to %s." % [Fmt.gold(amount), GameState.nations[_selected].display_name]
 		_status.modulate = Fmt.GOOD
 	else:
 		_status.text = BLOCKS["points"] if cmd.reason == "points" else "You cannot afford that."

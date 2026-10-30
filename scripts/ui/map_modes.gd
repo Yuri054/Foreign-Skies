@@ -2,7 +2,7 @@ extends VBoxContainer
 ## The map mode palette, in the style of the Paradox games: a row of buttons for the kinds of
 ## map (Political, Diplomacy, Economy, Population, Military, Terrain) in the bottom left corner.
 ## Above it, a strip for the kind you are looking at lists its variants as chips (Economy:
-## tax income, coal, iron ore, timber, buildings), and a colour legend shows what the shading
+## income, buildings), and a colour legend shows what the shading
 ## means. Keys 1 to 6 pick a kind; pressing the key again steps through its variants. Each kind
 ## remembers the variant you last used. Opening a window can change the mode too (the
 ## Diplomacy window switches to the Diplomacy map), so the palette follows the map view.
@@ -73,10 +73,7 @@ func _ready() -> void:
 
 
 func _build_groups() -> void:
-	var economy: Array = [{"label": "Tax income", "mode": MapView.Mode.INCOME, "sub": "", "tip": "Tax each province yields every month."}]
-	for r in Economy.resource_ids():
-		economy.append({"label": Economy.cfg.resources[r].name, "mode": MapView.Mode.RESOURCES, "sub": r,
-				"tip": "Where %s lies, and how much a province could yield a month." % Economy.cfg.resources[r].name.to_lower()})
+	var economy: Array = [{"label": "Income", "mode": MapView.Mode.INCOME, "sub": "", "tip": "Gold each province earns its owner a month: its base income and its buildings'."}]
 	economy.append({"label": "Buildings", "mode": MapView.Mode.BUILDINGS, "sub": MapView.ALL_BUILDINGS,
 			"tip": "Building levels by province. Pick one kind in the list that appears."})
 	_groups = [
@@ -84,7 +81,7 @@ func _build_groups() -> void:
 				"items": [{"label": "Political", "mode": MapView.Mode.POLITICAL, "sub": "", "tip": ""}]},
 		{"label": "Diplomacy", "tip": "How each nation feels about yours: red hostile, green friendly, teal allied, dark red at war. Outlines mark the blocs, hatching a nation that is guaranteed.",
 				"items": [{"label": "Diplomacy", "mode": MapView.Mode.DIPLOMACY, "sub": "", "tip": ""}]},
-		{"label": "Economy", "tip": "Tax income, coal, iron and timber deposits, and buildings.", "items": economy},
+		{"label": "Economy", "tip": "Income by province, and buildings.", "items": economy},
 		{"label": "Population", "tip": "People living in each province.",
 				"items": [{"label": "Population", "mode": MapView.Mode.POPULATION, "sub": "", "tip": ""}]},
 		{"label": "Military", "tip": "Who holds the ground, where the fronts are, how many men stand where, and who holds the sea.",
@@ -219,7 +216,7 @@ func _locate() -> Vector2i:
 			var it: Dictionary = _groups[g].items[i]
 			if it.mode != map_view.mode:
 				continue
-			if it.mode in [MapView.Mode.RESOURCES, MapView.Mode.MILITARY] and it.sub != map_view.submode:
+			if it.mode == MapView.Mode.MILITARY and it.sub != map_view.submode:
 				continue
 			return Vector2i(g, i)
 	return Vector2i(-1, -1)

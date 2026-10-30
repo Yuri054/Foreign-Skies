@@ -184,18 +184,18 @@ func _fuzz() -> void:
 		var cmd = null
 		match rng.randi() % 10:
 			0:
-				var types := ["factory", "port", "railway", "trench", "fortification", "bogus"]
+				var types := ["civilian_factory", "construction_sector", "port", "railway", "trench", "fortification", "bogus"]
 				cmd = _k("construct_building").new(tag, _province(tag), types[rng.randi() % types.size()])
 			1:
-				var types2 := ["factory", "trench", "fortification", "railway"]
-				cmd = _k("mass_construct_building").new(tag, types2[rng.randi() % types2.size()], rng.randi_range(0, 30), rng.randf_range(0.0, 60000.0))
+				var types2 := ["civilian_factory", "trench", "fortification", "railway"]
+				cmd = _k("mass_construct_building").new(tag, types2[rng.randi() % types2.size()], rng.randi_range(0, 30), rng.randf_range(0.0, 600.0))
 			2:
 				cmd = _k("move_army").new(tag, _army_id(tag), _province(tag) if rng.randf() < 0.5 else _province())
 			3:
 				var kinds := ["infantry", "cavalry", "artillery", "bogus"]
 				cmd = _k("raise_units").new(tag, _province(tag), kinds[rng.randi() % kinds.size()], rng.randi_range(0, 4))
 			4:
-				var pol := ["tax_rate", "mobilization", "bogus"]
+				var pol := ["standing_army", "mobilization", "bogus"]
 				cmd = _k("set_economy_policy").new(tag, pol[rng.randi() % pol.size()], rng.randf_range(-0.2, 1.4))
 			5:
 				cmd = _k("declare_war").new(tag, _tag())

@@ -554,13 +554,12 @@ func _draw_routes(px: float) -> void:
 		# A stack going to its place on a front marches in its army's colour.
 		var army_colour: Variant = army_colour_of(a)
 		var color: Color = SELECT_COLOR if picked else (Color(army_colour, 0.85) if army_colour != null else Color(1, 1, 1, 0.45))
-		var rail_ok := Military.railway_ok(GameState, a.tag)
 		var train_at := Vector2.ZERO
 		var longest := 0.0
 		for i in a.path.size():
 			var to: Vector2 = MapData.provinces[a.path[i]].center
 			# By rail where a railway runs on its own ground: dashed, with a train on the longest run.
-			var rail: bool = rail_ok and GameState.province_controller[a.path[i]] == a.tag and GameState.province_buildings[a.path[i]].get("railway", 0) > 0
+			var rail: bool = GameState.province_controller[a.path[i]] == a.tag and GameState.province_buildings[a.path[i]].get("railway", 0) > 0
 			if rail:
 				draw_line(from, to, Color(0.02, 0.03, 0.05, 0.6), (4.0 if picked else 3.0) * px)
 				draw_dashed_line(from, to, color, (2.5 if picked else 1.8) * px, 5.0 * px)

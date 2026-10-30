@@ -61,7 +61,7 @@ func _initialize() -> void:
 
 	_check(win.shown_tag() == "FRA" and win._name.text == "France" and win._flag.tag == "FRA", "it shows the player's nation, with its flag")
 	var text: String = _text(win)
-	for needle in ["your nation", "Capital", "Paris", "Population", "Output a month", "Net per month", "Treasury", "Under arms", "Mobilization", "War support", "Diplomacy points", "Alliances", "Russian Empire", "At war with", "nobody", "Raw materials"]:
+	for needle in ["your nation", "Capital", "Paris", "Population", "Income a month", "Net per month", "Treasury", "Under arms", "Mobilization", "War support", "Diplomacy points", "Alliances", "Russian Empire", "At war with", "nobody", "Civilian factories"]:
 		_check(text.contains(needle), "it lists %s" % needle)
 	_check(text.contains("#") and text.contains(" of 22"), "and ranks the figures that can be compared")
 	_check(not text.contains("Opinion of you"), "there is no opinion of yourself")
@@ -89,7 +89,7 @@ func _initialize() -> void:
 	gs.economy_updated.emit()
 	await process_frame
 	await process_frame
-	_check(_text(win).contains("£-12.0M"), "and a debt shows as one")
+	_check(_text(win).contains("-12.0 gold"), "and a debt shows as one")
 	gs.nations["GER"].treasury = treasury
 
 	# Capital lost, ground occupied.
