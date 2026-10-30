@@ -153,6 +153,7 @@ func _ready() -> void:
 	_scroll.custom_minimum_size = Vector2(MIN_CARDS, CommandCard.SIZE.y + 24.0)
 	_cards.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_cards)
+	# The cards that make a new group or army keep the silhouette placeholder.
 	for plus: CommandCard in [_add_group, _add_army]:
 		plus.empty = true
 		plus.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -682,7 +683,7 @@ func _make_block(block: Dictionary) -> Control:
 
 func _make_card(spec: Dictionary) -> CommandCard:
 	var card := CommandCard.new()
-	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "marks", "front", "plan", "executing", "army_colour", "portrait", "commands", "has_plan", "waiting"]:
+	for key: String in ["title", "badge", "skill", "line1", "line2", "strength", "morale", "tint", "selected", "fighting", "marshal", "empty", "vacant", "marks", "front", "plan", "executing", "army_colour", "portrait", "commands", "has_plan", "waiting"]:
 		if spec.has(key):
 			card.set(key, spec[key])
 	card.tooltip_text = spec.get("tip", "")
@@ -744,14 +745,14 @@ func _army_card(a: Army, tint: Color) -> Dictionary:
 	var o := Offensives.of_army(GameState, a)
 	var colour: Variant = ArmyLayer.army_colour_of(a)
 	return {"kind": "army", "id": a.id, "title": a.display_name, "badge": CommandCard.initials(a.general_name),
-			"skill": ("%.2f" % a.general_skill) if has_general else "", "empty": not has_general,
+			"skill": ("%.2f" % a.general_skill) if has_general else "", "empty": false, "vacant": not has_general,
 			"line1": "%d · %s" % [divisions, Fmt.people(men)],
 			"strength": men / maxf(full, 1.0), "morale": morale, "tint": tint, "selected": picked,
 			"fighting": fighting, "marks": marks, "tip": tip, "front": front_kind, "plan": o.kind if o != null else "",
 			"executing": o != null and o.active, "army_colour": colour if colour != null else Color(0, 0, 0, 0),
 			"commands": true, "has_plan": o != null,
 			"waiting": o != null and not o.active and Offensives.planning_of(GameState, a) < float(Offensives.cfg().get("planning_ready", 0.5)),
-			"portrait": Portraits.for_general(a.general_name, a.tag) if has_general else null}
+			"portrait": Portraits.for_general(a.general_name, a.tag) if has_general else Portraits.for_vacancy(a.display_name, a.tag)}
 
 
 func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
@@ -771,7 +772,7 @@ func _marshal_card(group: ArmyGroup, tint: Color) -> Dictionary:
 	var plans: Array = group.army_ids.filter(func(id: int) -> bool: return GameState.armies.has(id)).map(func(id: int) -> Variant: return Offensives.of_army(GameState, GameState.armies[id])).filter(func(o: Variant) -> bool: return o != null)
 	return {"kind": "marshal", "id": group.id, "title": group.display_name, "front": "front" if holds else "",
 			"commands": true, "has_plan": not plans.is_empty(), "executing": not plans.is_empty() and plans.all(func(o: Variant) -> bool: return o.active), "badge": CommandCard.initials(m.display_name) if m != null else "",
-			"skill": ("%.2f" % m.skill) if m != null else "", "empty": m == null, "marshal": true, "portrait": Portraits.for_general(m.display_name, m.tag) if m != null else null,
+			"skill": ("%.2f" % m.skill) if m != null else "", "empty": false, "vacant": m == null, "marshal": true, "portrait": Portraits.for_marshal(m.display_name, m.tag) if m != null else Portraits.for_vacancy(group.display_name, group.tag),
 			"line1": "%d armies" % group.army_ids.size(),
 			"tint": tint, "selected": all_selected, "tip": tip}
 

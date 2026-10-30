@@ -64,6 +64,9 @@ var waiting := false
 ## The commander's portrait (Portraits); an empty slot shows the silhouette, a card with neither (a fleet) a head and
 ## shoulders with its badge.
 var portrait: Texture2D = null
+## A card whose commander is missing (an army without a general, a group without a marshal): its portrait is a
+## stand-in, a face of its nation's, and it shows no skill figure; right clicking it gives it someone.
+var vacant := false
 var _hover := false
 
 

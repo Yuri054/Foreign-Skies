@@ -180,9 +180,13 @@ func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
 	_check(gs.generals.size() > 20 and missing == 0, "all %d generals of every nation have a portrait" % gs.generals.size())
 	_check(german_ok, "each in his nation's uniform (the German helmet, the French kepi, the Russian cap, else the khaki cap)")
 	_check(faces.size() >= 9, "and the faces vary (%d portraits in use)" % faces.size())
-	_check(Portraits.placeholder() != null and bar._add_army.empty and bar._add_group.empty, "the + cards show the silhouette")
+	_check(Portraits.placeholder() != null and bar._add_army.empty and bar._add_group.empty, "the cards that make an army or a group keep the silhouette placeholder")
 	if not bare.is_empty():
-		_check(_by_title(bar, bare[0].display_name).empty and _by_title(bar, bare[0].display_name).portrait == null, "an army without a general shows an empty slot, no portrait")
+		var vacant_card = _by_title(bar, bare[0].display_name)
+		_check(vacant_card.vacant and not vacant_card.empty and vacant_card.portrait != null and vacant_card.portrait == Portraits.for_vacancy(bare[0].display_name, "FRA"), "an army without a general shows a stand-in portrait, not the silhouette")
+
+	var faceless := _cards(bar).filter(func(c) -> bool: return not c.empty and c.portrait == null)
+	_check(faceless.is_empty(), "every army and group card has a portrait (%d without)" % faceless.size())
 
 	# Clicking a card selects the army; Shift adds another.
 	card.pressed.emit(false)
@@ -207,7 +211,15 @@ func _test_cards(bar: Node, panel: Node, gs: Node) -> void:
 	await process_frame
 	var marshals := _cards(bar).filter(func(c) -> bool: return c.marshal)
 	_check(marshals.size() == 1 and marshals[0].badge == CommandCardC.initials(free[0].display_name), "the group's block opens with a gold marshal card")
-	var a_general = _cards(bar).filter(func(c) -> bool: return not c.marshal and not c.empty)
+	# A field marshal wears his nation's marshal portrait, whoever he is; the other nations' marshals wear a general's.
+	var Portraits2 = load("res://scripts/ui/portraits.gd")
+	_check(marshals[0].portrait != null and marshals[0].portrait.resource_path == "res://assets/portraits/marshal_fra.jpg", "a French marshal wears the French marshal portrait (%s)" % marshals[0].portrait.resource_path)
+	var every := true
+	for tag in ["FRA", "GBR", "RUS", "GER"]:
+		every = every and Portraits2.for_marshal("Anyone", tag) != null and Portraits2.for_marshal("Anyone", tag) == Portraits2.for_marshal("Someone Else", tag)
+	_check(every and Portraits2.MARSHALS.size() == 4, "France, Britain, Russia and Germany each have one marshal portrait, the same for all of their marshals")
+	_check(Portraits2.for_marshal("Anyone", "ITA") == Portraits2.for_general("Anyone", "ITA"), "a nation without one gives its marshals a general's portrait")
+	var a_general = _cards(bar).filter(func(c) -> bool: return not c.marshal and not c.empty and not c.vacant)
 	_check(not a_general.is_empty() and marshals[0].size.x > a_general[0].size.x and marshals[0].size.y > a_general[0].size.y, "the marshal's card is bigger than a general's (%s against %s)" % [marshals[0].size, a_general[0].size if not a_general.is_empty() else Vector2.ZERO])
 	var total_before := _cards(bar).size()
 	_check(marshals[0].title == "Test Group" and marshals[0].line1 == "3 armies", "the marshal's card names the group and counts its armies (%s, %s)" % [marshals[0].title, marshals[0].line1])
