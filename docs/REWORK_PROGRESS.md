@@ -27,6 +27,11 @@ taken out, the gold economy put in), not yet released.
 
 ## Still to do before releasing 0.18.0
 
+A suite run that began mid-edit (so some failures may already be fixed) failed 15 of 102: ai_ambition, demand and
+scandinavia timed out at 400 s (look first: a slow or stuck loop in the new economy or the AI budget), and ai_forces,
+ai_navy, front_solver, history_book, infrastructure, military, pressure, pressures, province_panel, rankings,
+save_load and training failed.
+
 1. Run the full suite (`SPEED_TESTS=0 python3 tools/run_tests.py`) and the windowed tests; fix what fails. Fixed but
    not yet re-run: construction_ui, map_modes, build_mode_view, military_map, nation_stats, diplomacy(_ui),
    demobilize, navy, ai_* tests, pressure, scandinavia, scenario_1900, tutorial, visibility, economy_run.
