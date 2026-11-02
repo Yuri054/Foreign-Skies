@@ -3,7 +3,7 @@
 //!
 //! The terms an AI enemy asks (`AIPeace.price_terms`) and whether the beaten nation accepts them (`AIPeace.accepts`) are the AI's
 //! decisions, which are not ported: a test supplies them in `GameState::ai_dictation`, and the port stops with a message if
-//! they are missing. Recruiting is not ported, so a nation is taken to have nothing in training.
+//! they are missing. 
 
 use crate::peace::Demand;
 use crate::state::{Data, GameState};
@@ -143,6 +143,10 @@ impl GameState {
             men += a.men(&data.military);
         }
         self.armies.retain(|a| a.tag != tag);
+        for job in &self.nations[i].recruiting {
+            men += data.military.unit_type(&job.unit_type).size as f64;
+        }
+        self.nations[i].recruiting.clear();
         self.nations[i].manpower += men.round() as i64;
         self.refresh_men(data);
         let date = self.calendar.date_string();

@@ -213,6 +213,8 @@ fn tension_under_strain() {
         supplied: true,
         landed_supply: 0,
         fleet_id: 0,
+        general_id: 0,
+        training: false,
     });
     for p in w["wars"].as_array().unwrap() {
         gs.set_war(p[0].as_str().unwrap(), p[1].as_str().unwrap());

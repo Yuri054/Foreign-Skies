@@ -56,6 +56,31 @@ pub struct Army {
     pub landed_supply: i64,
     /// The fleet the army is aboard (0 = none).
     pub fleet_id: u32,
+    /// The general in command (0 = none).
+    pub general_id: u32,
+    /// On exercise (`Army.training`): standing still, its divisions gain experience and its men cost more upkeep.
+    pub training: bool,
+}
+
+/// A commander a nation holds (`General`): in the pool until he leads an army.
+#[derive(Debug, Clone, PartialEq)]
+pub struct General {
+    pub id: u32,
+    pub tag: String,
+    pub name: String,
+    pub skill: f64,
+    /// The army he leads (0 = in the pool).
+    pub army_id: u32,
+    /// The army group he commands (not ported: always 0).
+    pub group_id: u32,
+}
+
+/// A unit in training (`Nation.recruiting`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Recruit {
+    pub unit_type: String,
+    pub province: usize,
+    pub days_left: i64,
 }
 
 impl Army {

@@ -2,7 +2,7 @@
 //! orders and the routes armies take, their daily march, supply and the reach of the cities, battles, retreats and the
 //! pursuit, the ground taken, and the check that a nation has not lost enough to capitulate.
 //!
-//! Not ported yet: fronts, army groups and offensives (nothing here makes a front), recruiting, armies at sea, the water
+//! Not ported yet: fronts, army groups and offensives (nothing here makes a front), the water
 //! between provinces (a short sea crossing is taken as free of enemy ships, and a pocket of ground cut off from home that has
 //! a port would need the sea routes), the war's log and the battle records kept for the screens, and what follows a
 //! capitulation or the loss of a capital (the port stops with a message if either would happen).
@@ -502,6 +502,10 @@ impl GameState {
     /// nations with no ground left disband their armies. Returns whether a province changed hands (the economy is then worked
     /// out again).
     pub fn military_step_day(&mut self, data: &Data) -> bool {
+        // (fronts, offensives, army groups and attack lines come first in the game: not ported)
+        self.release_orphan_generals(data);
+        self.train_recruits(data);
+        self.drill(data);
         for a in &mut self.armies {
             a.fighting = false;
         }
@@ -1031,7 +1035,9 @@ impl GameState {
         let gone: Vec<String> = self.nations.iter().map(|n| n.tag.clone()).filter(|t| !holding.contains(t)).collect();
         for tag in gone {
             let mut men = 0.0;
-            let mut had_any = false;
+            let ni = self.nation_index[&tag];
+            let mut had_any = !self.nations[ni].recruiting.is_empty();
+            self.nations[ni].recruiting.clear();
             for a in self.armies.iter().filter(|a| a.tag == tag) {
                 men += a.men(&data.military);
                 had_any = true;

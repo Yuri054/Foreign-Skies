@@ -263,6 +263,8 @@ pub struct UnitType {
     pub shells: bool,
     /// Its share of a starting army's men.
     pub share: f64,
+    pub cost: f64,
+    pub train_days: i64,
 }
 
 /// The parts of `data/military.json` the ported rules read.
@@ -272,6 +274,7 @@ pub struct MilitaryConfig {
     pub unit_types: Vec<UnitType>,
     pub morale_floor_effect: f64,
     pub training_power_max: f64,
+    pub training_days_full: f64,
     pub training_cost_share: f64,
     pub landing_power_mult: f64,
     pub landing_days: i64,
@@ -356,6 +359,8 @@ impl MilitaryConfig {
                 speed: num(d, &["speed"])?,
                 shells: d.get("shells").and_then(Value::as_f64).unwrap_or(0.0) > 0.0,
                 share: num(d, &["share"])?,
+                cost: num(d, &["cost"])?,
+                train_days: num(d, &["train_days"])? as i64,
             });
         }
         let mut generals = vec![];
@@ -373,6 +378,7 @@ impl MilitaryConfig {
             field_share: num(&v, &["field_share"])?,
             unit_types,
             morale_floor_effect: num(&v, &["combat", "morale_floor_effect"])?,
+            training_days_full: v.get("training").and_then(|t| t.get("days_full")).and_then(Value::as_f64).unwrap_or(120.0),
             training_power_max: v.get("training").and_then(|t| t.get("power_max")).and_then(Value::as_f64).unwrap_or(0.0),
             training_cost_share: v.get("training").and_then(|t| t.get("cost_share")).and_then(Value::as_f64).unwrap_or(0.0),
             landing_power_mult: num(&v, &["landing", "power_mult"])?,

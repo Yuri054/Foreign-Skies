@@ -113,6 +113,7 @@ pub struct Nation {
     /// Works under construction, and hulls on the slips, in the order they were started.
     pub construction: Vec<Job>,
     pub shipbuilding: Vec<Job>,
+    pub recruiting: Vec<crate::military::Recruit>,
     /// The IC the last day's work took.
     pub construction_used: f64,
     /// Men killed this month, and in the war so far.
@@ -364,6 +365,8 @@ pub struct GameState {
     /// The armies, in the order they were raised (their ids rise with it).
     pub armies: Vec<Army>,
     pub next_army_id: u32,
+    pub generals: Vec<crate::military::General>,
+    pub next_general_id: u32,
     pub fleets: Vec<Fleet>,
     pub next_fleet_id: u32,
     /// Who holds each sea zone, in the order the zones were first met (`GameState.sea_control`).
@@ -639,6 +642,8 @@ impl GameState {
             materials_k: 0.0,
             armies: vec![],
             next_army_id: 1,
+            generals: vec![],
+            next_general_id: 1,
             fleets: vec![],
             next_fleet_id: 1,
             sea_control: vec![],
@@ -816,6 +821,7 @@ impl GameState {
                 budget: Budget::default(),
                 construction: vec![],
                 shipbuilding: vec![],
+                recruiting: vec![],
                 construction_used: 0.0,
                 deaths_month: 0.0,
                 war_dead: 0.0,
@@ -843,6 +849,8 @@ impl GameState {
         let mil = &data.military;
         self.armies.clear();
         self.next_army_id = 1;
+        self.generals.clear();
+        self.next_general_id = 1;
         let names: Vec<String> = data.map.provinces.iter().map(|p| p.name.clone()).collect();
         for ni in 0..self.nations.len() {
             let (tag, peacetime) = (self.nations[ni].tag.clone(), self.nations[ni].peacetime_army);
@@ -854,8 +862,14 @@ impl GameState {
             let stacks = military::stack_plan(deployment.get(&tag).unwrap_or(&null), &tag, &names, &self.province_owner)?;
             let first_id = self.next_army_id;
             self.next_army_id += stacks.len() as u32;
-            // Every general in the nation's list joins its pool; the first ones lead the armies.
+            // Every general in the nation's list joins its pool; the first ones lead the armies (one whose army is left with no
+            // units still has its id: he is freed on the first day).
             let generals = mil.generals_of(&tag);
+            for (i, g) in generals.iter().enumerate() {
+                let id = self.next_general_id;
+                self.next_general_id += 1;
+                self.generals.push(crate::military::General { id, tag: tag.clone(), name: g.0.clone(), skill: g.1, army_id: if i < stacks.len() { first_id + i as u32 } else { 0 }, group_id: 0 });
+            }
             let held = military::deal_units(mil, units, &stacks);
             for (i, stack) in stacks.iter().enumerate() {
                 if held[i].is_empty() {
@@ -877,6 +891,8 @@ impl GameState {
                     supplied: true,
                     landed_supply: 0,
                     fleet_id: 0,
+                    general_id: if i < generals.len() { self.generals[self.generals.len() - generals.len() + i].id } else { 0 },
+                    training: false,
                 });
             }
         }
@@ -887,20 +903,30 @@ impl GameState {
         Ok(())
     }
 
-    /// `Military.men_in_service`: men in the field plus recruits in training (none are training at the start).
+    /// `Military.men_in_service`: men in the field plus recruits in training.
     pub fn men_in_service(&self, data: &Data, tag: &str) -> i64 {
         let mut total = 0.0;
         for a in self.armies.iter().filter(|a| a.tag == tag) {
             total += a.men(&data.military);
         }
+        for job in &self.nation(tag).recruiting {
+            total += data.military.unit_type(&job.unit_type).size as f64;
+        }
         total.round() as i64
     }
 
-    /// `Military.refresh_men`: the men each nation has under arms.
+    /// `Military.refresh_men`: the men each nation has under arms, and how many of them are on exercise.
     pub fn refresh_men(&mut self, data: &Data) {
         for i in 0..self.nations.len() {
             self.nations[i].men_in_units = self.men_in_service(data, &self.nations[i].tag.clone());
             self.nations[i].men_exercising = 0;
+        }
+        for i in 0..self.armies.len() {
+            if self.armies[i].training {
+                let men = self.armies[i].men(&data.military).round() as i64;
+                let ni = self.nation_index[&self.armies[i].tag];
+                self.nations[ni].men_exercising += men;
+            }
         }
     }
 
