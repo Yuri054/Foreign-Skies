@@ -158,11 +158,18 @@ impl GameState {
 
     /// `Pressure.step_month`: the force of events fades, the world's idea of an armed Europe follows its armies, events come up,
     /// and rivalries between the powers harden under tension.
+    /// `Pressure.great_war_fought`: whether two great powers have fought each other and made peace.
+    pub fn great_war_fought(&self) -> bool {
+        self.war_history.iter().any(|w| GREAT.contains(&w.a.as_str()) && GREAT.contains(&w.b.as_str()) && w.end_day >= 0)
+    }
+
     pub fn pressure_step_month(&mut self, data: &Data) {
         let c = &data.pressure;
         self.tension_impulse = minf(self.tension_impulse * (1.0 - c.impulse_decay), c.impulse_max);
-        // Once the great powers have fought each other, what counts as armed follows the armies slowly (the wars that ended are
-        // kept by the peace rules, which are not ported: none has).
+        // Once the great powers have fought each other, what counts as armed follows the armies slowly, both ways.
+        if self.great_war_fought() {
+            self.tension_arms_base = maxf(1.0, self.tension_arms_base + (self.great_men() - self.tension_arms_base) * c.arms_drift);
+        }
         self.fire_events(data);
         self.update_tension(data);
         if self.tension >= c.harden_above {
@@ -259,8 +266,7 @@ impl GameState {
                 return false;
             }
         }
-        if c.get("after_great_war").and_then(Value::as_bool).unwrap_or(false) {
-            // a great war fought and ended: the peace rules that end wars are not ported, so none has
+        if c.get("after_great_war").and_then(Value::as_bool).unwrap_or(false) && !self.great_war_fought() {
             return false;
         }
         if c.get("no_great_war").and_then(Value::as_bool).unwrap_or(false) && self.wars.iter().any(|w| GREAT.contains(&w.a.as_str()) && GREAT.contains(&w.b.as_str())) {

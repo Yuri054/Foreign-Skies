@@ -28,6 +28,7 @@ pub struct Data {
     pub diplomacy: DiplomacyConfig,
     pub focus: FocusConfig,
     pub pressure: PressureConfig,
+    pub ai: crate::ai_peace::AiConfig,
 }
 
 impl Data {
@@ -43,6 +44,7 @@ impl Data {
             diplomacy: DiplomacyConfig::from_json_str(&read("diplomacy.json")?)?,
             focus: FocusConfig::from_json_str(&read("focus.json")?)?,
             pressure: PressureConfig::from_json_str(&read("events.json")?)?,
+            ai: crate::ai_peace::AiConfig::from_json_str(&read("ai.json")?)?,
         })
     }
 }
@@ -420,6 +422,14 @@ pub struct GameState {
     pub next_offer_id: u32,
     /// Pair key -> the day until which a refused proposer may not ask again.
     pub peace_cooldown: HashMap<String, i64>,
+    /// The nations making peace together at a conference (`Peace.joint_tags`).
+    pub joint_tags: Vec<String>,
+    /// A counter-offer waiting for the player (`GameState.conference_counter`).
+    pub conference_counter: Option<crate::conference::Counter>,
+    /// What the nations' temperaments are (`GameState.ai_traits`), the AI's seed (0: nothing varies), and its war plans.
+    pub ai_traits: HashMap<String, (f64, f64)>,
+    pub ai_seed: i64,
+    pub ai_plans: Vec<serde_json::Value>,
     pub cities: Vec<City>,
     /// What each province's people numbered when the scenario began: the cities grow and shrink with the ratio.
     pub province_pop_base: Vec<i32>,
@@ -440,6 +450,8 @@ pub struct GameState {
     /// The cities' reach over the ground (`Military.city_aura`), kept while who owns and holds what is unchanged.
     /// `Diplomacy._neighbor_nations`: the land neighbours of each nation, kept while the owners stay as they were. The lists are
     /// shared, as in the GDScript, where `_earn_unprovoked_aggression` adds to the cached list of the aggressor.
+    /// `Peace._value_cache`: the day, each province's value that day and each city province's people (`Peace.province_value`).
+    pub value_cache: RefCell<(i64, HashMap<usize, f64>, HashMap<usize, i64>)>,
     pub neighbor_cache: RefCell<Option<(u64, HashMap<String, Vec<String>>)>>,
     pub aura_cache: RefCell<Option<((u64, u64), HashMap<String, HashMap<usize, f64>>)>>,
     /// The nation the player plays ("" for none).
@@ -686,6 +698,11 @@ impl GameState {
             scenario_claims: scenario.get("claims").and_then(Value::as_array).cloned().unwrap_or_default(),
             next_offer_id: 1,
             peace_cooldown: HashMap::new(),
+            joint_tags: vec![],
+            conference_counter: None,
+            ai_traits: HashMap::new(),
+            ai_seed: 0,
+            ai_plans: vec![],
             next_war_id: 1,
             cities: vec![],
             province_pop_base: vec![],
@@ -697,6 +714,7 @@ impl GameState {
             control_version: 0,
             supply_cache: RefCell::new(SupplyCache::default()),
             home_cache: RefCell::new(HomeCache { day: -1, answers: HashMap::new() }),
+            value_cache: RefCell::new((-1, HashMap::new(), HashMap::new())),
             neighbor_cache: RefCell::new(None),
             aura_cache: RefCell::new(None),
             player_tag: scenario.get("default_player").and_then(Value::as_str).unwrap_or("").to_string(),

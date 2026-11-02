@@ -1,9 +1,8 @@
 //! Capitulation (`scripts/sim/capitulation.gd`, the part that acts): a nation whose enemies hold enough of what it is worth lays
 //! down its arms, a nation that loses its capital moves it (or capitulates if it cannot), and each enemy dictates its peace.
 //!
-//! The terms an AI enemy asks (`AIPeace.price_terms`) and whether the beaten nation accepts them (`AIPeace.accepts`) are the AI's
-//! decisions, which are not ported: a test supplies them in `GameState::ai_dictation`, and the port stops with a message if
-//! they are missing. 
+//! The terms an AI enemy asks (`AIPeace.price_terms`) and whether the beaten nation accepts them (`AIPeace.accepts`) are worked
+//! out by `ai_peace.rs`; a test may supply them in `GameState::ai_dictation` instead. 
 
 use crate::peace::Demand;
 use crate::state::{Data, GameState};
@@ -164,17 +163,22 @@ impl GameState {
             if enemy == self.player_tag {
                 continue; // the peace screen
             }
-            let pos = self
-                .ai_dictation
-                .iter()
-                .position(|d| d.enemy == enemy && d.tag == tag && d.war_id == war_id)
-                .unwrap_or_else(|| panic!("the AI's terms for {enemy} dictating to {tag} in war {war_id} are needed: the AI is not ported"));
-            let d = self.ai_dictation.remove(pos);
-            let mut terms = d.terms;
+            // The AI's terms (`AIPeace.price_terms`) and its answer (`AIPeace.accepts`), unless a test supplies them.
+            if let Some(pos) = self.ai_dictation.iter().position(|d| d.enemy == enemy && d.tag == tag && d.war_id == war_id) {
+                let d = self.ai_dictation.remove(pos);
+                let mut terms = d.terms;
+                if !self.check_peace(data, &enemy, tag, "demand", &terms).ok {
+                    terms = vec![];
+                }
+                self.propose_peace(data, &enemy, tag, "demand", terms, d.accepts);
+                continue;
+            }
+            let Some(w) = self.war_between(&enemy, tag) else { continue }; // (the war has ended already)
+            let mut terms = self.price_terms(data, &enemy, tag, w);
             if !self.check_peace(data, &enemy, tag, "demand", &terms).ok {
                 terms = vec![];
             }
-            self.propose_peace(data, &enemy, tag, "demand", terms, d.accepts);
+            self.propose_peace_ai(data, &enemy, tag, "demand", terms);
         }
     }
 }

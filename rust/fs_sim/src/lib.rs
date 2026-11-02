@@ -6,7 +6,9 @@
 //! ported and what is not.
 
 pub mod actions;
+pub mod ai_peace;
 pub mod army_mgmt;
+pub mod conference;
 pub mod budget;
 pub mod clock;
 pub mod config;

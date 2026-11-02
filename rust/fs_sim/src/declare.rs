@@ -24,6 +24,10 @@ pub struct WarGroup {
 }
 
 impl WarGroup {
+    pub fn side_pub(&self, tag: &str) -> Option<String> {
+        self.side_of(tag).map(String::from)
+    }
+
     fn side_of(&self, tag: &str) -> Option<&str> {
         self.members.iter().find(|(t, _)| t == tag).map(|(_, s)| s.as_str())
     }

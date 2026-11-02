@@ -63,10 +63,6 @@ func _initialize() -> void:
 		var snaps := [_snapshot()]
 		for d in run.days:
 			clock.advance_day()
-			# The AI proposes peace at the month's end whether or not it is switched off (Peace._ai_overtures), and it is not
-			# ported: the record stops with the last snapshot before a war ends.
-			if not gs.war_history.is_empty():
-				break
 			if d % run.every == run.every - 1:
 				snaps.append(_snapshot())
 		var answers := {}
@@ -124,7 +120,39 @@ func _snapshot() -> Dictionary:
 		owners.append(gs.province_owner[id])
 		controllers.append(gs.province_controller[id])
 		pops += gs.province_population[id]
-	return {"day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "armies": armies, "fleets": fleets, "wars": wars, "history": hist,
+	var AIP: GDScript = load("res://scripts/ai/ai_peace.gd")
+	var urges := []
+	for w in gs.wars.values():
+		for tag in [w.a, w.b]:
+			var p: Dictionary = AIP.proposal(gs, tag, w)
+			var parts: Dictionary = AIP.urge_parts(gs, tag, w)
+			urges.append([w.id, tag, B(parts.total), B(parts.score), B(parts.quiet), B(parts.allies), p.get("mode", ""), JSON.stringify(p.get("demands", []))])
+	var Pea: GDScript = load("res://scripts/sim/peace.gd")
+	var accepts := []
+	for w in gs.wars.values():
+		for pair in [[w.a, w.b], [w.b, w.a]]:
+			for mode in ["demand", "offer"]:
+				var taker: String = pair[0] if mode == "demand" else pair[1]
+				var giver: String = pair[1] if mode == "demand" else pair[0]
+				var held := []
+				for id in gs.nations[giver].provinces:
+					if gs.province_controller[id] == taker:
+						held.append(id)
+				var sets := [[], [{"kind": "indemnity", "share": 0.1, "months": 12}]]
+				if not held.is_empty():
+					sets.append([{"kind": "province", "ids": held.slice(0, 1)}])
+					sets.append([{"kind": "province", "ids": held.slice(0, 3)}, {"kind": "indemnity", "share": 0.2, "months": 12}])
+				for demands in sets:
+					var c: Dictionary = Pea.check(gs, pair[0], pair[1], mode, demands)
+					if not c.ok:
+						accepts.append([w.id, pair[0], mode, JSON.stringify(demands), "no"])
+						continue
+					var offer := {"id": 0, "war_id": w.id, "from": pair[0], "to": pair[1], "mode": mode, "taker": c.taker, "giver": c.giver, "demands": demands, "cost": c.cost, "forced": c.forced, "day": 0}
+					accepts.append([w.id, pair[0], mode, JSON.stringify(demands), "yes" if AIP.accepts(gs, offer) else "refuses"])
+	return {"accepts": accepts, "urges": urges, "day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "armies": armies, "fleets": fleets, "wars": wars, "history": hist,
 			"owners": owners, "controllers": controllers, "pop": pops, "relations": _bits_map(gs.relations), "tension": B(gs.tension),
 			"pending": gs.pending_events.size(), "chronicle": gs.chronicle.size() if "chronicle" in gs else -1, "treaties": gs.treaties.size(),
-			"groups": gs.war_groups.size(), "calls": gs.join_calls.size(), "grievance": _bits_map(gs.grievance)}
+			"groups": gs.war_groups.size(), "calls": gs.join_calls.size(), "grievance": _bits_map(gs.grievance),
+			"rivalries": _bits_map(gs.rivalries), "indemnities": gs.indemnities.map(func(i): return [i.payer, i.receiver, B(i.monthly), i.months_left]),
+			"claims": gs.claims.map(func(c): return [c.holder, c.against, Array(c.ids).duplicate(), c.expires_day]), "cooldown": gs.peace_cooldown.duplicate(),
+			"restrictions": gs.restrictions.size(), "tparts": _bits_map(load("res://scripts/sim/pressure.gd").parts(gs)), "arms_base": B(gs.tension_arms_base), "impulse": B(gs.tension_impulse), "relation_base": _bits_map(gs.relation_base)}

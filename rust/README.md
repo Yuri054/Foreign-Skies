@@ -51,6 +51,7 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `front.gd`, `front_solver.gd`, `Military.step_fronts`, `designate_front.gd`, `delete_front.gd`, `assign_to_front.gd`, `set_front_anchors.gd`, `set_front_line.gd`, `set_front_policy.gd`, `move_army.gd` | `front.rs`, `war.rs` | Fronts: a border with a nation (read again as the war changes who holds what), a hand-drawn chain or a garrison; armies assigned to them; the AI's armies each sent to hold a province (`_deal_slots`), the player's divisions spread along the line as detachments of their army (`FrontSolver`: sectors, shares by weight, reach by cohesion, pins by hand orders, merging back, promotion when the army is gone), the fallback line that digs in deeper. Offensives are not ported, so none ever controls an army. |
 | `offensive.gd`, `offensives.gd`, `plan_offensive.gd`, `set_offensive.gd`, `army.gd` (planning) | `offensive.rs` | Plans of attack: planning built up by stacks standing on their front and spent marching or fighting (and added to their power when they attack), a broad push, a spearhead gathering next to the next enemy province, an invasion gathering in a port and sailing (`SendOverseas`), attacks only at the odds and morale the aggressiveness asks, phases, and the commands (launch, aggressiveness, targets, phases, cancel). A launched spearhead or invasion has the army's stacks in hand, so the front does not spread them. |
 | `army_group.gd`, `attack_line.gd`, `attack_lines.gd`, `Military` (groups, `marshal_mult`), `create_army_group.gd`, `disband_army_group.gd`, `assign_to_group.gd`, `set_marshal.gd`, `create_attack_line.gd`, `delete_attack_line.gd`, `set_attack_line.gd` | `group.rs` | Army groups under a marshal from the nation's generals (his skill above 1, by `marshal_share`, multiplies the power of the group's armies and their detachments), pruning, and attack lines (made, switched on and off, dropped with their group, stopped when the war ends). The campaign an active line runs is the AI's (`AIOffense`): a day on which one would run stops the port with a message. |
+| `scripts/ai/ai_peace.gd`, `ai_coalition.gd`, `ai.gd` (noise, temperament), `conference.gd`, `propose_conference.gd`, `answer_conference.gd`, `peace.gd` (`surrender_terms`, `_separate_peace`), `war_goal.gd` (`progress`) | `ai_peace.rs`, `conference.rs`, `peace.rs`, `config.rs` | How the AI makes and takes peace: the urge to be out of a war, whether it takes a deal (`accepts`), what it proposes and the price it names (`price_terms`, `indemnity_for`), the monthly overtures, the coalition of a side (partners who make peace together, strained nations, holding to allies), and peace conferences: the package, its acceptance, the chair, counter-offers and the player's answer; a nation that makes peace apart from its side loses the trust of those still fighting. The AI's war plans (`ai_plans`) are not ported, so a nation's war aims are its stated war goal. Capitulation's dictated peace is now worked out here instead of supplied. |
 | `pressure.gd` | `pressure.rs`, `config.rs` | Europe's tension (arms race, mobilization, wars, rivalry, blocs, events), the monthly step (events fire by date and condition, roles by what a nation is now, the player's waiting decisions and their answers, every kind of effect, public appeals, rivalries hardening). A war or crisis event stops the port with a message. |
 | `population.gd` | `population.rs`, `state.rs` | The monthly step: growth, famine, occupation and war dead. |
 | `economy.gd` (budgets) | `budget.rs`, `state.rs` | `nation_budget` (revenue, costs, food, raw materials, industry, manpower), `materials_of`, soldier wages, `construction_points`, `_budgets`, `calibrate`. |
@@ -162,6 +163,13 @@ An eighteenth golden file, `group.json` (made by `tools/dump_group_golden.gd`), 
 refused (and the power of the armies under them), armies moved between groups, a group whose army dies, and attack lines made, refused, switched on and off and
 dropped when the war ends.
 
+A nineteenth golden file, `conference.json` (made by `tools/dump_conference_golden.gd`), plays the real `ProposeConference` and `AnswerConference` in six campaigns on the July 1914 war: demands small and
+large, refused with a cooldown, taken whole (a white peace for five nations at once), and a player enemy; the days after, in which the AI makes its own overtures. The whole-game
+golden file `game.json` now runs on past the AI's peaces (July 1914: five wars end at once on 4 April 1915, the last on 4 May; the
+shipped scenario for 400 days) and compares, every ten days, every nation's urge for peace and what it would propose, and whether it would take
+more than three thousand deals of each kind. Value of a province is kept for the day, as the game does (a change in the people later in that
+day is not seen until the next); the arms base of tension drifts after a great war.
+
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
 (development, people, province lists, summed output) and the raw-materials constant, for July 1914 and January 1900,
@@ -175,8 +183,7 @@ costs, 200 worker shares, 180 population steps and so on). Breaking any of these
 The heart of it is in: the economy, population, focus, diplomacy, war on the map and at sea, peace, pressure events, declaring war and
 capitulation, run together by `advance_day`. Still missing: `level_gain` and `building_stats` (what the screens show); `Crisis`
 (the crises between nations); in war, the AI's campaigns for an attack line, and
-`save_game.gd`, `history`, `standings` and the briefing. The AI (`scripts/ai`) is not part of this port: its
-choices (to join a war, to propose or accept a peace and on what terms, to mobilize, to fight) are passed in where the rules need them.
+`save_game.gd`, `history`, `standings` and the briefing. The AI (`scripts/ai`) is ported only where the rules lean on it: its peace (`ai_peace.rs`, with the coalition and temperament). Its choices to join a war, to mobilize and to fight (diplomacy, defence, offence, forces, navy, landing, ambition) are not part of this port and are passed in where the rules need them.
 
 The simulation uses no random numbers (only the main menu and the city drawing do), so the port has no Godot generator to
 match.
@@ -184,4 +191,4 @@ match.
 ## What comes next
 
 1. `crisis.gd` (the crises that open between nations), peace conferences (`conference.gd`), and the records the screens read (history, standings, briefing, intel, save games).
-2. The AI (`scripts/ai`): its peace overtures, and its choices to join a war, to mobilize and to fight, are what the whole-game test has to stop at.
+2. The rest of the AI (`scripts/ai`): its choices to join a war (`AIDiplomacy.joins`), to mobilize and to declare, and its offence, defence, forces, navy and landings. They need their own golden files; with the AI switched off the whole-game test now runs to the end.

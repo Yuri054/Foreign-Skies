@@ -11,7 +11,7 @@ use fs_sim::state::{Data, GameState};
 use serde_json::Value;
 use std::path::Path;
 
-fn run(index: usize) -> String {
+fn run(index: usize, supplied: bool) -> String {
     let data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
     let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/capitulation.json")).unwrap();
     let all: Value = serde_json::from_str(&text).unwrap();
@@ -43,7 +43,7 @@ fn run(index: usize) -> String {
                 assert_eq!(ok, act[3].as_bool().unwrap(), "{label}");
             }
             "step" => {
-                gs.ai_dictation = act[1]
+                gs.ai_dictation = if !supplied { vec![] } else { act[1]
                     .as_array()
                     .unwrap()
                     .iter()
@@ -54,7 +54,7 @@ fn run(index: usize) -> String {
                         terms: demands(&d["terms"]),
                         accepts: d["accepted"].as_bool().unwrap_or(false),
                     })
-                    .collect();
+                    .collect() };
                 gs.capitulation_step_day(&data);
                 assert!(gs.ai_dictation.is_empty(), "{label}: the AI's terms were not all used");
             }
@@ -110,6 +110,16 @@ fn capitulations_agree_with_the_gdscript() {
     let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/capitulation.json")).unwrap();
     let n = serde_json::from_str::<Value>(&text).unwrap().as_array().unwrap().len();
     for i in 0..n {
-        println!("{}: agrees with the GDScript", run(i));
+        println!("{}: agrees with the GDScript", run(i, true));
+    }
+}
+
+/// The same wars with no terms supplied: the port's own `AIPeace` asks for them and answers.
+#[test]
+fn capitulations_with_the_ai_ported_agree_with_the_gdscript() {
+    let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/capitulation.json")).unwrap();
+    let n = serde_json::from_str::<Value>(&text).unwrap().as_array().unwrap().len();
+    for i in 0..n {
+        println!("{}: agrees with the GDScript", run(i, false));
     }
 }

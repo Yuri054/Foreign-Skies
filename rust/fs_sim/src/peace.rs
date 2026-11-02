@@ -1,10 +1,8 @@
 //! War score, peace offers and peace terms (`scripts/sim/peace.gd`, `war_goal.gd`, and the parts of `capitulation.gd` and
 //! `diplomacy.gd` they use): what a war's score is, what a demand costs, whether terms can be made, and what making peace does.
 //!
-//! Whether an AI nation accepts an offer is the AI's decision (`AIPeace.accepts`), which is not part of this port: `propose`
-//! takes the answer as an argument. A conference, the AI's own offers and the dictated peace after a capitulation are not
-//! ported; nor is a war's log. Separate peaces inside a conflict (`_separate_peace`) need the join groups of a war, which
-//! only declaring war opens: they are not ported.
+//! Whether an AI nation accepts an offer is `AIPeace.accepts` (`ai_peace.rs`); `propose_peace` takes the answer as an argument
+//! (the tests supply it), `propose_peace_ai` works it out. Conferences are in `conference.rs`. A war's log is not ported.
 
 use crate::gd::{clampf, maxf, minf};
 use crate::pressure::GREAT;
@@ -131,6 +129,10 @@ impl GameState {
     }
 
     /// `Peace.capital_taken_by`: who holds a nation's (home) capital if it is not the nation itself, else "".
+    pub fn capital_taken_by_pub(&self, tag: &str) -> String {
+        self.capital_taken_by(tag)
+    }
+
     fn capital_taken_by(&self, tag: &str) -> String {
         let home = self.home_capital(tag);
         if home <= 0 {
@@ -497,6 +499,15 @@ impl GameState {
     /// `Peace.propose`: makes a proposal. An AI target answers at once (`ai_accepts` is its answer: `AIPeace.accepts`); the
     /// player is asked, unless they have capitulated, when the terms are imposed. A refusal puts the proposer on a cooldown.
     pub fn propose_peace(&mut self, data: &Data, from: &str, to: &str, mode: &str, demands: Vec<Demand>, ai_accepts: bool) -> Proposed {
+        self.propose_inner(data, from, to, mode, demands, Some(ai_accepts))
+    }
+
+    /// `Peace.propose` with the AI's own answer (`AIPeace.accepts`).
+    pub fn propose_peace_ai(&mut self, data: &Data, from: &str, to: &str, mode: &str, demands: Vec<Demand>) -> Proposed {
+        self.propose_inner(data, from, to, mode, demands, None)
+    }
+
+    fn propose_inner(&mut self, data: &Data, from: &str, to: &str, mode: &str, demands: Vec<Demand>, ai: Option<bool>) -> Proposed {
         let c = self.check_peace(data, from, to, mode, &demands);
         if !c.ok {
             return Proposed { ok: false, reason: c.reason, accepted: Some(false) };
@@ -525,6 +536,10 @@ impl GameState {
             self.pending_offers.push(offer);
             return Proposed { ok: true, reason: String::new(), accepted: None };
         }
+        let ai_accepts = match ai {
+            Some(a) => a,
+            None => self.ai_accepts(data, &offer),
+        };
         self.resolve_offer(data, &offer, ai_accepts);
         Proposed { ok: true, reason: String::new(), accepted: Some(ai_accepts) }
     }
@@ -689,6 +704,7 @@ impl GameState {
         let score_taker = self.war_score(data, war, &taker);
         let _ = score_taker;
         let (a, b) = (self.wars[war].a.clone(), self.wars[war].b.clone());
+        let war_id_pair = (a.clone(), b.clone(), self.wars[war].war_group);
         self.end_war(war);
         for d in &offer.demands {
             self.apply_demand(data, &taker, &giver, d, true);
@@ -709,7 +725,57 @@ impl GameState {
             self.gain_prestige(&taker, earned);
             self.gain_prestige(&giver, -earned * p.peace_loser_share);
         }
-        // (A separate peace inside a conflict needs the join groups of a war: not ported.)
+        self.separate_peace(data, war_id_pair);
+    }
+
+    /// `Peace._separate_peace`: a nation that makes peace while its side is still fighting the same enemy loses the trust of those
+    /// still fighting, and leaves the conflict once it has no enemy left in it.
+    fn separate_peace(&mut self, data: &Data, war: (String, String, u32)) {
+        let (a, b, group) = war;
+        let Some(gi) = self.war_groups.iter().position(|g| g.id == group) else { return };
+        let ai = &data.diplomacy.peace;
+        for (tag, enemy) in [(a.clone(), b.clone()), (b.clone(), a.clone())] {
+            let Some(side) = self.war_groups[gi].side_pub(&tag) else { continue };
+            let mut deserted = false;
+            for ally in self.group_side(group, &side) {
+                if ally != tag && self.at_war(&ally, &enemy) && !(self.joint_tags.contains(&ally) && self.joint_tags.contains(&tag)) {
+                    self.change_relation(data, &tag, &ally, ai.separate_peace_relations);
+                    deserted = true;
+                }
+            }
+            if deserted {
+                let ti = self.nation_index[&tag];
+                self.nations[ti].prestige += ai.separate_peace_prestige;
+            }
+            let opposite = if side == "attack" { "defend" } else { "attack" };
+            let mut still = false;
+            for foe in self.group_side(group, opposite) {
+                if self.at_war(&tag, &foe) {
+                    still = true;
+                }
+            }
+            if !still {
+                self.war_groups[gi].members.retain(|(t, _)| *t != tag);
+            }
+        }
+    }
+
+    /// `Peace.surrender_terms`: terms a losing nation can offer a winner: the winner's ground it holds, dearest first, as much as the
+    /// winner's war score can pay for. Empty if it holds none.
+    pub fn surrender_terms(&self, data: &Data, war: usize, loser: &str, winner: &str) -> Vec<Demand> {
+        let budget = self.war_score(data, war, winner) * data.diplomacy.peace.surrender_budget_share;
+        let mut held: Vec<usize> = self.nation(loser).provinces.iter().copied().filter(|&id| self.province_controller[id] == winner).collect();
+        crate::gd::sort_custom(&mut held, |&x, &y| self.province_price(data, x, winner, loser) > self.province_price(data, y, winner, loser));
+        let (ids, spent) = self.pick_takeable(data, winner, loser, &held, &|id| self.province_price(data, id, winner, loser), budget);
+        if ids.is_empty() {
+            return vec![];
+        }
+        let mut terms = vec![Demand::Province(ids)];
+        // A loser that has little ground left to give offers an indemnity for the rest of what it can be made to pay.
+        if let Some(ind) = self.indemnity_for(data, winner, loser, budget - spent) {
+            terms.push(ind);
+        }
+        terms
     }
 
     /// `Peace._withdraw_armies`: armies that now stand on ground their nation may not enter go to the nearest ground it may.
@@ -784,5 +850,6 @@ impl GameState {
         }
         let today = self.day_p();
         self.restrictions.retain(|r| today < r.until_day);
+        self.ai_overtures(data);
     }
 }

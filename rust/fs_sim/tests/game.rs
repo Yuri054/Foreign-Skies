@@ -88,8 +88,88 @@ fn compare(label: &str, gs: &GameState, data: &Data, w: &Value, fails: &mut Vec<
             fails.push(format!("{label}: {what} has extra entries"));
         }
     }
+    let riv = w["rivalries"].as_object().unwrap();
+    if gs.rivalries.len() != riv.len() || riv.iter().any(|(k, v)| gs.rivalries.get(k).map(|x| !close(*x, bits(v))).unwrap_or(true)) {
+        fails.push(format!("{label}: rivalries {:?} vs {}", gs.rivalries, w["rivalries"]));
+    }
+    let inds: Vec<Value> = gs.indemnities.iter().map(|i| serde_json::json!([i.payer, i.receiver, i.monthly, i.months_left])).collect();
+    let ind_bad = gs.indemnities.iter().zip(w["indemnities"].as_array().unwrap()).any(|(i, x)| !close(i.monthly, bits(&x[2])) || i.months_left != x[3].as_i64().unwrap());
+    if inds.len() != w["indemnities"].as_array().unwrap().len() || ind_bad {
+        fails.push(format!("{label}: indemnity amounts {:?} vs {}", gs.indemnities.iter().map(|i| (i.monthly, i.months_left)).collect::<Vec<_>>(), w["indemnities"]));
+    }
+    if false {
+        fails.push(format!("{label}: indemnities {} vs {}", inds.len(), w["indemnities"]));
+    }
+    let claims: Vec<Value> = gs.claims.iter().map(|c| serde_json::json!([c["holder"], c["against"], c["ids"], c["expires_day"]])).collect();
+    if claims != *w["claims"].as_array().unwrap() {
+        fails.push(format!("{label}: claims {} vs {}", Value::Array(claims.clone()), w["claims"]));
+    }
+    let base = w["relation_base"].as_object().unwrap();
+    if base.iter().any(|(k, v)| gs.relation_base.get(k).map(|x| !close(*x, bits(v))).unwrap_or(true)) {
+        fails.push(format!("{label}: relation baselines differ"));
+    }
+    let tp = gs.tension_parts(data);
+    for (k, got) in [("arms", tp.arms), ("mobilization", tp.mobilization), ("wars", tp.wars), ("rivalry", tp.rivalry), ("events", tp.events)] {
+        if !close(got, bits(&w["tparts"][k])) {
+            fails.push(format!("{label}: tension part {k} {got:e} vs {:e}", bits(&w["tparts"][k])));
+        }
+    }
+    if !close(gs.tension_arms_base, bits(&w["arms_base"])) || !close(gs.tension_impulse, bits(&w["impulse"])) {
+        fails.push(format!("{label}: arms base {:e} vs {:e}, impulse {:e} vs {:e}", gs.tension_arms_base, bits(&w["arms_base"]), gs.tension_impulse, bits(&w["impulse"])));
+    }
     if !close(gs.tension, bits(&w["tension"])) {
         fails.push(format!("{label}: tension {:e} vs {:e}", gs.tension, bits(&w["tension"])));
+    }
+    let mut ui = 0;
+    let want_urges = w["urges"].as_array().unwrap();
+    for (wi, war) in gs.wars.iter().enumerate() {
+        for tag in [war.a.clone(), war.b.clone()] {
+            let x = &want_urges[ui];
+            ui += 1;
+            let parts = gs.urge_parts(data, &tag, wi);
+            for (k, got, i) in [("urge", parts.total, 2), ("score part", parts.score, 3), ("quiet part", parts.quiet, 4), ("allies part", parts.allies, 5)] {
+                if !close(got, bits(&x[i])) {
+                    fails.push(format!("{label}: {k} of {tag} in war {} {got:e} vs {:e}", war.id, bits(&x[i])));
+                }
+            }
+            let p = gs.ai_proposal(data, &tag, wi);
+            let mode = p.as_ref().map(|p| p.mode.clone()).unwrap_or_default();
+            let n = p.as_ref().map(|p| p.demands.len()).unwrap_or(0);
+            let want_n = serde_json::from_str::<Value>(s(&x[7])).unwrap().as_array().unwrap().len();
+            if mode != s(&x[6]) || n != want_n {
+                fails.push(format!("{label}: proposal of {tag} {mode} {n} vs {} {want_n}", x[6]));
+            }
+        }
+    }
+    let mut ai = 0;
+    let want_accepts = w["accepts"].as_array().unwrap();
+    for (wi, war) in gs.wars.iter().enumerate() {
+        for (from, to) in [(war.a.clone(), war.b.clone()), (war.b.clone(), war.a.clone())] {
+            for mode in ["demand", "offer"] {
+                let (taker, giver) = if mode == "demand" { (from.clone(), to.clone()) } else { (to.clone(), from.clone()) };
+                let held: Vec<usize> = gs.nation(&giver).provinces.iter().copied().filter(|&id| gs.province_controller[id] == taker).collect();
+                let mut sets: Vec<Vec<fs_sim::peace::Demand>> = vec![vec![], vec![fs_sim::peace::Demand::Indemnity { share: 0.1, months: 12 }]];
+                if !held.is_empty() {
+                    sets.push(vec![fs_sim::peace::Demand::Province(held[..1].to_vec())]);
+                    sets.push(vec![fs_sim::peace::Demand::Province(held[..held.len().min(3)].to_vec()), fs_sim::peace::Demand::Indemnity { share: 0.2, months: 12 }]);
+                }
+                for demands in sets {
+                    let x = &want_accepts[ai];
+                    ai += 1;
+                    let c = gs.check_peace(data, &from, &to, mode, &demands);
+                    let got = if !c.ok {
+                        "no"
+                    } else {
+                        let offer = fs_sim::peace::Offer { id: 0, war_id: war.id, from: from.clone(), to: to.clone(), mode: mode.to_string(), taker: c.taker.clone(), giver: c.giver.clone(), demands: demands.clone(), cost: c.cost, forced: c.forced, day: 0, note: String::new() };
+                        if gs.ai_accepts(data, &offer) { "yes" } else { "refuses" }
+                    };
+                    let _ = wi;
+                    if got != s(&x[4]) {
+                        fails.push(format!("{label}: war {} {from}>{to} {mode} {:?}: {got} vs {}", war.id, demands, x[4]));
+                    }
+                }
+            }
+        }
     }
     let counts = (gs.pending_events.len() as i64, gs.treaties.len() as i64, gs.war_groups.len() as i64, gs.join_calls.len() as i64);
     let want = (w["pending"].as_i64().unwrap(), w["treaties"].as_i64().unwrap(), w["groups"].as_i64().unwrap(), w["calls"].as_i64().unwrap());

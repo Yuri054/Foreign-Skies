@@ -1079,19 +1079,33 @@ impl GameState {
 
     // ---------------------------------------------------------------- capitulation (`scripts/sim/capitulation.gd`)
 
-    /// `Peace.province_value`: what a province is worth in a war: its people, its city and its buildings.
+    /// `Peace.province_value`: what a province is worth in a war: its people, its city and its buildings. Worked out once a day
+    /// (the first time it is asked that day), as the game does: a change in the people later in the day is not seen until the next.
     pub fn province_value(&self, data: &Data, id: usize) -> f64 {
-        let w = &data.diplomacy.capitulation;
-        let mut city_pop = 0i64;
-        for c in self.cities.iter().filter(|c| c.province == id) {
-            city_pop += self.city_population(c);
+        let today = self.calendar.days_elapsed as i64;
+        {
+            let mut cache = self.value_cache.borrow_mut();
+            if cache.0 != today {
+                *cache = (today, HashMap::new(), HashMap::new());
+                for c in &self.cities {
+                    let pop = self.city_population(c);
+                    *cache.2.entry(c.province).or_insert(0) += pop;
+                }
+            }
+            if let Some(&v) = cache.1.get(&id) {
+                return v;
+            }
         }
+        let w = &data.diplomacy.capitulation;
+        let city_pop = self.value_cache.borrow().2.get(&id).copied().unwrap_or(0);
         let mut v = w.value_population * self.province_population[id] as f64 / 1e6 + w.value_city * city_pop as f64 / 1e6;
         for (kind, level) in &self.province_buildings[id] {
             let weight = w.value_buildings.iter().find(|(k, _)| k == kind).map(|(_, x)| *x).unwrap_or(0.0);
             v += weight * *level as f64;
         }
-        maxf(v, w.value_minimum)
+        let v = maxf(v, w.value_minimum);
+        self.value_cache.borrow_mut().1.insert(id, v);
+        v
     }
 
     /// `Cities.population`: a city grows and shrinks with its province's people.
