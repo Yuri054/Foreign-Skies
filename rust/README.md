@@ -37,7 +37,8 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `war_support.gd` (part) | `config.rs`, `state.rs` | What a government starts with, and the tax curve at war (`economy_mult`). |
 | `economy.gd` (steps) | `state.rs` | `step_day` (war weariness and starvation, munitions made, hulls and buildings built), `step_month` (treasury, development, wages, the AI's standing army, manpower), the job queue. |
 | `focus.gd` | `config.rs`, `state.rs` | The national focus: `tree_of`, `block`, `start`, the daily step, `complete` and `apply_effects` (lasting bonuses, prestige, points, money, war support, army size, relations, claims). |
-| `diplomacy.gd` (part) | `state.rs` | Relations (`relation`, `set_relation`, `change_relation`), diplomacy points (`gain`) and prestige, which the focus uses. Treaties, wars and the monthly drift are not ported. |
+| `diplomacy.gd` (part) | `diplomacy.rs`, `state.rs` | `load_scenario` (the treaty web, every pair's opinion and baseline, rivalries), relations, diplomacy points and prestige, `step_day` (mobilization, alarms, call-ups, `mobilization_target`), `step_month` (points income and rank, projects, prestige, grievance, gifts, the drift of opinion), and neighbours (`MapData.neighbors`). |
+| `war_support.gd` (part) | `diplomacy.rs` | `monthly_changes` and `step_month`. (A forced white peace needs the peace rules and stops the port with a message.) |
 | `population.gd` | `population.rs`, `state.rs` | The monthly step: growth, famine, occupation and war dead. |
 | `economy.gd` (budgets) | `budget.rs`, `state.rs` | `nation_budget` (revenue, costs, food, raw materials, industry, manpower), `materials_of`, soldier wages, `construction_points`, `_budgets`, `calibrate`. |
 
@@ -59,6 +60,12 @@ real daily and monthly economy running, and effects applied by hand (a claim, ar
 limits). Each month's focus, foci done, bonuses, treasury, war support, army, prestige, points, relations and claims are
 compared. (The starting relations are read from the game: the loader for them is not ported yet.)
 
+A fifth golden file, `diplomacy.json` (made by `tools/dump_diplomacy_golden.gd`), is the treaties, opinions and rivalries
+each scenario loads with (18 treaties and 231 opinions in July 1914, 9 and 231 in January 1900), and then a year and a half
+of the real `Diplomacy.step_day` and `step_month` on top of the economy with great powers mobilizing, an opinion project,
+gifts, a casus belli and a rivalry that lapse, and a nation of negative prestige. War support's monthly changes at war (the
+war itself, taxes, men lost, blockade, ground lost, debt) and its step are compared too.
+
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
 (development, people, province lists, summed output) and the raw-materials constant, for July 1914 and January 1900,
@@ -70,19 +77,19 @@ costs, 200 worker shares, 180 population steps and so on). Breaking any of these
 ## What is not ported
 
 Most of it. Still missing from the economy: `level_gain` and `building_stats` (what the screens show). The loader does not
-start a scenario's wars, set up diplomacy (treaties, relations, claims), the AI, pressure or crises, and the game's own
-daily step (`game_state.gd`'s stages: economy and focus are ported, then `Navy`, `Military`, `Diplomacy`, `Crisis` and the
-AI) is not. Next come `diplomacy.gd`, `military.gd` (movement, supply, battles, fronts), `navy.gd` (movement and battles),
-`peace.gd`, `pressure.gd`, `crisis.gd` and the war and front code. They need the map's neighbours and sea zones. The AI
-(`scripts/ai`) is not part of this port.
+start a scenario's wars, and the game's own daily step (`game_state.gd`'s stages: economy, focus and diplomacy's day and
+month are ported; `Navy`, `Military`, `Crisis` and the AI are not). In diplomacy: declaring war, proposing and cancelling
+treaties, claims, the join decisions of a war and the casus belli rules. Next come `military.gd` (movement, supply,
+battles, fronts), `navy.gd` (movement and battles), `peace.gd`, `pressure.gd`, `crisis.gd` and the war and front code.
+They need the sea zones. The AI (`scripts/ai`) is not part of this port.
 
 The simulation uses no random numbers (only the main menu and the city drawing do), so the port has no Godot generator to
 match.
 
 ## What comes next
 
-1. Port `diplomacy.gd`'s setup (`load_scenario`: treaties, relations, claims) and its monthly step, so the relations the
-   focus uses are loaded and drift as in the game.
-2. Load the map's neighbours (`data/map/adjacencies.tsv`) and port the movement and battle rules of `military.gd`,
-   comparing days of the real game with the AI off.
-3. Then navy, diplomacy and peace, pressure and crises, comparing whole days of the real game at each step.
+1. Port `pressure.gd` and `crisis.gd` (Europe's tension, the events and the crises that open between nations), the next stages of
+   the day and the month.
+2. Port the movement and battle rules of `military.gd` (neighbours are loaded already), comparing days of the real game with
+   the AI off.
+3. Then declaring war and peace, the navy, and whole days of the real game at each step.

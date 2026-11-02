@@ -3,6 +3,7 @@
 
 use crate::tsv::Table;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::Path;
 
 /// Ground area of one bitmap pixel (`MapData.KM2_PER_PX`).
@@ -37,9 +38,18 @@ pub struct MapData {
     pub provinces: Vec<Province>,
     /// In the order of `data/nations.json`, which is the order the game goes through its nations.
     pub nations: Vec<NationInfo>,
+    /// Provinces next to each province, by id, in the order the borders are listed (land borders and sea crossings).
+    pub adjacency: Vec<Vec<usize>>,
+    /// The kind of each crossing that is not a land border, by (lower id, higher id): "strait" or "sea".
+    pub sea_links: HashMap<(usize, usize), String>,
 }
 
 impl MapData {
+    /// `Military.neighbors`: land provinces (and strait crossings) one step away; open-sea links need a navy.
+    pub fn neighbors(&self, id: usize) -> impl Iterator<Item = usize> + '_ {
+        self.adjacency[id].iter().copied().filter(move |&n| self.sea_links.get(&(id.min(n), id.max(n))).map(String::as_str) != Some("sea"))
+    }
+
     pub fn load(data_dir: &Path) -> Result<MapData, String> {
         let mut provinces = vec![Province { id: 0, name: String::new(), owner: String::new(), area: 0, coastal: false }];
         for row in Table::read(&data_dir.join("map/provinces.tsv"))?.rows() {
@@ -66,6 +76,19 @@ impl MapData {
             .iter()
             .map(|(tag, d)| NationInfo { tag: tag.clone(), name: d["name"].as_str().unwrap_or("").to_string() })
             .collect();
-        Ok(MapData { provinces, nations })
+        let mut adjacency: Vec<Vec<usize>> = vec![vec![]; provinces.len()];
+        let mut sea_links = HashMap::new();
+        for row in Table::read(&data_dir.join("map/adjacencies.tsv"))?.rows() {
+            let (a, b) = (row.int("id_a") as usize, row.int("id_b") as usize);
+            for (x, y) in [(a, b), (b, a)] {
+                if !adjacency[x].contains(&y) {
+                    adjacency[x].push(y);
+                }
+            }
+            if row.get("kind") != "land" {
+                sea_links.insert((a.min(b), a.max(b)), row.get("kind").to_string());
+            }
+        }
+        Ok(MapData { provinces, nations, adjacency, sea_links })
     }
 }

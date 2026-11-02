@@ -4,6 +4,7 @@
 
 use crate::budget::{self, Budget};
 use crate::clock::Calendar;
+use crate::diplomacy::is_equal_approx;
 use crate::config::{DiplomacyConfig, EconomyConfig, Effects, FocusConfig, FocusEffects, MilitaryConfig, NavyConfig, WarSupportConfig};
 use crate::economy::{self, EconNation, Job};
 use crate::gd::{clampf, maxf};
@@ -73,6 +74,10 @@ pub struct Nation {
     pub population: i64,
     pub government: String,
     pub war_support: f64,
+    /// What war support settles at in peace (the scenario's, or its government's).
+    pub war_support_base: f64,
+    /// Men lost in battle so far this month.
+    pub men_lost_month: f64,
     /// Monthly state investment (GBP millions).
     pub investment: f64,
     pub weariness: f64,
@@ -129,6 +134,63 @@ pub struct ActiveFocus {
     pub id: String,
     pub days_left: i64,
     pub days_total: i64,
+}
+
+/// One standing agreement between two nations (`Treaty`). Kinds are in `data/diplomacy.json`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Treaty {
+    pub id: u32,
+    pub kind: String,
+    pub a: String,
+    pub b: String,
+    pub start_day: i64,
+    /// The day the treaty lapses, or -1 if it has no end.
+    pub end_day: i64,
+    /// Kind-specific clauses: an alliance's `defensive_only` or `entente`.
+    pub terms: Value,
+    pub note: String,
+}
+
+impl Treaty {
+    pub fn involves(&self, tag: &str) -> bool {
+        self.a == tag || self.b == tag
+    }
+
+    /// The other party, or "" if `tag` is not in the treaty.
+    pub fn other(&self, tag: &str) -> &str {
+        if tag == self.a {
+            &self.b
+        } else if tag == self.b {
+            &self.a
+        } else {
+            ""
+        }
+    }
+
+    pub fn active_on(&self, day: i64) -> bool {
+        day >= self.start_day && (self.end_day < 0 || day < self.end_day)
+    }
+
+    pub fn term(&self, key: &str) -> bool {
+        self.terms.get(key).and_then(Value::as_bool).unwrap_or(false)
+    }
+}
+
+/// An ally called up because a neighbour of theirs was alarmed (`GameState.mobilization_calls`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct MobilizationCall {
+    pub tag: String,
+    pub for_tag: String,
+    pub against: String,
+    pub day: i64,
+}
+
+/// An effort to improve relations (`GameState.relation_projects`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct RelationProject {
+    pub from: String,
+    pub to: String,
+    pub months_left: i64,
 }
 
 /// A casus belli earned in play (`GameState.casus_belli`).
@@ -189,6 +251,24 @@ pub struct GameState {
     /// starting opinions are set by `Diplomacy.load_scenario`, which is not ported yet, so a test sets them.
     pub relations: HashMap<String, f64>,
     pub casus_belli: Vec<CasusBelli>,
+    /// What each pair's opinion settles at (`GameState.relation_base`).
+    pub relation_base: HashMap<String, f64>,
+    /// The treaties ever signed, ended ones included, and the next id.
+    pub treaties: Vec<Treaty>,
+    pub next_treaty_id: u32,
+    /// The blocs of the scenario: name and members.
+    pub blocs: Vec<(String, Vec<String>)>,
+    /// How much "A>B" resents B, 0 to 100, and the old rivalries that keep a floor under it.
+    pub grievance: HashMap<String, f64>,
+    pub rivalries: HashMap<String, f64>,
+    /// "A>B": the day A's mobilization alarmed B.
+    pub alarms: HashMap<String, i64>,
+    /// "ALLY|AGAINST": allies called up because a neighbour of theirs was alarmed.
+    pub mobilization_calls: HashMap<String, MobilizationCall>,
+    /// Efforts to improve relations under way.
+    pub relation_projects: Vec<RelationProject>,
+    /// Money recently gifted, "from>to".
+    pub gift_memory: HashMap<String, f64>,
     /// Set when something changed the economy in the middle of the day's step; the step recomputes once at its end.
     pub economy_dirty: bool,
 }
@@ -251,6 +331,20 @@ impl GameState {
             },
             relations: HashMap::new(),
             casus_belli: vec![],
+            relation_base: HashMap::new(),
+            treaties: vec![],
+            next_treaty_id: 1,
+            blocs: scenario
+                .get("blocs")
+                .and_then(Value::as_object)
+                .map(|o| o.iter().map(|(k, v)| (k.clone(), v.as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default())).collect())
+                .unwrap_or_default(),
+            grievance: HashMap::new(),
+            rivalries: HashMap::new(),
+            alarms: HashMap::new(),
+            mobilization_calls: HashMap::new(),
+            relation_projects: vec![],
+            gift_memory: HashMap::new(),
             economy_dirty: false,
         };
         for row in Table::read(&dir.join("resources.tsv"))?.rows() {
@@ -322,6 +416,8 @@ impl GameState {
                     .get("war_support")
                     .and_then(Value::as_f64)
                     .unwrap_or_else(|| data.war_support.start_value(s.get("government").and_then(Value::as_str).unwrap_or(""))),
+                war_support_base: 0.0,
+                men_lost_month: 0.0,
                 investment: 0.0,
                 weariness: 0.0,
                 starving: false,
@@ -346,6 +442,9 @@ impl GameState {
                 munitions_used_month: 0.0,
             });
         }
+        for n in &mut gs.nations {
+            n.war_support_base = n.war_support;
+        }
         gs.rebuild_nation_provinces()?;
         gs.materials_k = 0.0;
         gs.deploy_starting_armies(data, scenario.get("deployment").unwrap_or(&no_nations))?;
@@ -353,6 +452,7 @@ impl GameState {
         gs.load_munitions(data, &scenario);
         gs.absorb_works(data);
         gs.recompute(data);
+        gs.load_diplomacy(data, &scenario)?;
         Ok(gs)
     }
 
@@ -1125,16 +1225,4 @@ fn set_building(list: &mut Vec<(String, i32)>, id: &str, level: i32) {
         Some(slot) => slot.1 = level,
         None => list.push((id.to_string(), level)),
     }
-}
-
-/// Godot's `is_equal_approx` for floats: equal, or within a hundred-thousandth of the first (at least that much).
-fn is_equal_approx(a: f64, b: f64) -> bool {
-    if a == b {
-        return true;
-    }
-    let mut tolerance = 0.00001 * a.abs();
-    if tolerance < 0.00001 {
-        tolerance = 0.00001;
-    }
-    (a - b).abs() < tolerance
 }

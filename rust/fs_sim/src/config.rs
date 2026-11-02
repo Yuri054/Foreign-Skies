@@ -97,6 +97,9 @@ pub struct EconomyConfig {
     pub mobilization_peace_max: f64,
     pub standing_share: f64,
     pub army_growth_share: f64,
+    pub tax_strain_war_weariness: f64,
+    pub tax_strain_support_penalty: f64,
+    pub tax_relief_support_bonus: f64,
     /// The deposit tables (coal, iron, timber), in file order.
     pub resource_ids: Vec<String>,
     pub buildings: Vec<BuildingDef>,
@@ -226,6 +229,9 @@ impl EconomyConfig {
             mobilization_peace_max: num(&v, &["mobilization", "peace_max"])?,
             standing_share: num(&v, &["standing_share"])?,
             army_growth_share: num(&v, &["army_growth_share"])?,
+            tax_strain_war_weariness: num(&v, &["tax_strain", "war_weariness"])?,
+            tax_strain_support_penalty: num(&v, &["tax_strain", "support_penalty"])?,
+            tax_relief_support_bonus: num(&v, &["tax_relief", "support_bonus"])?,
             resource_ids,
             buildings,
         })
@@ -343,6 +349,14 @@ pub struct WarSupportConfig {
     pub economy_curve: [f64; 3],
     /// The lowest mobilization a nation at war may have (`data/diplomacy.json`, crisis.war_floor).
     pub crisis_war_floor: f64,
+    pub recovery_per_month: f64,
+    pub weariness: f64,
+    pub casualty_weight: f64,
+    pub blockade_weight: f64,
+    pub occupied_weight: f64,
+    pub debt_weight: f64,
+    pub debt_cap: f64,
+    pub white_peace_below: f64,
 }
 
 impl WarSupportConfig {
@@ -359,6 +373,14 @@ impl WarSupportConfig {
                 num(ws, &["economy_mult", "at_100"])?,
             ],
             crisis_war_floor: num(&v, &["crisis", "war_floor"])?,
+            recovery_per_month: num(ws, &["recovery_per_month"])?,
+            weariness: num(ws, &["weariness"])?,
+            casualty_weight: num(ws, &["casualty_weight"])?,
+            blockade_weight: num(ws, &["blockade_weight"])?,
+            occupied_weight: num(ws, &["occupied_weight"])?,
+            debt_weight: num(ws, &["debt_weight"])?,
+            debt_cap: num(ws, &["debt_cap"])?,
+            white_peace_below: num(ws, &["white_peace_below"])?,
         })
     }
 
@@ -379,29 +401,117 @@ impl WarSupportConfig {
 }
 
 
+/// One kind of treaty (`data/diplomacy.json`, treaties).
+#[derive(Debug, Clone)]
+pub struct TreatyKind {
+    pub id: String,
+    /// Whether it runs one way, from a to b.
+    pub directed: bool,
+    /// What it adds to the pair's baseline opinion.
+    pub relation_bonus: f64,
+}
+
+/// The crisis constants (`data/diplomacy.json`, crisis): mobilization and its alarms.
+#[derive(Debug, Clone)]
+pub struct CrisisConfig {
+    pub alarm_level: f64,
+    pub alarm_clear_level: f64,
+    pub alarm_relations: f64,
+    pub alarm_grievance: f64,
+    pub match_response: f64,
+    pub call_response: f64,
+    pub called_level: f64,
+    pub war_floor: f64,
+    pub war_step_up: f64,
+    pub ai_step_up: f64,
+    pub ai_step_down: f64,
+}
+
 /// The parts of `data/diplomacy.json` the ported rules read besides war support.
 #[derive(Debug, Clone)]
 pub struct DiplomacyConfig {
     pub relation_min: f64,
     pub relation_max: f64,
     pub relation_neutral: f64,
+    pub relation_same_bloc: f64,
+    pub relation_opposed_blocs: f64,
+    pub relation_drift_per_month: f64,
     pub points_start: f64,
     pub points_max: f64,
+    pub income_base: f64,
+    pub income_prestige_weight: f64,
+    pub income_min: f64,
+    pub income_top_output_count: i64,
+    pub income_top_output_bonus: f64,
+    pub prestige_decay_per_month: f64,
+    pub price_decay: f64,
+    pub improve_monthly: f64,
+    pub improve_base_monthly: f64,
     /// How many years a casus belli lasts (`war.cb_years`).
     pub cb_years: f64,
+    pub grievance_decay_per_month: f64,
+    pub rivalry_fade_per_year: f64,
+    pub gift_memory_decay: f64,
+    pub treaties: Vec<TreatyKind>,
+    pub crisis: CrisisConfig,
 }
 
 impl DiplomacyConfig {
     pub fn from_json_str(text: &str) -> Result<DiplomacyConfig, String> {
         let v: Value = serde_json::from_str(text).map_err(|e| format!("diplomacy.json is invalid: {e}"))?;
+        let mut treaties = vec![];
+        for (id, d) in v.get("treaties").and_then(Value::as_object).ok_or("diplomacy.json: treaties")? {
+            if id.starts_with('_') {
+                continue;
+            }
+            treaties.push(TreatyKind {
+                id: id.clone(),
+                directed: d.get("directed").and_then(Value::as_bool).ok_or("treaty directed")?,
+                relation_bonus: num(d, &["relation_bonus"])?,
+            });
+        }
+        let cr = |k: &str| num(&v, &["crisis", k]);
         Ok(DiplomacyConfig {
             relation_min: num(&v, &["relations", "min"])?,
             relation_max: num(&v, &["relations", "max"])?,
             relation_neutral: num(&v, &["relations", "neutral"])?,
+            relation_same_bloc: num(&v, &["relations", "same_bloc"])?,
+            relation_opposed_blocs: num(&v, &["relations", "opposed_blocs"])?,
+            relation_drift_per_month: num(&v, &["relations", "drift_per_month"])?,
             points_start: num(&v, &["points", "start"])?,
             points_max: num(&v, &["points", "max"])?,
+            income_base: num(&v, &["points", "income", "base"])?,
+            income_prestige_weight: num(&v, &["points", "income", "prestige_weight"])?,
+            income_min: num(&v, &["points", "income", "min"])?,
+            income_top_output_count: num(&v, &["points", "income", "top_output_count"])? as i64,
+            income_top_output_bonus: num(&v, &["points", "income", "top_output_bonus"])?,
+            prestige_decay_per_month: num(&v, &["points", "prestige", "decay_per_month"])?,
+            price_decay: num(&v, &["points", "purchase", "price_decay"])?,
+            improve_monthly: num(&v, &["points", "improve", "monthly"])?,
+            improve_base_monthly: num(&v, &["points", "improve", "base_monthly"])?,
             cb_years: num(&v, &["war", "cb_years"])?,
+            grievance_decay_per_month: num(&v, &["war", "provocation", "grievance_decay_per_month"])?,
+            rivalry_fade_per_year: num(&v, &["war", "provocation", "rivalry_fade_per_year"])?,
+            gift_memory_decay: num(&v, &["actions", "gift_memory_decay"])?,
+            treaties,
+            crisis: CrisisConfig {
+                alarm_level: cr("alarm_level")?,
+                alarm_clear_level: cr("alarm_clear_level")?,
+                alarm_relations: cr("alarm_relations")?,
+                alarm_grievance: cr("alarm_grievance")?,
+                match_response: cr("match_response")?,
+                call_response: cr("call_response")?,
+                called_level: cr("called_level")?,
+                war_floor: cr("war_floor")?,
+                war_step_up: cr("war_step_up")?,
+                ai_step_up: cr("ai_step_up")?,
+                ai_step_down: cr("ai_step_down")?,
+            },
         })
+    }
+
+    pub fn treaty_kind(&self, id: &str) -> &TreatyKind {
+        self.treaties.iter().find(|t| t.id == id).unwrap_or_else(|| panic!("unknown treaty kind {id}"))
     }
 }
 

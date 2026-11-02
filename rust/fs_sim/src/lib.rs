@@ -8,6 +8,7 @@
 pub mod budget;
 pub mod clock;
 pub mod config;
+pub mod diplomacy;
 pub mod economy;
 pub mod gd;
 pub mod map;
