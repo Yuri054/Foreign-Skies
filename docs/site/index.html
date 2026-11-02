@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#1b1612">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231b1612'/%3E%3Cpath d='M16 5l3 8h8l-6.500 5 2.500 8-7-5-7 5 2.500-8L5 13h8z' fill='%23d8c9a3'/%3E%3C/svg%3E">
 <link rel="preload" href="fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="img/map.webp" as="image" fetchpriority="high">
+<link rel="preload" href="img/hero.webp" as="image" fetchpriority="high">
 <style>
 @font-face{font-family:Anton;font-weight:400;font-display:swap;src:url(fonts/anton-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Special Elite";font-weight:400;font-display:swap;src:url(fonts/special-elite-latin-400-normal.woff2) format("woff2")}
@@ -54,8 +54,8 @@ nav.bar a:hover{color:#e8604f}
 .menu .type{position:absolute;bottom:var(--gut);left:var(--gut);opacity:.8}
 
 .hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;padding:96px var(--gut) clamp(40px,9vh,96px);isolation:isolate;color:var(--cream)}
-.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-3;filter:sepia(.9) saturate(.8) contrast(1.1) brightness(.72)}
-.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:linear-gradient(to top,rgba(27,22,18,.96) 5%,rgba(27,22,18,.45) 55%,rgba(27,22,18,.55))}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-3;}
+.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:linear-gradient(to top,rgba(27,22,18,.94) 0%,rgba(27,22,18,.7) 30%,rgba(27,22,18,.1) 62%,rgba(27,22,18,.15))}
 .hero::after{content:"";position:absolute;inset:78px 14px 14px;z-index:-1;border:2px solid rgba(230,216,184,.7);outline:1px solid rgba(230,216,184,.5);outline-offset:-8px;pointer-events:none}
 .hero div{max-width:900px;padding:0 clamp(0px,2vw,24px)}
 .hero .type{display:inline-block;background:var(--cream);color:var(--ink);padding:5px 12px;margin-bottom:18px;transform:rotate(-1.5deg)}
@@ -84,8 +84,7 @@ h2::after{content:"";position:absolute;left:0;bottom:-6px;width:min(40%,200px);h
 .dark .lede,.dark figcaption{color:#c9bb98}
 .shot{margin:0 0 clamp(48px,8vw,96px)}
 .shot .ph{background:var(--cream);padding:clamp(8px,1.6vw,16px) clamp(8px,1.6vw,16px) 0;box-shadow:8px 8px 0 rgba(0,0,0,.55);transform:rotate(var(--r,0deg))}
-.shot img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--olive);filter:sepia(.75) contrast(1.05) brightness(.95);transition:filter .5s}
-.shot:hover img{filter:sepia(.1)}
+.shot img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--olive);}
 .shot figcaption{margin-top:18px;max-width:40em;font-size:.95rem}
 .shot figcaption b{display:block;font:400 clamp(1.5rem,3vw,2rem) var(--poster);text-transform:uppercase;letter-spacing:.04em;color:var(--paper);margin:2px 0 4px}
 .shot figcaption .type{color:#e8604f}
@@ -135,7 +134,7 @@ footer{padding:28px var(--gut);background:var(--ink);color:#c9bb98;text-align:ce
 
 <main id="main">
 <div class="hero" id="top">
-  <img src="img/map.webp" srcset="img/map-800.webp 800w, img/map.webp 1600w" sizes="100vw" width="1600" height="900" alt="The political map of Europe in July 1914" fetchpriority="high">
+  <img src="img/hero.webp" srcset="img/hero-800.webp 800w, img/hero.webp 1600w" sizes="100vw" width="1600" height="900" alt="The 3D map of Europe, July 1914" fetchpriority="high">
   <div>
     <span class="type">Europe &middot; 1900&ndash;1914</span>
     <h1>Foreign<br>Skies</h1>
@@ -157,14 +156,14 @@ footer{padding:28px var(--gut);background:var(--ink);color:#c9bb98;text-align:ce
 
 <section id="see" class="dark"><div class="wrap">
   <h2 class="rv">From the field</h2>
-  <p class="lede rv">Plates from the game, shot in the real thing.</p>
+  <p class="lede rv">Plates from the 3D map, shot in the real game. No interface, only the map.</p>
   <div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;</div>
   <br>
-  <figure class="shot rv" style="--r:-.4deg"><div class="ph"><img loading="lazy" src="img/war.webp" srcset="img/war-800.webp 800w, img/war.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="Armies and fronts at war"></div><figcaption><span class="type">Plate I</span><b>Armies and fronts</b>When the story does call for war, the front lines are on the map.</figcaption></figure>
-  <figure class="shot rv" style="--r:.4deg"><div class="ph"><img loading="lazy" src="img/diplomacy.webp" srcset="img/diplomacy-800.webp 800w, img/diplomacy.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="The diplomacy screen"></div><figcaption><span class="type">Plate II</span><b>Diplomacy</b>A friend stays a friend unless something happens, and the game says what happened.</figcaption></figure>
+  <figure class="shot rv" style="--r:-.4deg"><div class="ph"><img loading="lazy" src="img/biscay.webp" srcset="img/biscay-800.webp 800w, img/biscay.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="The 3D map over the Bay of Biscay, with waves and sun glints on the open sea"></div><figcaption><span class="type">Plate I</span><b>The Bay of Biscay</b>Open water moves: waves, sun and sky on them, lighter shallows and surf on the shores.</figcaption></figure>
+  <figure class="shot rv" style="--r:.4deg"><div class="ph"><img loading="lazy" src="img/channel.webp" srcset="img/channel-800.webp 800w, img/channel.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="The 3D map of the English Channel, with cities standing up as buildings"></div><figcaption><span class="type">Plate II</span><b>The Channel</b>The land rises with its real relief, and the cities stand up as buildings.</figcaption></figure>
   <div class="duo">
-    <figure class="shot rv" style="--r:-.6deg"><div class="ph"><img loading="lazy" src="img/briefing.webp" srcset="img/briefing-800.webp 800w, img/briefing.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="The cabinet briefing"></div><figcaption><span class="type">Plate III</span><b>The cabinet briefing</b></figcaption></figure>
-    <figure class="shot rv" style="--r:.6deg"><div class="ph"><img loading="lazy" src="img/war-goals.webp" srcset="img/war-goals-800.webp 800w, img/war-goals.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="Choosing what to demand"></div><figcaption><span class="type">Plate IV</span><b>War goals</b></figcaption></figure>
+    <figure class="shot rv" style="--r:-.6deg"><div class="ph"><img loading="lazy" src="img/italy.webp" srcset="img/italy-800.webp 800w, img/italy.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="The 3D map of Italy and Greece"></div><figcaption><span class="type">Plate III</span><b>Italy and Greece</b>Mountains and coasts follow the terrain.</figcaption></figure>
+    <figure class="shot rv" style="--r:.6deg"><div class="ph"><img loading="lazy" src="img/aegean.webp" srcset="img/aegean-800.webp 800w, img/aegean.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="The 3D map of the Aegean islands"></div><figcaption><span class="type">Plate IV</span><b>The Aegean</b>Islands, shallows and surf.</figcaption></figure>
   </div>
 </div></section>
 
