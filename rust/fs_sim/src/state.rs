@@ -160,6 +160,16 @@ pub struct War {
     pub battle_points: HashMap<String, f64>,
     /// tag -> (provinces, people) that nation took from the other.
     pub captured: HashMap<String, (i64, i64)>,
+    /// Why `a` could declare it (a casus belli id, "" if it was set up directly) and what it fights for (a war goal as the
+    /// game keeps it: `{kind, ids, demand}`, or null for none).
+    pub casus_belli: String,
+    pub goal: Value,
+    /// The conflict it belongs to: pairwise wars opened together share a group.
+    pub war_group: u32,
+    /// tag -> date of the side that capitulated in this war.
+    pub capitulated: HashMap<String, String>,
+    /// The day it ended, or -1.
+    pub end_day: i64,
 }
 
 impl War {
@@ -176,6 +186,11 @@ impl War {
             surrendered: both(0.0),
             battle_points: both(0.0),
             captured: [(a.to_string(), (0, 0)), (b.to_string(), (0, 0))].into_iter().collect(),
+            casus_belli: String::new(),
+            goal: Value::Null,
+            war_group: 0,
+            capitulated: HashMap::new(),
+            end_day: -1,
         }
     }
 
@@ -190,6 +205,26 @@ impl War {
             &self.a
         }
     }
+}
+
+/// A money payment from one nation to another at the end of a war (`GameState.indemnities`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Indemnity {
+    pub payer: String,
+    pub receiver: String,
+    pub monthly: f64,
+    pub months_left: i64,
+}
+
+/// A peace clause (`GameState.restrictions`): `nation`'s armies stay out of `provinces` (or it builds no new warships, when
+/// `kind` is "fleet_limit") until `until_day`, unless it is at war with `holder`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Restriction {
+    pub nation: String,
+    pub holder: String,
+    pub kind: String,
+    pub provinces: Vec<usize>,
+    pub until_day: i64,
 }
 
 /// A major city (`data/scenarios/<scenario>/cities.tsv`).
@@ -328,7 +363,18 @@ pub struct GameState {
     pub naval_bases: HashMap<usize, i64>,
     /// The wars being fought, in the order they began. (Loading does not start a scenario's wars yet.)
     pub wars: Vec<War>,
+    /// Finished wars, oldest first.
+    pub war_history: Vec<War>,
     pub next_war_id: u32,
+    pub next_war_group: u32,
+    /// Indemnities being paid, and peace clauses keeping a nation's armies out of its border provinces or its yards shut.
+    pub indemnities: Vec<Indemnity>,
+    pub restrictions: Vec<Restriction>,
+    /// Peace offers waiting for the player's answer, oldest first, and the next id.
+    pub pending_offers: Vec<crate::peace::Offer>,
+    pub next_offer_id: u32,
+    /// Pair key -> the day until which a refused proposer may not ask again.
+    pub peace_cooldown: HashMap<String, i64>,
     pub cities: Vec<City>,
     /// What each province's people numbered when the scenario began: the cities grow and shrink with the ratio.
     pub province_pop_base: Vec<i32>,
@@ -479,6 +525,13 @@ impl GameState {
             fleets: vec![],
             naval_bases: HashMap::new(),
             wars: vec![],
+            war_history: vec![],
+            next_war_group: 1,
+            indemnities: vec![],
+            restrictions: vec![],
+            pending_offers: vec![],
+            next_offer_id: 1,
+            peace_cooldown: HashMap::new(),
             next_war_id: 1,
             cities: vec![],
             province_pop_base: vec![],
@@ -887,14 +940,25 @@ impl GameState {
         (0..self.wars.len()).filter(|&i| self.wars[i].involves(tag)).collect()
     }
 
+    /// `GameState.set_war` with a casus belli and a war goal (`{kind, ids, demand}`).
+    pub fn set_war_goal(&mut self, a: &str, b: &str, casus_belli: &str, goal: Value) {
+        self.set_war(a, b);
+        if let Some(i) = self.war_between(a, b) {
+            self.wars[i].casus_belli = casus_belli.to_string();
+            self.wars[i].goal = goal;
+        }
+    }
+
     /// `GameState.set_war` (starting one): `a` declares war on `b`. The war's log and the notes it makes for the history
     /// are not kept here.
     pub fn set_war(&mut self, a: &str, b: &str) {
         if a == b || self.at_war(a, b) {
             return;
         }
-        let w = War::new(self.next_war_id, a, b, self.calendar.days_elapsed as i64);
+        let mut w = War::new(self.next_war_id, a, b, self.calendar.days_elapsed as i64);
         self.next_war_id += 1;
+        w.war_group = self.next_war_group;
+        self.next_war_group += 1;
         self.wars.push(w);
     }
 

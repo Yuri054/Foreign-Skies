@@ -49,6 +49,8 @@ pub struct MapData {
     pub port_zones: HashMap<usize, (usize, usize)>,
     /// The sea zones each sea zone touches, in the order the file lists them.
     pub sea_adjacency: HashMap<usize, Vec<usize>>,
+    /// The port provinces on each sea zone, in the order `ports.tsv` lists them.
+    pub ports_of_zone: HashMap<usize, Vec<usize>>,
 }
 
 impl MapData {
@@ -110,8 +112,15 @@ impl MapData {
             }
         }
         let mut port_zones = HashMap::new();
+        let mut ports_of_zone: HashMap<usize, Vec<usize>> = HashMap::new();
         for row in Table::read(&data_dir.join("map/ports.tsv"))?.rows() {
-            port_zones.insert(row.int("id") as usize, (row.int("zone") as usize, row.int("zone2") as usize));
+            let id = row.int("id") as usize;
+            port_zones.insert(id, (row.int("zone") as usize, row.int("zone2") as usize));
+            for z in [row.int("zone") as usize, row.int("zone2") as usize] {
+                if z > 0 {
+                    ports_of_zone.entry(z).or_default().push(id);
+                }
+            }
         }
         let mut sea_adjacency: HashMap<usize, Vec<usize>> = HashMap::new();
         for row in Table::read(&data_dir.join("map/sea_adjacency.tsv"))?.rows() {
@@ -119,6 +128,6 @@ impl MapData {
             sea_adjacency.entry(a).or_default().push(b);
             sea_adjacency.entry(b).or_default().push(a);
         }
-        Ok(MapData { provinces, nations, adjacency, sea_links, port_zones, sea_adjacency })
+        Ok(MapData { provinces, nations, adjacency, sea_links, port_zones, sea_adjacency, ports_of_zone })
     }
 }

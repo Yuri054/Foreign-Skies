@@ -466,6 +466,7 @@ impl GameState {
         }
         self.gift_memory.retain(|_, v| *v >= 0.05);
         self.war_support_step_month(data);
+        self.peace_step_month(data);
         // every opinion moves a step toward its baseline
         let keys: Vec<String> = self.relations.keys().cloned().collect();
         for key in keys {
@@ -483,7 +484,7 @@ impl GameState {
     // ---------------------------------------------------------------- war support (`scripts/sim/war_support.gd`)
 
     /// `WarSupport.occupied_share`: the share of a nation's people living in provinces an enemy holds.
-    pub fn occupied_share(&self, tag: &str) -> f64 {
+    pub fn people_occupied_share(&self, tag: &str) -> f64 {
         let n = self.nation(tag);
         let mut held = 0.0;
         for &id in &n.provinces {
@@ -514,7 +515,7 @@ impl GameState {
             ("heavy taxes", -e.tax_strain_war_weariness * strain),
             ("men lost", -c.casualty_weight * lost),
             ("blockade", -c.blockade_weight * n.blockade),
-            ("ground lost", -c.occupied_weight * self.occupied_share(tag)),
+            ("ground lost", -c.occupied_weight * self.people_occupied_share(tag)),
             ("debt", -minf(c.debt_cap, c.debt_weight * debt)),
         ]
     }

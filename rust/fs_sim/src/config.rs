@@ -601,6 +601,7 @@ pub struct DiplomacyConfig {
     pub score_battle_cap: f64,
     pub score_battle_per_kmen: f64,
     pub capitulation: CapitulationConfig,
+    pub peace: PeaceConfig,
 }
 
 /// `data/diplomacy.json`, capitulation: what a province is worth in a war, and how much of it a nation may lose.
@@ -614,6 +615,41 @@ pub struct CapitulationConfig {
     pub relocation_share: f64,
     pub relocated_bonus: f64,
     pub capitulate_share: f64,
+    /// The war score a capitulation gives the enemy.
+    pub score: f64,
+}
+
+/// `data/diplomacy.json`, peace and the war goals and the claims left by a peace.
+#[derive(Debug, Clone)]
+pub struct PeaceConfig {
+    pub score_max: f64,
+    pub score_occupation_points: f64,
+    pub score_decay_per_month: f64,
+    pub province_scale: f64,
+    pub occupied_discount: f64,
+    pub indemnity_points_per_year: f64,
+    pub max_share: f64,
+    pub max_months: i64,
+    pub release_ally: f64,
+    pub disarm_border_per_year: f64,
+    pub fleet_limit_per_year: f64,
+    pub disarm_years_max: i64,
+    pub forced_occupied_share: f64,
+    pub forced_budget_mult: f64,
+    pub great_power_max_share: f64,
+    pub refuse_cooldown_days: i64,
+    pub peace_per_score: f64,
+    pub peace_cap: f64,
+    pub peace_loser_share: f64,
+    pub surrender_at: f64,
+    pub support_floor: f64,
+    pub goal_discount: f64,
+    pub goal_premium: f64,
+    pub goal_none_premium: f64,
+    pub revanche_years: f64,
+    pub revanche_rivalry: f64,
+    pub revanche_rivalry_per_province: f64,
+    pub revanche_rivalry_max: f64,
 }
 
 impl DiplomacyConfig {
@@ -668,6 +704,37 @@ impl DiplomacyConfig {
                 relocation_share: num(&v, &["capitulation", "relocation_share"])?,
                 relocated_bonus: num(&v, &["capitulation", "relocated_bonus"])?,
                 capitulate_share: num(&v, &["capitulation", "capitulate_share"])?,
+                score: num(&v, &["capitulation", "score"])?,
+            },
+            peace: PeaceConfig {
+                score_max: num(&v, &["peace", "score", "max"])?,
+                score_occupation_points: num(&v, &["peace", "score", "occupation_points"])?,
+                score_decay_per_month: num(&v, &["peace", "score", "decay_per_month"])?,
+                province_scale: num(&v, &["peace", "price", "province_scale"])?,
+                occupied_discount: num(&v, &["peace", "price", "occupied_discount"])?,
+                indemnity_points_per_year: num(&v, &["peace", "price", "indemnity_points_per_year"])?,
+                max_share: num(&v, &["peace", "price", "max_share"])?,
+                max_months: num(&v, &["peace", "price", "max_months"])? as i64,
+                release_ally: num(&v, &["peace", "price", "release_ally"])?,
+                disarm_border_per_year: num(&v, &["peace", "price", "disarm_border_per_year"])?,
+                fleet_limit_per_year: num(&v, &["peace", "price", "fleet_limit_per_year"])?,
+                disarm_years_max: num(&v, &["peace", "price", "disarm_years_max"])? as i64,
+                forced_occupied_share: num(&v, &["peace", "forced", "occupied_share"])?,
+                forced_budget_mult: num(&v, &["peace", "forced", "budget_mult"])?,
+                great_power_max_share: v["peace"].get("great_power_max_share").and_then(Value::as_f64).unwrap_or(1.0),
+                refuse_cooldown_days: num(&v, &["peace", "ai", "refuse_cooldown_days"])? as i64,
+                peace_per_score: num(&v, &["points", "prestige", "peace_per_score"])?,
+                peace_cap: num(&v, &["points", "prestige", "peace_cap"])?,
+                peace_loser_share: num(&v, &["points", "prestige", "peace_loser_share"])?,
+                surrender_at: num(&v, &["war_support", "surrender_at"])?,
+                support_floor: num(&v, &["war_support", "floor"])?,
+                goal_discount: num(&v, &["war", "goals", "discount"])?,
+                goal_premium: num(&v, &["war", "goals", "premium"])?,
+                goal_none_premium: num(&v, &["war", "goals", "none_premium"])?,
+                revanche_years: num(&v, &["revanche", "years"])?,
+                revanche_rivalry: num(&v, &["revanche", "rivalry"])?,
+                revanche_rivalry_per_province: num(&v, &["revanche", "rivalry_per_province"])?,
+                revanche_rivalry_max: num(&v, &["revanche", "rivalry_max"])?,
             },
             crisis: CrisisConfig {
                 alarm_level: cr("alarm_level")?,

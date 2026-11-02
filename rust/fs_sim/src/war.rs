@@ -115,11 +115,18 @@ impl GameState {
         host == mover || self.has_treaty(data, "passage", host, mover) || self.find_treaty(data, "alliance", host, mover).is_some()
     }
 
+    /// `Military.can_enter`, for the tests.
+    pub fn can_enter_pub(&self, data: &Data, tag: &str, id: usize) -> bool {
+        self.can_enter(data, tag, id)
+    }
+
     /// `Military.can_enter`: whether armies of a nation may stand in a province: its own ground, ground it holds, ground of a
     /// nation it is at war with, or ground whose owner and holder both let it cross.
     pub fn can_enter(&self, data: &Data, tag: &str, id: usize) -> bool {
         let (o, c) = (&self.province_owner[id], &self.province_controller[id]);
-        // (Peace clauses that keep armies out of provinces are not ported: the game has none until a peace is made.)
+        if !self.restrictions.is_empty() && self.restricted(tag, id) {
+            return false;
+        }
         if o == tag || c == tag || self.at_war(tag, o) || self.at_war(tag, c) {
             return true;
         }
@@ -1036,7 +1043,7 @@ impl GameState {
         (city.pop as f64 * clampf(ratio, 0.4, 3.0)).round() as i64
     }
 
-    fn home_capital(&self, tag: &str) -> i64 {
+    pub fn home_capital(&self, tag: &str) -> i64 {
         let n = self.nation(tag);
         if n.home_capital > 0 {
             n.home_capital
@@ -1045,7 +1052,7 @@ impl GameState {
         }
     }
 
-    fn provinces_value(&self, data: &Data, tag: &str) -> f64 {
+    pub fn provinces_value(&self, data: &Data, tag: &str) -> f64 {
         let mut total = 0.0;
         for &id in &self.nation(tag).provinces {
             total += self.province_value(data, id);
@@ -1055,7 +1062,7 @@ impl GameState {
 
     /// `Capitulation.capital_bonus`: what the home capital adds to its province value so that it is `capital_share` of the
     /// nation's whole.
-    fn capital_bonus(&self, data: &Data, tag: &str) -> f64 {
+    pub fn capital_bonus(&self, data: &Data, tag: &str) -> f64 {
         let home = self.home_capital(tag);
         let total = self.provinces_value(data, tag);
         let own = if home > 0 { self.province_value(data, home as usize) } else { 0.0 };
@@ -1063,13 +1070,18 @@ impl GameState {
         maxf(0.0, (share * total - own) / (1.0 - share))
     }
 
-    fn relocated(&self, tag: &str) -> bool {
+    pub fn relocated(&self, tag: &str) -> bool {
         let n = self.nation(tag);
         n.capital > 0 && n.capital != self.home_capital(tag)
     }
 
     /// `Capitulation.progress`: the share of the nation's whole value its enemies hold: 0 to 1.
     pub fn capitulation_progress(&self, data: &Data, tag: &str) -> f64 {
+        self.capitulation_progress_by(data, tag, "")
+    }
+
+    /// `Capitulation.progress` with a holder: the share of the whole that one enemy holds.
+    pub fn capitulation_progress_by(&self, data: &Data, tag: &str, holder_filter: &str) -> f64 {
         let provinces_value = self.provinces_value(data, tag);
         let bonus = self.capital_bonus(data, tag);
         let whole = bonus + provinces_value;
@@ -1082,7 +1094,7 @@ impl GameState {
         let mut lost = 0.0;
         for &id in &n.provinces {
             let holder = &self.province_controller[id];
-            if holder == tag || !self.at_war(tag, holder) {
+            if holder == tag || (!holder_filter.is_empty() && holder != holder_filter) || !self.at_war(tag, holder) {
                 continue;
             }
             let mut v = self.province_value(data, id);
