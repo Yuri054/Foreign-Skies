@@ -1,0 +1,9 @@
+[package]
+name = "fs_sim"
+version = "0.1.0"
+edition = "2021"
+description = "Foreign Skies simulation, ported from scripts/sim (GDScript) to Rust, checked against the original's own output"
+publish = false
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
