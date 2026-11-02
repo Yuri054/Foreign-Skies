@@ -365,6 +365,8 @@ pub struct GameState {
     /// The armies, in the order they were raised (their ids rise with it).
     pub armies: Vec<Army>,
     pub next_army_id: u32,
+    pub fronts: Vec<crate::front::Front>,
+    pub next_front_id: u32,
     pub generals: Vec<crate::military::General>,
     pub next_general_id: u32,
     pub fleets: Vec<Fleet>,
@@ -642,6 +644,8 @@ impl GameState {
             materials_k: 0.0,
             armies: vec![],
             next_army_id: 1,
+            fronts: vec![],
+            next_front_id: 1,
             generals: vec![],
             next_general_id: 1,
             fleets: vec![],
@@ -892,6 +896,10 @@ impl GameState {
                     landed_supply: 0,
                     fleet_id: 0,
                     general_id: if i < generals.len() { self.generals[self.generals.len() - generals.len() + i].id } else { 0 },
+                    front_id: 0,
+                    parent_id: 0,
+                    pin: 0,
+                    prepared: false,
                     training: false,
                 });
             }
@@ -922,7 +930,7 @@ impl GameState {
             self.nations[i].men_exercising = 0;
         }
         for i in 0..self.armies.len() {
-            if self.armies[i].training {
+            if self.root_of(i).map(|r| self.armies[r].training).unwrap_or(false) {
                 let men = self.armies[i].men(&data.military).round() as i64;
                 let ni = self.nation_index[&self.armies[i].tag];
                 self.nations[ni].men_exercising += men;

@@ -58,6 +58,12 @@ pub struct Army {
     pub fleet_id: u32,
     /// The general in command (0 = none).
     pub general_id: u32,
+    /// The front the army is assigned to (0 = none), the army this stack is a detachment of (0: it is an army), the province a
+    /// hand-given order is taking it to on a spreading front (0: none), and whether it stands on a fallback line today.
+    pub front_id: u32,
+    pub parent_id: u32,
+    pub pin: usize,
+    pub prepared: bool,
     /// On exercise (`Army.training`): standing still, its divisions gain experience and its men cost more upkeep.
     pub training: bool,
 }

@@ -15,6 +15,7 @@ pub mod declare;
 pub mod diplomacy;
 pub mod economy;
 pub mod economy_cmds;
+pub mod front;
 pub mod game;
 pub mod gd;
 pub mod map;

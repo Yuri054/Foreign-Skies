@@ -45,7 +45,13 @@ impl Army {
         if !self.path.is_empty() || self.landing_days > 0 {
             return 0;
         }
-        (self.still_days / cfg.combat.entrench_days_per_level).min(cfg.combat.max_entrenchment)
+        let mut top = cfg.combat.max_entrenchment;
+        let mut days = self.still_days as f64;
+        if self.prepared {
+            top += cfg.fallback_extra_levels;
+            days *= cfg.fallback_dig_speed;
+        }
+        ((days as i64) / cfg.combat.entrench_days_per_level).min(top)
     }
 }
 
@@ -252,17 +258,33 @@ impl GameState {
     /// `MoveArmy.execute` (an army not on a front): orders an army to a province by the cheapest route it may take.
     pub fn order_army_to(&mut self, data: &Data, tag: &str, army_id: u32, destination: usize) -> bool {
         let Some(i) = self.armies.iter().position(|a| a.id == army_id) else { return false };
-        if self.armies[i].tag != tag || destination < 1 || destination >= self.province_owner.len() {
+        if self.armies[i].tag != tag || self.armies[i].embarked() || destination < 1 || destination >= self.province_owner.len() {
             return false;
         }
+        // On a spreading front a hand order pins the stack instead of taking its army off the front.
+        let spreading = self.root_of(i).map(|r| {
+            let fid = self.armies[r].front_id;
+            fid != 0 && self.fronts.iter().any(|f| f.id == fid && f.spread)
+        }).unwrap_or(false);
         if destination == self.armies[i].province {
+            if !spreading {
+                self.leave_front(i);
+            }
+            // Moving to where it stands cancels the order.
             self.armies[i].path.clear();
+            self.armies[i].pin = 0;
             return true;
         }
         let speed = self.armies[i].speed(&data.military);
         let path = self.find_path(data, tag, speed, self.armies[i].province, destination);
         if path.is_empty() {
             return false;
+        }
+        // A hand-given order takes the army off its front, or on a spreading front pins it.
+        if spreading {
+            self.armies[i].pin = destination;
+        } else {
+            self.leave_front(i);
         }
         // Keep the progress already made if the army is still heading into the same province.
         if self.armies[i].path.is_empty() || self.armies[i].path[0] != path[0] {
@@ -502,7 +524,9 @@ impl GameState {
     /// nations with no ground left disband their armies. Returns whether a province changed hands (the economy is then worked
     /// out again).
     pub fn military_step_day(&mut self, data: &Data) -> bool {
-        // (fronts, offensives, army groups and attack lines come first in the game: not ported)
+        // (offensives, army groups and attack lines are not ported)
+        self.step_detachments(data);
+        self.step_fronts(data);
         self.release_orphan_generals(data);
         self.train_recruits(data);
         self.drill(data);

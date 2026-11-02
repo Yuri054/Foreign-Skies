@@ -35,6 +35,10 @@ impl GameState {
             landed_supply: 0,
             fleet_id: 0,
             general_id: 0,
+            front_id: 0,
+            parent_id: 0,
+            pin: 0,
+            prepared: false,
             training: false,
         };
         self.next_army_id += 1;
@@ -142,8 +146,10 @@ impl GameState {
     /// `Military._drill`: every division of an army on exercise that stands still gains experience.
     pub fn drill(&mut self, data: &Data) {
         let gain = 1.0 / crate::gd::maxf(data.military.training_days_full, 1.0);
-        for a in &mut self.armies {
-            if !a.training || !a.path.is_empty() || a.fighting || a.embarked() {
+        for i in 0..self.armies.len() {
+            let drilling = self.root_of(i).map(|r| self.armies[r].training).unwrap_or(false);
+            let a = &mut self.armies[i];
+            if !drilling || !a.path.is_empty() || a.fighting || a.embarked() {
                 continue;
             }
             for u in &mut a.units {
@@ -204,8 +210,9 @@ impl GameState {
             if self.armies[ai].tag != tag {
                 continue;
             }
-            if self.armies[ai].training != on {
-                self.armies[ai].training = on;
+            let Some(root) = self.root_of(ai) else { continue };
+            if self.armies[root].training != on {
+                self.armies[root].training = on;
                 changed = true;
             }
         }

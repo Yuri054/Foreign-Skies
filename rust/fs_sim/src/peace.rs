@@ -340,9 +340,9 @@ impl GameState {
         (1..self.province_controller.len()).filter(|&id| self.province_controller[id] == tag && data.map.neighbors(id).any(|n| self.province_controller[n] == other)).collect()
     }
 
-    /// `Navy.strength_of`: the strength of all a nation's ships (every ship counts whole: none has fought).
+    /// `Navy.strength_of`: the strength of all a nation's ships, afloat and in port.
     pub fn naval_strength(&self, tag: &str) -> f64 {
-        self.fleets.iter().filter(|f| f.tag == tag).map(|f| f.ships.len() as f64).sum()
+        self.fleets.iter().filter(|f| f.tag == tag).flat_map(|f| f.ships.iter()).map(|s| s.strength).sum()
     }
 
     fn release_treaties(&self, giver: &str, other: &str) -> Vec<usize> {

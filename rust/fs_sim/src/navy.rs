@@ -675,6 +675,7 @@ impl GameState {
         if !self.embark_problem(data, tag, ai, fi).is_empty() {
             return false;
         }
+        self.leave_front(ai.unwrap());
         self.armies[ai.unwrap()].fleet_id = fleet_id;
         self.armies[ai.unwrap()].still_days = 0;
         true
@@ -917,6 +918,7 @@ impl GameState {
         }
         for id in armies {
             let ai = self.armies.iter().position(|a| a.id == *id).unwrap();
+            self.leave_front(ai);
             self.armies[ai].fleet_id = fleet_id;
             self.armies[ai].still_days = 0;
         }

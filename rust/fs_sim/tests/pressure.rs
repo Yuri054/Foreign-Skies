@@ -214,6 +214,10 @@ fn tension_under_strain() {
         landed_supply: 0,
         fleet_id: 0,
         general_id: 0,
+        front_id: 0,
+        parent_id: 0,
+        pin: 0,
+        prepared: false,
         training: false,
     });
     for p in w["wars"].as_array().unwrap() {
