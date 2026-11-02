@@ -244,7 +244,7 @@ fn a_strained_economy_works_out_like_the_game() {
         }
     }
     for w in want["wars"].as_array().unwrap() {
-        gs.wars.push((w[0].as_str().unwrap().to_string(), w[1].as_str().unwrap().to_string()));
+        gs.set_war(w[0].as_str().unwrap(), w[1].as_str().unwrap());
     }
     gs.recompute(&data);
     let mut fails = vec![];

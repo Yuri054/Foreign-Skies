@@ -15,4 +15,5 @@ pub mod map;
 pub mod military;
 pub mod population;
 pub mod state;
+pub mod war;
 pub mod tsv;

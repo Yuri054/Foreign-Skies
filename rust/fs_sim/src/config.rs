@@ -23,6 +23,10 @@ pub struct BuildingDef {
     pub max_level: i32,
     pub gold_share: Option<f64>,
     pub size_by_industry: bool,
+    /// What a level of works adds to an army's defence, and takes off a shelling and an assault (trench, fortification).
+    pub defense: f64,
+    pub shell_reduction: f64,
+    pub hard_reduction: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +85,7 @@ pub struct EconomyConfig {
     pub munitions_storage_cost: f64,
     pub munitions_per_gun_power: f64,
     pub munitions_engaged_share: f64,
+    pub munitions_idle_share: f64,
     pub base_ic: f64,
     pub base_ic_gdp_ref: f64,
     pub base_ic_min: f64,
@@ -152,6 +157,9 @@ impl EconomyConfig {
                 max_level: num(def, &["max_level"])? as i32,
                 gold_share: def.get("gold_share").and_then(Value::as_f64),
                 size_by_industry: def.get("size_by").and_then(Value::as_str) == Some("industry"),
+                defense: def.get("defense").and_then(Value::as_f64).unwrap_or(0.0),
+                shell_reduction: def.get("shell_reduction").and_then(Value::as_f64).unwrap_or(0.0),
+                hard_reduction: def.get("hard_reduction").and_then(Value::as_f64).unwrap_or(0.0),
             });
         }
         Ok(EconomyConfig {
@@ -213,6 +221,7 @@ impl EconomyConfig {
             munitions_storage_cost: num(&v, &["munitions", "storage_cost"])?,
             munitions_per_gun_power: num(&v, &["munitions", "per_gun_power"])?,
             munitions_engaged_share: num(&v, &["munitions", "engaged_share"])?,
+            munitions_idle_share: num(&v, &["munitions", "idle_share"])?,
             base_ic: num(&v, &["construction", "base_ic"])?,
             base_ic_gdp_ref: num(&v, &["construction", "base_ic_gdp_ref"])?,
             base_ic_min: num(&v, &["construction", "base_ic_min"])?,
@@ -249,6 +258,7 @@ pub struct UnitType {
     pub id: String,
     pub size: i64,
     pub attack: f64,
+    pub speed: f64,
     /// Whether the unit burns shells (its "shells" value is above zero).
     pub shells: bool,
     /// Its share of a starting army's men.
@@ -266,8 +276,70 @@ pub struct MilitaryConfig {
     pub landing_power_mult: f64,
     pub marshal_share: f64,
     pub occupation_income_share: f64,
+    pub occupation_mop_up_days: i64,
+    pub occupation_cavalry_mult: f64,
     /// Each nation's commanders: name and skill, in order.
     pub generals: Vec<(String, Vec<(String, f64)>)>,
+    pub terrain: Vec<(String, TerrainDef)>,
+    pub combat: CombatConfig,
+    pub supply: SupplyConfig,
+    pub movement: MovementConfig,
+    pub cities: CitiesConfig,
+    pub training_loss_dilution: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct TerrainDef {
+    pub defense: f64,
+    pub move_cost: f64,
+    pub occupy_days: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct CombatConfig {
+    pub casualties_per_point: f64,
+    pub shell_penalty: f64,
+    pub morale_loss_per_casualty: f64,
+    pub morale_loss_base: f64,
+    pub morale_regain: f64,
+    pub rout_morale: f64,
+    pub routed_loss: f64,
+    pub pursuit: f64,
+    pub pursuit_max: f64,
+    pub min_strength: f64,
+    pub max_entrenchment: i64,
+    pub entrench_days_per_level: i64,
+    pub entrench_defense_per_level: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct SupplyConfig {
+    pub range: f64,
+    pub railway_hop_cost: f64,
+    pub railway_level_gain: f64,
+    pub attrition: f64,
+    pub attrition_morale: f64,
+    pub reinforce_rate: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct MovementConfig {
+    pub min_days: f64,
+    pub railway_speedup: f64,
+    pub home_rail: f64,
+    pub strait_days: f64,
+    pub sea_link_days: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct CitiesConfig {
+    /// By city rank 1 to 3.
+    pub power: [f64; 3],
+    pub radius: [i64; 3],
+    pub supply_range: f64,
+    pub morale: f64,
+    pub reinforce: f64,
+    pub morale_fighting: f64,
 }
 
 impl MilitaryConfig {
@@ -279,6 +351,7 @@ impl MilitaryConfig {
                 id: id.clone(),
                 size: num(d, &["size"])? as i64,
                 attack: num(d, &["attack"])?,
+                speed: num(d, &["speed"])?,
                 shells: d.get("shells").and_then(Value::as_f64).unwrap_or(0.0) > 0.0,
                 share: num(d, &["share"])?,
             });
@@ -303,12 +376,64 @@ impl MilitaryConfig {
             landing_power_mult: num(&v, &["landing", "power_mult"])?,
             marshal_share: num(&v, &["army_group", "marshal_share"])?,
             occupation_income_share: num(&v, &["occupation", "income_share"])?,
+            occupation_mop_up_days: num(&v, &["occupation", "mop_up_days"])? as i64,
+            occupation_cavalry_mult: num(&v, &["occupation", "cavalry_mult"])?,
             generals,
+            terrain: {
+                let mut t = vec![];
+                for (id, d) in v.get("terrain").and_then(Value::as_object).ok_or("military.json: terrain")? {
+                    t.push((id.clone(), TerrainDef { defense: num(d, &["defense"])?, move_cost: num(d, &["move"])?, occupy_days: num(d, &["occupy_days"])? as i64 }));
+                }
+                t
+            },
+            combat: CombatConfig {
+                casualties_per_point: num(&v, &["combat", "casualties_per_point"])?,
+                shell_penalty: num(&v, &["combat", "shell_penalty"])?,
+                morale_loss_per_casualty: num(&v, &["combat", "morale_loss_per_casualty"])?,
+                morale_loss_base: num(&v, &["combat", "morale_loss_base"])?,
+                morale_regain: num(&v, &["combat", "morale_regain"])?,
+                rout_morale: num(&v, &["combat", "rout_morale"])?,
+                routed_loss: num(&v, &["combat", "routed_loss"])?,
+                pursuit: num(&v, &["combat", "pursuit"])?,
+                pursuit_max: num(&v, &["combat", "pursuit_max"])?,
+                min_strength: num(&v, &["combat", "min_strength"])?,
+                max_entrenchment: num(&v, &["combat", "max_entrenchment"])? as i64,
+                entrench_days_per_level: num(&v, &["combat", "entrench_days_per_level"])? as i64,
+                entrench_defense_per_level: num(&v, &["combat", "entrench_defense_per_level"])?,
+            },
+            supply: SupplyConfig {
+                range: num(&v, &["supply", "range"])?,
+                railway_hop_cost: num(&v, &["supply", "railway_hop_cost"])?,
+                railway_level_gain: num(&v, &["supply", "railway_level_gain"])?,
+                attrition: num(&v, &["supply", "attrition"])?,
+                attrition_morale: num(&v, &["supply", "attrition_morale"])?,
+                reinforce_rate: num(&v, &["supply", "reinforce_rate"])?,
+            },
+            movement: MovementConfig {
+                min_days: num(&v, &["movement", "min_days"])?,
+                railway_speedup: num(&v, &["movement", "railway_speedup"])?,
+                home_rail: num(&v, &["movement", "home_rail"])?,
+                strait_days: num(&v, &["movement", "strait_days"])?,
+                sea_link_days: num(&v, &["movement", "sea_link_days"])?,
+            },
+            cities: CitiesConfig {
+                power: [num(&v, &["cities", "power", "1"])?, num(&v, &["cities", "power", "2"])?, num(&v, &["cities", "power", "3"])?],
+                radius: [num(&v, &["cities", "radius", "1"])? as i64, num(&v, &["cities", "radius", "2"])? as i64, num(&v, &["cities", "radius", "3"])? as i64],
+                supply_range: num(&v, &["cities", "supply_range"])?,
+                morale: num(&v, &["cities", "morale"])?,
+                reinforce: num(&v, &["cities", "reinforce"])?,
+                morale_fighting: num(&v, &["cities", "morale_fighting"])?,
+            },
+            training_loss_dilution: v.get("training").and_then(|t| t.get("loss_dilution")).and_then(Value::as_f64).unwrap_or(0.5),
         })
     }
 
     pub fn unit_type(&self, id: &str) -> &UnitType {
         self.unit_types.iter().find(|t| t.id == id).unwrap_or_else(|| panic!("unknown unit type {id}"))
+    }
+
+    pub fn terrain_def(&self, id: &str) -> &TerrainDef {
+        self.terrain.iter().find(|(t, _)| t == id).map(|(_, d)| d).unwrap_or_else(|| panic!("unknown terrain {id}"))
     }
 
     pub fn generals_of(&self, tag: &str) -> &[(String, f64)] {
@@ -357,6 +482,10 @@ pub struct WarSupportConfig {
     pub debt_weight: f64,
     pub debt_cap: f64,
     pub white_peace_below: f64,
+    pub morale_curve: [f64; 3],
+    pub win_bonus: f64,
+    pub home_win_bonus: f64,
+    pub loss_penalty: f64,
 }
 
 impl WarSupportConfig {
@@ -381,6 +510,10 @@ impl WarSupportConfig {
             debt_weight: num(ws, &["debt_weight"])?,
             debt_cap: num(ws, &["debt_cap"])?,
             white_peace_below: num(ws, &["white_peace_below"])?,
+            morale_curve: [num(ws, &["morale_mult", "at_0"])?, num(ws, &["morale_mult", "at_50"])?, num(ws, &["morale_mult", "at_100"])?],
+            win_bonus: num(ws, &["win_bonus"])?,
+            home_win_bonus: num(ws, &["home_win_bonus"])?,
+            loss_penalty: num(ws, &["loss_penalty"])?,
         })
     }
 
@@ -391,7 +524,15 @@ impl WarSupportConfig {
 
     /// Multiplier on tax and recruitment at war, from the nation's support (`WarSupport._curve`).
     pub fn economy_mult_at(&self, support: f64) -> f64 {
-        let [a, b, c] = self.economy_curve;
+        Self::curve(self.economy_curve, support)
+    }
+
+    /// Multiplier on the fighting power of the nation's armies at war.
+    pub fn morale_mult_at(&self, support: f64) -> f64 {
+        Self::curve(self.morale_curve, support)
+    }
+
+    fn curve([a, b, c]: [f64; 3], support: f64) -> f64 {
         if support <= 50.0 {
             crate::gd::lerpf(a, b, support / 50.0)
         } else {
@@ -454,6 +595,25 @@ pub struct DiplomacyConfig {
     pub gift_memory_decay: f64,
     pub treaties: Vec<TreatyKind>,
     pub crisis: CrisisConfig,
+    pub prestige_battle_win: f64,
+    pub score_battle_ratio_min: f64,
+    pub score_battle_ratio_max: f64,
+    pub score_battle_cap: f64,
+    pub score_battle_per_kmen: f64,
+    pub capitulation: CapitulationConfig,
+}
+
+/// `data/diplomacy.json`, capitulation: what a province is worth in a war, and how much of it a nation may lose.
+#[derive(Debug, Clone)]
+pub struct CapitulationConfig {
+    pub value_population: f64,
+    pub value_city: f64,
+    pub value_buildings: Vec<(String, f64)>,
+    pub value_minimum: f64,
+    pub capital_share: f64,
+    pub relocation_share: f64,
+    pub relocated_bonus: f64,
+    pub capitulate_share: f64,
 }
 
 impl DiplomacyConfig {
@@ -494,6 +654,21 @@ impl DiplomacyConfig {
             rivalry_fade_per_year: num(&v, &["war", "provocation", "rivalry_fade_per_year"])?,
             gift_memory_decay: num(&v, &["actions", "gift_memory_decay"])?,
             treaties,
+            prestige_battle_win: num(&v, &["points", "prestige", "battle_win"])?,
+            score_battle_ratio_min: num(&v, &["peace", "score", "battle_ratio_min"])?,
+            score_battle_ratio_max: num(&v, &["peace", "score", "battle_ratio_max"])?,
+            score_battle_cap: num(&v, &["peace", "score", "battle_cap"])?,
+            score_battle_per_kmen: num(&v, &["peace", "score", "battle_per_kmen"])?,
+            capitulation: CapitulationConfig {
+                value_population: num(&v, &["capitulation", "value", "population"])?,
+                value_city: num(&v, &["capitulation", "value", "city"])?,
+                value_buildings: v["capitulation"]["value"]["buildings"].as_object().ok_or("capitulation.value.buildings")?.iter().filter_map(|(k, x)| x.as_f64().map(|x| (k.clone(), x))).collect(),
+                value_minimum: num(&v, &["capitulation", "value", "minimum"])?,
+                capital_share: num(&v, &["capitulation", "capital_share"])?,
+                relocation_share: num(&v, &["capitulation", "relocation_share"])?,
+                relocated_bonus: num(&v, &["capitulation", "relocated_bonus"])?,
+                capitulate_share: num(&v, &["capitulation", "capitulate_share"])?,
+            },
             crisis: CrisisConfig {
                 alarm_level: cr("alarm_level")?,
                 alarm_clear_level: cr("alarm_clear_level")?,

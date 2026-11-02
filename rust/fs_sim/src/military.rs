@@ -41,6 +41,19 @@ pub struct Army {
     pub units: Vec<Unit>,
     pub general_skill: f64,
     pub landing_days: i32,
+    /// The provinces still to enter, nearest first, and the days left before the army arrives in the first.
+    pub path: Vec<usize>,
+    pub move_days_left: f64,
+    /// Days spent standing still; entrenchment grows with it.
+    pub still_days: i64,
+    /// True while this army is the one that attacked in an ongoing battle.
+    pub attacking: bool,
+    /// Set while the army is in a battle this day.
+    pub fighting: bool,
+    /// Whether the army can draw supply (updated daily).
+    pub supplied: bool,
+    /// Days left in which the supplies that came ashore with the army last.
+    pub landed_supply: i64,
 }
 
 impl Army {

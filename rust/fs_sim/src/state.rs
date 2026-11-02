@@ -12,6 +12,7 @@ use crate::map::MapData;
 use crate::military::{self, Army};
 use crate::tsv::Table;
 use serde_json::Value;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -76,6 +77,9 @@ pub struct Nation {
     pub war_support: f64,
     /// What war support settles at in peace (the scenario's, or its government's).
     pub war_support_base: f64,
+    /// Whether the nation has capitulated in a war, and the capital it started the war with when it has moved since.
+    pub capitulated: bool,
+    pub home_capital: i64,
     /// Men lost in battle so far this month.
     pub men_lost_month: f64,
     /// Monthly state investment (GBP millions).
@@ -134,6 +138,81 @@ pub struct ActiveFocus {
     pub id: String,
     pub days_left: i64,
     pub days_total: i64,
+}
+
+/// The record of one war (`War`): who started it and what each side lost and took. (Its log of events and battles, kept
+/// for the screens, is not ported.)
+#[derive(Debug, Clone)]
+pub struct War {
+    pub id: u32,
+    pub a: String,
+    pub b: String,
+    pub start_day: i64,
+    /// The day of the last battle between the two sides (-1: none yet).
+    pub last_fight_day: i64,
+    /// Men killed or wounded in battle, lost to hunger away from supply, and destroyed because the army had nowhere to go.
+    pub losses: HashMap<String, f64>,
+    pub attrition: HashMap<String, f64>,
+    pub surrendered: HashMap<String, f64>,
+    /// War score earned from battles won; it fades monthly.
+    pub battle_points: HashMap<String, f64>,
+    /// tag -> (provinces, people) that nation took from the other.
+    pub captured: HashMap<String, (i64, i64)>,
+}
+
+impl War {
+    pub fn new(id: u32, a: &str, b: &str, start_day: i64) -> War {
+        let both = |x: f64| [(a.to_string(), x), (b.to_string(), x)].into_iter().collect::<HashMap<_, _>>();
+        War {
+            id,
+            a: a.to_string(),
+            b: b.to_string(),
+            start_day,
+            last_fight_day: -1,
+            losses: both(0.0),
+            attrition: both(0.0),
+            surrendered: both(0.0),
+            battle_points: both(0.0),
+            captured: [(a.to_string(), (0, 0)), (b.to_string(), (0, 0))].into_iter().collect(),
+        }
+    }
+
+    pub fn involves(&self, tag: &str) -> bool {
+        self.a == tag || self.b == tag
+    }
+
+    pub fn other(&self, tag: &str) -> &str {
+        if tag == self.a {
+            &self.b
+        } else {
+            &self.a
+        }
+    }
+}
+
+/// A major city (`data/scenarios/<scenario>/cities.tsv`).
+#[derive(Debug, Clone)]
+pub struct City {
+    pub id: i64,
+    pub name: String,
+    pub province: usize,
+    pub pop: i64,
+    /// 1 a capital, 2 a great city, 3 a large one.
+    pub rank: i64,
+}
+
+/// A battle in progress in a province (the part of `Military._engagement`'s record that bears on what happens).
+#[derive(Debug, Clone)]
+pub struct Engagement {
+    pub id: u32,
+    pub province: usize,
+    pub start_day: i64,
+    pub attacker: String,
+    /// The men each side had when it joined the battle, in the order the sides joined.
+    pub start_men: Vec<(String, f64)>,
+    /// What each side has lost in it.
+    pub lost: Vec<(String, f64)>,
+    pub armies: Vec<u32>,
 }
 
 /// One standing agreement between two nations (`Treaty`). Kinds are in `data/diplomacy.json`.
@@ -242,8 +321,31 @@ pub struct GameState {
     pub armies: Vec<Army>,
     pub next_army_id: u32,
     pub fleets: Vec<Fleet>,
-    /// The wars being fought, as pairs of tags. (No war is started by loading yet.)
-    pub wars: Vec<(String, String)>,
+    /// Naval bases (dockyards) from the scenario: province -> level the biggest ship there needs. They count as a port for the
+    /// navy, not for the economy.
+    pub naval_bases: HashMap<usize, i64>,
+    /// The wars being fought, in the order they began. (Loading does not start a scenario's wars yet.)
+    pub wars: Vec<War>,
+    pub next_war_id: u32,
+    pub cities: Vec<City>,
+    /// What each province's people numbered when the scenario began: the cities grow and shrink with the ratio.
+    pub province_pop_base: Vec<i32>,
+    /// Province -> (the nation taking it, days it has held it): an army is taking the province.
+    pub occupation: HashMap<usize, (String, i64)>,
+    /// Battles being fought now, by province, in the order they began.
+    pub engagements: Vec<Engagement>,
+    pub next_battle_id: u32,
+    /// The day a battle in each province last ended.
+    pub last_battle_day: HashMap<usize, i64>,
+    /// Count the changes of who owns and who holds provinces.
+    pub owner_version: u64,
+    pub control_version: u64,
+    /// Answers the game keeps for the day (`Military`'s supply and home-connection caches), forgotten when a province changes
+    /// hands.
+    pub supply_cache: RefCell<SupplyCache>,
+    pub home_cache: RefCell<HomeCache>,
+    /// The cities' reach over the ground (`Military.city_aura`), kept while who owns and holds what is unchanged.
+    pub aura_cache: RefCell<Option<((u64, u64), HashMap<String, HashMap<usize, f64>>)>>,
     /// The nation the player plays ("" for none).
     pub player_tag: String,
     pub calendar: Calendar,
@@ -272,6 +374,19 @@ pub struct GameState {
     /// Set when something changed the economy in the middle of the day's step; the step recomputes once at its end.
     pub economy_dirty: bool,
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct SupplyCache {
+    pub stamp: Option<(i64, u64)>,
+    pub costs: HashMap<(String, usize), f64>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct HomeCache {
+    pub day: i64,
+    pub answers: HashMap<(String, usize), bool>,
+}
+
 
 /// A fleet at its base: the ships' types (`Fleet`, `Navy.new_fleet`).
 #[derive(Debug, Clone)]
@@ -323,7 +438,20 @@ impl GameState {
             armies: vec![],
             next_army_id: 1,
             fleets: vec![],
+            naval_bases: HashMap::new(),
             wars: vec![],
+            next_war_id: 1,
+            cities: vec![],
+            province_pop_base: vec![],
+            occupation: HashMap::new(),
+            engagements: vec![],
+            next_battle_id: 1,
+            last_battle_day: HashMap::new(),
+            owner_version: 0,
+            control_version: 0,
+            supply_cache: RefCell::new(SupplyCache::default()),
+            home_cache: RefCell::new(HomeCache { day: -1, answers: HashMap::new() }),
+            aura_cache: RefCell::new(None),
             player_tag: scenario.get("default_player").and_then(Value::as_str).unwrap_or("").to_string(),
             calendar: {
                 let d = scenario.get("start_date").and_then(Value::as_array).ok_or("scenario: start_date")?;
@@ -381,6 +509,12 @@ impl GameState {
         for row in Table::read(&dir.join("provinces.tsv"))?.rows() {
             gs.province_population[row.int("id") as usize] = row.int("population") as i32;
         }
+        gs.province_pop_base = gs.province_population.clone();
+        if dir.join("cities.tsv").exists() {
+            for row in Table::read(&dir.join("cities.tsv"))?.rows() {
+                gs.cities.push(City { id: row.int("id"), name: row.get("name").to_string(), province: row.int("province") as usize, pop: row.int("pop"), rank: row.int("rank") });
+            }
+        }
         let no_nations = Value::Object(Default::default());
         let nations_json = scenario.get("nations").unwrap_or(&no_nations);
         for info in &data.map.nations {
@@ -417,6 +551,8 @@ impl GameState {
                     .and_then(Value::as_f64)
                     .unwrap_or_else(|| data.war_support.start_value(s.get("government").and_then(Value::as_str).unwrap_or(""))),
                 war_support_base: 0.0,
+                capitulated: false,
+                home_capital: 0,
                 men_lost_month: 0.0,
                 investment: 0.0,
                 weariness: 0.0,
@@ -488,6 +624,13 @@ impl GameState {
                     units: held[i].clone(),
                     general_skill: generals.get(i).map(|g| g.1).unwrap_or(1.0),
                     landing_days: 0,
+                    path: vec![],
+                    move_days_left: 0.0,
+                    still_days: 0,
+                    attacking: false,
+                    fighting: false,
+                    supplied: true,
+                    landed_supply: 0,
                 });
             }
         }
@@ -566,6 +709,7 @@ impl GameState {
                 set_building(&mut self.province_buildings[province], "port", 1);
             }
         }
+        self.naval_bases = naval_bases;
         for i in 0..self.nations.len() {
             let upkeep = self.ship_upkeep(data, &self.nations[i].tag);
             self.nations[i].naval_overhead = maxf(0.0, self.nations[i].naval_budget - upkeep);
@@ -629,7 +773,7 @@ impl GameState {
 
     /// `WarSupport.economy_mult`: the multiplier on tax and recruitment; 1 in peace.
     pub fn war_economy_mult(&self, data: &Data, tag: &str) -> f64 {
-        if !self.wars.iter().any(|(a, b)| a == tag || b == tag) {
+        if !self.is_at_war(tag) {
             return 1.0;
         }
         data.war_support.economy_mult_at(self.nation(tag).war_support)
@@ -670,11 +814,35 @@ impl GameState {
 
     /// `GameState.at_war`: whether two nations are at war with each other.
     pub fn at_war(&self, a: &str, b: &str) -> bool {
-        a != b && self.wars.iter().any(|(x, y)| (x == a && y == b) || (x == b && y == a))
+        a != b && self.wars.iter().any(|w| (w.a == a && w.b == b) || (w.a == b && w.b == a))
     }
 
     pub fn is_at_war(&self, tag: &str) -> bool {
-        self.wars.iter().any(|(a, b)| a == tag || b == tag)
+        self.wars.iter().any(|w| w.involves(tag))
+    }
+
+    /// `GameState.war_between`: the index of the war being fought between two nations.
+    pub fn war_between(&self, a: &str, b: &str) -> Option<usize> {
+        if a == b {
+            return None;
+        }
+        self.wars.iter().position(|w| (w.a == a && w.b == b) || (w.a == b && w.b == a))
+    }
+
+    /// `GameState.wars_of`: the wars a nation is fighting, in the order they began.
+    pub fn wars_of(&self, tag: &str) -> Vec<usize> {
+        (0..self.wars.len()).filter(|&i| self.wars[i].involves(tag)).collect()
+    }
+
+    /// `GameState.set_war` (starting one): `a` declares war on `b`. The war's log and the notes it makes for the history
+    /// are not kept here.
+    pub fn set_war(&mut self, a: &str, b: &str) {
+        if a == b || self.at_war(a, b) {
+            return;
+        }
+        let w = War::new(self.next_war_id, a, b, self.calendar.days_elapsed as i64);
+        self.next_war_id += 1;
+        self.wars.push(w);
     }
 
     /// `WarSupport.change`: moves a nation's war support, within 0 to 100, ignoring a change too small to see.
@@ -1102,7 +1270,20 @@ impl GameState {
 
     /// `GameState.set_controller`: changes who holds a province (the owner stays). The caller recomputes the economy.
     pub fn set_controller(&mut self, id: usize, tag: &str) {
+        if self.province_controller[id] == tag {
+            return;
+        }
         self.province_controller[id] = tag.to_string();
+        self.control_version += 1;
+        self.invalidate_aura();
+    }
+
+    /// `Military.invalidate_aura`: forgets what the game keeps for the day about supply and the cities' reach (a province
+    /// changed hands, or another game was loaded).
+    pub fn invalidate_aura(&self) {
+        *self.supply_cache.borrow_mut() = SupplyCache::default();
+        *self.home_cache.borrow_mut() = HomeCache { day: -1, answers: HashMap::new() };
+        *self.aura_cache.borrow_mut() = None;
     }
 
     /// `GameState._rebuild_nation_provinces`: each nation's provinces (by id) and people.

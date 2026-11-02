@@ -39,6 +39,7 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `focus.gd` | `config.rs`, `state.rs` | The national focus: `tree_of`, `block`, `start`, the daily step, `complete` and `apply_effects` (lasting bonuses, prestige, points, money, war support, army size, relations, claims). |
 | `diplomacy.gd` (part) | `diplomacy.rs`, `state.rs` | `load_scenario` (the treaty web, every pair's opinion and baseline, rivalries), relations, diplomacy points and prestige, `step_day` (mobilization, alarms, call-ups, `mobilization_target`), `step_month` (points income and rank, projects, prestige, grievance, gifts, the drift of opinion), and neighbours (`MapData.neighbors`). |
 | `war_support.gd` (part) | `diplomacy.rs` | `monthly_changes` and `step_month`. (A forced white peace needs the peace rules and stops the port with a message.) |
+| `military.gd` (part), `capitulation.gd` (part), `munitions.gd` (part), `war.gd`, `cities.gd` | `war.rs`, `state.rs`, `map.rs` | War on the map: `can_enter`, `find_path` (the game's own heap, so ties come out the same), `MoveArmy`, `move_days`, the daily march, supply (`supply_cost`, `home_connected`, `sea_route_home`, the cities' reach), battles (`_fight`: shells burnt, power, works, casualties, morale, routs, retreats, pursuit, the war's tallies, war score and war support from a battle), occupation, supply attrition, reinforcement, `collapse_nations`, and the capitulation check. |
 | `population.gd` | `population.rs`, `state.rs` | The monthly step: growth, famine, occupation and war dead. |
 | `economy.gd` (budgets) | `budget.rs`, `state.rs` | `nation_budget` (revenue, costs, food, raw materials, industry, manpower), `materials_of`, soldier wages, `construction_points`, `_budgets`, `calibrate`. |
 
@@ -66,6 +67,16 @@ of the real `Diplomacy.step_day` and `step_month` on top of the economy with gre
 gifts, a casus belli and a rivalry that lapse, and a nation of negative prestige. War support's monthly changes at war (the
 war itself, taxes, men lost, blockade, ground lost, debt) and its step are compared too.
 
+A sixth golden file, `war.json` (made by `tools/dump_war_golden.gd`), is three real campaigns of the game's own code: wars
+between neighbours (Germany and France and Belgium; Austria-Hungary, Serbia, Russia and Germany; Italy, Austria-Hungary,
+the Ottomans, Greece, Bulgaria and Serbia), armies sent over the borders and deep into the enemy's country with the game's
+own `MoveArmy` command, trenches and fortifications on the ground they go for, and `Economy.step_day` with
+`Military.step_day` for up to 150 days. Every day's figures for every nation are compared, and every fifth day all the armies
+(every division's strength, morale and drill), the wars' books, the ground that changed hands, the occupation under way, and
+when each battle last ended; every thirtieth day also what each side could supply in a third of the provinces. The port
+matches all of it: 3 campaigns, 333 days of war, 70 provinces changing hands, routs, cut-off armies and attrition. (The
+southern campaign ends on day 33 because the game has Bulgaria capitulate on day 34.)
+
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
 (development, people, province lists, summed output) and the raw-materials constant, for July 1914 and January 1900,
@@ -76,20 +87,21 @@ costs, 200 worker shares, 180 population steps and so on). Breaking any of these
 
 ## What is not ported
 
-Most of it. Still missing from the economy: `level_gain` and `building_stats` (what the screens show). The loader does not
-start a scenario's wars, and the game's own daily step (`game_state.gd`'s stages: economy, focus and diplomacy's day and
-month are ported; `Navy`, `Military`, `Crisis` and the AI are not). In diplomacy: declaring war, proposing and cancelling
-treaties, claims, the join decisions of a war and the casus belli rules. Next come `military.gd` (movement, supply,
-battles, fronts), `navy.gd` (movement and battles), `peace.gd`, `pressure.gd`, `crisis.gd` and the war and front code.
-They need the sea zones. The AI (`scripts/ai`) is not part of this port.
+Most of it, though the heart of it is in. Still missing from the economy: `level_gain` and `building_stats` (what the screens
+show). The loader does not start a scenario's wars, and the game's own daily step (`game_state.gd`'s stages) is not wired up:
+economy, focus, diplomacy and the army's day are ported separately; `Navy` and `Crisis` are not. In diplomacy: declaring war,
+proposing and cancelling treaties, claims, the join decisions of a war and the casus belli rules. In war: fronts, army groups,
+offensives and attack lines, recruiting and training, armies at sea and landings, and everything after a capitulation or a lost
+capital (the port stops with a message when one would happen). Then `navy.gd` (movement and battles, the blockade),
+`peace.gd`, `pressure.gd` and `crisis.gd`, the war and front code, and `save_game.gd`. The AI (`scripts/ai`) is not part of
+this port.
 
 The simulation uses no random numbers (only the main menu and the city drawing do), so the port has no Godot generator to
 match.
 
 ## What comes next
 
-1. Port `pressure.gd` and `crisis.gd` (Europe's tension, the events and the crises that open between nations), the next stages of
-   the day and the month.
-2. Port the movement and battle rules of `military.gd` (neighbours are loaded already), comparing days of the real game with
-   the AI off.
-3. Then declaring war and peace, the navy, and whole days of the real game at each step.
+1. Port declaring war (`Diplomacy.declare_war`, `start_war`, the join decisions of a war, the casus belli) so a scenario's wars
+   start from the loader, and the peace rules (`peace.gd`) that follow a capitulation, so a war can end.
+2. Then `pressure.gd` and `crisis.gd` (Europe's tension, the events and the crises), the navy, and fronts and offensives.
+3. Wire the stages into one daily and monthly step like `game_state.gd`'s, and compare whole days of the real game.

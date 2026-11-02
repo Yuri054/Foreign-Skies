@@ -200,7 +200,7 @@ fn war_support_at_war() {
         }
     }
     for p in w["wars"].as_array().unwrap() {
-        gs.wars.push((p[0].as_str().unwrap().to_string(), p[1].as_str().unwrap().to_string()));
+        gs.set_war(p[0].as_str().unwrap(), p[1].as_str().unwrap());
     }
     for c in w["controllers"].as_array().unwrap() {
         gs.set_controller(c[0].as_u64().unwrap() as usize, c[1].as_str().unwrap());
