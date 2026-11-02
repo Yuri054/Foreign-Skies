@@ -4,7 +4,8 @@ extends RefCounted
 ##   INCOME: each province's base income (from its people at the start, fixed), plus its civilian factories and ports,
 ##   times mobilization, blockade and war support. An occupied province pays its owner nothing and its occupier a share
 ##   of its base income.
-##   EXPENSES: the army (each unit's upkeep, military.json), the navy, the buildings' upkeep and interest on debt.
+##   EXPENSES: administration (a share of the income from the nation's own provinces, factories and ports), the army
+##   (each unit's upkeep, military.json), the navy, the buildings' upkeep and interest on debt.
 ##   CP: a stockpile. Construction sectors (and a little from the capital) add to it every day; starting a building
 ##   spends its gold and CP at once, and the building is finished after a fixed number of days. One project at a time in
 ##   a province, at most construction.max_level of each building in a province; the queue starts each project as soon as
@@ -215,10 +216,11 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, war_mult: float,
 	var ports := float(raw.get("ports", 0.0)) * (1.0 - n.blockade)
 	var occupied := float(raw.get("occupied", 0.0))
 	var income := (base + factories + ports + occupied) * war_mult
+	var administration := (base + factories + ports) * war_mult * float(c.administration)
 	var navy := n.naval_budget / 12.0
 	var buildings := float(raw.get("upkeep", 0.0))
 	var interest := maxf(0.0, -n.treasury) * float(cfg.debt.interest) / 12.0
-	var expenses := army + navy + buildings + interest
+	var expenses := administration + army + navy + buildings + interest
 	var cp := float(raw.get("cp", 0.0)) + float(n.focus_fx.get("cp", 0.0))
 	if n.capital > 0 and n.capital < gs.province_controller.size() and gs.province_controller[n.capital] == n.tag:
 		cp += float(cfg.construction.capital_cp)
@@ -230,6 +232,7 @@ static func nation_budget(gs: Node, n: Nation, raw: Dictionary, war_mult: float,
 		"ports": ports * war_mult,
 		"occupied": occupied * war_mult,
 		"income": income,
+		"administration": administration,
 		"army": army,
 		"navy": navy,
 		"buildings": buildings,

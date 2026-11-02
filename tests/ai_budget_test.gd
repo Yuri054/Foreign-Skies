@@ -55,8 +55,9 @@ func _test_buildings() -> void:
 	# In peace with gold and points to spare, a nation builds civilian factories, several a month, keeping its reserve.
 	_fresh()
 	var n = gs.nations["ITA"]
-	n.treasury = 200.0
+	n.treasury = 500.0
 	n.cp = 2000.0
+	var army: int = n.peacetime_army
 	B.step(gs, "ITA")
 	var factories := _started(n, "civilian_factory")
 	_check(factories >= 2, "a rich nation in peace starts civilian factories (%d)" % factories)
@@ -66,8 +67,10 @@ func _test_buildings() -> void:
 	for job in n.construction:
 		places[job.province] = places.get(job.province, 0) + 1
 	_check(places.values().all(func(v: int) -> bool: return v == 1), "one project a province")
+	_check(n.peacetime_army > army and n.peacetime_army <= load("res://scripts/sim/economy.gd").standing_cap(gs, n), "in peace with a surplus its standing army grows (%d to %d)" % [army, n.peacetime_army])
+	var queued: int = n.construction.size()
 	B.step(gs, "ITA")
-	_check(n.construction.size() == factories, "and once a month")
+	_check(n.construction.size() == queued, "and once a month")
 
 	# Without the gold, nothing.
 	_fresh()

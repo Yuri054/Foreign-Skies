@@ -1,12 +1,13 @@
 {
-	"_note": "The economy (Economy): one currency, gold, and construction points (CP). Every figure is a month unless it says otherwise. Income is each province's base income (from its people at the start: per_million gold a month for each million, to the power exponent, so a small province earns a little more for its size), plus civilian factories and ports, times mobilization, blockade and war support. Expenses are the army (each unit's upkeep, military.json), the navy, the buildings' upkeep and interest on debt. CP is a stockpile: construction sectors add to it every day; starting a building spends its gold and CP at once, and it is finished after a fixed number of days. One project at a time in a province; at most max_level of each building in a province.",
+	"_note": "The economy (Economy): one currency, gold, and construction points (CP). Every figure is a month unless it says otherwise. Income is each province's base income (from its people at the start: per_million gold a month for each million, to the power exponent, so a small province earns a little more for its size), plus civilian factories and ports, times mobilization, blockade and war support. Expenses are administration (a share of the income), the army (each unit's upkeep, military.json), the navy, the buildings' upkeep and interest on debt. CP is a stockpile: construction sectors add to it every day; starting a building spends its gold and CP at once, and it is finished after a fixed number of days. One project at a time in a province; at most max_level of each building in a province.",
 	"income": {
-		"_note": "per_million and exponent: base income. civilian_factory and port: gold a month a level (buildings). mobilization_loss: base income lost at full mobilization. blockade_factory_loss: share of factory income a full blockade takes (it takes all port income). occupied_share: share of a province's base income its occupier collects (its owner gets none of it).",
+		"_note": "per_million and exponent: base income. civilian_factory and port: gold a month a level (buildings). mobilization_loss: base income lost at full mobilization. blockade_factory_loss: share of factory income a full blockade takes (it takes all port income). occupied_share: share of a province's base income its occupier collects (its owner gets none of it). administration: the share of the income from the nation's own provinces, factories and ports that the state spends on running itself (an expense that grows with the economy, so a factory adds less than its gross income to the surplus).",
 		"per_million": 0.1,
 		"exponent": 0.8,
 		"mobilization_loss": 0.35,
 		"blockade_factory_loss": 0.3,
-		"occupied_share": 0.5
+		"occupied_share": 0.5,
+		"administration": 0.35
 	},
 	"construction": {
 		"_note": "capital_cp: CP a day a nation's capital makes (so a nation that has lost every construction sector can still build). max_level: the most of one building in a province. Every nation starts with at least one civilian factory and one construction sector (Economy.load_scenario).",
@@ -17,7 +18,7 @@
 		"_note": "Province buildings. gold and cp are paid when a level is begun; days is how long it takes; upkeep is gold a month a level; income is gold a month a level; cp_per_day is CP a day a level. requires 'coastal' needs a sea coast. defense, shell_reduction and hard_reduction are the works' effects in battle, per level (Military.works_defense). The railway gives supply and faster marching (Military) until the logistics hub replaces it.",
 		"civilian_factory": {
 			"name": "Civilian factory",
-			"gold": 60,
+			"gold": 150,
 			"cp": 240,
 			"days": 60,
 			"upkeep": 0.0,

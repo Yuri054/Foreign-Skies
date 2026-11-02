@@ -253,6 +253,8 @@ func _refresh_money(n: Nation) -> void:
 	_total_row(g, "Total income", b.income, Color.WHITE)
 
 	_head_row(spend, "Spending")
+	_cell(spend, "Administration", 0, Color.WHITE, "Running the state: %d%% of the income from your provinces, factories and ports, so it grows with the economy." % roundi(float(inc.administration) * 100.0))
+	_cell(spend, Fmt.money(-b.administration, true), 1)
 	_cell(spend, "Army", 0, Color.WHITE, "Every unit's upkeep, in the field and in training (more for armies on exercise).")
 	_cell(spend, Fmt.money(-b.army, true), 1)
 	_cell(spend, "Navy", 0, Color.WHITE, "The ships' upkeep and the shore establishment.")

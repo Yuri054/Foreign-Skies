@@ -70,7 +70,7 @@ func _free(tag: String, type := "civilian_factory", capital := false) -> int:
 
 func _test_start() -> void:
 	_fresh()
-	var targets := {"GER": 25.0, "GBR": 28.0, "FRA": 20.0, "RUS": 18.0, "AUH": 14.0, "ITA": 10.0}
+	var targets := {"GER": 25.0, "GBR": 28.0, "FRA": 20.0, "RUS": 22.0, "AUH": 14.0, "ITA": 10.0}
 	for tag: String in targets:
 		var income: float = gs.nations[tag].budget.income
 		_check(absf(income - targets[tag]) / targets[tag] < 0.1, "%s earns about %.0f gold a month (%.1f)" % [tag, targets[tag], income])
@@ -138,7 +138,8 @@ func _test_upkeep() -> void:
 			upkeep += float(Eco.cfg.buildings[type].get("upkeep", 0.0)) * gs.province_buildings[id][type]
 	_check(is_equal_approx(ger.budget.buildings, upkeep), "the buildings cost their upkeep (%.2f)" % upkeep)
 	_check(is_equal_approx(ger.budget.navy, ger.naval_budget / 12.0), "the navy a twelfth of its yearly cost")
-	_check(is_equal_approx(ger.budget.expenses, ger.budget.army + ger.budget.navy + ger.budget.buildings + ger.budget.interest), "spending is the sum of its parts")
+	_check(is_equal_approx(ger.budget.administration, (ger.budget.base + ger.budget.factories + ger.budget.ports) * 0.35), "administration takes 35% of the income from its own provinces, factories and ports")
+	_check(is_equal_approx(ger.budget.expenses, ger.budget.administration + ger.budget.army + ger.budget.navy + ger.budget.buildings + ger.budget.interest), "spending is the sum of its parts")
 	ger.treasury = -120.0
 	Eco.recompute(gs)
 	_check(is_equal_approx(ger.budget.interest, 120.0 * 0.05 / 12.0), "a debt costs interest")
@@ -171,10 +172,10 @@ func _test_queue() -> void:
 	ger.treasury = 1000.0
 	ger.cp = 1000.0
 	var plan: Dictionary = Eco.build_plan(gs, id, "civilian_factory")
-	_check(plan.gold == 60.0 and plan.cp == 240.0 and plan.days == 60, "a civilian factory costs 60 gold and 240 points and takes 60 days")
+	_check(plan.gold == 150.0 and plan.cp == 240.0 and plan.days == 60, "a civilian factory costs 150 gold and 240 points and takes 60 days")
 	var f0: int = gs.province_buildings[id].get("civilian_factory", 0)
 	_check(gs.issue(Build.new("GER", id, "civilian_factory")), "a factory is queued")
-	_check(ger.construction.size() == 1 and ger.construction[0].started and is_equal_approx(ger.treasury, 940.0) and is_equal_approx(ger.cp, 760.0), "and started at once, its gold and points paid")
+	_check(ger.construction.size() == 1 and ger.construction[0].started and is_equal_approx(ger.treasury, 850.0) and is_equal_approx(ger.cp, 760.0), "and started at once, its gold and points paid")
 	_check(gs.issue(Build.new("GER", id, "railway")) and not ger.construction[1].started, "a second project in the province waits")
 	_check(Eco.province_busy(ger, id), "while the first is under way")
 	for d in 59:
@@ -204,7 +205,7 @@ func _test_queue() -> void:
 	_check(gs.issue(Prioritize.new("GER", c, "trench")) and ger.construction[0].province == c, "until the trench is put first")
 	clock.advance_day()
 	_check(ger.construction[0].started and not ger.construction[1].started, "then it starts, and the factory waits for the gold")
-	ger.treasury = 200.0
+	ger.treasury = 400.0
 	clock.advance_day()
 	_check(ger.construction[1].started, "and starts when the gold is there")
 
@@ -236,8 +237,8 @@ func _test_mass() -> void:
 	_check(ok, "best first")
 	var preview: Dictionary = Mass.new("FRA", "civilian_factory", 3, 0.0).preview(gs)
 	_check(preview.count == 3 and fra.construction.is_empty() and is_equal_approx(fra.treasury, 10000.0), "a preview changes nothing")
-	var capped = Mass.new("FRA", "civilian_factory", 1000, 150.0)
-	_check(gs.issue(capped) and capped.built.size() == 2 and capped.stopped_by == "spend", "a gold limit stops it (two factories for 150 gold)")
+	var capped = Mass.new("FRA", "civilian_factory", 1000, 375.0)
+	_check(gs.issue(capped) and capped.built.size() == 2 and capped.stopped_by == "spend", "a gold limit stops it (two factories for 375 gold)")
 	_check(not gs.issue(Mass.new("FRA", "bogus", 5, 0.0)) and not gs.issue(Mass.new("XXX", "civilian_factory", 5, 0.0)), "unknown building or nation rejected")
 
 

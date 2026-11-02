@@ -32,19 +32,21 @@ One window, a tab for each part of running the nation:
   and your wars with what each is being fought for.
 - **Economy (E)**: the budget in **gold** and your **construction points**. Each month your provinces pay their **base
   income** (from their people; it does not grow), each **civilian factory** 1.5 gold and each **port** 0.3 (a blockade cuts
-  ports and factories). Out go the **army** (each unit's upkeep), the **navy** and the **buildings' upkeep** (construction
-  sectors, railways, forts and trenches; factories and ports cost nothing to keep), and interest on any debt. The
+  ports and factories). Out go **administration** (35% of that income: the state grows with the economy), the **army**
+  (each unit's upkeep), the **navy** and the **buildings' upkeep** (construction sectors, railways, forts and trenches;
+  factories and ports cost nothing to keep), and interest on any debt. The
   **Standing army** slider sets how many men you keep under arms in peace (up to a fifth of your manpower): each division
   costs its upkeep, and the page says how many more your surplus keeps, how many the treasury can raise, how many your
   recruits fill and how many months the treasury pays for a full mobilization. **Mobilization** calls up the reserve and
   costs base income: the slider says how much before you move it.
 - **Build (B)**: pick a building, then click a green province. **A building costs gold and construction points, paid
-  when it starts, and is finished after a fixed number of days**: a civilian factory 60 gold, 240 points and 60 days; a
+  when it starts, and is finished after a fixed number of days**: a civilian factory 150 gold, 240 points and 60 days; a
   construction sector (one more point a day) 40 gold and 160 points; a trench 5 gold, 30 points and a week. Every nation
   has at least one civilian factory and one construction sector, and its capital makes a quarter of a point a day. One
   project at a time in a province, at most ten of each building in a province; queue more and each starts as soon as its
-  province is free and the gold and points are there, in order. A civilian factory pays its gold back in 40 months, and
-  then earns for ever: build them, and when gold piles up faster than points, build construction sectors.
+  province is free and the gold and points are there, in order. A civilian factory pays its gold back in about 13 years
+  (after administration's share), and then earns for ever: build them, and when gold piles up faster than points,
+  build construction sectors.
 - **Military (M)**, **Navy (Y)**: armies, army groups, fronts, fleets, yards.
 - **Diplomacy (F)**: opinions, treaties, wars, gifts, demands, peace.
 - **Focus (O)**: one national effort at a time, with lasting effects.

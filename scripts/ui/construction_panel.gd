@@ -304,7 +304,8 @@ func _detail_text(type: String) -> String:
 	if def.get("requires", "") == "coastal":
 		lines.append("Coastal provinces only.")
 	if def.has("income"):
-		lines.append("It pays its gold back in %d months." % ceili(float(def.gold) / float(def.income)))
+		var kept := float(def.income) * (1.0 - float(Economy.cfg.income.administration))
+		lines.append("After administration's share it adds %s a month, and pays its gold back in %d months." % [Fmt.gold(kept), ceili(float(def.gold) / kept)])
 	return "\n".join(lines)
 
 

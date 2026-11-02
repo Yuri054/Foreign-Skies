@@ -5,13 +5,16 @@ factories), placed where the old economy had its factories (the capital if none)
 `buildings` ({province name: {type: level}}) into the scenario's scenario.json. Run from the project root:
 python3 tools/make_start_economy.py data/scenarios/july_1914 data/scenarios/jan_1900
 
-Targets, gold a month in 1914: the great powers' from docs/REWORK.md; every other nation's is its revenue a month in
+Targets, gold a month in 1914: the great powers' from docs/REWORK.md (Russia's raised from 18 to 22, so that its
+great army's upkeep and the state's administration leave it in surplus); every other nation's is its revenue a month in
 the old economy (0.17.0, the first number of OLD_REVENUE) times SCALE. A 1900 target is the 1914 one times the old
 revenue in 1900 over the old revenue in 1914. Base income is economy.json's income.per_million gold a month for each
 million people to the power income.exponent, per province."""
 import csv, json, sys
 
-TARGETS_1914 = {"GER": 25.0, "GBR": 28.0, "FRA": 20.0, "RUS": 18.0, "AUH": 14.0, "ITA": 10.0}
+TARGETS_1914 = {"GER": 25.0, "GBR": 28.0, "FRA": 20.0, "RUS": 22.0, "AUH": 14.0, "ITA": 10.0}
+# 1900 targets that are not the 1914 one scaled by the old revenues: Russia's army of 1900 needs a little more.
+TARGETS_1900 = {"RUS": 16.5}
 SCALE = 1.12
 # Old revenue a month (GBP millions) in 1914 and 1900, from the 0.17.0 economy.
 OLD_REVENUE = {
@@ -28,6 +31,8 @@ def read_tsv(path):
 
 
 def target(tag, year_1900):
+    if year_1900 and tag in TARGETS_1900:
+        return TARGETS_1900[tag]
     now, then = OLD_REVENUE.get(tag, (0.0, 0.0))
     t = TARGETS_1914.get(tag, now * SCALE)
     if year_1900:
@@ -82,7 +87,9 @@ def main(folder):
         civ = max(1, round((target(tag, year_1900) - base - PORT_START) / civ_income))
         sectors = max(1, round(civ / 4))
         capital = names.get(str(sc["nations"][tag].get("capital", 0)), max(provinces, key=lambda p: pop.get(p, 0)))
-        weights = {p: old.get(p, {}).get("factory", 0) for p in provinces}
+        # Where the factories go: the old economy's factories, or (run again on a converted scenario) its civilian
+        # factories, so a second run keeps the places.
+        weights = {p: old.get(p, {}).get("factory", old.get(p, {}).get("civilian_factory", 0)) for p in provinces}
         if sum(weights.values()) == 0:
             weights = {capital: 1}
         for p, n in spread(civ, weights).items():

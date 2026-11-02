@@ -1232,7 +1232,7 @@
 			"railway": 3
 		},
 		"Saint Petersburg": {
-			"civilian_factory": 1,
+			"civilian_factory": 4,
 			"construction_sector": 1,
 			"railway": 3
 		},
@@ -1256,12 +1256,10 @@
 		},
 		"Glasgow": {
 			"civilian_factory": 1,
-			"construction_sector": 1,
 			"railway": 2
 		},
 		"Hamburg": {
 			"civilian_factory": 1,
-			"construction_sector": 1,
 			"railway": 2
 		},
 		"Budapest": {
@@ -1307,20 +1305,19 @@
 		},
 		"Barcelona": {
 			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Milano": {
 			"railway": 2
 		},
 		"Madrid": {
-			"construction_sector": 1,
 			"railway": 2
 		},
 		"Sachsen 2": {
 			"railway": 2
 		},
 		"Roma": {
-			"construction_sector": 1,
 			"railway": 2
 		},
 		"Noord-Holland": {
@@ -1392,6 +1389,7 @@
 		},
 		"Belfast": {
 			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 2
 		},
 		"Somerset": {
@@ -1419,6 +1417,7 @@
 		},
 		"Baden-Württemberg 1": {
 			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"Sachsen-Anhalt 2": {
@@ -1469,6 +1468,7 @@
 		},
 		"Firenze": {
 			"civilian_factory": 1,
+			"construction_sector": 1,
 			"railway": 1
 		},
 		"Valencia": {

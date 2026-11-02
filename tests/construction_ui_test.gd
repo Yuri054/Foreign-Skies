@@ -78,7 +78,7 @@ func _test_open_and_colours() -> void:
 	var people := _texts(eco_panel._people)
 	_check(people.contains("Divisions the budget can keep") and people.contains("Divisions the treasury can raise") and people.contains("War chest"), "People shows what the money buys")
 	eco_panel.visible = false
-	_check(panel._detail_text("civilian_factory").contains("pays its gold back in 40 months"), "the Build tab says what a factory pays back: " + panel._detail_text("civilian_factory").get_slice("\n", panel._detail_text("civilian_factory").count("\n")))
+	_check(panel._detail_text("civilian_factory").contains("pays its gold back in 154 months"), "the Build tab says what a factory pays back: " + panel._detail_text("civilian_factory").get_slice("\n", panel._detail_text("civilian_factory").count("\n")))
 
 	var free := 0
 	var full := 0
