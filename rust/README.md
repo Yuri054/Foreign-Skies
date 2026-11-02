@@ -44,6 +44,7 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `diplomacy.gd` (part), `war_goal.gd` (part) | `declare.rs`, `diplomacy.rs` | Declaring war: `casus_belli_options` (scenario and earned claims, a guaranteed or allied nation at war, a dated casus belli), `declare_block` and `declare_gate`, `declare_war` (a war on a neutral, relations, prestige and war support, the casus belli an unprovoked war gives its neighbours and the victim's guarantors, the AI's tally), `start_war` with the allies called, conflicts (`war_groups`), the join decisions (`offer_joins`, the player's pending decisions and `answer_join`, declining with its cost, `violate_border`) and the AI's call-ups (`step_join_calls`; the AI's yes or no is passed in), and `WarGoal.for_declaration`. |
 | `capitulation.gd` (part), `move_capital.gd` | `capitulation.rs` | The daily step (a nation at peace is no longer capitulated; the capital goes home when retaken or moves when lost, the AI's to its dearest city, the player's by `choose_capital`), `capital_candidates`, `can_relocate`, `capitulate` (armies lay down their arms, their men go back to the reserve) and `dictate` (each AI enemy proposes its peace; the AI's terms and its answer are passed in). `gd::sort_custom` is Godot's own unstable sort, so ties come out as in the game. |
 | `navy.gd`, `naval_combat.gd`, `blockade.gd`, `fleet.gd`, `ship.gd`, `move_fleet.gd`, `embark_army.gd`, `disembark_army.gd`, `send_overseas.gd`, `raise_ships.gd`, `set_fleet_mission.gd` | `navy.rs`, `map.rs`, `config.rs` | The navy: fleets and ships, `can_dock`, sailing through the sea zones (`zone_days`, `find_path`), the ships finished each day, sea battles (contact by a hash roll, firepower with the destroyer screen, hits by exposure, sinkings, routs and retreats, the battle records), repair and attrition, armies embarked, carried and landed (an assault from the sea, convoys that lose transports drown their men), shore support for the army's fights, who holds each sea zone, and the blockade of a nation's trade (`String.hash` is ported: it is djb2). `Military.neighbors_for` and `sea_route_home` now see the water enemies hold. |
+| `game_state.gd` (the day and month stages), `clock.gd` | `game.rs` | `advance_day`: the calendar moves on, then the day's stages in the game's order (economy, focus, navy; the armies; diplomacy; the economy worked out again if anything changed it) and, at a month's end, the month's steps (economy, diplomacy, pressure). |
 | `pressure.gd` | `pressure.rs`, `config.rs` | Europe's tension (arms race, mobilization, wars, rivalry, blocs, events), the monthly step (events fire by date and condition, roles by what a nation is now, the player's waiting decisions and their answers, every kind of effect, public appeals, rivalries hardening). A war or crisis event stops the port with a message. |
 | `population.gd` | `population.rs`, `state.rs` | The monthly step: growth, famine, occupation and war dead. |
 | `economy.gd` (budgets) | `budget.rs`, `state.rs` | `nation_budget` (revenue, costs, food, raw materials, industry, manpower), `materials_of`, soldier wages, `construction_points`, `_budgets`, `calibrate`. |
@@ -113,12 +114,19 @@ one overtaken), going home, a nation too weak to move capitulating, one enemy or
 the beaten, and a war ended by hand. After every step the ground, armies, nations, claims, indemnities, finished wars, capitulation
 progress, the capital choice and the capitulated sides are compared.
 
-An eleventh golden file, `navy.json` (made by `tools/dump_navy_golden.gd`), is twelve campaigns run in the game's day order (economy, navy,
+An eleventh golden file, `navy.json` (made by `tools/dump_navy_golden.gd`), is nineteen campaigns run in the game's day order (economy, navy,
 army): fleets sent into one zone to fight (a hit-and-run in the North Sea, the Adriatic with three powers, a slugfest with weakened
 squadrons that sinks ships), a cordon that blockades Germany, an army marched to a port and sent overseas to land in an assault, an
 army put aboard and landed by hand, a convoy meeting the enemy, ships bought and launched, and the orders that must be refused. After
 each step every fleet and ship, who holds each zone and its power, the battles, the blockade, the armies, the wars' losses and the
 counters are compared.
+
+A twelfth golden file, `game.json` (made by `tools/dump_game_golden.gd`), is the real game running by itself, the clock driven day by day so
+that its own stages run in its own order: July 1914 as it ships with its own war and the Great Powers called in (240 days), July
+1914 with two more wars begun and armies ordered forward on four fronts (180 days), and January 1900 (400 days). The nations'
+money, people, standing, mobilization and blockade, the ground and who holds it, every army, the fleets, the wars, opinions, grievance and
+tension are compared every ten days. The AI is off, and the crises are off (`pressure_ai`); the record stops where the game's AI
+would make peace (`Peace._ai_overtures` runs at a month's end whether or not the AI is switched on).
 
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
@@ -130,12 +138,11 @@ costs, 200 worker shares, 180 population steps and so on). Breaking any of these
 
 ## What is not ported
 
-Most of it, though the heart of it is in. Still missing from the economy: `level_gain` and `building_stats` (what the screens
-show). `start_scenario_wars` starts a scenario's wars (the AI's answers to the calls passed in), and the game's own daily step (`game_state.gd`'s stages) is not wired up:
-economy, focus, diplomacy and the army's day are ported separately; `Crisis` is not. In diplomacy: proposing and cancelling
-treaties and the crises. In war: fronts, army groups,
-offensives and attack lines, recruiting and training, armies at sea and landings, (Capitulation is ported; its peace needs the AI's terms.) Then `crisis.gd`, the front code, and `save_game.gd`. The AI (`scripts/ai`) is not part of
-this port.
+The heart of it is in: the economy, population, focus, diplomacy, war on the map and at sea, peace, pressure events, declaring war and
+capitulation, run together by `advance_day`. Still missing: `level_gain` and `building_stats` (what the screens show); `Crisis`
+(the crises between nations); proposing and cancelling treaties; in war, fronts, army groups, offensives and attack lines, and
+recruiting and training; `save_game.gd`, `history`, `standings` and the briefing. The AI (`scripts/ai`) is not part of this port: its
+choices (to join a war, to propose or accept a peace and on what terms, to mobilize, to fight) are passed in where the rules need them.
 
 The simulation uses no random numbers (only the main menu and the city drawing do), so the port has no Godot generator to
 match.
@@ -143,4 +150,4 @@ match.
 ## What comes next
 
 1. `crisis.gd` (the crises that open between nations), and fronts and offensives.
-2. Wire the stages into one daily and monthly step like `game_state.gd`'s, and compare whole days of the real game.
+2. The AI (`scripts/ai`): its peace overtures, and its choices to join a war, to mobilize and to fight, are what the whole-game test has to stop at.

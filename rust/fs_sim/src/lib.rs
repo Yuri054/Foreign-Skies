@@ -12,6 +12,7 @@ pub mod capitulation;
 pub mod declare;
 pub mod diplomacy;
 pub mod economy;
+pub mod game;
 pub mod gd;
 pub mod map;
 pub mod military;
