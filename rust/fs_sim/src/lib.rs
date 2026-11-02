@@ -9,4 +9,7 @@ pub mod clock;
 pub mod config;
 pub mod economy;
 pub mod gd;
+pub mod map;
 pub mod population;
+pub mod state;
+pub mod tsv;

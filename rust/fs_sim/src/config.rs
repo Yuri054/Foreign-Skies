@@ -56,6 +56,7 @@ pub struct EconomyConfig {
     pub cost_min_factor: f64,
     pub materials_extraction_base: f64,
     pub materials_min_deposit: f64,
+    pub materials_need_per_industry: f64,
     /// The deposit tables (coal, iron, timber), in file order.
     pub resource_ids: Vec<String>,
     pub buildings: Vec<BuildingDef>,
@@ -144,6 +145,7 @@ impl EconomyConfig {
             cost_min_factor: num(&v, &["construction", "cost_min_factor"])?,
             materials_extraction_base: num(&v, &["materials", "extraction_base"])?,
             materials_min_deposit: num(&v, &["materials", "min_deposit"])?,
+            materials_need_per_industry: num(&v, &["materials", "need_per_industry"])?,
             resource_ids,
             buildings,
         })

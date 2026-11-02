@@ -28,23 +28,35 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `economy.gd` | `economy.rs` | The pure rules: province output, building and focus modifiers, tax strain and relief, growth, investment, workers, building size factor, cost and plan. |
 | `population.gd` | `population.rs` | The rounding that adds people to a province (and the growth rate). |
 | `data/economy.json` | `config.rs` | The economy's constants, with the file's order kept. |
+| `map_data.gd` (part) | `map.rs`, `tsv.rs` | The provinces (owner, area, coast) and the nations in file order; the table reader. |
+| `game_state.gd` (part) | `state.rs` | `load_scenario` for the economy: owners, people, deposits, the works a scenario starts with, the nations, `set_controller`. |
+| `economy.gd` (part) | `state.rs` | `absorb_works`, and `recompute`'s province output and nation sums (also with occupied provinces), and `calibrate_materials`. |
+| `navy.gd` (part) | `state.rs` | `_give_home_ports`: the port building a nation starts with if it has a navy (the fleets themselves are not ported). |
+
+A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
+loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
+(development, people, province lists, summed output) and the raw-materials constant, for July 1914 and January 1900,
+and the sums again with nine provinces held by an enemy. The Rust load reproduces all of it.
 
 The tests cover about 2,400 cases (6,000 days of the calendar, 600 province outputs, 900 growth cases, 331 building
 costs, 200 worker shares, 180 population steps and so on). Breaking any of these rules on purpose makes a test fail.
 
 ## What is not ported
 
-Most of it. The rest of `economy.gd` (budgets, the daily step, raw materials, food and the construction queue) and
-`population.gd`'s monthly step need the whole game state, and so does everything else in `scripts/sim`:
-`game_state.gd` (the state and the day's stages), `military.gd`, `navy.gd`, `diplomacy.gd`, `peace.gd`, `pressure.gd`,
-`crisis.gd`, `focus.gd`, the war and front code, and so on. They also depend on `MapData` (the provinces, their
-neighbours and areas), the scenario files and Godot's random numbers, which the port has to match before whole days can
-be compared. The AI (`scripts/ai`) is not part of this port.
+Most of it. Still missing from the economy: the budgets (`nation_budget`, `materials_of`, the calibration of each
+nation's civil spending, soldier wages), the construction queue and the daily and monthly steps. The budgets read
+`WarSupport.economy_mult`, `Munitions.storage_cost`, the armies and the navy's upkeep (`Navy.refresh_upkeep`, which also
+sets `naval_budget`), so those come first. After them: `game_state.gd`'s day stages, `military.gd`, `navy.gd`,
+`diplomacy.gd`, `peace.gd`, `pressure.gd`, `crisis.gd`, `focus.gd`, and the war and front code. They also need the
+map's neighbours and sea zones, and Godot's random numbers, which the port has to match before whole days can be
+compared. The AI (`scripts/ai`) is not part of this port.
 
 ## What comes next
 
-1. Load the map and a scenario (`data/map`, `data/scenarios/...`) into a Rust `GameState`.
-2. Port `Economy.recompute`, `_budgets` and `step_day`, then compare a nation's treasury and output after a month and a
-   year of the real game with the AI off.
+1. Port `WarSupport.economy_mult`, `Munitions.storage_cost`, `Military.refresh_men` and the armies (`army.gd`,
+   `Military.deploy_starting`) and the fleets' upkeep, then `nation_budget` and `calibrate`, and compare every nation's
+   budget after a scenario loads.
+2. Port `Economy.step_day` and `step_month` (with `Population.step_month`) and compare a nation's treasury, output and
+   people after a month and a year of the real game with the AI off.
 3. Match Godot's `RandomNumberGenerator` (PCG32) so seeded runs can be compared, then port military, navy and
    diplomacy, comparing whole days of the real game at each step.
