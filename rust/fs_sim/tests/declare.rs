@@ -102,8 +102,15 @@ fn run(index: usize) -> (String, usize) {
     let camp = &all[index];
     let name = camp["name"].as_str().unwrap().to_string();
     let mut gs = GameState::load_scenario(&data, "july_1914").unwrap();
-    gs.player_tag = camp["player"].as_str().unwrap().to_string();
     gs.ai_join_answers = camp["answers"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_bool().unwrap())).collect::<HashMap<_, _>>();
+    if camp["real"].as_bool().unwrap_or(false) {
+        gs.start_scenario_wars(&data);
+        assert_eq!(gs.player_tag, camp["player"].as_str().unwrap());
+    } else {
+        // the golden scenarios have no war of their own, and the player is whoever the campaign names
+        gs.starting_wars.clear();
+        gs.player_tag = camp["player"].as_str().unwrap().to_string();
+    }
     gs.recompute(&data);
     let snaps = camp["snaps"].as_array().unwrap();
     let mut fails = vec![];

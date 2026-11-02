@@ -96,8 +96,8 @@ answering an offer (and one spoiled by a third nation taking the ground first); 
 months afterward (indemnities paid, clauses lapsing). Every step's ground, armies, nations, claims, rivalries, clauses,
 indemnities and finished wars are compared.
 
-A ninth golden file, `declare.json` (made by `tools/dump_declare_golden.gd`), plays seven campaigns of actions from the July 1914
-scenario in the game's own code: the Balkan war started with the allies called (the player as Britain, Italy or France, joining
+A ninth golden file, `declare.json` (made by `tools/dump_declare_golden.gd`), plays twelve campaigns of actions from the July 1914
+scenario (one of them the scenario as it ships, whose own war, Austria-Hungary on Serbia, begins as it loads: `start_scenario_wars`) in the game's own code: the Balkan war started with the allies called (the player as Britain, Italy or France, joining
 or not), declarations with each kind of casus belli (a scenario claim, a guarantee, an alliance, a dated or fabricated one, none,
 with and without the mobilization the law asks for, on a neutral, the same war twice), a border violation, and the days after,
 while the nations that were called mobilize and enter. After every action the conflicts, wars and their goals, pending and called
@@ -116,7 +116,7 @@ costs, 200 worker shares, 180 population steps and so on). Breaking any of these
 ## What is not ported
 
 Most of it, though the heart of it is in. Still missing from the economy: `level_gain` and `building_stats` (what the screens
-show). The loader does not start a scenario's wars, and the game's own daily step (`game_state.gd`'s stages) is not wired up:
+show). `start_scenario_wars` starts a scenario's wars (the AI's answers to the calls passed in), and the game's own daily step (`game_state.gd`'s stages) is not wired up:
 economy, focus, diplomacy and the army's day are ported separately; `Navy` and `Crisis` are not. In diplomacy: proposing and cancelling
 treaties and the crises. In war: fronts, army groups,
 offensives and attack lines, recruiting and training, armies at sea and landings, and everything after a capitulation or a lost
@@ -129,7 +129,6 @@ match.
 
 ## What comes next
 
-1. Start a scenario's wars from the loader (`starting_wars`, `start_crisis`), and port `Capitulation.capitulate` so a beaten
-   nation's capitulation can be carried out.
+1. Port `Capitulation.capitulate` so a beaten nation's capitulation can be carried out.
 2. Then `crisis.gd` (the crises that open between nations), the navy, and fronts and offensives.
 3. Wire the stages into one daily and monthly step like `game_state.gd`'s, and compare whole days of the real game.

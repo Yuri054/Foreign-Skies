@@ -387,6 +387,9 @@ pub struct GameState {
     pub ai_declarations: (i64, i64),
     /// The scenario's own claims (read as data).
     pub scenario_claims: Vec<Value>,
+    /// The scenario's wars that exist from the start, and whether their allies are called at once (see `start_scenario_wars`).
+    pub starting_wars: Vec<(String, String)>,
+    pub start_crisis: bool,
     pub next_offer_id: u32,
     /// Pair key -> the day until which a refused proposer may not ask again.
     pub peace_cooldown: HashMap<String, i64>,
@@ -554,6 +557,8 @@ impl GameState {
             next_decision_id: 1,
             ai_join_answers: HashMap::new(),
             ai_declarations: (0, 0),
+            starting_wars: scenario.get("starting_wars").and_then(Value::as_array).map(|a| a.iter().map(|p| (p[0].as_str().unwrap().to_string(), p[1].as_str().unwrap().to_string())).collect()).unwrap_or_default(),
+            start_crisis: scenario.get("start_crisis").and_then(Value::as_bool).unwrap_or(false),
             scenario_claims: scenario.get("claims").and_then(Value::as_array).cloned().unwrap_or_default(),
             next_offer_id: 1,
             peace_cooldown: HashMap::new(),

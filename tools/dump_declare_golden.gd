@@ -60,15 +60,22 @@ func _initialize() -> void:
 			["start_war", "ITA", "AUH", false], ["start_war", "RUS", "AUH", true], ["days", 30]]},
 		{"name": "conflict_player", "player": "ITA", "policy": "yes", "actions": [
 			["start_war", "ITA", "AUH", false], ["start_war", "RUS", "AUH", true], ["days", 30]]},
+		{"name": "real_july_1914", "player": "GBR", "policy": "yes", "real": true, "actions": [["days", 20], ["declare", "ITA", "AUH", "border_claim", 0], ["days", 40]]},
 		{"name": "gate_edge", "player": "POR", "policy": "yes", "actions": [
 			["cb", "GER", "FRA", "unprovoked_aggression", 0, null], ["declare", "GER", "FRA", "unprovoked_aggression", 0],
 			["mob", "GER", 0.3], ["declare", "GER", "BEL", "none", 0], ["days", 10]]},
 	]
 	var result := []
 	for camp in campaigns:
-		gs.load_scenario(peace_dir)
-		gs.ai_enabled = false
-		gs.set_player(camp.player)
+		gs.player_tag = ""
+		if camp.get("real", false):
+			# the scenario as it ships: its own war begins as it loads, with the player's seat not yet taken
+			gs.load_scenario("res://data/scenarios/july_1914/")
+			gs.ai_enabled = false
+		else:
+			gs.load_scenario(peace_dir)
+			gs.ai_enabled = false
+			gs.set_player(camp.player)
 		Eco.recompute(gs)
 		var log := []
 		var snaps := []
@@ -82,7 +89,7 @@ func _initialize() -> void:
 				answers["%s|%d" % [tag, gid]] = false
 			for tag in g.called:
 				answers["%s|%d" % [tag, gid]] = true
-		result.append({"name": camp.name, "player": camp.player, "log": log, "snaps": snaps, "answers": answers})
+		result.append({"name": camp.name, "real": camp.get("real", false), "player": gs.player_tag, "log": log, "snaps": snaps, "answers": answers})
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()

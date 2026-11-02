@@ -332,6 +332,17 @@ impl GameState {
         }
     }
 
+    /// The end of `GameState.load_scenario`: the scenario's own wars begin (with the allies called when it is a crisis). The loader
+    /// does this before it sets the player, so no decision is waiting for them: it is done with no player here, too. The AI's answers
+    /// to the calls must be in `ai_join_answers`.
+    pub fn start_scenario_wars(&mut self, data: &Data) {
+        let player = std::mem::take(&mut self.player_tag);
+        for (a, b) in self.starting_wars.clone() {
+            self.start_war(data, &a, &b, self.start_crisis);
+        }
+        self.player_tag = player;
+    }
+
     // ---------------------------------------------------------------- conflicts and join decisions
 
     /// `Diplomacy._open_group`: the conflict record for a war group, created on first use. Returns its index.
