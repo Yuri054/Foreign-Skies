@@ -135,6 +135,5 @@ match.
 
 ## What comes next
 
-1. Port `Capitulation.capitulate` so a beaten nation's capitulation can be carried out.
-2. Then `crisis.gd` (the crises that open between nations), the navy, and fronts and offensives.
+1. `crisis.gd` (the crises that open between nations), the navy at sea and the blockade, and fronts and offensives.
 2. Wire the stages into one daily and monthly step like `game_state.gd`'s, and compare whole days of the real game.
