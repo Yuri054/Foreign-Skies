@@ -15,7 +15,7 @@ func _initialize() -> void:
 	var wars := [0]
 	gs.war_changed.connect(func(_a: String, _b: String, w: bool) -> void: wars[0] += 1 if w else 0)
 	var tags := ["GBR", "FRA", "GER", "RUS", "AUH", "ITA", "OTT"]
-	print("year  tension wars(new/now) | per nation: gdp £M/mo, treasury £M, net £M/mo, pop M, men k, provinces")
+	print("year  tension wars(new/now) | per nation: income gold/mo, treasury gold, net gold/mo, pop M, men k, provinces")
 	for y in years:
 		for d in 365:
 			clock.advance_day()
@@ -23,7 +23,7 @@ func _initialize() -> void:
 		for t in tags:
 			var n = gs.nations[t]
 			var b: Dictionary = n.budget
-			parts.append("%s %.0f/%.0f/%+.1f/%.1f/%d/%d" % [t, b.get("gdp", 0.0) / 12.0, n.treasury, b.get("net", 0.0) / 12.0, n.population / 1e6, n.men_in_units / 1000, n.provinces.size()])
+			parts.append("%s %.0f/%.0f/%+.1f/%.1f/%d/%d" % [t, b.get("income", 0.0), n.treasury, b.get("net", 0.0), n.population / 1e6, n.men_in_units / 1000, n.provinces.size()])
 		print("%d  %3d  %d/%d | %s" % [clock.year, roundi(gs.tension), wars[0], gs.wars.size(), " | ".join(parts)])
 	var collapsed := []
 	for t in gs.nations:

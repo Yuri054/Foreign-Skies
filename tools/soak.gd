@@ -75,8 +75,8 @@ func _check_state() -> void:
 			_bad("%s war support %s" % [tag, str(n.war_support)])
 		if n.manpower < 0:
 			_bad("%s manpower %d" % [tag, n.manpower])
-		if n.weariness < 0.0 or n.weariness > 1.0 or not is_finite(n.weariness):
-			_bad("%s weariness %s" % [tag, str(n.weariness)])
+		if n.cp < -0.001 or not is_finite(n.cp):
+			_bad("%s construction points %s" % [tag, str(n.cp)])
 		for k in n.budget:
 			if n.budget[k] is float and not is_finite(n.budget[k]):
 				_bad("%s budget %s = %s" % [tag, k, str(n.budget[k])])
@@ -87,8 +87,8 @@ func _check_state() -> void:
 		for job in n.construction:
 			if gs.province_owner[job.province] != tag:
 				_bad("%s builds in foreign province %d" % [tag, job.province])
-			if job.points_left < -0.001 or job.points_left > job.points_total + 0.001:
-				_bad("%s job points %s of %s" % [tag, str(job.points_left), str(job.points_total)])
+			if job.days_left < 0 or job.days_left > job.days_total:
+				_bad("%s job days %s of %s" % [tag, str(job.days_left), str(job.days_total)])
 	for id in gs.armies:
 		var a = gs.armies[id]
 		if not gs.nations.has(a.tag):

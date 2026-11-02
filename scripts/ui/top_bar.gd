@@ -140,6 +140,7 @@ func _ready() -> void:
 	Clock.pause_changed.connect(func(_p: bool) -> void: _refresh())
 	Clock.speed_changed.connect(func(_s: int) -> void: _refresh())
 	GameState.economy_updated.connect(_refresh)
+	GameState.day_done.connect(_refresh)
 	GameState.news_posted.connect(func(_t: String, _l: int) -> void: _refresh())
 	GameState.diplomacy_points_changed.connect(func(_t: String, _v: float) -> void: _refresh())
 	GameState.player_changed.connect(func(_t: String) -> void: _refresh())

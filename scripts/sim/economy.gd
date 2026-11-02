@@ -197,7 +197,8 @@ static func army_upkeep(gs: Node) -> Dictionary:
 		var sum := 0.0
 		for u in a.units:
 			sum += float(types[u.type].get("upkeep", 0.0))
-		if FrontSolver.root_of(gs, a).training:
+		var root := FrontSolver.root_of(gs, a)
+		if root != null and root.training:
 			sum *= 1.0 + drill
 		out[a.tag] = float(out.get(a.tag, 0.0)) + sum
 	for tag in gs.nations:

@@ -55,7 +55,7 @@ PARAMS = [
     ("defense.plan_need", 1.0, 4.0, False), ("defense.settle_days", 0, 25, True),
     ("forces.war_multiplier", 1.2, 7.0, False), ("forces.per_turn", 1, 5, True), ("forces.max_training", 2, 12, True),
     ("forces.treasury_floor", 0.0, 20.0, False), ("forces.deficit_months", 0, 10, True),
-    ("forces.income_share", 0.15, 1.5, False), ("forces.horizon_months", 1, 5, True),
+    ("forces.income_share", 0.15, 1.5, False), ("forces.horizon_months", 6, 40, True),
     ("forces.mix.artillery", 0.03, 0.55, False), ("forces.mix.cavalry", 0.0, 0.25, False),
     ("peace.k_score", 0.2, 2.5, False), ("peace.k_support", 0.0, 5.0, False), ("peace.k_debt", 0.0, 12.0, False),
     ("peace.k_days_per_month", 0.0, 5.0, False), ("peace.capital_lost", 0.0, 100.0, False),

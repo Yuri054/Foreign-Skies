@@ -53,6 +53,13 @@ func _ready() -> void:
 	_hint.custom_minimum_size = Vector2(330, 0)
 	_hint.modulate = Fmt.DIM
 	box.add_child(_hint)
+	# What the building picked costs and does, then what a click said, then the queue.
+	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail.custom_minimum_size = Vector2(330, 0)
+	box.add_child(_detail)
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status.custom_minimum_size = Vector2(330, 0)
+	box.add_child(_status)
 	box.add_child(HSeparator.new())
 	_pool.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_pool.custom_minimum_size = Vector2(330, 0)
@@ -64,13 +71,6 @@ func _ready() -> void:
 	_queue.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_queue)
 	box.add_child(scroll)
-	box.add_child(HSeparator.new())
-	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail.custom_minimum_size = Vector2(330, 0)
-	box.add_child(_detail)
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status.custom_minimum_size = Vector2(330, 0)
-	box.add_child(_status)
 	box.add_child(HSeparator.new())
 
 	_mass_toggle.toggle_mode = true

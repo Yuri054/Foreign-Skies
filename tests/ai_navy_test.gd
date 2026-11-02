@@ -282,7 +282,7 @@ func _test_building() -> void:
 		for job in gbr.shipbuilding:
 			seen[job.type] = true
 		for job in gbr.shipbuilding:
-			job.points_left = 0.0
+			job.days_left = 0
 		clock.days_elapsed += 30
 		Nav.step_day(gs)
 		AN.build(gs, "GBR")

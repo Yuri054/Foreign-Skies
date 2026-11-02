@@ -34,10 +34,10 @@ func _initialize() -> void:
 	var untrained: float = army.power()
 	var n = gs.nations["GER"]
 	Mil.refresh_men(gs)
-	var upkeep_before: float = Econ.nation_budget(gs, n, gs.economy_sums["GER"], 1.0).army
+	var upkeep_before: float = Econ.army_upkeep(gs)["GER"]
 	_check(gs.issue(load("res://scripts/sim/set_training.gd").new("GER", [army.id] as Array[int], true)) and army.training, "the army goes on exercise")
 	_check(n.men_exercising >= roundi(army.men()) - 1, "its men count as exercising (%d)" % n.men_exercising)
-	var upkeep_during: float = Econ.nation_budget(gs, n, gs.economy_sums["GER"], 1.0).army
+	var upkeep_during: float = Econ.army_upkeep(gs)["GER"]
 	_check(upkeep_during > upkeep_before, "and cost more upkeep (%.2f against %.2f)" % [upkeep_during, upkeep_before])
 	for d in 60:
 		clock.advance_day()

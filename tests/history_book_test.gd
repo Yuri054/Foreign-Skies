@@ -67,7 +67,7 @@ func _initialize() -> void:
 	_check(wars.size() == 1 and "Liege" in "\n".join(wars[0].lines), "the wars section tells the war and its battle")
 	_check(H.territory_lines(gs).size() == 1 and H.territory_lines(gs, 1900).size() == 1 and H.territory_lines(gs, 1950).is_empty(), "the territory lines can be had for a year")
 	var nations: Array = H.nations_section(gs)
-	_check(nations.size() > 5 and nations[0].has("d_industry"), "the nations section ranks the nations against the start")
+	_check(nations.size() > 5 and nations[0].has("d_income"), "the nations section ranks the nations against the start")
 	var image: Image = H.map_image(gs, 32)
 	_check(image.get_width() > 100 and image.get_height() > 50, "the map picture is made (%dx%d)" % [image.get_width(), image.get_height()])
 	var md: String = H.markdown(gs)

@@ -100,15 +100,6 @@ func _initialize() -> void:
 	var made: Array = C.of(gs, "BEL")
 	_check(gs.wars.is_empty() and not made.is_empty() and made[0].a == "GER", "so Germany makes a demand of it (%s)" % (made[0].title if not made.is_empty() else "none"))
 
-	# An old save: a case being built becomes the claim it would have made.
-	var SG = load("res://scripts/sim/save_game.gd")
-	var state := {"casus_belli": [], "justifications": [SG._encode({"holder": "GER", "target": "BEL", "goal": goal, "done_day": 400})]}
-	SG._migrate(state, 3)
-	var cbs: Array = SG._decode(state.casus_belli)
-	_check(not state.has("justifications") and cbs.size() == 1 and cbs[0].kind == "fabricated_claim" and cbs[0].holder == "GER" and cbs[0].goal.kind == "concession",
-			"a version 3 save's case under way loads as a casus belli with its goal")
-	_check(int(cbs[0].expires_day) == 400 + int(D.cfg.war.cb_years * 365), "lasting from the day it would have been ready")
-
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)
 

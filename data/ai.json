@@ -70,7 +70,7 @@
 		"reinforce_weight": 0.063
 	},
 	"forces": {
-		"_note": "Recruiting. war_multiplier: war strength as a multiple of the peacetime army. per_turn: units started per turn. max_training: units in training at once. treasury_floor: the treasury is never taken below it, plus deficit_months of any deficit. income_share: units in training cost at most this share of horizon_months of revenue. train_hops: how far behind the most threatened line it raises. mix: share of each unit type in the force. demob_after_days: how long after its last war a nation at ease starts sending men home; demob_margin: the multiple of its peacetime army it keeps; demob_share: the share of the excess sent home each turn.",
+		"_note": "Recruiting. war_multiplier: war strength as a multiple of the peacetime army. per_turn: units started per turn. max_training: units in training at once. treasury_floor: the treasury is never taken below it, plus deficit_months of any deficit. income_share: units in training cost at most this share of horizon_months of income (a division costs months of a small nation's income, so the horizon is long). train_hops: how far behind the most threatened line it raises. mix: share of each unit type in the force. demob_after_days: how long after its last war a nation at ease starts sending men home; demob_margin: the multiple of its peacetime army it keeps; demob_share: the share of the excess sent home each turn.",
 		"war_multiplier": 2.29,
 		"demob_after_days": 180,
 		"demob_margin": 1.1,
@@ -80,7 +80,7 @@
 		"treasury_floor": 0.1003,
 		"deficit_months": 1,
 		"income_share": 0.7739,
-		"horizon_months": 2,
+		"horizon_months": 20,
 		"train_hops": 2,
 		"mix": {
 			"infantry": 0.9167,

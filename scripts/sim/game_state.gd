@@ -7,6 +7,9 @@ signal player_changed(tag: String)
 signal province_owner_changed(id: int, old_owner: String, new_owner: String)
 ## Budgets or province output were recalculated.
 signal economy_updated
+## The day's step is over (every stage of it has run): figures that change every day, like construction points, are
+## final for the day.
+signal day_done
 signal building_completed(tag: String, province: int, type: String)
 ## An army moved, fought, was raised or was lost.
 signal armies_changed
@@ -312,7 +315,8 @@ func _day_stage_list() -> Array:
 			elif budget_dirty:
 				budget_dirty = false
 				Economy.refresh_now(self)
-				economy_updated.emit(),
+				economy_updated.emit()
+			day_done.emit(),
 	]
 
 
