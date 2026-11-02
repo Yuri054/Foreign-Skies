@@ -377,3 +377,150 @@ impl WarSupportConfig {
         }
     }
 }
+
+
+/// The parts of `data/diplomacy.json` the ported rules read besides war support.
+#[derive(Debug, Clone)]
+pub struct DiplomacyConfig {
+    pub relation_min: f64,
+    pub relation_max: f64,
+    pub relation_neutral: f64,
+    pub points_start: f64,
+    pub points_max: f64,
+    /// How many years a casus belli lasts (`war.cb_years`).
+    pub cb_years: f64,
+}
+
+impl DiplomacyConfig {
+    pub fn from_json_str(text: &str) -> Result<DiplomacyConfig, String> {
+        let v: Value = serde_json::from_str(text).map_err(|e| format!("diplomacy.json is invalid: {e}"))?;
+        Ok(DiplomacyConfig {
+            relation_min: num(&v, &["relations", "min"])?,
+            relation_max: num(&v, &["relations", "max"])?,
+            relation_neutral: num(&v, &["relations", "neutral"])?,
+            points_start: num(&v, &["points", "start"])?,
+            points_max: num(&v, &["points", "max"])?,
+            cb_years: num(&v, &["war", "cb_years"])?,
+        })
+    }
+}
+
+/// What a national focus does (`data/focus.json`, effects). A key the focus does not have is `None`: the game tests for
+/// the key, not for a value, so a zero that is written is still a lasting effect.
+#[derive(Debug, Clone, Default)]
+pub struct FocusEffects {
+    pub gdp: Option<f64>,
+    pub industry: Option<f64>,
+    pub food: Option<f64>,
+    pub trade: Option<f64>,
+    pub growth: Option<f64>,
+    pub diplomacy: Option<f64>,
+    pub construction: Option<f64>,
+    pub prestige: Option<f64>,
+    pub points: Option<f64>,
+    pub treasury: Option<f64>,
+    pub war_support: Option<f64>,
+    pub army_size: Option<f64>,
+    pub relation: Vec<(String, f64)>,
+    pub claim: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FocusDef {
+    pub id: String,
+    pub days: i64,
+    pub requires: Vec<String>,
+    pub repeatable: bool,
+    pub max: i64,
+    pub effects: FocusEffects,
+}
+
+#[derive(Debug, Clone)]
+enum Tree {
+    Own(Vec<FocusDef>),
+    Template { template: String, extra: Vec<FocusDef> },
+}
+
+#[derive(Debug, Clone)]
+pub struct FocusConfig {
+    templates: Vec<(String, Vec<FocusDef>)>,
+    nations: Vec<(String, Tree)>,
+}
+
+fn focus_def(v: &Value) -> Result<FocusDef, String> {
+    let e = v.get("effects").ok_or("focus without effects")?;
+    let f = |k: &str| e.get(k).and_then(Value::as_f64);
+    let pairs = |k: &str| -> Result<Vec<(String, f64)>, String> {
+        let mut out = vec![];
+        if let Some(list) = e.get(k).and_then(Value::as_array) {
+            for p in list {
+                out.push((p[0].as_str().ok_or("relation tag")?.to_string(), p[1].as_f64().ok_or("relation value")?));
+            }
+        }
+        Ok(out)
+    };
+    Ok(FocusDef {
+        id: v["id"].as_str().ok_or("focus id")?.to_string(),
+        days: num(v, &["days"])? as i64,
+        requires: v.get("requires").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default(),
+        repeatable: v.get("repeatable").and_then(Value::as_bool).unwrap_or(false),
+        max: v.get("max").and_then(Value::as_f64).unwrap_or(1.0) as i64,
+        effects: FocusEffects {
+            gdp: f("gdp"),
+            industry: f("industry"),
+            food: f("food"),
+            trade: f("trade"),
+            growth: f("growth"),
+            diplomacy: f("diplomacy"),
+            construction: f("construction"),
+            prestige: f("prestige"),
+            points: f("points"),
+            treasury: f("treasury"),
+            war_support: f("war_support"),
+            army_size: f("army_size"),
+            relation: pairs("relation")?,
+            claim: e.get("claim").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default(),
+        },
+    })
+}
+
+fn focus_list(v: &Value) -> Result<Vec<FocusDef>, String> {
+    v.as_array().ok_or("focus list")?.iter().map(focus_def).collect()
+}
+
+impl FocusConfig {
+    pub fn from_json_str(text: &str) -> Result<FocusConfig, String> {
+        let v: Value = serde_json::from_str(text).map_err(|e| format!("focus.json is invalid: {e}"))?;
+        let mut templates = vec![];
+        for (name, list) in v.get("templates").and_then(Value::as_object).ok_or("focus.json: templates")? {
+            templates.push((name.clone(), focus_list(list)?));
+        }
+        let mut nations = vec![];
+        for (tag, spec) in v.get("nations").and_then(Value::as_object).ok_or("focus.json: nations")? {
+            let tree = if let Some(t) = spec.get("tree") {
+                Tree::Own(focus_list(t)?)
+            } else {
+                Tree::Template {
+                    template: spec["template"].as_str().ok_or("focus template")?.to_string(),
+                    extra: focus_list(spec.get("extra").unwrap_or(&Value::Array(vec![])))?,
+                }
+            };
+            nations.push((tag.clone(), tree));
+        }
+        Ok(FocusConfig { templates, nations })
+    }
+
+    /// The foci of a nation's tree: its template's, then its own (`Focus.tree_of`).
+    pub fn tree_of(&self, tag: &str) -> Vec<&FocusDef> {
+        let template_of = |name: &str| self.templates.iter().find(|(t, _)| t == name).map(|(_, l)| l);
+        match self.nations.iter().find(|(t, _)| t == tag).map(|(_, t)| t) {
+            Some(Tree::Own(list)) => list.iter().collect(),
+            Some(Tree::Template { template, extra }) => template_of(template).into_iter().flatten().chain(extra.iter()).collect(),
+            None => template_of("minor").into_iter().flatten().collect(),
+        }
+    }
+
+    pub fn find(&self, tag: &str, id: &str) -> Option<&FocusDef> {
+        self.tree_of(tag).into_iter().find(|f| f.id == id)
+    }
+}

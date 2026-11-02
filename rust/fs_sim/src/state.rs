@@ -3,7 +3,8 @@
 //! state are not here yet (see `rust/README.md`).
 
 use crate::budget::{self, Budget};
-use crate::config::{EconomyConfig, Effects, MilitaryConfig, NavyConfig, WarSupportConfig};
+use crate::clock::Calendar;
+use crate::config::{DiplomacyConfig, EconomyConfig, Effects, FocusConfig, FocusEffects, MilitaryConfig, NavyConfig, WarSupportConfig};
 use crate::economy::{self, EconNation, Job};
 use crate::gd::{clampf, maxf};
 use crate::map::MapData;
@@ -22,6 +23,8 @@ pub struct Data {
     pub military: MilitaryConfig,
     pub navy: NavyConfig,
     pub war_support: WarSupportConfig,
+    pub diplomacy: DiplomacyConfig,
+    pub focus: FocusConfig,
 }
 
 impl Data {
@@ -34,6 +37,8 @@ impl Data {
             military: MilitaryConfig::from_json_str(&read("military.json")?)?,
             navy: NavyConfig::from_json_str(&read("navy.json")?)?,
             war_support: WarSupportConfig::from_json_str(&read("diplomacy.json")?)?,
+            diplomacy: DiplomacyConfig::from_json_str(&read("diplomacy.json")?)?,
+            focus: FocusConfig::from_json_str(&read("focus.json")?)?,
         })
     }
 }
@@ -55,6 +60,15 @@ pub struct Nation {
     pub focus_fx: Effects,
     /// What the national focus adds to the construction points a day.
     pub focus_construction: f64,
+    /// What the national focus adds to the diplomacy points a month.
+    pub focus_diplomacy: f64,
+    /// The focus being worked on, the foci done, and how many times the repeatable ones were taken.
+    pub focus: Option<ActiveFocus>,
+    pub focus_done: Vec<String>,
+    pub focus_count: Vec<(String, i64)>,
+    pub prestige: f64,
+    pub diplomacy_points: f64,
+    pub points_price: f64,
     pub provinces: Vec<usize>,
     pub population: i64,
     pub government: String,
@@ -109,6 +123,23 @@ impl Nation {
     }
 }
 
+/// The focus a nation is working on (`Nation.focus`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ActiveFocus {
+    pub id: String,
+    pub days_left: i64,
+    pub days_total: i64,
+}
+
+/// A casus belli earned in play (`GameState.casus_belli`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct CasusBelli {
+    pub holder: String,
+    pub target: String,
+    pub kind: String,
+    pub expires_day: i64,
+}
+
 /// A nation's summed province output (`GameState.economy_sums`).
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Sums {
@@ -153,6 +184,13 @@ pub struct GameState {
     pub wars: Vec<(String, String)>,
     /// The nation the player plays ("" for none).
     pub player_tag: String,
+    pub calendar: Calendar,
+    /// Opinion of each pair of nations, -100 to 100, keyed "A|B" with the tags sorted (`GameState.relations`). The scenario's
+    /// starting opinions are set by `Diplomacy.load_scenario`, which is not ported yet, so a test sets them.
+    pub relations: HashMap<String, f64>,
+    pub casus_belli: Vec<CasusBelli>,
+    /// Set when something changed the economy in the middle of the day's step; the step recomputes once at its end.
+    pub economy_dirty: bool,
 }
 
 /// A fleet at its base: the ships' types (`Fleet`, `Navy.new_fleet`).
@@ -207,6 +245,13 @@ impl GameState {
             fleets: vec![],
             wars: vec![],
             player_tag: scenario.get("default_player").and_then(Value::as_str).unwrap_or("").to_string(),
+            calendar: {
+                let d = scenario.get("start_date").and_then(Value::as_array).ok_or("scenario: start_date")?;
+                Calendar::start(d[0].as_i64().unwrap_or(1900) as i32, d[1].as_i64().unwrap_or(1) as i32, d[2].as_i64().unwrap_or(1) as i32)
+            },
+            relations: HashMap::new(),
+            casus_belli: vec![],
+            economy_dirty: false,
         };
         for row in Table::read(&dir.join("resources.tsv"))?.rows() {
             let id = row.int("id") as usize;
@@ -263,6 +308,13 @@ impl GameState {
                 mobilization: f("mobilization", 0.0),
                 focus_fx: Effects::default(),
                 focus_construction: 0.0,
+                focus_diplomacy: 0.0,
+                focus: None,
+                focus_done: vec![],
+                focus_count: vec![],
+                prestige: f("prestige", 0.0),
+                diplomacy_points: f("diplomacy_points", data.diplomacy.points_start),
+                points_price: 1.0,
                 provinces: vec![],
                 population: 0,
                 government: s.get("government").and_then(Value::as_str).unwrap_or("").to_string(),
@@ -728,6 +780,224 @@ impl GameState {
             }
         }
         self.recompute(data);
+    }
+
+    // ---------------------------------------------------------------- diplomacy (the parts the focus uses)
+
+    /// `Diplomacy.pair_key`: key for an unordered pair of tags, sorted.
+    pub fn pair_key(a: &str, b: &str) -> String {
+        if a < b {
+            format!("{a}|{b}")
+        } else {
+            format!("{b}|{a}")
+        }
+    }
+
+    /// `Diplomacy.relation`: how a nation regards another, -100 to 100 (the most with itself).
+    pub fn relation(&self, data: &Data, a: &str, b: &str) -> f64 {
+        if a == b {
+            return data.diplomacy.relation_max;
+        }
+        self.relations.get(&Self::pair_key(a, b)).copied().unwrap_or(data.diplomacy.relation_neutral)
+    }
+
+    pub fn set_relation(&mut self, data: &Data, a: &str, b: &str, value: f64) {
+        if a == b {
+            return;
+        }
+        let old = self.relation(data, a, b);
+        let v = clampf(value, data.diplomacy.relation_min, data.diplomacy.relation_max);
+        if is_equal_approx(old, v) {
+            return;
+        }
+        self.relations.insert(Self::pair_key(a, b), v);
+    }
+
+    pub fn change_relation(&mut self, data: &Data, a: &str, b: &str, delta: f64) {
+        let now = self.relation(data, a, b);
+        self.set_relation(data, a, b, now + delta);
+    }
+
+    /// `Diplomacy.gain`: adds diplomacy points (never past the maximum).
+    pub fn gain_points(&mut self, data: &Data, tag: &str, amount: f64) {
+        if amount > 0.0 {
+            let i = self.nation_index[tag];
+            let v = clampf(self.nations[i].diplomacy_points + amount, 0.0, data.diplomacy.points_max);
+            if !is_equal_approx(v, self.nations[i].diplomacy_points) {
+                self.nations[i].diplomacy_points = v;
+            }
+        }
+    }
+
+    /// `Diplomacy.gain_prestige`: prestige earned (or lost).
+    pub fn gain_prestige(&mut self, tag: &str, amount: f64) {
+        if let Some(&i) = self.nation_index.get(tag) {
+            self.nations[i].prestige += amount;
+        }
+    }
+
+    // ---------------------------------------------------------------- the national focus (`scripts/sim/focus.gd`)
+
+    /// `Focus.block`: why a focus cannot be started now ("" if it can): unknown, done, active, busy or locked.
+    pub fn focus_block(&self, data: &Data, tag: &str, id: &str) -> &'static str {
+        let (Some(f), Some(&ni)) = (data.focus.find(tag, id), self.nation_index.get(tag)) else {
+            return "unknown";
+        };
+        let n = &self.nations[ni];
+        if n.focus_done.iter().any(|d| d == id) {
+            return "done";
+        }
+        if f.repeatable && f.max > 0 && n.focus_count.iter().find(|(k, _)| k == id).map(|(_, c)| *c).unwrap_or(0) >= f.max {
+            return "done";
+        }
+        if n.provinces.is_empty() {
+            return "unknown";
+        }
+        if let Some(active) = &n.focus {
+            return if active.id == id { "active" } else { "busy" };
+        }
+        for req in &f.requires {
+            if !n.focus_done.iter().any(|d| d == req) {
+                return "locked";
+            }
+        }
+        ""
+    }
+
+    /// `Focus.start`: a nation takes up a focus. Returns false if it may not.
+    pub fn focus_start(&mut self, data: &Data, tag: &str, id: &str) -> bool {
+        if !self.focus_block(data, tag, id).is_empty() {
+            return false;
+        }
+        let days = data.focus.find(tag, id).unwrap().days;
+        let i = self.nation_index[tag];
+        self.nations[i].focus = Some(ActiveFocus { id: id.to_string(), days_left: days, days_total: days });
+        true
+    }
+
+    /// `Focus.step_day`: the focus in hand moves a day on and applies its effects when it is done.
+    pub fn focus_step_day(&mut self, data: &Data) {
+        for i in 0..self.nations.len() {
+            let Some(active) = &mut self.nations[i].focus else { continue };
+            active.days_left -= 1;
+            if active.days_left <= 0 {
+                let tag = self.nations[i].tag.clone();
+                self.focus_complete(data, &tag);
+            }
+        }
+    }
+
+    pub fn focus_complete(&mut self, data: &Data, tag: &str) {
+        let i = self.nation_index[tag];
+        let Some(active) = self.nations[i].focus.take() else { return };
+        let id = active.id;
+        if self.nations[i].focus_done.iter().any(|d| *d == id) {
+            return;
+        }
+        let Some(f) = data.focus.find(tag, &id) else { return };
+        if f.repeatable {
+            let n = &mut self.nations[i];
+            let count = match n.focus_count.iter_mut().find(|(k, _)| *k == id) {
+                Some(slot) => {
+                    slot.1 += 1;
+                    slot.1
+                }
+                None => {
+                    n.focus_count.push((id.clone(), 1));
+                    1
+                }
+            };
+            // max 0: it may be taken again for ever.
+            if f.max > 0 && count >= f.max {
+                n.focus_done.push(id.clone());
+            }
+        } else {
+            self.nations[i].focus_done.push(id.clone());
+        }
+        let fx = f.effects.clone();
+        self.apply_focus_effects(data, tag, &fx);
+    }
+
+    /// `Focus.apply_effects`: lasting effects are summed into the nation's bonuses; one-off ones (prestige, points, money,
+    /// war support, army size, relations, claims) happen now.
+    pub fn apply_focus_effects(&mut self, data: &Data, tag: &str, fx: &FocusEffects) {
+        let i = self.nation_index[tag];
+        let mut lasting = false;
+        {
+            let n = &mut self.nations[i];
+            if let Some(x) = fx.gdp {
+                n.focus_fx.gdp += x;
+                lasting = true;
+            }
+            if let Some(x) = fx.industry {
+                n.focus_fx.industry += x;
+                lasting = true;
+            }
+            if let Some(x) = fx.food {
+                n.focus_fx.food += x;
+                lasting = true;
+            }
+            if let Some(x) = fx.trade {
+                n.focus_fx.trade += x;
+                lasting = true;
+            }
+            if let Some(x) = fx.growth {
+                n.focus_fx.growth += x;
+                lasting = true;
+            }
+            if let Some(x) = fx.diplomacy {
+                n.focus_diplomacy += x;
+                lasting = true;
+            }
+            if let Some(x) = fx.construction {
+                n.focus_construction += x;
+                lasting = true;
+            }
+        }
+        if let Some(x) = fx.prestige {
+            self.gain_prestige(tag, x);
+        }
+        if let Some(x) = fx.points {
+            self.gain_points(data, tag, x);
+        }
+        if let Some(x) = fx.treasury {
+            self.nations[i].treasury += x;
+        }
+        if let Some(x) = fx.war_support {
+            self.change_war_support(tag, x);
+        }
+        if let Some(x) = fx.army_size {
+            let n = &mut self.nations[i];
+            let extra = (n.peacetime_army as f64 * x).round() as i64;
+            n.peacetime_army += extra;
+            n.manpower += extra;
+        }
+        for (other, delta) in &fx.relation {
+            if self.nation_index.contains_key(other) {
+                self.change_relation(data, tag, other, *delta);
+            }
+        }
+        for target in &fx.claim {
+            if self.nation_index.contains_key(target) {
+                self.casus_belli.push(CasusBelli {
+                    holder: tag.to_string(),
+                    target: target.clone(),
+                    kind: "national_claim".to_string(),
+                    expires_day: self.calendar.days_elapsed as i64 + (data.diplomacy.cb_years * 365.0) as i64,
+                });
+            }
+        }
+        if lasting {
+            self.economy_dirty = true;
+        }
+    }
+
+    /// What the game does at the end of the day's economy stage: if something changed the economy, recompute once.
+    pub fn finish_economy_stage(&mut self, data: &Data) {
+        if self.economy_dirty {
+            self.economy_dirty = false;
+            self.recompute(data);
+        }
     }
 
     /// `GameState.set_controller`: changes who holds a province (the owner stays). The caller recomputes the economy.
