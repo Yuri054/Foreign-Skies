@@ -1107,43 +1107,6 @@ impl GameState {
         }
         minf(1.0, lost / whole)
     }
-
-    /// `Capitulation.step_day`, for the days on which nothing is lost: a nation at peace is no longer capitulated. (If a nation
-    /// at war has lost enough ground to capitulate, or has lost its capital, the game moves the capital or ends the war, which
-    /// the peace rules would be needed for: the port stops with a message.)
-    fn capitulation_step_day(&mut self, data: &Data) {
-        for i in 0..self.nations.len() {
-            if self.nations[i].provinces.is_empty() {
-                continue;
-            }
-            let tag = self.nations[i].tag.clone();
-            if self.wars_of(&tag).is_empty() {
-                self.nations[i].capitulated = false;
-                let home = self.home_capital(&tag);
-                let owned = self.nations[i].provinces.iter().any(|&p| p as i64 == home);
-                if self.relocated(&tag) && owned && self.province_controller[home as usize] == tag {
-                    panic!("{tag}'s capital would move home: moving a capital is not ported yet");
-                } else if !owned {
-                    self.nations[i].home_capital = self.nations[i].capital;
-                }
-                continue;
-            }
-            if self.nations[i].capitulated {
-                continue;
-            }
-            let home = self.home_capital(&tag);
-            if self.relocated(&tag) && self.province_controller[home as usize] == tag {
-                panic!("{tag}'s home capital was retaken: moving a capital is not ported yet");
-            }
-            if self.capitulation_progress(data, &tag) >= data.diplomacy.capitulation.capitulate_share {
-                panic!("{tag} would capitulate: capitulation and the peace that follows are not ported yet");
-            }
-            let cap = self.nations[i].capital;
-            if cap > 0 && self.province_controller[cap as usize] != tag && self.at_war(&tag, &self.province_controller[cap as usize].clone()) {
-                panic!("{tag} has lost its capital: moving a capital is not ported yet");
-            }
-        }
-    }
 }
 
 /// `Military._apply_casualties`: men lost by the army in this call.
