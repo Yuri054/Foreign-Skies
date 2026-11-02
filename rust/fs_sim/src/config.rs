@@ -85,6 +85,18 @@ pub struct EconomyConfig {
     pub base_ic_gdp_ref: f64,
     pub base_ic_min: f64,
     pub ic_per_industry: f64,
+    pub occupation_decline: f64,
+    pub death_share: f64,
+    pub weariness_max: f64,
+    pub weariness_per_100k: f64,
+    pub weariness_ease_per_day: f64,
+    pub starvation_below: f64,
+    pub starvation_support_per_day: f64,
+    pub munitions_decay_per_year: f64,
+    pub mobilization_rate: f64,
+    pub mobilization_peace_max: f64,
+    pub standing_share: f64,
+    pub army_growth_share: f64,
     /// The deposit tables (coal, iron, timber), in file order.
     pub resource_ids: Vec<String>,
     pub buildings: Vec<BuildingDef>,
@@ -202,6 +214,18 @@ impl EconomyConfig {
             base_ic_gdp_ref: num(&v, &["construction", "base_ic_gdp_ref"])?,
             base_ic_min: num(&v, &["construction", "base_ic_min"])?,
             ic_per_industry: num(&v, &["construction", "ic_per_industry"])?,
+            occupation_decline: num(&v, &["population", "occupation_decline"])?,
+            death_share: num(&v, &["population", "death_share"])?,
+            weariness_max: num(&v, &["weariness", "max"])?,
+            weariness_per_100k: num(&v, &["weariness", "per_100k"])?,
+            weariness_ease_per_day: num(&v, &["weariness", "ease_per_day"])?,
+            starvation_below: num(&v, &["starvation", "below"])?,
+            starvation_support_per_day: num(&v, &["starvation", "support_per_day"])?,
+            munitions_decay_per_year: num(&v, &["munitions", "decay_per_year"])?,
+            mobilization_rate: num(&v, &["mobilization_rate"])?,
+            mobilization_peace_max: num(&v, &["mobilization", "peace_max"])?,
+            standing_share: num(&v, &["standing_share"])?,
+            army_growth_share: num(&v, &["army_growth_share"])?,
             resource_ids,
             buildings,
         })
@@ -317,6 +341,8 @@ pub struct WarSupportConfig {
     pub start_default: f64,
     pub start: Vec<(String, f64)>,
     pub economy_curve: [f64; 3],
+    /// The lowest mobilization a nation at war may have (`data/diplomacy.json`, crisis.war_floor).
+    pub crisis_war_floor: f64,
 }
 
 impl WarSupportConfig {
@@ -332,6 +358,7 @@ impl WarSupportConfig {
                 num(ws, &["economy_mult", "at_50"])?,
                 num(ws, &["economy_mult", "at_100"])?,
             ],
+            crisis_war_floor: num(&v, &["crisis", "war_floor"])?,
         })
     }
 

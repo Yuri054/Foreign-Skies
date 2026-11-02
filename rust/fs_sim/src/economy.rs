@@ -166,3 +166,22 @@ pub fn build_plan(cfg: &EconomyConfig, def: &BuildingDef, level: i32, size_facto
     let share = def.gold_share.unwrap_or(cfg.construction_gold_share);
     BuildPlan { ic, days: def.min_days, gold: ic * cfg.ic_value * share, total: ic * cfg.ic_value }
 }
+
+/// A project in a nation's queue (`Economy.new_job`): it costs `points_total` IC and takes in at most `rate` a day.
+/// `days_left` is the estimate shown to the player, worked out each day from what the project is getting.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Job {
+    pub province: usize,
+    pub kind: String,
+    pub points_total: f64,
+    pub points_left: f64,
+    pub rate: f64,
+    pub given: f64,
+    pub days_total: i32,
+    pub days_left: i32,
+}
+
+pub fn new_job(province: usize, kind: &str, ic: f64, min_days: i32) -> Job {
+    let rate = ic / maxf(min_days as f64, 1.0);
+    Job { province, kind: kind.to_string(), points_total: ic, points_left: ic, rate, given: 0.0, days_total: min_days, days_left: min_days }
+}
