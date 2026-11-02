@@ -129,11 +129,11 @@ each step every fleet and ship, who holds each zone and its power, the battles, 
 counters are compared.
 
 A twelfth golden file, `game.json` (made by `tools/dump_game_golden.gd`), is the real game running by itself, the clock driven day by day so
-that its own stages run in its own order: July 1914 as it ships with its own war and the Great Powers called in (240 days), July
-1914 with two more wars begun and armies ordered forward on four fronts (180 days), and January 1900 (400 days). The nations'
+that its own stages run in its own order: July 1914 as it ships with its own war and the Great Powers called in (400 days, through the AI's peaces), July
+1914 with two more wars begun and armies ordered forward on four fronts (300 days), and January 1900 (400 days). The nations'
 money, people, standing, mobilization and blockade, the ground and who holds it, every army, the fleets, the wars, opinions, grievance and
-tension are compared every ten days. The AI is off, and the crises are off (`pressure_ai`); the record stops where the game's AI
-would make peace (`Peace._ai_overtures` runs at a month's end whether or not the AI is switched on).
+tension are compared every ten days. The AI's turn is off, and the crises are off (`pressure_ai`); the AI's peace overtures run at a month's end whether or not the AI is
+switched on (`Peace._ai_overtures`), and are ported.
 
 A thirteenth golden file, `army.json` (made by `tools/dump_army_golden.gd`), is five campaigns of the army's side: units raised and trained (failing
 for want of money, men or ground), armies on exercise that stand and that march, units sent home, armies split, merged and handed
