@@ -41,6 +41,7 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `war_support.gd` (part) | `diplomacy.rs` | `monthly_changes` and `step_month`. (A forced white peace needs the peace rules and stops the port with a message.) |
 | `military.gd` (part), `capitulation.gd` (part), `munitions.gd` (part), `war.gd`, `cities.gd` | `war.rs`, `state.rs`, `map.rs` | War on the map: `can_enter`, `find_path` (the game's own heap, so ties come out the same), `MoveArmy`, `move_days`, the daily march, supply (`supply_cost`, `home_connected`, `sea_route_home`, the cities' reach), battles (`_fight`: shells burnt, power, works, casualties, morale, routs, retreats, pursuit, the war's tallies, war score and war support from a battle), occupation, supply attrition, reinforcement, `collapse_nations`, and the capitulation check. |
 | `peace.gd`, `war_goal.gd` (part), `diplomacy.gd` (part) | `peace.rs` | War score (ground, capital, battles, capitulation), what a province and a demand cost (with the war goal's discount and premium), `check` and `check_terms` (forced peace, cession limits, detached ground), `pick_takeable`, `propose` (an AI answer is passed in), the player's pending offer and `answer`, refusals and the cooldown, `make_peace` (ground handed over with its lost works, `revanche` claims and rivalries, ground still held handed back, armies withdrawn, prestige), indemnities, clauses (a disarmed border, a fleet limit), and the month's fading of scores and paying of indemnities. |
+| `diplomacy.gd` (part), `war_goal.gd` (part) | `declare.rs`, `diplomacy.rs` | Declaring war: `casus_belli_options` (scenario and earned claims, a guaranteed or allied nation at war, a dated casus belli), `declare_block` and `declare_gate`, `declare_war` (a war on a neutral, relations, prestige and war support, the casus belli an unprovoked war gives its neighbours and the victim's guarantors, the AI's tally), `start_war` with the allies called, conflicts (`war_groups`), the join decisions (`offer_joins`, the player's pending decisions and `answer_join`, declining with its cost, `violate_border`) and the AI's call-ups (`step_join_calls`; the AI's yes or no is passed in), and `WarGoal.for_declaration`. |
 | `pressure.gd` | `pressure.rs`, `config.rs` | Europe's tension (arms race, mobilization, wars, rivalry, blocs, events), the monthly step (events fire by date and condition, roles by what a nation is now, the player's waiting decisions and their answers, every kind of effect, public appeals, rivalries hardening). A war or crisis event stops the port with a message. |
 | `population.gd` | `population.rs`, `state.rs` | The monthly step: growth, famine, occupation and war dead. |
 | `economy.gd` (budgets) | `budget.rs`, `state.rs` | `nation_budget` (revenue, costs, food, raw materials, industry, manpower), `materials_of`, soldier wages, `construction_points`, `_budgets`, `calibrate`. |
@@ -95,6 +96,15 @@ answering an offer (and one spoiled by a third nation taking the ground first); 
 months afterward (indemnities paid, clauses lapsing). Every step's ground, armies, nations, claims, rivalries, clauses,
 indemnities and finished wars are compared.
 
+A ninth golden file, `declare.json` (made by `tools/dump_declare_golden.gd`), plays seven campaigns of actions from the July 1914
+scenario in the game's own code: the Balkan war started with the allies called (the player as Britain, Italy or France, joining
+or not), declarations with each kind of casus belli (a scenario claim, a guarantee, an alliance, a dated or fabricated one, none,
+with and without the mobilization the law asks for, on a neutral, the same war twice), a border violation, and the days after,
+while the nations that were called mobilize and enter. After every action the conflicts, wars and their goals, pending and called
+decisions, opinions, grievance, prestige, war support, casus belli and treaties are compared, and the options and blocks between
+fourteen nations. The test passes the AI's yes or no in from what the GDScript decided, since the AI is not ported. The
+GDScript has a quirk the port keeps: an unprovoked war adds the victim's guarantors to the aggressor's *cached* neighbour list.
+
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
 (development, people, province lists, summed output) and the raw-materials constant, for July 1914 and January 1900,
@@ -107,8 +117,8 @@ costs, 200 worker shares, 180 population steps and so on). Breaking any of these
 
 Most of it, though the heart of it is in. Still missing from the economy: `level_gain` and `building_stats` (what the screens
 show). The loader does not start a scenario's wars, and the game's own daily step (`game_state.gd`'s stages) is not wired up:
-economy, focus, diplomacy and the army's day are ported separately; `Navy` and `Crisis` are not. In diplomacy: declaring war,
-proposing and cancelling treaties, scenario claims, the join decisions of a war and the casus belli rules. In war: fronts, army groups,
+economy, focus, diplomacy and the army's day are ported separately; `Navy` and `Crisis` are not. In diplomacy: proposing and cancelling
+treaties and the crises. In war: fronts, army groups,
 offensives and attack lines, recruiting and training, armies at sea and landings, and everything after a capitulation or a lost
 capital (the port stops with a message when one would happen). Then `navy.gd` (movement and battles, the blockade),
 `peace.gd`, `pressure.gd` and `crisis.gd`, the war and front code, and `save_game.gd`. The AI (`scripts/ai`) is not part of
@@ -119,7 +129,7 @@ match.
 
 ## What comes next
 
-1. Port declaring war (`Diplomacy.declare_war`, `start_war`, the casus belli rules, the join decisions of a war and
-   `Capitulation.capitulate`) so a scenario's wars start from the loader and a beaten nation's capitulation can be carried out.
+1. Start a scenario's wars from the loader (`starting_wars`, `start_crisis`), and port `Capitulation.capitulate` so a beaten
+   nation's capitulation can be carried out.
 2. Then `crisis.gd` (the crises that open between nations), the navy, and fronts and offensives.
 3. Wire the stages into one daily and monthly step like `game_state.gd`'s, and compare whole days of the real game.

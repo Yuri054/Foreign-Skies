@@ -7,6 +7,7 @@ use crate::config::DiplomacyConfig;
 use crate::gd::{clampf, lerpf, maxf, minf};
 use crate::state::{Data, GameState, MobilizationCall, Treaty};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 
 
 /// Godot's `is_equal_approx` for floats.
@@ -228,6 +229,14 @@ impl GameState {
 
     /// `Diplomacy.neighbor_nations`: nations with land touching `tag`, not counting open-sea links, in the order met.
     pub fn neighbor_nations(&self, data: &Data, tag: &str) -> Vec<String> {
+        let mut cache = self.neighbor_cache.borrow_mut();
+        if cache.as_ref().map(|c| c.0) != Some(self.owner_version) {
+            *cache = Some((self.owner_version, HashMap::new()));
+        }
+        let lists = &mut cache.as_mut().unwrap().1;
+        if let Some(list) = lists.get(tag) {
+            return list.clone();
+        }
         let mut out: Vec<String> = vec![];
         for &id in &self.nation(tag).provinces {
             for n in data.map.neighbors(id) {
@@ -237,7 +246,17 @@ impl GameState {
                 }
             }
         }
+        lists.insert(tag.to_string(), out.clone());
         out
+    }
+
+    /// What `_earn_unprovoked_aggression` does to the cached list of the aggressor's neighbours: it adds to it (the list is shared).
+    pub(crate) fn neighbor_cache_push(&self, tag: &str, other: &str) {
+        if let Some((_, lists)) = self.neighbor_cache.borrow_mut().as_mut() {
+            if let Some(list) = lists.get_mut(tag) {
+                list.push(other.to_string());
+            }
+        }
     }
 
     // ---------------------------------------------------------------- the day
@@ -247,7 +266,7 @@ impl GameState {
     pub fn diplomacy_step_day(&mut self, data: &Data) -> bool {
         self.step_alarms(data);
         let changed = self.step_mobilization(data);
-        // Called nations that have mobilized enough enter their wars (war groups are not ported yet: none are open).
+        self.step_join_calls(data);
         if changed {
             self.recompute(data);
         }
@@ -323,6 +342,10 @@ impl GameState {
             if call.tag == tag {
                 target = maxf(target, self.nation(&call.against).mobilization * c.call_response);
             }
+        }
+        // A nation called to join a conflict mobilizes first (the AI's own ambition, `ai_ambition`, is not ported).
+        if self.join_calls.iter().any(|(_, d)| d.tag == tag) {
+            target = maxf(target, c.called_level);
         }
         if self.is_at_war(tag) {
             target = maxf(target, c.war_floor);

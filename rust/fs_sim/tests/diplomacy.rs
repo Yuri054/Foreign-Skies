@@ -84,7 +84,7 @@ fn compare_snapshot(label: &str, gs: &GameState, snap: &Value, fails: &mut Vec<S
     if gs.relation_projects != projects {
         fails.push(format!("{label}: projects {:?} vs {projects:?}", gs.relation_projects));
     }
-    let cbs: Vec<CasusBelli> = snap["cbs"].as_array().unwrap().iter().map(|c| CasusBelli { holder: c[0].as_str().unwrap().to_string(), target: c[1].as_str().unwrap().to_string(), kind: c[2].as_str().unwrap().to_string(), expires_day: c[3].as_i64().unwrap() }).collect();
+    let cbs: Vec<CasusBelli> = snap["cbs"].as_array().unwrap().iter().map(|c| CasusBelli { holder: c[0].as_str().unwrap().to_string(), target: c[1].as_str().unwrap().to_string(), kind: c[2].as_str().unwrap().to_string(), expires_day: c[3].as_i64().unwrap(), goal: Value::Null }).collect();
     if gs.casus_belli != cbs {
         fails.push(format!("{label}: casus belli {:?} vs {cbs:?}", gs.casus_belli));
     }
@@ -132,7 +132,7 @@ fn run(name: &str) {
         gs.gift_memory.insert(k.clone(), v.as_f64().unwrap());
     }
     for cb in spec["cbs"].as_array().unwrap() {
-        gs.casus_belli.push(CasusBelli { holder: cb["holder"].as_str().unwrap().to_string(), target: cb["target"].as_str().unwrap().to_string(), kind: cb["kind"].as_str().unwrap().to_string(), expires_day: cb["expires_day"].as_i64().unwrap() });
+        gs.casus_belli.push(CasusBelli { holder: cb["holder"].as_str().unwrap().to_string(), target: cb["target"].as_str().unwrap().to_string(), kind: cb["kind"].as_str().unwrap().to_string(), expires_day: cb["expires_day"].as_i64().unwrap(), goal: Value::Null });
     }
     for (k, v) in spec["rivalries"].as_object().unwrap() {
         gs.rivalries.insert(k.clone(), v.as_f64().unwrap());

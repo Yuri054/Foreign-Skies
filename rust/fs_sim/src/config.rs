@@ -602,6 +602,31 @@ pub struct DiplomacyConfig {
     pub score_battle_per_kmen: f64,
     pub capitulation: CapitulationConfig,
     pub peace: PeaceConfig,
+    /// What a war with each casus belli does when declared (`war.casus_belli`).
+    pub casus_belli: Vec<(String, CbRule)>,
+    /// What declining a join decision of each kind costs (`join.decline`).
+    pub join_decline: Vec<(String, DeclineCost)>,
+    pub neutral_world_relations: f64,
+    pub neutral_prestige: f64,
+    pub neutral_tension: f64,
+    pub min_mobilization: f64,
+    pub grievance_on_unprovoked_war: f64,
+    pub join_mobilization: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CbRule {
+    pub target_relations: f64,
+    pub world_relations: f64,
+    pub prestige: f64,
+    pub war_support: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct DeclineCost {
+    pub ally_relations: f64,
+    pub prestige: f64,
+    pub end_treaty: bool,
 }
 
 /// `data/diplomacy.json`, capitulation: what a province is worth in a war, and how much of it a nation may lose.
@@ -706,6 +731,23 @@ impl DiplomacyConfig {
                 capitulate_share: num(&v, &["capitulation", "capitulate_share"])?,
                 score: num(&v, &["capitulation", "score"])?,
             },
+            casus_belli: v["war"]["casus_belli"].as_object().ok_or("war.casus_belli")?.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, r)| Ok((k.clone(), CbRule {
+                target_relations: num(r, &["target_relations"])?,
+                world_relations: num(r, &["world_relations"])?,
+                prestige: num(r, &["prestige"])?,
+                war_support: num(r, &["war_support"])?,
+            }))).collect::<Result<Vec<_>, String>>()?,
+            join_decline: v["join"]["decline"].as_object().ok_or("join.decline")?.iter().map(|(k, r)| Ok((k.clone(), DeclineCost {
+                ally_relations: num(r, &["ally_relations"])?,
+                prestige: num(r, &["prestige"])?,
+                end_treaty: r.get("end_treaty").and_then(Value::as_bool).unwrap_or(false),
+            }))).collect::<Result<Vec<_>, String>>()?,
+            neutral_world_relations: num(&v, &["war", "neutral_violation", "world_relations"])?,
+            neutral_prestige: num(&v, &["war", "neutral_violation", "prestige"])?,
+            neutral_tension: num(&v, &["war", "neutral_violation", "tension"])?,
+            min_mobilization: cr("min_mobilization")?,
+            grievance_on_unprovoked_war: num(&v, &["war", "provocation", "grievance_on_unprovoked_war"])?,
+            join_mobilization: cr("join_mobilization")?,
             peace: PeaceConfig {
                 score_max: num(&v, &["peace", "score", "max"])?,
                 score_occupation_points: num(&v, &["peace", "score", "occupation_points"])?,

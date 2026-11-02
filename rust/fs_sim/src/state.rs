@@ -316,6 +316,8 @@ pub struct CasusBelli {
     pub target: String,
     pub kind: String,
     pub expires_day: i64,
+    /// The goal a refused demand gives a war (`fabricated_claim`), or null.
+    pub goal: Value,
 }
 
 /// A nation's summed province output (`GameState.economy_sums`).
@@ -372,6 +374,19 @@ pub struct GameState {
     pub restrictions: Vec<Restriction>,
     /// Peace offers waiting for the player's answer, oldest first, and the next id.
     pub pending_offers: Vec<crate::peace::Offer>,
+    /// The conflicts (`GameState.war_groups`), the join decisions waiting for the player, the AI nations called to join that
+    /// are still mobilizing (key "TAG|GROUP"), and the next decision id.
+    pub war_groups: Vec<crate::declare::WarGroup>,
+    pub pending_joins: Vec<crate::declare::JoinDecision>,
+    pub join_calls: Vec<(String, crate::declare::JoinDecision)>,
+    pub next_decision_id: u32,
+    /// What the AI nations answered when asked to join a conflict (`AIDiplomacy.joins`), keyed "TAG|GROUP": the AI is not part
+    /// of this port, so a test supplies the answers.
+    pub ai_join_answers: HashMap<String, bool>,
+    /// Wars the AI has opened, and how many had no casus belli (`ai_declarations`).
+    pub ai_declarations: (i64, i64),
+    /// The scenario's own claims (read as data).
+    pub scenario_claims: Vec<Value>,
     pub next_offer_id: u32,
     /// Pair key -> the day until which a refused proposer may not ask again.
     pub peace_cooldown: HashMap<String, i64>,
@@ -393,6 +408,9 @@ pub struct GameState {
     pub supply_cache: RefCell<SupplyCache>,
     pub home_cache: RefCell<HomeCache>,
     /// The cities' reach over the ground (`Military.city_aura`), kept while who owns and holds what is unchanged.
+    /// `Diplomacy._neighbor_nations`: the land neighbours of each nation, kept while the owners stay as they were. The lists are
+    /// shared, as in the GDScript, where `_earn_unprovoked_aggression` adds to the cached list of the aggressor.
+    pub neighbor_cache: RefCell<Option<(u64, HashMap<String, Vec<String>>)>>,
     pub aura_cache: RefCell<Option<((u64, u64), HashMap<String, HashMap<usize, f64>>)>>,
     /// The nation the player plays ("" for none).
     pub player_tag: String,
@@ -530,6 +548,13 @@ impl GameState {
             indemnities: vec![],
             restrictions: vec![],
             pending_offers: vec![],
+            war_groups: vec![],
+            pending_joins: vec![],
+            join_calls: vec![],
+            next_decision_id: 1,
+            ai_join_answers: HashMap::new(),
+            ai_declarations: (0, 0),
+            scenario_claims: scenario.get("claims").and_then(Value::as_array).cloned().unwrap_or_default(),
             next_offer_id: 1,
             peace_cooldown: HashMap::new(),
             next_war_id: 1,
@@ -543,6 +568,7 @@ impl GameState {
             control_version: 0,
             supply_cache: RefCell::new(SupplyCache::default()),
             home_cache: RefCell::new(HomeCache { day: -1, answers: HashMap::new() }),
+            neighbor_cache: RefCell::new(None),
             aura_cache: RefCell::new(None),
             player_tag: scenario.get("default_player").and_then(Value::as_str).unwrap_or("").to_string(),
             calendar: {
@@ -1369,6 +1395,7 @@ impl GameState {
                     target: target.clone(),
                     kind: "national_claim".to_string(),
                     expires_day: self.calendar.days_elapsed as i64 + (data.diplomacy.cb_years * 365.0) as i64,
+                    goal: Value::Null,
                 });
             }
         }
