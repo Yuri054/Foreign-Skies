@@ -27,6 +27,9 @@ pub struct BuildingDef {
     pub defense: f64,
     pub shell_reduction: f64,
     pub hard_reduction: f64,
+    /// Whether the works can be started now (`enabled`) and whether it needs a coastal province (`requires`).
+    pub enabled: bool,
+    pub needs_coast: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +89,8 @@ pub struct EconomyConfig {
     pub munitions_per_gun_power: f64,
     pub munitions_engaged_share: f64,
     pub munitions_idle_share: f64,
+    /// What a unit of munitions costs abroad, GBP millions (`munitions.import_price`).
+    pub munitions_import_price: f64,
     pub base_ic: f64,
     pub base_ic_gdp_ref: f64,
     pub base_ic_min: f64,
@@ -160,6 +165,8 @@ impl EconomyConfig {
                 defense: def.get("defense").and_then(Value::as_f64).unwrap_or(0.0),
                 shell_reduction: def.get("shell_reduction").and_then(Value::as_f64).unwrap_or(0.0),
                 hard_reduction: def.get("hard_reduction").and_then(Value::as_f64).unwrap_or(0.0),
+                enabled: def.get("enabled").and_then(Value::as_bool).unwrap_or(true),
+                needs_coast: def.get("requires").and_then(Value::as_str) == Some("coastal"),
             });
         }
         Ok(EconomyConfig {
@@ -222,6 +229,7 @@ impl EconomyConfig {
             munitions_per_gun_power: num(&v, &["munitions", "per_gun_power"])?,
             munitions_engaged_share: num(&v, &["munitions", "engaged_share"])?,
             munitions_idle_share: num(&v, &["munitions", "idle_share"])?,
+            munitions_import_price: num(&v, &["munitions", "import_price"])?,
             base_ic: num(&v, &["construction", "base_ic"])?,
             base_ic_gdp_ref: num(&v, &["construction", "base_ic_gdp_ref"])?,
             base_ic_min: num(&v, &["construction", "base_ic_min"])?,
