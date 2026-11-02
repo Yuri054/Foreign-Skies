@@ -5,83 +5,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Foreign Skies</title>
 <meta name="description" content="A sandbox on a map of Europe from 1900. Take any nation, build it up, and write your own story.">
-<meta name="theme-color" content="#14110e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2314110e'/%3E%3Cpath d='M6 22 16 7l10 15z' fill='%23e0a84a'/%3E%3C/svg%3E">
-<link rel="preload" href="fonts/fraunces-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#1b1612">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231b1612'/%3E%3Cpath d='M16 5l3 8h8l-6.500 5 2.500 8-7-5-7 5 2.500-8L5 13h8z' fill='%23d8c9a3'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="img/map.webp" as="image" fetchpriority="high">
 <style>
-@font-face{font-family:Fraunces;font-weight:600;font-display:swap;src:url(fonts/fraunces-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:Anton;font-weight:400;font-display:swap;src:url(fonts/anton-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Special Elite";font-weight:400;font-display:swap;src:url(fonts/special-elite-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:Inter;font-weight:400;font-display:swap;src:url(fonts/inter-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:Inter;font-weight:600;font-display:swap;src:url(fonts/inter-latin-600-normal.woff2) format("woff2")}
-:root{--bg:#14110e;--panel:#1d1915;--ink:#f1ebe0;--mute:#b3a998;--gold:#e0a84a;color-scheme:dark;--line:#3a332a;
-  --serif:Fraunces,Georgia,serif;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--gut:clamp(16px,5vw,64px)}
+:root{--paper:#e6d8b8;--paper2:#d8c9a3;--ink:#1b1612;--mute:#4d4332;--red:#a3231b;--olive:#4a4a2a;--cream:#f2e8cf;
+  --poster:Anton,Impact,"Arial Narrow",sans-serif;--type:"Special Elite","Courier New",monospace;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --gut:clamp(16px,5vw,64px);color-scheme:light;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .15 0 0 0 0 .08 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E")}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 clamp(16px,1.1vw + 12px,19px)/1.6 var(--sans);overflow-x:hidden}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--paper) var(--grain);color:var(--ink);font:400 clamp(16px,1vw + 12px,19px)/1.65 var(--sans);overflow-x:hidden}
 img{display:block;max-width:100%;height:auto}
 a{color:inherit}
-h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.1;margin:0}
-:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
-.skip{position:absolute;left:-999px;top:8px;background:var(--gold);color:#14110e;padding:8px 14px;z-index:99}
+h1,h2,h3{font-family:var(--poster);font-weight:400;text-transform:uppercase;line-height:1;margin:0;letter-spacing:.02em}
+.type{font-family:var(--type);text-transform:uppercase;letter-spacing:.14em;font-size:.82rem}
+:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--red);color:var(--cream);padding:8px 14px;z-index:99}
 .skip:focus{left:8px}
 
-header{position:fixed;inset:0 0 auto;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px var(--gut);
-  background:linear-gradient(var(--bg),transparent)}
-.logo{font:600 1.25rem var(--serif);text-decoration:none;letter-spacing:.01em}
-.logo b{color:var(--gold)}
-nav.bar{display:none;gap:28px}
-nav.bar a{text-decoration:none;color:var(--mute);font-weight:600;font-size:.9rem;transition:color .2s}
-nav.bar a:hover{color:var(--ink)}
-.burger{background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:10px 18px;font:600 .85rem var(--sans);cursor:pointer;display:none}
+header{position:fixed;inset:0 0 auto;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:10px var(--gut);
+  background:var(--ink) var(--grain);color:var(--paper);border-bottom:4px double var(--red)}
+.logo{font:400 1.5rem var(--poster);text-decoration:none;letter-spacing:.06em;text-transform:uppercase}
+.logo b{color:var(--red);font-weight:400;filter:brightness(1.5)}
+nav.bar{display:none;gap:30px}
+nav.bar a{text-decoration:none;font-family:var(--type);text-transform:uppercase;letter-spacing:.14em;font-size:.82rem;transition:color .2s}
+nav.bar a:hover{color:#e8604f}
+.burger{background:var(--red);border:2px solid var(--paper);color:var(--cream);padding:8px 18px;font:400 1rem var(--poster);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;display:none}
 .js .burger{display:block}
-.js nav.bar{display:none!important}
-@media (min-width:860px){nav.bar{display:flex}.js .burger{display:none}.js nav.bar{display:flex!important}}
-@media (max-width:859px){.nojs-links{display:flex;flex-wrap:wrap;gap:14px}header nav.bar{display:flex;gap:14px}}
+@media (min-width:860px){nav.bar{display:flex}.js .burger{display:none}}
+@media (max-width:859px){header nav.bar{display:flex;gap:14px}.js header nav.bar{display:none}}
 
-/* whoosh menu */
-.menu{position:fixed;inset:0;z-index:30;background:var(--panel);display:flex;flex-direction:column;justify-content:center;padding:var(--gut);
-  clip-path:circle(0 at calc(100% - 56px) 36px);visibility:hidden;
-  transition:clip-path .7s cubic-bezier(.76,0,.24,1),visibility 0s .7s}
-.menu.open{clip-path:circle(150% at calc(100% - 56px) 36px);visibility:visible;transition:clip-path .7s cubic-bezier(.76,0,.24,1),visibility 0s}
-.menu a{font:600 clamp(2.2rem,9vw,4.5rem)/1.15 var(--serif);text-decoration:none;display:block;overflow:hidden;width:max-content;max-width:100%}
-.menu a span{display:block;transform:translateY(110%);transition:transform .6s cubic-bezier(.16,1,.3,1),color .2s}
-.menu.open a span{transform:none;transition-delay:calc(.15s + var(--i)*.07s)}
-.menu a:hover span{color:var(--gold)}
-.menu .x{position:absolute;top:14px;right:var(--gut)}
-.menu .x{display:block}
+/* whoosh menu: a red banner wipes in from the right, links slide up */
+.menu{position:fixed;inset:0;z-index:30;background:var(--red) var(--grain);color:var(--cream);display:flex;flex-direction:column;justify-content:center;padding:var(--gut);
+  clip-path:inset(0 0 0 100%);visibility:hidden;transition:clip-path .65s cubic-bezier(.76,0,.24,1),visibility 0s .65s}
+.menu.open{clip-path:inset(0);visibility:visible;transition:clip-path .65s cubic-bezier(.76,0,.24,1),visibility 0s}
+.menu::before{content:"";position:absolute;inset:0 0 0 auto;width:14px;background:var(--ink)}
+.menu a{font:400 clamp(2.6rem,12vw,6rem)/1.1 var(--poster);text-transform:uppercase;letter-spacing:.03em;text-decoration:none;display:block;overflow:hidden;width:max-content;max-width:100%}
+.menu a span{display:block;transform:translateY(115%);transition:transform .6s cubic-bezier(.16,1,.3,1),color .2s}
+.menu.open a span{transform:none;transition-delay:calc(.2s + var(--i)*.07s)}
+.menu a:hover span{color:var(--ink)}
+.menu .x{position:absolute;top:10px;right:var(--gut);background:var(--ink)}
+.menu .type{position:absolute;bottom:var(--gut);left:var(--gut);opacity:.8}
 
-.hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;padding:0 var(--gut) clamp(40px,9vh,96px);isolation:isolate}
-.hero picture,.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
-.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,var(--bg) 4%,rgba(20,17,14,.55) 45%,rgba(20,17,14,.25))}
-.hero div{max-width:760px}
-.hero h1{font-size:clamp(3rem,11vw,8rem);letter-spacing:-.02em;color:#f1ebe0}
-.hero p{font-size:clamp(1.05rem,2.4vw,1.4rem);color:#e5dccb;margin:18px 0 28px;max-width:34em}
-.btn{display:inline-block;background:var(--gold);color:#14110e;font-weight:600;padding:14px 28px;border-radius:999px;text-decoration:none;transition:transform .25s,box-shadow .25s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(224,168,74,.3)}
-.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line);margin-left:8px}
-.hero .btn.ghost{color:#f1ebe0;border-color:rgba(241,235,224,.5)}
+.hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;padding:96px var(--gut) clamp(40px,9vh,96px);isolation:isolate;color:var(--cream)}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-3;filter:sepia(.9) saturate(.8) contrast(1.1) brightness(.72)}
+.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:linear-gradient(to top,rgba(27,22,18,.96) 5%,rgba(27,22,18,.45) 55%,rgba(27,22,18,.55))}
+.hero::after{content:"";position:absolute;inset:78px 14px 14px;z-index:-1;border:2px solid rgba(230,216,184,.7);outline:1px solid rgba(230,216,184,.5);outline-offset:-8px;pointer-events:none}
+.hero div{max-width:900px;padding:0 clamp(0px,2vw,24px)}
+.hero .type{display:inline-block;background:var(--cream);color:var(--ink);padding:5px 12px;margin-bottom:18px;transform:rotate(-1.5deg)}
+.hero h1{font-size:clamp(3.6rem,17vw,12rem);line-height:.88;text-shadow:4px 4px 0 var(--red)}
+.hero p{font-size:clamp(1.05rem,2.4vw,1.35rem);margin:24px 0 30px;max-width:34em;border-left:5px solid var(--red);padding-left:16px}
+.btn{display:inline-block;background:var(--red);color:var(--cream);font:400 1.15rem var(--poster);letter-spacing:.12em;text-transform:uppercase;padding:14px 30px;border:2px solid var(--ink);box-shadow:5px 5px 0 var(--ink);text-decoration:none;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translate(2px,2px);box-shadow:3px 3px 0 var(--ink)}
+.btn.ghost{background:none;color:inherit;border-color:currentColor;box-shadow:none;margin-left:10px}
+.hero .btn{box-shadow:5px 5px 0 rgba(0,0,0,.6)}
 
 section{padding:clamp(56px,10vw,128px) var(--gut)}
 .wrap{max-width:1200px;margin:0 auto}
-h2{font-size:clamp(2rem,5.5vw,3.8rem);margin-bottom:20px}
-.lede{color:var(--mute);max-width:40em;font-size:1.1em}
-.rules{display:grid;gap:28px;margin-top:48px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
-.rules div{border-top:2px solid var(--gold);padding-top:16px}
-.rules h3{font-size:1.4rem;margin-bottom:8px}
+h2{font-size:clamp(2.6rem,8vw,6rem);line-height:.95;padding-bottom:16px;margin-bottom:24px;border-bottom:6px solid var(--ink);position:relative}
+h2::after{content:"";position:absolute;left:0;bottom:-6px;width:min(40%,200px);height:6px;background:var(--red)}
+.lede{max-width:38em;font-size:1.12em;color:var(--mute)}
+.rules{display:grid;gap:24px;margin-top:48px;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));counter-reset:r}
+.rules div{border:2px solid var(--ink);padding:22px 20px 24px;background:rgba(242,232,207,.55);position:relative;counter-increment:r;box-shadow:6px 6px 0 var(--ink)}
+.rules div::before{content:"No. " counter(r);font:400 .8rem var(--type);letter-spacing:.14em;text-transform:uppercase;color:var(--red);display:block;margin-bottom:8px}
+.rules h3{font-size:2rem;margin-bottom:8px}
 .rules p{margin:0;color:var(--mute)}
 
-.shot{margin:0 0 clamp(40px,8vw,96px)}
-.shot img{width:100%;border-radius:14px;border:1px solid var(--line);aspect-ratio:16/9;object-fit:cover;background:var(--panel)}
-.shot figcaption{margin-top:14px;color:var(--mute);max-width:40em}
-.shot figcaption b{color:var(--ink);font-family:var(--serif);font-size:1.3rem;display:block;margin-bottom:4px;font-weight:600}
-.duo{display:grid;gap:clamp(24px,4vw,48px);grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.stars{text-align:center;color:var(--red);letter-spacing:.8em;padding-left:.8em;font-size:1.1rem}
+
+.dark{background:var(--ink) var(--grain);color:var(--paper)}
+.dark h2{border-color:var(--paper)}
+.dark .lede,.dark figcaption{color:#c9bb98}
+.shot{margin:0 0 clamp(48px,8vw,96px)}
+.shot .ph{background:var(--cream);padding:clamp(8px,1.6vw,16px) clamp(8px,1.6vw,16px) 0;box-shadow:8px 8px 0 rgba(0,0,0,.55);transform:rotate(var(--r,0deg))}
+.shot img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--olive);filter:sepia(.75) contrast(1.05) brightness(.95);transition:filter .5s}
+.shot:hover img{filter:sepia(.1)}
+.shot figcaption{margin-top:18px;max-width:40em;font-size:.95rem}
+.shot figcaption b{display:block;font:400 clamp(1.5rem,3vw,2rem) var(--poster);text-transform:uppercase;letter-spacing:.04em;color:var(--paper);margin:2px 0 4px}
+.shot figcaption .type{color:#e8604f}
+.ph::after{content:"";display:block;height:clamp(8px,1.6vw,16px)}
+.duo{display:grid;gap:clamp(32px,4vw,56px);grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
 .duo .shot{margin:0}
 
-.get{text-align:center;background:var(--panel)}
-.get p{margin:0 auto 28px;color:var(--mute);max-width:34em}
-footer{padding:32px var(--gut);color:var(--mute);font-size:.85rem;text-align:center}
+.get{background:var(--red) var(--grain);color:var(--cream);text-align:center;border-block:6px double var(--ink);position:relative;overflow:hidden}
+.get h2{border-color:var(--cream);margin-inline:auto;max-width:900px}
+.get h2::after{background:var(--ink)}
+.get p{margin:0 auto 32px;max-width:34em;font-size:1.12em}
+.get .btn{background:var(--ink);box-shadow:5px 5px 0 rgba(0,0,0,.45)}
+.stamp{position:absolute;right:clamp(8px,6vw,80px);top:clamp(16px,4vw,48px);border:4px double var(--cream);padding:6px 14px;font:400 clamp(1.1rem,3vw,1.8rem) var(--poster);letter-spacing:.14em;text-transform:uppercase;transform:rotate(9deg);opacity:.85}
+footer{padding:28px var(--gut);background:var(--ink);color:#c9bb98;text-align:center}
 
-.rv{opacity:0;transform:translateY(32px);transition:opacity .8s,transform .8s cubic-bezier(.16,1,.3,1)}
+.rv{opacity:0;transform:translateY(32px);transition:opacity .7s,transform .7s cubic-bezier(.16,1,.3,1)}
 .rv.in,html:not(.js) .rv{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -89,6 +109,7 @@ footer{padding:32px var(--gut);color:var(--mute);font-size:.85rem;text-align:cen
   .menu a span{transition:none;transform:none}
   .rv{opacity:1;transform:none;transition:none}
 }
+@media (max-width:520px){.stamp{display:none}.btn.ghost{margin:14px 0 0}}
 </style>
 </head>
 <body>
@@ -109,20 +130,22 @@ footer{padding:32px var(--gut);color:var(--mute);font-size:.85rem;text-align:cen
   <a href="#see" style="--i:1"><span>See it</span></a>
   <a href="#play" style="--i:2"><span>Play</span></a>
   <a href="https://github.com/yuri054/foreign-skies" style="--i:3"><span>Source</span></a>
+  <span class="type">Europe &middot; July 1914</span>
 </div>
 
 <main id="main">
 <div class="hero" id="top">
-  <picture><img src="img/map.webp" srcset="img/map-800.webp 800w, img/map.webp 1600w" sizes="100vw" width="1600" height="900" alt="The political map of Europe in July 1914" fetchpriority="high"></picture>
+  <img src="img/map.webp" srcset="img/map-800.webp 800w, img/map.webp 1600w" sizes="100vw" width="1600" height="900" alt="The political map of Europe in July 1914" fetchpriority="high">
   <div>
-    <h1>Foreign Skies</h1>
-    <p>A sandbox on a map of Europe from 1900. Take any nation, even the smallest, and write your own story with it.</p>
+    <span class="type">Europe &middot; 1900&ndash;1914</span>
+    <h1>Foreign<br>Skies</h1>
+    <p>A sandbox on a map of Europe. Take any nation, even the smallest, and write your own story with it.</p>
     <a class="btn" href="#play">Download</a><a class="btn ghost" href="#see">See it</a>
   </div>
 </div>
 
 <section id="idea"><div class="wrap">
-  <h2 class="rv">Your effort compounds.</h2>
+  <h2 class="rv">Your effort compounds</h2>
   <p class="lede rv">Peace is a full way to play. Build, invest, and watch it pay back; fight only when the story calls for it. There is no end date and no score.</p>
   <div class="rules">
     <div class="rv"><h3>Grow</h3><p>Buildings pay back within years, and what they earn pays for the next round. One province can become the largest economy in the world.</p></div>
@@ -132,27 +155,31 @@ footer{padding:32px var(--gut);color:var(--mute);font-size:.85rem;text-align:cen
   </div>
 </div></section>
 
-<section id="see"><div class="wrap">
-  <h2 class="rv">See it.</h2>
-  <figure class="shot rv"><img loading="lazy" src="img/war.webp" srcset="img/war-800.webp 800w, img/war.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="Armies and fronts at war"><figcaption><b>Armies and fronts</b>When the story does call for war, the front lines are on the map.</figcaption></figure>
-  <figure class="shot rv"><img loading="lazy" src="img/diplomacy.webp" srcset="img/diplomacy-800.webp 800w, img/diplomacy.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="The diplomacy screen"><figcaption><b>Diplomacy</b>A friend stays a friend unless something happens, and the game says what happened.</figcaption></figure>
+<section id="see" class="dark"><div class="wrap">
+  <h2 class="rv">From the field</h2>
+  <p class="lede rv">Plates from the game, shot in the real thing.</p>
+  <div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;</div>
+  <br>
+  <figure class="shot rv" style="--r:-.4deg"><div class="ph"><img loading="lazy" src="img/war.webp" srcset="img/war-800.webp 800w, img/war.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="Armies and fronts at war"></div><figcaption><span class="type">Plate I</span><b>Armies and fronts</b>When the story does call for war, the front lines are on the map.</figcaption></figure>
+  <figure class="shot rv" style="--r:.4deg"><div class="ph"><img loading="lazy" src="img/diplomacy.webp" srcset="img/diplomacy-800.webp 800w, img/diplomacy.webp 1600w" sizes="(min-width:1264px) 1200px, 92vw" width="1600" height="900" alt="The diplomacy screen"></div><figcaption><span class="type">Plate II</span><b>Diplomacy</b>A friend stays a friend unless something happens, and the game says what happened.</figcaption></figure>
   <div class="duo">
-    <figure class="shot rv"><img loading="lazy" src="img/briefing.webp" srcset="img/briefing-800.webp 800w, img/briefing.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="The cabinet briefing"><figcaption><b>The cabinet briefing</b></figcaption></figure>
-    <figure class="shot rv"><img loading="lazy" src="img/war-goals.webp" srcset="img/war-goals-800.webp 800w, img/war-goals.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="Choosing what to demand"><figcaption><b>War goals</b></figcaption></figure>
+    <figure class="shot rv" style="--r:-.6deg"><div class="ph"><img loading="lazy" src="img/briefing.webp" srcset="img/briefing-800.webp 800w, img/briefing.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="The cabinet briefing"></div><figcaption><span class="type">Plate III</span><b>The cabinet briefing</b></figcaption></figure>
+    <figure class="shot rv" style="--r:.6deg"><div class="ph"><img loading="lazy" src="img/war-goals.webp" srcset="img/war-goals-800.webp 800w, img/war-goals.webp 1600w" sizes="(min-width:900px) 580px, 92vw" width="1600" height="900" alt="Choosing what to demand"></div><figcaption><span class="type">Plate IV</span><b>War goals</b></figcaption></figure>
   </div>
 </div></section>
 
 <section class="get" id="play"><div class="wrap">
-  <h2 class="rv">Play it.</h2>
+  <span class="stamp" aria-hidden="true">Free</span>
+  <h2 class="rv">Take command</h2>
   <p class="rv">Free Windows build, new releases with every update. 22 nations, January 1900 or July 1914.</p>
   <a class="btn" href="https://github.com/yuri054/foreign-skies/releases/latest">Download for Windows</a>
 </div></section>
 </main>
-<footer>Foreign Skies · <a href="https://github.com/yuri054/foreign-skies">Source on GitHub</a></footer>
+<footer class="type">Foreign Skies &middot; <a href="https://github.com/yuri054/foreign-skies">Source on GitHub</a></footer>
 
 <script>
 (function(){
-  var m=document.getElementById("menu"),o=document.getElementById("open"),c=document.getElementById("close"),last;
+  var m=document.getElementById("menu"),o=document.getElementById("open"),c=document.getElementById("close");
   function set(v){
     m.classList.toggle("open",v);m.setAttribute("aria-hidden",!v);o.setAttribute("aria-expanded",v);
     if(v){m.removeAttribute("inert");document.body.style.overflow="hidden";c.focus()}
