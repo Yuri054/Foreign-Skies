@@ -718,7 +718,7 @@ impl GameState {
         for id in ids {
             let Some(i) = self.armies.iter().position(|x| x.id == id) else { continue };
             let (tag, province) = (self.armies[i].tag.clone(), self.armies[i].province);
-            if (tag != a && tag != b) || self.can_enter(data, &tag, province) {
+            if (tag != a && tag != b) || self.armies[i].embarked() || self.can_enter(data, &tag, province) {
                 continue;
             }
             self.armies[i].path.clear();

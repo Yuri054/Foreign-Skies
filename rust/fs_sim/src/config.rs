@@ -274,6 +274,8 @@ pub struct MilitaryConfig {
     pub training_power_max: f64,
     pub training_cost_share: f64,
     pub landing_power_mult: f64,
+    pub landing_days: i64,
+    pub landing_supply_days: i64,
     pub marshal_share: f64,
     pub occupation_income_share: f64,
     pub occupation_mop_up_days: i64,
@@ -374,6 +376,8 @@ impl MilitaryConfig {
             training_power_max: v.get("training").and_then(|t| t.get("power_max")).and_then(Value::as_f64).unwrap_or(0.0),
             training_cost_share: v.get("training").and_then(|t| t.get("cost_share")).and_then(Value::as_f64).unwrap_or(0.0),
             landing_power_mult: num(&v, &["landing", "power_mult"])?,
+            landing_days: num(&v, &["landing", "days"])? as i64,
+            landing_supply_days: num(&v, &["landing", "supply_days"])? as i64,
             marshal_share: num(&v, &["army_group", "marshal_share"])?,
             occupation_income_share: num(&v, &["occupation", "income_share"])?,
             occupation_mop_up_days: num(&v, &["occupation", "mop_up_days"])? as i64,
@@ -443,8 +447,67 @@ impl MilitaryConfig {
 
 /// `data/navy.json`: the ship types' upkeep and the port level they need, in file order.
 #[derive(Debug, Clone)]
+pub struct ShipDef {
+    pub id: String,
+    pub attack: f64,
+    pub speed: f64,
+    pub range_days: i64,
+    pub detection: f64,
+    pub upkeep: f64,
+    pub cost: f64,
+    pub ic: f64,
+    pub build_days: i32,
+    pub min_port: i64,
+    pub capacity: i64,
+    pub hull: f64,
+    pub exposure: f64,
+    pub crew: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct NavyCombat {
+    pub contact_base: f64,
+    pub damage_per_point: f64,
+    pub min_strength: f64,
+    pub morale_loss_per_damage: f64,
+    pub morale_loss_base: f64,
+    pub morale_regain: f64,
+    pub rout_morale: f64,
+    pub submarine_evasion: f64,
+    pub submarine_screen: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct BlockadeConfig {
+    pub min_power: f64,
+    pub base_weight: f64,
+    pub per_port_level: f64,
+    pub second_zone_share: f64,
+    pub max: f64,
+    pub land_leak: f64,
+    pub rise_per_day: f64,
+    pub fall_per_day: f64,
+    pub recompute_step: f64,
+    pub assess_days: i64,
+    pub outlets: Vec<String>,
+}
+
+/// `data/navy.json`.
+#[derive(Debug, Clone)]
 pub struct NavyConfig {
-    pub types: Vec<(String, f64, i64)>,
+    pub types: Vec<ShipDef>,
+    pub port_days: f64,
+    pub min_hop_days: f64,
+    pub combat: NavyCombat,
+    pub repair_per_day: f64,
+    pub port_morale_regain: f64,
+    pub range_attrition: f64,
+    pub range_attrition_morale: f64,
+    pub range_floor: f64,
+    pub blockade: BlockadeConfig,
+    pub slots_per_port_level: i64,
+    pub shore_per_squadron: f64,
+    pub shore_max: f64,
 }
 
 impl NavyConfig {
@@ -452,17 +515,74 @@ impl NavyConfig {
         let v: Value = serde_json::from_str(text).map_err(|e| format!("navy.json is invalid: {e}"))?;
         let mut types = vec![];
         for (id, d) in v.get("types").and_then(Value::as_object).ok_or("navy.json: types")? {
-            types.push((id.clone(), num(d, &["upkeep"])?, num(d, &["min_port"])? as i64));
+            types.push(ShipDef {
+                id: id.clone(),
+                attack: num(d, &["attack"])?,
+                speed: num(d, &["speed"])?,
+                range_days: num(d, &["range_days"])? as i64,
+                detection: num(d, &["detection"])?,
+                upkeep: num(d, &["upkeep"])?,
+                cost: num(d, &["cost"])?,
+                ic: num(d, &["ic"])?,
+                build_days: num(d, &["build_days"])? as i32,
+                min_port: num(d, &["min_port"])? as i64,
+                capacity: num(d, &["capacity"])? as i64,
+                hull: num(d, &["hull"])?,
+                exposure: num(d, &["exposure"])?,
+                crew: num(d, &["crew"])?,
+            });
         }
-        Ok(NavyConfig { types })
+        let c = |k: &str| num(&v, &["combat", k]);
+        let b = |k: &str| num(&v, &["blockade", k]);
+        Ok(NavyConfig {
+            types,
+            port_days: num(&v, &["port_days"])?,
+            min_hop_days: num(&v, &["min_hop_days"])?,
+            combat: NavyCombat {
+                contact_base: c("contact_base")?,
+                damage_per_point: c("damage_per_point")?,
+                min_strength: c("min_strength")?,
+                morale_loss_per_damage: c("morale_loss_per_damage")?,
+                morale_loss_base: c("morale_loss_base")?,
+                morale_regain: c("morale_regain")?,
+                rout_morale: c("rout_morale")?,
+                submarine_evasion: c("submarine_evasion")?,
+                submarine_screen: c("submarine_screen")?,
+            },
+            slots_per_port_level: num(&v, &["slots_per_port_level"])? as i64,
+            shore_per_squadron: num(&v, &["shore_support", "per_squadron"])?,
+            shore_max: num(&v, &["shore_support", "max"])?,
+            repair_per_day: num(&v, &["repair_per_day"])?,
+            port_morale_regain: num(&v, &["port_morale_regain"])?,
+            range_attrition: num(&v, &["range_attrition"])?,
+            range_attrition_morale: num(&v, &["range_attrition_morale"])?,
+            range_floor: num(&v, &["range_floor"])?,
+            blockade: BlockadeConfig {
+                min_power: b("min_power")?,
+                base_weight: b("base_weight")?,
+                per_port_level: b("per_port_level")?,
+                second_zone_share: b("second_zone_share")?,
+                max: b("max")?,
+                land_leak: b("land_leak")?,
+                rise_per_day: b("rise_per_day")?,
+                fall_per_day: b("fall_per_day")?,
+                recompute_step: b("recompute_step")?,
+                assess_days: b("assess_days")? as i64,
+                outlets: v["blockade"]["outlets"].as_array().ok_or("navy.json: outlets")?.iter().filter_map(|x| x.as_str().map(String::from)).collect(),
+            },
+        })
+    }
+
+    pub fn def(&self, ship: &str) -> &ShipDef {
+        self.types.iter().find(|t| t.id == ship).unwrap_or_else(|| panic!("unknown ship type {ship}"))
     }
 
     pub fn upkeep(&self, ship: &str) -> f64 {
-        self.types.iter().find(|(t, _, _)| t == ship).map(|(_, u, _)| *u).unwrap_or_else(|| panic!("unknown ship type {ship}"))
+        self.def(ship).upkeep
     }
 
     pub fn min_port(&self, ship: &str) -> Option<i64> {
-        self.types.iter().find(|(t, _, _)| t == ship).map(|(_, _, m)| *m)
+        self.types.iter().find(|t| t.id == ship).map(|t| t.min_port)
     }
 }
 

@@ -51,6 +51,9 @@ pub struct MapData {
     pub sea_adjacency: HashMap<usize, Vec<usize>>,
     /// The port provinces on each sea zone, in the order `ports.tsv` lists them.
     pub ports_of_zone: HashMap<usize, Vec<usize>>,
+    /// Sea zones by id (element 0 unused): the name and the centre, in 32-bit floats (`MapData.sea_zones`).
+    pub sea_zone_names: Vec<String>,
+    pub sea_zone_centers: Vec<(f32, f32)>,
 }
 
 impl MapData {
@@ -60,6 +63,21 @@ impl MapData {
             Some(&(z1, z2)) => [z1, z2].into_iter().filter(|&z| z > 0).collect(),
             None => vec![],
         }
+    }
+
+    /// The zones next to a sea zone (`MapData.sea_adjacency`).
+    pub fn sea_neighbors(&self, zone: usize) -> &[usize] {
+        self.sea_adjacency.get(&zone).map(Vec::as_slice).unwrap_or(&[])
+    }
+
+    /// `MapData.ports_in_zone`.
+    pub fn ports_in_zone(&self, zone: usize) -> &[usize] {
+        self.ports_of_zone.get(&zone).map(Vec::as_slice).unwrap_or(&[])
+    }
+
+    /// `MapData.sea_zones.size()`: one more than the highest zone id.
+    pub fn sea_zone_count(&self) -> usize {
+        self.sea_zone_names.len()
     }
 
     /// `Military.neighbors`: land provinces (and strait crossings) one step away; open-sea links need a navy.
@@ -128,6 +146,17 @@ impl MapData {
             sea_adjacency.entry(a).or_default().push(b);
             sea_adjacency.entry(b).or_default().push(a);
         }
-        Ok(MapData { provinces, nations, adjacency, sea_links, port_zones, sea_adjacency, ports_of_zone })
+        let mut sea_zone_names = vec![String::new()];
+        let mut sea_zone_centers = vec![(0.0f32, 0.0f32)];
+        for row in Table::read(&data_dir.join("map/sea_zones.tsv"))?.rows() {
+            let id = row.int("id") as usize;
+            while sea_zone_names.len() <= id {
+                sea_zone_names.push(String::new());
+                sea_zone_centers.push((0.0, 0.0));
+            }
+            sea_zone_names[id] = row.get("name").to_string();
+            sea_zone_centers[id] = (row.int("cx") as f32, row.int("cy") as f32);
+        }
+        Ok(MapData { provinces, nations, adjacency, sea_links, port_zones, sea_adjacency, ports_of_zone, sea_zone_names, sea_zone_centers })
     }
 }

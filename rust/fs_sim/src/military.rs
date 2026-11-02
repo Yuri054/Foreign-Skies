@@ -54,9 +54,15 @@ pub struct Army {
     pub supplied: bool,
     /// Days left in which the supplies that came ashore with the army last.
     pub landed_supply: i64,
+    /// The fleet the army is aboard (0 = none).
+    pub fleet_id: u32,
 }
 
 impl Army {
+    pub fn embarked(&self) -> bool {
+        self.fleet_id > 0
+    }
+
     pub fn men(&self, cfg: &MilitaryConfig) -> f64 {
         let mut total = 0.0;
         for u in &self.units {

@@ -136,14 +136,25 @@ impl GameState {
     /// `Military.neighbors_for`: neighbours an army of `tag` can reach from a province: the land and strait neighbours, and
     /// across short stretches of sea the provinces on the other side, as long as no enemy holds the water between (the
     /// water is not ported: it is taken as free).
-    pub fn neighbors_for(&self, data: &Data, id: usize) -> Vec<usize> {
+    pub fn neighbors_for(&self, data: &Data, tag: &str, id: usize) -> Vec<usize> {
         let mut out: Vec<usize> = data.map.neighbors(id).collect();
         for &n in &data.map.adjacency[id] {
-            if data.map.sea_links.get(&(id.min(n), id.max(n))).map(String::as_str) == Some("sea") {
+            if data.map.sea_links.get(&(id.min(n), id.max(n))).map(String::as_str) == Some("sea") && self.crossing_open(data, tag, id, n) {
                 out.push(n);
             }
         }
         out
+    }
+
+    /// `Military.crossing_open`: whether a short sea crossing between two provinces is free of enemy ships.
+    pub fn crossing_open(&self, data: &Data, tag: &str, a: usize, b: usize) -> bool {
+        let mut zones = data.map.zones_of_port(a);
+        for z in data.map.zones_of_port(b) {
+            if !zones.contains(&z) {
+                zones.push(z);
+            }
+        }
+        zones.iter().all(|&z| self.blockaders(tag, z).is_empty())
     }
 
     /// `Military.railway_ok`: whether a nation's railways run (it has at least half of the raw materials its industry needs).
@@ -164,7 +175,7 @@ impl GameState {
         maxf(0.2, s.railway_hop_cost * (1.0 - s.railway_level_gain * (level - 1) as f64))
     }
 
-    fn level_of(&self, id: usize, kind: &str) -> i64 {
+    pub(crate) fn level_of(&self, id: usize, kind: &str) -> i64 {
         self.province_buildings[id].iter().find(|(k, _)| k == kind).map(|(_, l)| *l as i64).unwrap_or(0)
     }
 
@@ -209,7 +220,7 @@ impl GameState {
                 break;
             }
             queued.remove(&cur);
-            for n in self.neighbors_for(data, cur) {
+            for n in self.neighbors_for(data, tag, cur) {
                 if !self.can_enter(data, tag, n) {
                     continue;
                 }
@@ -367,8 +378,7 @@ impl GameState {
     }
 
     /// `Navy.sea_route_home`: whether ships of a nation can get from a port to one of its home ports without crossing water an
-    /// enemy holds: what keeps a bridgehead supplied. (Which water an enemy holds comes from the fleets at sea, which are not
-    /// ported: none is held.)
+    /// enemy holds: what keeps a bridgehead supplied.
     pub fn sea_route_home(&self, data: &Data, tag: &str, port: usize) -> bool {
         let mut targets: Vec<usize> = vec![];
         for &id in &self.nation(tag).provinces {
@@ -383,18 +393,19 @@ impl GameState {
         let mut seen: HashSet<usize> = HashSet::new();
         let mut todo: Vec<usize> = vec![];
         for z in data.map.zones_of_port(port) {
-            seen.insert(z);
-            todo.push(z);
+            if self.blockaders(tag, z).is_empty() {
+                seen.insert(z);
+                todo.push(z);
+            }
         }
         while let Some(z) = todo.pop() {
             if targets.contains(&z) {
                 return true;
             }
-            if let Some(next) = data.map.sea_adjacency.get(&z) {
-                for &n in next {
-                    if seen.insert(n) {
-                        todo.push(n);
-                    }
+            for &n in data.map.sea_neighbors(z) {
+                if !seen.contains(&n) && self.blockaders(tag, n).is_empty() {
+                    seen.insert(n);
+                    todo.push(n);
                 }
             }
         }
@@ -508,7 +519,7 @@ impl GameState {
 
     fn move_armies(&mut self, data: &Data) {
         for i in 0..self.armies.len() {
-            if self.armies[i].path.is_empty() {
+            if self.armies[i].path.is_empty() || self.armies[i].embarked() {
                 continue;
             }
             self.armies[i].still_days = 0;
@@ -540,6 +551,9 @@ impl GameState {
     fn by_province(&self) -> Vec<(usize, Vec<usize>)> {
         let mut at: Vec<(usize, Vec<usize>)> = vec![];
         for (i, a) in self.armies.iter().enumerate() {
+            if a.embarked() {
+                continue;
+            }
             match at.iter_mut().find(|(p, _)| *p == a.province) {
                 Some((_, list)) => list.push(i),
                 None => at.push((a.province, vec![i])),
@@ -558,7 +572,7 @@ impl GameState {
         }
         for i in 0..self.armies.len() {
             let a = &self.armies[i];
-            if fighting.contains(&i) || !self.is_at_war(&a.tag) || !self.facing(data, i, at) {
+            if fighting.contains(&i) || a.embarked() || !self.is_at_war(&a.tag) || !self.facing(data, i, at) {
                 continue;
             }
             *need.entry(a.tag.clone()).or_insert(0.0) += a.power(mil) * a.shelling_share(mil) * cfg.munitions_per_gun_power * cfg.munitions_idle_share;
@@ -594,10 +608,20 @@ impl GameState {
         false
     }
 
-    fn naval_support(&self) -> f64 {
-        // What the nation's warships on shore support off a coastal province add: no fleet is ported past its base, so none
-        // supports a landing.
-        0.0
+    /// `Military.naval_support`: what the nation's warships on shore support off a coastal province add to its armies attacking
+    /// there (a share of their power).
+    fn naval_support(&self, data: &Data, tag: &str, province: usize) -> f64 {
+        let mut squadrons = 0usize;
+        for zone in data.map.zones_of_port(province) {
+            for fi in self.fleets_in_zone(zone) {
+                let f = &self.fleets[fi];
+                if f.tag != tag || f.mission != "support" || f.is_moving() {
+                    continue;
+                }
+                squadrons += f.ships.iter().filter(|s| data.navy.def(&s.kind).capacity == 0).count();
+            }
+        }
+        minf(data.navy.shore_max, data.navy.shore_per_squadron * squadrons as f64)
     }
 
     fn fight(&mut self, data: &Data) {
@@ -644,7 +668,7 @@ impl GameState {
                 let bb = &self.armies[*b];
                 let morale = data.war_support_morale_mult(self, &bb.tag);
                 let burn = 1.0 - bb.shelling_share(mil) * mil.combat.shell_penalty * clampf(1.0 - shells.get(&bb.tag).copied().unwrap_or(1.0), 0.0, 1.0);
-                let support = if bb.attacking { 1.0 + self.naval_support() } else { 1.0 };
+                let support = if bb.attacking { 1.0 + self.naval_support(data, &bb.tag, id) } else { 1.0 };
                 let share = bb.power(mil) * morale * burn * support / targets.len() as f64;
                 let shelling = bb.shelling_share(mil);
                 for &a in targets {
@@ -694,7 +718,7 @@ impl GameState {
         // A battle is over once no hostile armies share the province.
         let ids: Vec<usize> = self.engagements.iter().map(|e| e.province).collect();
         for id in ids {
-            let here: Vec<usize> = (0..self.armies.len()).filter(|&i| self.armies[i].province == id).collect();
+            let here: Vec<usize> = (0..self.armies.len()).filter(|&i| self.armies[i].province == id && !self.armies[i].embarked()).collect();
             let mut hostile = false;
             for &a in &here {
                 for &b in &here {
@@ -747,7 +771,7 @@ impl GameState {
         let pos = self.engagements.iter().position(|e| e.province == id).unwrap();
         let battle = self.engagements.remove(pos);
         self.last_battle_day.insert(id, self.day_i());
-        let present: HashSet<&str> = self.armies.iter().filter(|a| a.province == id).map(|a| a.tag.as_str()).collect();
+        let present: HashSet<&str> = self.armies.iter().filter(|a| a.province == id && !a.embarked()).map(|a| a.tag.as_str()).collect();
         let standing: Vec<&String> = battle.start_men.iter().map(|(t, _)| t).filter(|t| present.contains(t.as_str())).collect();
         let winner: String = if standing.len() == 1 { standing[0].clone() } else { String::new() };
         let tags: Vec<String> = battle.start_men.iter().map(|(t, _)| t.clone()).collect();
@@ -796,7 +820,7 @@ impl GameState {
 
     /// `Military._add_loss`: men added to a war's tally for a nation, split between the wars with the given enemies (or all
     /// its wars when none are given).
-    fn add_loss(&mut self, tag: &str, enemies: &[String], men: f64, field: &str) {
+    pub(crate) fn add_loss(&mut self, tag: &str, enemies: &[String], men: f64, field: &str) {
         if men <= 0.0 {
             return;
         }
@@ -888,6 +912,10 @@ impl GameState {
     fn upkeep_and_occupy(&mut self, data: &Data) -> bool {
         let mil = &data.military;
         for i in 0..self.armies.len() {
+            if self.armies[i].embarked() {
+                self.armies[i].supplied = true;
+                continue;
+            }
             if self.armies[i].landing_days > 0 {
                 self.armies[i].landing_days -= 1;
             }

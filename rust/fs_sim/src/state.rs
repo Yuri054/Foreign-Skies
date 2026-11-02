@@ -90,6 +90,11 @@ pub struct Nation {
     pub starving: bool,
     /// How much of the nation's trade the blockade cuts, 0 to 1.
     pub blockade: f64,
+    pub blockade_target: f64,
+    pub blockade_pinned: f64,
+    pub blockade_by: Vec<String>,
+    pub blockade_applied: f64,
+    pub ships_lost: i64,
     /// The recruits' pool, and the men in armies (and training).
     pub manpower: i64,
     pub men_in_units: i64,
@@ -360,6 +365,13 @@ pub struct GameState {
     pub armies: Vec<Army>,
     pub next_army_id: u32,
     pub fleets: Vec<Fleet>,
+    pub next_fleet_id: u32,
+    /// Who holds each sea zone, in the order the zones were first met (`GameState.sea_control`).
+    pub sea_control: Vec<(usize, SeaControl)>,
+    pub sea_battles: Vec<(usize, SeaBattle)>,
+    pub sea_battle_archive: Vec<SeaBattle>,
+    /// Set when a nation's blockade moved enough for its budget to be worked out again (`GameState.budget_dirty`).
+    pub budget_dirty: bool,
     /// Naval bases (dockyards) from the scenario: province -> level the biggest ship there needs. They count as a port for the
     /// navy, not for the economy.
     pub naval_bases: HashMap<usize, i64>,
@@ -498,13 +510,93 @@ pub struct HomeCache {
 }
 
 
-/// A fleet at its base: the ships' types (`Fleet`, `Navy.new_fleet`).
+/// One squadron of a fleet (`Ship`): strength is the share of it still afloat and fit to fight, morale is 0 to 1.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Ship {
+    pub kind: String,
+    pub strength: f64,
+    pub morale: f64,
+}
+
+impl Ship {
+    pub fn new(kind: &str) -> Ship {
+        Ship { kind: kind.to_string(), strength: 1.0, morale: 1.0 }
+    }
+}
+
+/// A stack of ships under one flag (`Fleet`): in a port (`port` > 0, `zone` 0) or in a sea zone (`zone` > 0, `port` 0).
 #[derive(Debug, Clone)]
 pub struct Fleet {
+    pub id: u32,
     pub tag: String,
     pub name: String,
+    pub ships: Vec<Ship>,
+    pub zone: usize,
     pub port: usize,
-    pub ships: Vec<String>,
+    pub path: Vec<usize>,
+    pub dest_port: usize,
+    pub move_days_left: f64,
+    pub entering: bool,
+    pub landing: usize,
+    pub mission: String,
+    pub fighting: bool,
+    pub engaged: bool,
+    pub retreating: bool,
+    pub days_out: i64,
+}
+
+impl Fleet {
+    pub fn new(id: u32, tag: &str, name: &str, port: usize) -> Fleet {
+        Fleet {
+            id,
+            tag: tag.to_string(),
+            name: name.to_string(),
+            ships: vec![],
+            zone: 0,
+            port,
+            path: vec![],
+            dest_port: 0,
+            move_days_left: 0.0,
+            entering: false,
+            landing: 0,
+            mission: "station".to_string(),
+            fighting: false,
+            engaged: false,
+            retreating: false,
+            days_out: 0,
+        }
+    }
+
+    pub fn is_in_port(&self) -> bool {
+        self.port > 0
+    }
+
+    pub fn is_moving(&self) -> bool {
+        !self.path.is_empty() || self.entering
+    }
+}
+
+/// A battle at sea, kept while it lasts and then filed (`GameState.sea_battles`, `sea_battle_archive`).
+#[derive(Debug, Clone)]
+pub struct SeaBattle {
+    pub id: u32,
+    pub zone: usize,
+    pub start_day: i64,
+    pub days: i64,
+    pub fleets: Vec<u32>,
+    pub start_ships: Vec<(String, i64)>,
+    pub lost: Vec<(String, f64)>,
+    pub sunk: Vec<(String, i64)>,
+    pub winner: String,
+    pub active: bool,
+}
+
+/// Who holds a sea zone today (`GameState.sea_control`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct SeaControl {
+    pub holders: Vec<String>,
+    pub contested: bool,
+    pub power: Vec<(String, f64)>,
 }
 
 fn refs_b(v: &[(String, i32)]) -> Vec<(&str, i32)> {
@@ -548,6 +640,11 @@ impl GameState {
             armies: vec![],
             next_army_id: 1,
             fleets: vec![],
+            next_fleet_id: 1,
+            sea_control: vec![],
+            sea_battles: vec![],
+            sea_battle_archive: vec![],
+            budget_dirty: false,
             naval_bases: HashMap::new(),
             wars: vec![],
             war_history: vec![],
@@ -700,6 +797,11 @@ impl GameState {
                 weariness: 0.0,
                 starving: false,
                 blockade: 0.0,
+                blockade_target: 0.0,
+                blockade_pinned: -1.0,
+                blockade_by: vec![],
+                blockade_applied: 0.0,
+                ships_lost: 0,
                 manpower: f("peacetime_army", 0.0) as i64,
                 men_in_units: 0,
                 men_exercising: 0,
@@ -774,6 +876,7 @@ impl GameState {
                     fighting: false,
                     supplied: true,
                     landed_supply: 0,
+                    fleet_id: 0,
                 });
             }
         }
@@ -806,6 +909,7 @@ impl GameState {
     /// budget does not spend on ships); and the naval budget that follows.
     pub fn deploy_starting_fleets(&mut self, data: &Data, dir: &Path) -> Result<(), String> {
         self.fleets.clear();
+        self.next_fleet_id = 1;
         let mut naval_bases: HashMap<usize, i64> = HashMap::new();
         for row in Table::read(&dir.join("navy.tsv"))?.rows() {
             let (tag, province) = (row.get("tag").to_string(), row.int("province") as usize);
@@ -818,12 +922,12 @@ impl GameState {
             let at = match at {
                 Some(i) => i,
                 None => {
-                    self.fleets.push(Fleet { tag: tag.clone(), name: row.get("fleet").to_string(), port: province, ships: vec![] });
+                    self.new_fleet(&tag, row.get("fleet"), province);
                     self.fleets.len() - 1
                 }
             };
             for _ in 0..row.int("count") {
-                self.fleets[at].ships.push(ship.to_string());
+                self.fleets[at].ships.push(Ship::new(ship));
             }
             let slot = naval_bases.entry(province).or_insert(1);
             *slot = (*slot).max(min_port);
@@ -866,7 +970,7 @@ impl GameState {
         let mut total = 0.0;
         for f in self.fleets.iter().filter(|f| f.tag == tag) {
             for s in &f.ships {
-                total += data.navy.upkeep(s);
+                total += data.navy.upkeep(&s.kind);
             }
         }
         total
@@ -878,7 +982,7 @@ impl GameState {
             let mut sum = 0.0;
             for f in self.fleets.iter().filter(|f| f.tag == self.nations[i].tag) {
                 for s in &f.ships {
-                    sum += data.navy.upkeep(s);
+                    sum += data.navy.upkeep(&s.kind);
                 }
             }
             self.nations[i].naval_budget = self.nations[i].naval_overhead + sum;

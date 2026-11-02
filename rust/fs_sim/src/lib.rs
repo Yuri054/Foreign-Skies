@@ -16,6 +16,7 @@ pub mod gd;
 pub mod map;
 pub mod military;
 pub mod population;
+pub mod navy;
 pub mod peace;
 pub mod pressure;
 pub mod state;
