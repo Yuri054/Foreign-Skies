@@ -46,6 +46,7 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `navy.gd`, `naval_combat.gd`, `blockade.gd`, `fleet.gd`, `ship.gd`, `move_fleet.gd`, `embark_army.gd`, `disembark_army.gd`, `send_overseas.gd`, `raise_ships.gd`, `set_fleet_mission.gd` | `navy.rs`, `map.rs`, `config.rs` | The navy: fleets and ships, `can_dock`, sailing through the sea zones (`zone_days`, `find_path`), the ships finished each day, sea battles (contact by a hash roll, firepower with the destroyer screen, hits by exposure, sinkings, routs and retreats, the battle records), repair and attrition, armies embarked, carried and landed (an assault from the sea, convoys that lose transports drown their men), shore support for the army's fights, who holds each sea zone, and the blockade of a nation's trade (`String.hash` is ported: it is djb2). `Military.neighbors_for` and `sea_route_home` now see the water enemies hold. |
 | `game_state.gd` (the day and month stages), `clock.gd` | `game.rs` | `advance_day`: the calendar moves on, then the day's stages in the game's order (economy, focus, navy; the armies; diplomacy; the economy worked out again if anything changed it) and, at a month's end, the month's steps (economy, diplomacy, pressure). |
 | `military.gd` (recruiting, drill, generals), `raise_units.gd`, `set_training.gd`, `demobilize_units.gd`, `split_army.gd`, `merge_armies.gd`, `transfer_units.gd`, `assign_general.gd` | `army_mgmt.rs`, `military.rs`, `state.rs` | Units raised and trained (`_train`: they join an idle army in their province or form new levies), armies on exercise (`_drill`), men in service counting recruits and the men on exercise, units sent home, armies split, merged and handed units, the generals' pool and `set_general`, and `release_orphan_generals` (the AI's nations put their best free general in command of their biggest army without one). A nation that collapses or capitulates loses its recruits. |
+| `diplomacy.gd` (player actions), `buy_points.gd`, `improve_relations.gd`, `propose_treaty.gd`, `gift.gd`, `cancel_treaty.gd`, `rename_alliance.gd`, `declare_war.gd` | `actions.rs` | What the player does in diplomacy, with the diplomacy points it costs: buying points (the price climbs), efforts to improve relations, treaty proposals (the other nation's opinion against the bar for the kind, prestige pull, rivals, opposed blocs; points refunded in part on a refusal), gifts and their memory, cancelling treaties and the price of it, naming and renaming alliances, and declaring war for points. |
 | `pressure.gd` | `pressure.rs`, `config.rs` | Europe's tension (arms race, mobilization, wars, rivalry, blocs, events), the monthly step (events fire by date and condition, roles by what a nation is now, the player's waiting decisions and their answers, every kind of effect, public appeals, rivalries hardening). A war or crisis event stops the port with a message. |
 | `population.gd` | `population.rs`, `state.rs` | The monthly step: growth, famine, occupation and war dead. |
 | `economy.gd` (budgets) | `budget.rs`, `state.rs` | `nation_budget` (revenue, costs, food, raw materials, industry, manpower), `materials_of`, soldier wages, `construction_points`, `_budgets`, `calibrate`. |
@@ -134,6 +135,12 @@ for want of money, men or ground), armies on exercise that stand and that march,
 units, generals assigned and freed and the AI's best general put in command of its biggest army, and a nation that loses every
 province. Every nation's recruits and men, every army's units, generals and marching, and the counters are compared.
 
+A fourteenth golden file, `actions.json` (made by `tools/dump_actions_golden.gd`), runs the real commands (`BuyPoints`, `ImproveRelations`, `ProposeTreaty`, `Gift`,
+`CancelTreaty`, `RenameAlliance`) in six campaigns, with the real game running by itself for days and months in between: the price of points
+climbing and easing, the limits on efforts, treaties accepted and refused (and refused for points, rivals, blocs and the bar), gifts
+with diminishing returns, cancelling every kind of treaty, and alliances named and renamed. Points, prestige, money, treaties and their
+names, efforts, opinions and baselines, and the memory of gifts are compared after each step.
+
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
 (development, people, province lists, summed output) and the raw-materials constant, for July 1914 and January 1900,
@@ -146,7 +153,7 @@ costs, 200 worker shares, 180 population steps and so on). Breaking any of these
 
 The heart of it is in: the economy, population, focus, diplomacy, war on the map and at sea, peace, pressure events, declaring war and
 capitulation, run together by `advance_day`. Still missing: `level_gain` and `building_stats` (what the screens show); `Crisis`
-(the crises between nations); proposing and cancelling treaties; in war, fronts, army groups, offensives and attack lines, and
+(the crises between nations); in war, fronts, army groups, offensives and attack lines, and
 `save_game.gd`, `history`, `standings` and the briefing. The AI (`scripts/ai`) is not part of this port: its
 choices (to join a war, to propose or accept a peace and on what terms, to mobilize, to fight) are passed in where the rules need them.
 

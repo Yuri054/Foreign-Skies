@@ -719,6 +719,11 @@ pub struct DiplomacyConfig {
     pub grievance_decay_per_month: f64,
     pub rivalry_fade_per_year: f64,
     pub gift_memory_decay: f64,
+    /// The parts of `data/diplomacy.json` the player's diplomatic actions read, as the file has them: `points`, `actions` and
+    /// `war.cancel`.
+    pub raw_points: Value,
+    pub raw_actions: Value,
+    pub raw_cancel: Value,
     pub treaties: Vec<TreatyKind>,
     pub crisis: CrisisConfig,
     pub prestige_battle_win: f64,
@@ -840,6 +845,9 @@ impl DiplomacyConfig {
             grievance_decay_per_month: num(&v, &["war", "provocation", "grievance_decay_per_month"])?,
             rivalry_fade_per_year: num(&v, &["war", "provocation", "rivalry_fade_per_year"])?,
             gift_memory_decay: num(&v, &["actions", "gift_memory_decay"])?,
+            raw_points: v["points"].clone(),
+            raw_actions: v["actions"].clone(),
+            raw_cancel: v["war"]["cancel"].clone(),
             treaties,
             prestige_battle_win: num(&v, &["points", "prestige", "battle_win"])?,
             score_battle_ratio_min: num(&v, &["peace", "score", "battle_ratio_min"])?,

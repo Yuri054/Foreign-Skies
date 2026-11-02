@@ -5,6 +5,7 @@
 //! `tests/golden/slice.json`, and `tests/golden.rs` makes this crate reproduce it. See `rust/README.md` for what is
 //! ported and what is not.
 
+pub mod actions;
 pub mod army_mgmt;
 pub mod budget;
 pub mod clock;
