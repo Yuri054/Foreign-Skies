@@ -367,6 +367,8 @@ pub struct GameState {
     pub next_army_id: u32,
     pub fronts: Vec<crate::front::Front>,
     pub next_front_id: u32,
+    pub offensives: Vec<crate::offensive::Offensive>,
+    pub next_offensive_id: u32,
     pub generals: Vec<crate::military::General>,
     pub next_general_id: u32,
     pub fleets: Vec<Fleet>,
@@ -646,6 +648,8 @@ impl GameState {
             next_army_id: 1,
             fronts: vec![],
             next_front_id: 1,
+            offensives: vec![],
+            next_offensive_id: 1,
             generals: vec![],
             next_general_id: 1,
             fleets: vec![],
@@ -900,6 +904,7 @@ impl GameState {
                     parent_id: 0,
                     pin: 0,
                     prepared: false,
+                    planning: 0.0,
                     training: false,
                 });
             }

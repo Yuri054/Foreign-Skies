@@ -2,7 +2,7 @@
 //! `assign_to_front.gd`, `set_front_anchors.gd`, `set_front_line.gd`, `set_front_policy.gd`): the provinces a nation wants held (the
 //! border with a nation, a hand-drawn chain, or a few provinces to garrison), with armies assigned to them. Each day the armies are
 //! spread along the line by strength (the player's: as detachments of their divisions, `FrontSolver`) or each sent to a province to
-//! hold (the AI's), and detachments keep up with their army. Offensives are not ported, so no army is ever under their control.
+//! hold (the AI's), and detachments keep up with their army.
 
 use crate::military::Army;
 use crate::state::{Data, GameState};
@@ -234,6 +234,10 @@ impl GameState {
     }
 
     /// `FrontSolver.stacks_of`: the army itself and its detachments.
+    pub(crate) fn stacks_pub(&self, root: usize) -> Vec<usize> {
+        self.stacks_of(root)
+    }
+
     fn stacks_of(&self, root: usize) -> Vec<usize> {
         let rid = self.armies[root].id;
         let mut out = vec![root];
@@ -590,8 +594,10 @@ impl GameState {
             let (a, b) = sectors[&self.armies[root].id];
             let line: Vec<usize> = order[a..b].to_vec();
             let w: Vec<f64> = weights[a..b].to_vec();
-            // (a launched spearhead has the army's stacks in hand: offensives are not ported)
-            routes_left = self.redeploy(data, fi, root, &line, &w, routes_left);
+            // A launched spearhead has the army's stacks in hand; the sector waits for them.
+            if !self.offensive_controls(root) {
+                routes_left = self.redeploy(data, fi, root, &line, &w, routes_left);
+            }
             if fallback {
                 for s in self.stacks_of(root) {
                     let on = self.armies[s].path.is_empty() && line.contains(&self.armies[s].province);

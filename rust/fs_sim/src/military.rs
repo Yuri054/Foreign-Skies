@@ -64,6 +64,8 @@ pub struct Army {
     pub parent_id: u32,
     pub pin: usize,
     pub prepared: bool,
+    /// Planning for its army's attack, 0 to 1 (`Offensives`).
+    pub planning: f64,
     /// On exercise (`Army.training`): standing still, its divisions gain experience and its men cost more upkeep.
     pub training: bool,
 }
@@ -126,7 +128,8 @@ impl Army {
             total += u.power(cfg);
         }
         let landing = if self.landing_days > 0 { cfg.landing_power_mult } else { 1.0 };
-        total * self.general_skill * 1.0 * landing * 1.0
+        let planned = if self.attacking { 1.0 + cfg.offensive_planning_max * self.planning } else { 1.0 };
+        total * self.general_skill * 1.0 * landing * planned
     }
 }
 

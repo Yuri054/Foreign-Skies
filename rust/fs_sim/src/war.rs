@@ -524,9 +524,10 @@ impl GameState {
     /// nations with no ground left disband their armies. Returns whether a province changed hands (the economy is then worked
     /// out again).
     pub fn military_step_day(&mut self, data: &Data) -> bool {
-        // (offensives, army groups and attack lines are not ported)
+        // (army groups and attack lines are not ported)
         self.step_detachments(data);
         self.step_fronts(data);
+        self.offensives_step_day(data);
         self.release_orphan_generals(data);
         self.train_recruits(data);
         self.drill(data);

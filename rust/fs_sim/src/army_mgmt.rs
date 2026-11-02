@@ -39,6 +39,7 @@ impl GameState {
             parent_id: 0,
             pin: 0,
             prepared: false,
+            planning: 0.0,
             training: false,
         };
         self.next_army_id += 1;
