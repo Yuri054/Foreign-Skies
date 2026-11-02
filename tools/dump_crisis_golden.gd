@@ -5,6 +5,7 @@ extends SceneTree
 ## cooldowns, the casus belli, the chronicle and the nations' standing are written down every few days.
 ##   godot --headless --path . -s res://tools/dump_crisis_golden.gd -- rust/fs_sim/tests/golden/crisis.json
 
+const LOOSE := {"min_score": 0.3, "min_gap_months": 1, "max_active": 4, "max_wars": 12, "per_month": 2, "claim_min_tension": 20, "pair_cooldown_months": 12, "min_odds": 0.4}
 var gs: Node
 var clock: Node
 
@@ -26,11 +27,19 @@ func _initialize() -> void:
 	gs = root.get_node("GameState")
 	clock = root.get_node("Clock")
 	var Press: GDScript = load("res://scripts/sim/pressure.gd")
+	var Dip: GDScript = load("res://scripts/sim/diplomacy.gd")
+	var CrisisAct: GDScript = load("res://scripts/sim/crisis_action.gd")
+	var PressDem: GDScript = load("res://scripts/sim/press_demand.gd")
 	var runs := [
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 600, "every": 10, "player": "SRB"},
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 600, "every": 10, "player": "FRA"},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 800, "every": 10, "player": "GER"},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 800, "every": 10, "player": "BEL"},
+		# the gate loosened, so that many more quarrels open and every threshold is tried
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "ITA", "gate": LOOSE},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "BEL", "gate": LOOSE},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 900, "every": 10, "player": "FRA", "gate": LOOSE},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 900, "every": 10, "player": "ESP", "gate": LOOSE},
 	]
 	var result := []
 	for run in runs:
@@ -39,6 +48,10 @@ func _initialize() -> void:
 		gs.ai_enabled = false
 		gs.pressure_ai = true
 		gs.set_player(run.player)
+		var CrisisCls: GDScript = load("res://scripts/sim/crisis.gd")
+		CrisisCls.load_config()
+		for k in run.get("gate", {}):
+			CrisisCls.cfg.gate[k] = run.gate[k]
 		var log := []
 		var snaps := [_snapshot()]
 		var cycle := 0
@@ -56,13 +69,14 @@ func _initialize() -> void:
 					var actions := ["mediate", "back_a", "back_b"] if gs.player_tag != c.b else ["yield", "refuse", "mobilize", "appeal"]
 					var action: String = actions[cycle % actions.size()]
 					cycle += 1
-					var cmd := CrisisAction.new(gs.player_tag, c.id, action)
-					log.append([d, "crisis", c.id, action, cmd.execute(gs)])
+					var cmd = CrisisAct.new(gs.player_tag, c.id, action)
+					var okc: bool = cmd.execute(gs)
+					log.append([d, "crisis", c.id, action, okc])
 			if d % 45 == 20:
 				var kinds := ["claim", "border", "indemnity", "revanche", "disarm", "naval"]
-				var neigh: Array = Diplomacy.neighbor_nations(gs, gs.player_tag).duplicate()
-				if gs.player_tag in Pressure.GREAT:
-					for g in Pressure.GREAT:
+				var neigh: Array = Dip.neighbor_nations(gs, gs.player_tag).duplicate()
+				if gs.player_tag in Press.GREAT:
+					for g in Press.GREAT:
 						if g != gs.player_tag and g not in neigh:
 							neigh.append(g)
 				neigh.sort()
@@ -70,12 +84,13 @@ func _initialize() -> void:
 					var b: String = neigh[cycle % neigh.size()]
 					var kind: String = kinds[(cycle / 2) % kinds.size()]
 					cycle += 1
-					var pd := PressDemand.new(gs.player_tag, b, kind)
-					log.append([d, "press", b, kind, pd.execute(gs), pd.reason])
+					var pd = PressDem.new(gs.player_tag, b, kind)
+					var okp: bool = pd.execute(gs)
+					log.append([d, "press", b, kind, okp, pd.reason])
 			clock.advance_day()
 			if d % run.every == run.every - 1:
 				snaps.append(_snapshot())
-		result.append({"name": run.name, "player": run.player, "every": run.every, "days": run.days, "log": log, "snaps": snaps})
+		result.append({"name": run.name, "player": run.player, "gate": run.get("gate", {}), "every": run.every, "days": run.days, "log": log, "snaps": snaps})
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()
@@ -107,7 +122,7 @@ func _snapshot() -> Dictionary:
 		chron.append([e.date, e.title, e.text])
 	var pend := []
 	for p in gs.pending_events:
-		pend.append([p.id, p.event, p.title, p.text, p.options.map(func(o): return o.label)])
+		pend.append([p.id, p.event, p.title, p.text, p.options.map(func(o): return [o.label, o.get("text", ""), o.get("tip", ""), o.get("effects", [])])])
 	var ended := []
 	for e in gs.crisis_log:
 		ended.append([e.id, e.kind, e.a, e.b, e.start, e.end_day, e.outcome])

@@ -890,6 +890,23 @@ impl GameState {
         gs.recompute(data);
         gs.load_diplomacy(data, &scenario)?;
         gs.load_pressure(data, &scenario);
+        // `AI.load_scenario`: the scenario's own temperaments, the default filling in what an entry leaves out.
+        if let Some(traits) = scenario.get("ai_traits").and_then(Value::as_object) {
+            for (tag, entry) in traits {
+                assert!(gs.nation_index.contains_key(tag), "ai_traits names an unknown nation: {tag}");
+                let (mut a, mut c) = (data.ai.default_aggression, data.ai.default_caution);
+                for (k, v) in entry.as_object().unwrap() {
+                    let v = v.as_f64().unwrap();
+                    assert!((0.0..=1.0).contains(&v), "ai_traits {tag}.{k} must be between 0 and 1");
+                    match k.as_str() {
+                        "aggression" => a = v,
+                        "caution" => c = v,
+                        _ => panic!("ai_traits for {tag} has an unknown trait: {k}"),
+                    }
+                }
+                gs.ai_traits.insert(tag.clone(), (a, c));
+            }
+        }
         Ok(gs)
     }
 

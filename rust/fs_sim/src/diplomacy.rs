@@ -543,8 +543,7 @@ impl GameState {
         ]
     }
 
-    /// `WarSupport.step_month`: support moves with what the war has cost. (A nation whose support has collapsed is forced
-    /// into a white peace by the game, which needs the peace rules: not ported, so this stops if it would happen.)
+    /// `WarSupport.step_month`: support moves with what the war has cost.
     pub fn war_support_step_month(&mut self, data: &Data) {
         for i in 0..self.nations.len() {
             if self.nations[i].provinces.is_empty() {
@@ -559,9 +558,40 @@ impl GameState {
             self.nations[i].men_lost_month = 0.0;
         }
         self.recompute(data);
-        for n in &self.nations {
-            if n.war_support <= data.war_support.white_peace_below && self.is_at_war(&n.tag) {
-                panic!("{} would be forced into a white peace: the peace rules are not ported yet", n.tag);
+        self.force_peace(data);
+    }
+
+    /// `WarSupport._force_peace`: a nation whose support has collapsed makes a white peace with every enemy that it is not clearly
+    /// losing to; where it is losing, the enemy can dictate terms instead.
+    fn force_peace(&mut self, data: &Data) {
+        let c = &data.war_support;
+        let tags: Vec<String> = self.nations.iter().map(|n| n.tag.clone()).collect();
+        for tag in tags {
+            if self.nation(&tag).war_support > c.white_peace_below {
+                continue;
+            }
+            let ids: Vec<u32> = self.wars_of(&tag).into_iter().map(|w| self.wars[w].id).collect();
+            for id in ids {
+                let Some(w) = self.wars.iter().position(|x| x.id == id) else { continue };
+                if self.war_score(data, w, &tag) < c.white_peace_score {
+                    continue;
+                }
+                let taker = self.wars[w].other(&tag).to_string();
+                let offer = crate::peace::Offer {
+                    id: 0,
+                    war_id: id,
+                    from: taker.clone(),
+                    to: tag.clone(),
+                    mode: String::new(),
+                    taker,
+                    giver: tag.clone(),
+                    demands: vec![],
+                    cost: 0.0,
+                    forced: false,
+                    day: 0,
+                    note: format!(" ({}'s people will not fight on)", self.nation(&tag).display_name),
+                };
+                self.make_peace(data, w, &offer);
             }
         }
     }

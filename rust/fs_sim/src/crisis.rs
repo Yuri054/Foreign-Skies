@@ -772,13 +772,30 @@ impl GameState {
         let me = self.player_tag.clone();
         let odds_b = 1.0 / maxf(self.crisis_odds_a(data, &c), 0.01);
         let med = self.crisis_mediators(data, &c);
+        let y = &data.crises["yield"];
+        let what = self.describe_demand(data, &c.demand);
+        let (na, nb) = (self.nation(&c.a).display_name.clone(), String::new());
+        let _ = nb;
+        let r = |x: f64| x.round() as i64;
+        let signed = |x: i64| format!("{}{}", if x < 0 { "-" } else { "+" }, x.abs());
         let mut options = vec![
-            json!({"label": "Yield to the demand", "effects": [{"crisis": [c.id, "yield", "b"]}]}),
-            json!({"label": "Refuse", "effects": [{"crisis": [c.id, "refuse", "b"]}]}),
-            json!({"label": "Mobilize and refuse", "effects": [{"crisis": [c.id, "mobilize", "b"]}]}),
+            json!({"label": "Yield to the demand", "text": format!("Give up {what}. The crisis ends."),
+                "effects": [{"crisis": [c.id, "yield", "b"]}],
+                "tip": format!("You lose {what}.\nPrestige {}, war support {}; tension eases.", signed(r(f(&y["b_prestige"]))), signed(r(f(&y["b_war_support"]))))}),
+            json!({"label": "Refuse", "text": format!("Say no. {na} may take it as a cause for war."),
+                "effects": [{"crisis": [c.id, "refuse", "b"]}],
+                "tip": format!("{na} gains a casus belli to press the demand, and may declare war.\nRelations with {na} {}.", signed(r(f(&data.crises["refuse"]["relation"]))))}),
+            json!({"label": "Mobilize and refuse", "text": "Show that you will fight; they may back down if they cannot win.",
+                "effects": [{"crisis": [c.id, "mobilize", "b"]}],
+                "tip": format!("Mobilization {}%; tension {}.\nIf {na} cannot win it backs down, otherwise this is a refusal.", signed(r(f(&data.crises["mobilize"]["mobilization"]) * 100.0)), signed(r(f(&data.crises["mobilize"]["tension"]))))}),
         ];
         if !med.is_empty() && self.can_afford(&me, f(&data.crises["mediate"]["appeal_cost_points"])) {
-            options.push(json!({"label": "Appeal to the powers", "effects": [{"crisis": [c.id, "appeal", "b"]}]}));
+            let m = &med[0];
+            let nm = self.nation(&m.0).display_name.clone();
+            options.push(json!({"label": format!("Appeal to the powers ({} points)", f(&data.crises["mediate"]["appeal_cost_points"]) as i64),
+                "text": format!("Ask {nm} to bring {na} to terms."),
+                "effects": [{"crisis": [c.id, "appeal", "b"]}],
+                "tip": format!("A {}% chance {nm} succeeds, with a small payment instead of the demand.\nIf it fails, this is a refusal.", r(m.1 * 100.0))}));
         }
         let power = if odds_b >= 1.0 { format!("Your side outweighs theirs {:.1} to 1.", odds_b) } else { format!("Their side outweighs yours {:.1} to 1.", 1.0 / odds_b) };
         let decision = PendingEvent {

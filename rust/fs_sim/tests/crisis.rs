@@ -79,7 +79,7 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     let pend: Vec<Value> = gs
         .pending_events
         .iter()
-        .map(|p| json!([p.id, p.event, p.title, p.text, p.options.iter().map(|o| o["label"].clone()).collect::<Vec<_>>()]))
+        .map(|p| json!([p.id, p.event, p.title, p.text, p.options.iter().map(|o| json!([o["label"], o["text"].as_str().unwrap_or(""), o["tip"].as_str().unwrap_or(""), o.get("effects").cloned().unwrap_or(json!([]))])).collect::<Vec<_>>()]))
         .collect();
     if norm(&Value::Array(pend.clone())) != norm(&w["pending"]) || gs.next_event_uid as i64 != w["uid"].as_i64().unwrap() {
         fails.push(format!("{label}: questions\n  mine {}\n  want {}", Value::Array(pend), w["pending"]));
@@ -110,18 +110,21 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
         }
     }
     let ind: Vec<(String, String, i64)> = gs.indemnities.iter().map(|i| (i.payer.clone(), i.receiver.clone(), i.months_left)).collect();
-    let want_ind: Vec<(String, String, i64)> = w["indemnities"].as_array().unwrap().iter().map(|i| (s(&i[0]).to_string(), s(&i[1]).to_string(), i[3].as_i64().unwrap())).collect();
+    let want_ind: Vec<(String, String, i64)> = w["indemnities"].as_array().unwrap().iter().map(|i| (s(&i[0]).to_string(), s(&i[1]).to_string(), i[3].as_f64().unwrap() as i64)).collect();
     if ind != want_ind || gs.restrictions.len() != w["restrictions"].as_array().unwrap().len() || gs.treaties.len() as i64 != w["treaties"].as_i64().unwrap() {
         fails.push(format!("{label}: indemnities {ind:?} vs {want_ind:?}, restrictions {} vs {}, treaties {} vs {}", gs.restrictions.len(), w["restrictions"], gs.treaties.len(), w["treaties"]));
     }
 }
 
 fn run(index: usize) {
-    let data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
+    let mut data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
     let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/crisis.json")).unwrap();
     let all: Value = serde_json::from_str(&text).unwrap();
     let run = &all[index];
     let name = s(&run["name"]);
+    for (k, v) in run["gate"].as_object().unwrap() {
+        data.crises["gate"][k] = v.clone();
+    }
     let mut gs = GameState::load_scenario(&data, name).unwrap();
     gs.pressure_ai = true;
     gs.start_scenario_wars(&data);
@@ -180,4 +183,24 @@ fn germany_in_january_1900() {
 #[test]
 fn belgium_in_january_1900() {
     run(3);
+}
+
+#[test]
+fn italy_in_july_1914_with_the_gate_loosened() {
+    run(4);
+}
+
+#[test]
+fn belgium_in_july_1914_with_the_gate_loosened() {
+    run(5);
+}
+
+#[test]
+fn france_in_january_1900_with_the_gate_loosened() {
+    run(6);
+}
+
+#[test]
+fn spain_in_january_1900_with_the_gate_loosened() {
+    run(7);
 }
