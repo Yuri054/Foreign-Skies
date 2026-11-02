@@ -347,7 +347,7 @@ impl GameState {
         self.fleets.iter().filter(|f| f.tag == tag).flat_map(|f| f.ships.iter()).map(|s| s.strength).sum()
     }
 
-    fn release_treaties(&self, giver: &str, other: &str) -> Vec<usize> {
+    pub(crate) fn release_treaties(&self, giver: &str, other: &str) -> Vec<usize> {
         let day = self.day_p();
         (0..self.treaties.len()).filter(|&i| {
             let t = &self.treaties[i];
@@ -665,11 +665,13 @@ impl GameState {
     }
 
     /// `Peace._apply_demand`: carries out one demand. `at_war` is false for a demand yielded in a crisis.
-    pub fn apply_demand(&mut self, data: &Data, taker: &str, giver: &str, d: &Demand, at_war: bool) {
+    pub fn apply_demand(&mut self, data: &Data, taker: &str, giver: &str, d: &Demand, at_war: bool) -> String {
         match d {
             Demand::Province(ids) => {
+                let mut names: Vec<String> = vec![];
                 let mut capital_lost = false;
                 for &id in ids {
+                    names.push(data.map.provinces[id].name.clone());
                     capital_lost = capital_lost || id as i64 == self.nation(giver).capital;
                     self.transfer_province(data, id, taker);
                 }
@@ -677,22 +679,27 @@ impl GameState {
                 if capital_lost {
                     self.move_capital_peace(giver);
                 }
+                names.join(", ")
             }
             Demand::Indemnity { share, months } => {
                 let monthly = share * self.nation(giver).budget.revenue / 12.0;
                 self.indemnities.push(Indemnity { payer: giver.to_string(), receiver: taker.to_string(), monthly, months_left: *months });
+                format!("an indemnity of {:.1} a month for {} months", monthly, months)
             }
             Demand::ReleaseAlly(other) => {
                 for i in self.release_treaties(giver, other) {
                     self.end_treaty_at(data, i);
                 }
+                format!("{}'s ties to {}", self.nation(giver).display_name, self.nation(other).display_name)
             }
             Demand::DisarmBorder(years) => {
                 let provinces = self.border_provinces(data, giver, taker);
                 self.restrictions.push(Restriction { nation: giver.to_string(), holder: taker.to_string(), kind: String::new(), provinces, until_day: self.day_p() + (*years as f64 * 365.0) as i64 });
+                format!("{}'s border armies withdrawn for {} years", self.nation(giver).display_name, years)
             }
             Demand::FleetLimit(years) => {
                 self.restrictions.push(Restriction { nation: giver.to_string(), holder: taker.to_string(), kind: "fleet_limit".to_string(), provinces: vec![], until_day: self.day_p() + (*years as f64 * 365.0) as i64 });
+                format!("no new warships for {} for {} years", self.nation(giver).display_name, years)
             }
         }
     }
@@ -707,7 +714,7 @@ impl GameState {
         let war_id_pair = (a.clone(), b.clone(), self.wars[war].war_group);
         self.end_war(war);
         for d in &offer.demands {
-            self.apply_demand(data, &taker, &giver, d, true);
+            let _ = self.apply_demand(data, &taker, &giver, d, true);
         }
         for id in 1..self.province_owner.len() {
             let (o, c) = (self.province_owner[id].clone(), self.province_controller[id].clone());

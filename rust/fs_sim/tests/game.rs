@@ -186,7 +186,7 @@ fn run(index: usize) {
     let name = s(&run["name"]);
     let mut gs = GameState::load_scenario(&data, name).unwrap();
     gs.pressure_ai = false;
-    gs.ai_join_answers = run["answers"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_bool().unwrap())).collect();
+    // the AI nations answer calls to arms by themselves (`AIDiplomacy.joins`)
     gs.start_scenario_wars(&data);
     if !s(&run["set_player"]).is_empty() {
         gs.player_tag = s(&run["set_player"]).to_string();

@@ -6,6 +6,7 @@
 //! ported and what is not.
 
 pub mod actions;
+pub mod ai_diplomacy;
 pub mod ai_peace;
 pub mod army_mgmt;
 pub mod conference;
@@ -13,6 +14,7 @@ pub mod budget;
 pub mod clock;
 pub mod config;
 pub mod capitulation;
+pub mod crisis;
 pub mod declare;
 pub mod diplomacy;
 pub mod economy;

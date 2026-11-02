@@ -428,7 +428,7 @@ impl GameState {
     }
 
     /// `Pressure._record`: what happened goes in the chronicle (newest first). The history log and the news are not kept.
-    fn record_event(&mut self, title: &str, text: &str) {
+    pub(crate) fn record_event(&mut self, title: &str, text: &str) {
         self.chronicle.insert(0, (self.calendar.date_string(), title.to_string(), text.to_string()));
         self.chronicle.truncate(CHRONICLE_MAX);
     }
@@ -566,8 +566,16 @@ impl GameState {
                     self.end_treaty_at(data, i);
                 }
             }
-        } else if fx.get("crisis").is_some() || fx.get("war").is_some() {
-            panic!("an event opens a crisis or a war: crises and declaring war are not ported yet");
+        } else if let Some(c) = fx.get("crisis") {
+            // [crisis id, answer, role of the nation answering]
+            let tag = Self::tag_of(roles, c[2].as_str().unwrap());
+            self.crisis_respond(data, c[0].as_u64().unwrap() as u32, &tag, c[1].as_str().unwrap());
+        } else if let Some(w) = fx.get("war").and_then(Value::as_array) {
+            let (a, b) = (Self::tag_of(roles, w[0].as_str().unwrap()), Self::tag_of(roles, w[1].as_str().unwrap()));
+            let alive = |t: &str| self.nation_index.get(t).map(|&i| !self.nations[i].provinces.is_empty()).unwrap_or(false);
+            if alive(&a) && alive(&b) && !self.at_war(&a, &b) {
+                self.start_war(data, &a, &b, w.len() > 2);
+            }
         } else {
             for key in ["treasury", "revenue", "prestige", "war_support", "points", "manpower", "mobilize"] {
                 if let Some(v) = fx.get(key).and_then(Value::as_array) {

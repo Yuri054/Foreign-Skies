@@ -319,7 +319,7 @@ impl GameState {
             if tag == victim || tag == aggressor {
                 continue;
             }
-            self.casus_belli.push(CasusBelli { holder: tag.clone(), target: aggressor.to_string(), kind: "unprovoked_aggression".to_string(), expires_day: expires, goal: Value::Null });
+            self.casus_belli.push(CasusBelli { holder: tag.clone(), target: aggressor.to_string(), kind: "unprovoked_aggression".to_string(), expires_day: expires, goal: Value::Null, refused_day: -1 });
             self.add_grievance(&tag, aggressor, data.diplomacy.grievance_on_unprovoked_war);
         }
     }
@@ -450,8 +450,11 @@ impl GameState {
     }
 
     /// The AI's answer to a join decision (`AIDiplomacy.joins`), from the answers a test provides.
-    fn ai_joins(&self, d: &JoinDecision) -> bool {
-        *self.ai_join_answers.get(&format!("{}|{}", d.tag, d.group)).unwrap_or_else(|| panic!("the AI's answer for {} joining conflict {} is needed: the AI is not ported", d.tag, d.group))
+    fn ai_joins(&self, data: &Data, d: &JoinDecision) -> bool {
+        match self.ai_join_answers.get(&format!("{}|{}", d.tag, d.group)) {
+            Some(a) => *a, // a test may supply the answer
+            None => self.ai_would_join(data, d),
+        }
     }
 
     /// `Diplomacy.offer_joins`: offers every ally and guarantor of `seeds` (members of the conflict) the choice to join. Each nation
@@ -465,7 +468,7 @@ impl GameState {
                 let Some(mut d) = self.make_decision(data, gi, &tag, &member) else { continue };
                 if tag == self.player_tag {
                     self.pending_joins.push(d);
-                } else if d.conflict || !self.ai_joins(&d) {
+                } else if d.conflict || !self.ai_joins(data, &d) {
                     self.decline_join(data, &d);
                 } else {
                     // The AI mobilizes first and joins when it is ready (see step_join_calls).

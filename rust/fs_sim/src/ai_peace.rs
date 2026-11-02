@@ -40,6 +40,11 @@ pub struct AiConfig {
     pub default_aggression: f64,
     pub default_caution: f64,
     pub variety_temperament: f64,
+    pub odds_cautious: f64,
+    pub odds_bold: f64,
+    pub unjustified_share_max: f64,
+    /// `ai.json`'s `diplomacy` as the file has it (join and war weights).
+    pub diplomacy: Value,
 }
 
 impl AiConfig {
@@ -76,6 +81,10 @@ impl AiConfig {
             default_aggression: v["temperament"]["default"]["aggression"].as_f64().unwrap_or(0.5),
             default_caution: v["temperament"]["default"]["caution"].as_f64().unwrap_or(0.5),
             variety_temperament: v["variety"]["temperament"].as_f64().unwrap_or(0.0),
+            odds_cautious: v["odds"]["cautious"].as_f64().unwrap_or(2.0),
+            odds_bold: v["odds"]["bold"].as_f64().unwrap_or(1.2),
+            unjustified_share_max: v["unjustified_share_max"].as_f64().unwrap_or(0.15),
+            diplomacy: v["diplomacy"].clone(),
         })
     }
 }
@@ -100,7 +109,7 @@ pub struct Proposal {
     pub demands: Vec<Demand>,
 }
 
-fn demand_of(v: &Value) -> Option<Demand> {
+pub(crate) fn demand_of(v: &Value) -> Option<Demand> {
     Some(match v["kind"].as_str()? {
         "province" => Demand::Province(v["ids"].as_array()?.iter().filter_map(|x| x.as_u64().map(|x| x as usize)).collect()),
         "indemnity" => Demand::Indemnity { share: v["share"].as_f64()?, months: v["months"].as_i64()? },

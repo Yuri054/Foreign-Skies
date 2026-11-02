@@ -69,7 +69,7 @@ fn run(index: usize) -> String {
     let name = s(&camp["name"]).to_string();
     let mut gs = GameState::load_scenario(&data, "july_1914").unwrap();
     gs.pressure_ai = false;
-    gs.ai_join_answers = camp["answers"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_bool().unwrap())).collect();
+    // the AI answers calls to arms itself
     gs.start_scenario_wars(&data);
     gs.player_tag = s(&camp["player"]).to_string();
     let snaps = camp["snaps"].as_array().unwrap();

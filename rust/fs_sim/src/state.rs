@@ -29,6 +29,8 @@ pub struct Data {
     pub focus: FocusConfig,
     pub pressure: PressureConfig,
     pub ai: crate::ai_peace::AiConfig,
+    /// `data/crises.json` as the file has it.
+    pub crises: serde_json::Value,
 }
 
 impl Data {
@@ -45,6 +47,7 @@ impl Data {
             focus: FocusConfig::from_json_str(&read("focus.json")?)?,
             pressure: PressureConfig::from_json_str(&read("events.json")?)?,
             ai: crate::ai_peace::AiConfig::from_json_str(&read("ai.json")?)?,
+            crises: serde_json::from_str(&read("crises.json")?).map_err(|e| format!("crises.json is invalid: {e}"))?,
         })
     }
 }
@@ -320,6 +323,8 @@ pub struct RelationProject {
 /// A casus belli earned in play (`GameState.casus_belli`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct CasusBelli {
+    /// The day a demand was refused (a casus belli from a crisis), or -1.
+    pub refused_day: i64,
     pub holder: String,
     pub target: String,
     pub kind: String,
@@ -429,6 +434,12 @@ pub struct GameState {
     /// What the nations' temperaments are (`GameState.ai_traits`), the AI's seed (0: nothing varies), and its war plans.
     pub ai_traits: HashMap<String, (f64, f64)>,
     pub ai_seed: i64,
+    pub crises: Vec<crate::crisis::Crisis>,
+    pub crisis_log: Vec<crate::crisis::CrisisEnded>,
+    pub crisis_cooldown: HashMap<String, i64>,
+    pub next_crisis_id: u32,
+    /// The scenario's own `ai_war_gate` (null: the file's).
+    pub scenario_war_gate: serde_json::Value,
     pub ai_plans: Vec<serde_json::Value>,
     pub cities: Vec<City>,
     /// What each province's people numbered when the scenario began: the cities grow and shrink with the ratio.
@@ -702,6 +713,11 @@ impl GameState {
             conference_counter: None,
             ai_traits: HashMap::new(),
             ai_seed: 0,
+            crises: vec![],
+            crisis_log: vec![],
+            crisis_cooldown: HashMap::new(),
+            next_crisis_id: 1,
+            scenario_war_gate: scenario.get("ai_war_gate").cloned().unwrap_or(Value::Null),
             ai_plans: vec![],
             next_war_id: 1,
             cities: vec![],
@@ -1582,6 +1598,7 @@ impl GameState {
                     kind: "national_claim".to_string(),
                     expires_day: self.calendar.days_elapsed as i64 + (data.diplomacy.cb_years * 365.0) as i64,
                     goal: Value::Null,
+                    refused_day: -1,
                 });
             }
         }

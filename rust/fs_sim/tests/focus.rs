@@ -111,6 +111,7 @@ fn compare_snapshot(label: &str, gs: &GameState, snap: &Value, fails: &mut Vec<S
             kind: c[2].as_str().unwrap().to_string(),
             expires_day: c[3].as_i64().unwrap(),
             goal: Value::Null,
+            refused_day: -1,
         })
         .collect();
     if gs.casus_belli != claims {

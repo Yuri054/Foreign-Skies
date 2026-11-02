@@ -102,7 +102,7 @@ fn run(index: usize) -> (String, usize) {
     let camp = &all[index];
     let name = camp["name"].as_str().unwrap().to_string();
     let mut gs = GameState::load_scenario(&data, "july_1914").unwrap();
-    gs.ai_join_answers = camp["answers"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_bool().unwrap())).collect::<HashMap<_, _>>();
+    if std::env::var("SUPPLY_JOINS").is_ok() { gs.ai_join_answers = camp["answers"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_bool().unwrap())).collect::<HashMap<_, _>>(); }
     if camp["real"].as_bool().unwrap_or(false) {
         gs.start_scenario_wars(&data);
         assert_eq!(gs.player_tag, camp["player"].as_str().unwrap());
@@ -132,7 +132,7 @@ fn run(index: usize) -> (String, usize) {
             }
             "cb" => {
                 let goal = act[5].clone();
-                gs.casus_belli.push(fs_sim::state::CasusBelli { holder: act[1].as_str().unwrap().to_string(), target: act[2].as_str().unwrap().to_string(), kind: act[3].as_str().unwrap().to_string(), expires_day: act[4].as_i64().unwrap(), goal });
+                gs.casus_belli.push(fs_sim::state::CasusBelli { holder: act[1].as_str().unwrap().to_string(), target: act[2].as_str().unwrap().to_string(), kind: act[3].as_str().unwrap().to_string(), expires_day: act[4].as_i64().unwrap(), goal, refused_day: -1 });
             }
             "violate" => gs.violate_border(&data, act[1].as_str().unwrap(), act[2].as_str().unwrap()),
             "answer" => {
