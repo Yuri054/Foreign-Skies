@@ -5,7 +5,7 @@
 use crate::budget::{self, Budget};
 use crate::clock::Calendar;
 use crate::diplomacy::is_equal_approx;
-use crate::config::{DiplomacyConfig, EconomyConfig, Effects, FocusConfig, FocusEffects, MilitaryConfig, NavyConfig, WarSupportConfig};
+use crate::config::{PressureConfig, DiplomacyConfig, EconomyConfig, Effects, FocusConfig, FocusEffects, MilitaryConfig, NavyConfig, WarSupportConfig};
 use crate::economy::{self, EconNation, Job};
 use crate::gd::{clampf, maxf};
 use crate::map::MapData;
@@ -27,6 +27,7 @@ pub struct Data {
     pub war_support: WarSupportConfig,
     pub diplomacy: DiplomacyConfig,
     pub focus: FocusConfig,
+    pub pressure: PressureConfig,
 }
 
 impl Data {
@@ -41,6 +42,7 @@ impl Data {
             war_support: WarSupportConfig::from_json_str(&read("diplomacy.json")?)?,
             diplomacy: DiplomacyConfig::from_json_str(&read("diplomacy.json")?)?,
             focus: FocusConfig::from_json_str(&read("focus.json")?)?,
+            pressure: PressureConfig::from_json_str(&read("events.json")?)?,
         })
     }
 }
@@ -373,6 +375,43 @@ pub struct GameState {
     pub gift_memory: HashMap<String, f64>,
     /// Set when something changed the economy in the middle of the day's step; the step recomputes once at its end.
     pub economy_dirty: bool,
+    /// Europe's tension, 0 to 100, the part of it that comes from events, the great powers' men under arms when it began, the
+    /// aggression it adds to the AI, and whether it steers the AI (`GameState.tension` and friends; see `Pressure`).
+    pub tension: f64,
+    pub tension_impulse: f64,
+    pub tension_arms_base: f64,
+    pub tension_bonus: f64,
+    pub pressure_ai: bool,
+    /// The month the scenario began (year * 12 + month).
+    pub pressure_start: i64,
+    /// The events that have come up: id -> month index.
+    pub events_fired: HashMap<String, i64>,
+    /// Nation tag -> the day before which it may not take another public stand.
+    pub appeal_ready: HashMap<String, i64>,
+    /// Events waiting for the player's answer, oldest first.
+    pub pending_events: Vec<PendingEvent>,
+    pub next_event_uid: u32,
+    /// What has happened lately, newest first: (date, title, text).
+    pub chronicle: Vec<(String, String, String)>,
+    pub tension_history: Vec<f64>,
+    /// Claims made in play (`GameState.claims`): ground lost at a peace. (Peace is not ported, so none are made.)
+    pub claims: Vec<Value>,
+}
+
+/// An event waiting for the player (`GameState.pending_events`).
+#[derive(Debug, Clone)]
+pub struct PendingEvent {
+    pub id: u32,
+    pub event: String,
+    pub title: String,
+    pub text: String,
+    /// Role -> nation tag, in the order the event names them.
+    pub roles: Vec<(String, String)>,
+    pub options: Vec<Value>,
+    /// Effects held until the player answers (a war another nation chose), with the roles they were made under.
+    pub deferred: Vec<(Value, Vec<(String, String)>)>,
+    pub date: String,
+    pub as_b: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -474,6 +513,19 @@ impl GameState {
             relation_projects: vec![],
             gift_memory: HashMap::new(),
             economy_dirty: false,
+            tension: 0.0,
+            tension_impulse: 0.0,
+            tension_arms_base: 1.0,
+            tension_bonus: 0.0,
+            pressure_ai: false,
+            pressure_start: 0,
+            events_fired: HashMap::new(),
+            appeal_ready: HashMap::new(),
+            pending_events: vec![],
+            next_event_uid: 1,
+            chronicle: vec![],
+            tension_history: vec![],
+            claims: vec![],
         };
         for row in Table::read(&dir.join("resources.tsv"))?.rows() {
             let id = row.int("id") as usize;
@@ -589,6 +641,7 @@ impl GameState {
         gs.absorb_works(data);
         gs.recompute(data);
         gs.load_diplomacy(data, &scenario)?;
+        gs.load_pressure(data, &scenario);
         Ok(gs)
     }
 

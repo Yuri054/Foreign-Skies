@@ -809,3 +809,66 @@ impl FocusConfig {
         self.tree_of(tag).into_iter().find(|f| f.id == id)
     }
 }
+
+
+/// `data/events.json`: Europe's tension and the historical events.
+#[derive(Debug, Clone)]
+pub struct PressureConfig {
+    pub base: f64,
+    pub arms_weight: f64,
+    pub arms_max: f64,
+    pub arms_drift: f64,
+    pub mobilization_from: f64,
+    pub mobilization_weight: f64,
+    pub mobilization_max: f64,
+    pub war_each: f64,
+    pub war_max: f64,
+    pub rivalry_weight: f64,
+    pub impulse_decay: f64,
+    pub impulse_max: f64,
+    pub aggression_from: f64,
+    pub aggression_gain: f64,
+    pub harden_above: f64,
+    pub harden_per_month: f64,
+    pub bloc_weight: f64,
+    pub ai_war_gate: f64,
+    pub appeals: Value,
+    pub recent_months: i64,
+    pub empires: Vec<String>,
+    pub empire_support: f64,
+    /// The events, as the file gives them (they are read as data: dates, actors, conditions, options and their effects).
+    pub events: Vec<Value>,
+}
+
+impl PressureConfig {
+    pub fn from_json_str(text: &str) -> Result<PressureConfig, String> {
+        let v: Value = serde_json::from_str(text).map_err(|e| format!("events.json is invalid: {e}"))?;
+        let t = |k: &str| num(&v, &["tension", k]);
+        let picks = &v["tension"]["picks"];
+        Ok(PressureConfig {
+            base: t("base")?,
+            arms_weight: t("arms_weight")?,
+            arms_max: t("arms_max")?,
+            arms_drift: v["tension"].get("arms_drift").and_then(Value::as_f64).unwrap_or(0.0),
+            mobilization_from: t("mobilization_from")?,
+            mobilization_weight: t("mobilization_weight")?,
+            mobilization_max: t("mobilization_max")?,
+            war_each: t("war_each")?,
+            war_max: t("war_max")?,
+            rivalry_weight: t("rivalry_weight")?,
+            impulse_decay: t("impulse_decay")?,
+            impulse_max: t("impulse_max")?,
+            aggression_from: t("aggression_from")?,
+            aggression_gain: t("aggression_gain")?,
+            harden_above: t("harden_above")?,
+            harden_per_month: t("harden_per_month")?,
+            bloc_weight: t("bloc_weight")?,
+            ai_war_gate: t("ai_war_gate")?,
+            appeals: v["tension"]["appeals"].clone(),
+            recent_months: picks.get("recent_months").and_then(Value::as_i64).unwrap_or(24),
+            empires: picks.get("empires").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default(),
+            empire_support: picks.get("empire_support").and_then(Value::as_f64).unwrap_or(40.0),
+            events: v.get("events").and_then(Value::as_array).cloned().ok_or("events.json: events")?,
+        })
+    }
+}

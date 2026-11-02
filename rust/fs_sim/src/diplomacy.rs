@@ -176,6 +176,47 @@ impl GameState {
         Ok(())
     }
 
+    /// `Diplomacy.add_treaty`: adds a treaty and moves the pair's baseline by its relation bonus. Returns false if one of
+    /// this kind already stands between the pair. (The note it makes in the history is not kept.)
+    pub fn add_treaty(&mut self, data: &Data, kind: &str, a: &str, b: &str, end_day: i64, terms: Value, note: &str) -> bool {
+        if a == b || self.has_treaty(data, kind, a, b) {
+            return false;
+        }
+        let t = Treaty { id: self.next_treaty_id, kind: kind.to_string(), a: a.to_string(), b: b.to_string(), start_day: self.day(), end_day, terms, note: note.to_string() };
+        self.next_treaty_id += 1;
+        self.treaties.push(t);
+        let bonus = data.diplomacy.treaty_kind(kind).relation_bonus;
+        self.shift_baseline(data, a, b, bonus);
+        true
+    }
+
+    /// `Diplomacy.end_treaty`: ends a treaty now (it stays in the list as a record).
+    pub fn end_treaty_at(&mut self, data: &Data, index: usize) {
+        let day = self.day();
+        if !self.treaties[index].active_on(day) {
+            return;
+        }
+        self.treaties[index].end_day = day;
+        let (kind, a, b) = (self.treaties[index].kind.clone(), self.treaties[index].a.clone(), self.treaties[index].b.clone());
+        let bonus = data.diplomacy.treaty_kind(&kind).relation_bonus;
+        self.shift_baseline(data, &a, &b, -bonus);
+    }
+
+    /// `Diplomacy.can_afford` and `spend`: a nation's diplomacy points against a price.
+    pub fn can_afford(&self, tag: &str, cost: f64) -> bool {
+        self.nation(tag).diplomacy_points >= cost
+    }
+
+    pub fn spend_points(&mut self, data: &Data, tag: &str, amount: f64) {
+        if amount > 0.0 {
+            let i = self.nation_index[tag];
+            let v = clampf(self.nations[i].diplomacy_points - amount, 0.0, data.diplomacy.points_max);
+            if !is_equal_approx(v, self.nations[i].diplomacy_points) {
+                self.nations[i].diplomacy_points = v;
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- grievance
 
     /// `Diplomacy.add_grievance`: `holder` resents `target` more.
@@ -361,6 +402,11 @@ impl GameState {
         let output = if rank > 0 && (rank as i64) <= c.income_top_output_count { c.income_top_output_bonus } else { 0.0 };
         let focus = n.focus_diplomacy;
         maxf(base + prestige + output + focus, c.income_min)
+    }
+
+    /// `Diplomacy._shift_baseline`, for the other modules.
+    pub fn shift_baseline_pub(&mut self, data: &Data, a: &str, b: &str, delta: f64) {
+        self.shift_baseline(data, a, b, delta);
     }
 
     fn shift_baseline(&mut self, data: &Data, a: &str, b: &str, delta: f64) {

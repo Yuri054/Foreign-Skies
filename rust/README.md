@@ -40,6 +40,7 @@ godot --headless --path . -s res://tools/dump_sim_golden.gd -- rust/fs_sim/tests
 | `diplomacy.gd` (part) | `diplomacy.rs`, `state.rs` | `load_scenario` (the treaty web, every pair's opinion and baseline, rivalries), relations, diplomacy points and prestige, `step_day` (mobilization, alarms, call-ups, `mobilization_target`), `step_month` (points income and rank, projects, prestige, grievance, gifts, the drift of opinion), and neighbours (`MapData.neighbors`). |
 | `war_support.gd` (part) | `diplomacy.rs` | `monthly_changes` and `step_month`. (A forced white peace needs the peace rules and stops the port with a message.) |
 | `military.gd` (part), `capitulation.gd` (part), `munitions.gd` (part), `war.gd`, `cities.gd` | `war.rs`, `state.rs`, `map.rs` | War on the map: `can_enter`, `find_path` (the game's own heap, so ties come out the same), `MoveArmy`, `move_days`, the daily march, supply (`supply_cost`, `home_connected`, `sea_route_home`, the cities' reach), battles (`_fight`: shells burnt, power, works, casualties, morale, routs, retreats, pursuit, the war's tallies, war score and war support from a battle), occupation, supply attrition, reinforcement, `collapse_nations`, and the capitulation check. |
+| `pressure.gd` | `pressure.rs`, `config.rs` | Europe's tension (arms race, mobilization, wars, rivalry, blocs, events), the monthly step (events fire by date and condition, roles by what a nation is now, the player's waiting decisions and their answers, every kind of effect, public appeals, rivalries hardening). A war or crisis event stops the port with a message. |
 | `population.gd` | `population.rs`, `state.rs` | The monthly step: growth, famine, occupation and war dead. |
 | `economy.gd` (budgets) | `budget.rs`, `state.rs` | `nation_budget` (revenue, costs, food, raw materials, industry, manpower), `materials_of`, soldier wages, `construction_points`, `_budgets`, `calibrate`. |
 
@@ -77,6 +78,13 @@ when each battle last ended; every thirtieth day also what each side could suppl
 matches all of it: 3 campaigns, 333 days of war, 70 provinces changing hands, routs, cut-off armies and attrition. (The
 southern campaign ends on day 33 because the game has Bulgaria capitulate on day 34.)
 
+A seventh golden file, `pressure.json` (made by `tools/dump_pressure_golden.gd`), is the real `Pressure` month after month for
+years: five runs (July 1914 as France and as Serbia for four years; January 1900 as Germany, Serbia and Belgium for ten),
+with 50 or more events fired in each long one, the player's questions answered in a fixed way, public stands taken, and what
+tension, opinions, prestige, money, war support and the chronicle did. Direct cases cover what the runs do not reach: a strained
+world (an arms race, mobilization and two wars moving tension), 162 role picks in three states of the world, 21 effects at the
+extremes, the events that choose by tension, and every event with a condition in 18 different worlds (270 cases).
+
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations
 (development, people, province lists, summed output) and the raw-materials constant, for July 1914 and January 1900,
@@ -103,5 +111,5 @@ match.
 
 1. Port declaring war (`Diplomacy.declare_war`, `start_war`, the join decisions of a war, the casus belli) so a scenario's wars
    start from the loader, and the peace rules (`peace.gd`) that follow a capitulation, so a war can end.
-2. Then `pressure.gd` and `crisis.gd` (Europe's tension, the events and the crises), the navy, and fronts and offensives.
+2. Then `crisis.gd` (the crises that open between nations), the navy, and fronts and offensives.
 3. Wire the stages into one daily and monthly step like `game_state.gd`'s, and compare whole days of the real game.
