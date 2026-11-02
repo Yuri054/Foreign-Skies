@@ -1015,6 +1015,11 @@ pub struct FocusDef {
     pub requires: Vec<String>,
     pub repeatable: bool,
     pub max: i64,
+    /// How much the AI likes the focus, and the aggression it asks of a nation (`ai`, `min_aggression`).
+    pub ai: f64,
+    pub min_aggression: Option<f64>,
+    /// Whether the effects name a `claim` (even an empty one).
+    pub has_claim: bool,
     pub effects: FocusEffects,
 }
 
@@ -1048,6 +1053,9 @@ fn focus_def(v: &Value) -> Result<FocusDef, String> {
         requires: v.get("requires").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default(),
         repeatable: v.get("repeatable").and_then(Value::as_bool).unwrap_or(false),
         max: v.get("max").and_then(Value::as_f64).unwrap_or(1.0) as i64,
+        ai: v.get("ai").and_then(Value::as_f64).unwrap_or(0.0),
+        min_aggression: v.get("min_aggression").and_then(Value::as_f64),
+        has_claim: e.get("claim").is_some(),
         effects: FocusEffects {
             gdp: f("gdp"),
             industry: f("industry"),

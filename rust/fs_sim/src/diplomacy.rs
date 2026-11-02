@@ -268,7 +268,7 @@ impl GameState {
         let changed = self.step_mobilization(data);
         self.step_join_calls(data);
         if changed {
-            self.recompute(data);
+            self.economy_request(data);
         }
         changed
     }

@@ -543,7 +543,7 @@ impl GameState {
         self.capitulation_step_day(data);
         self.refresh_men(data);
         if captured {
-            self.recompute(data);
+            self.economy_request(data);
         }
         captured
     }

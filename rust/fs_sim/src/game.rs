@@ -9,12 +9,14 @@ impl GameState {
     pub fn advance_day(&mut self, data: &Data) {
         let tick = self.calendar.advance_day();
         // the stages of the day
+        self.in_day_step = true;
         self.step_day(data);
         self.focus_step_day(data);
         self.navy_step_day(data);
         self.military_step_day(data);
         self.diplomacy_step_day(data);
         self.crisis_step_day(data);
+        self.ai_step_day(data);
         self.finish_economy_stage_full(data);
         if tick.new_month {
             self.step_month(data);
@@ -26,6 +28,7 @@ impl GameState {
 
     /// The day's last stage: the economy worked out again if something changed it, or just the budgets if only the blockade moved.
     fn finish_economy_stage_full(&mut self, data: &Data) {
+        self.in_day_step = false;
         if self.economy_dirty {
             self.economy_dirty = false;
             self.budget_dirty = false;

@@ -138,3 +138,24 @@ pub fn sort_custom<T: Clone>(v: &mut [T], less: impl Fn(&T, &T) -> bool) {
         }
     }
 }
+
+/// `snappedf`: `x` rounded to a multiple of `step`.
+pub fn snappedf(x: f64, step: f64) -> f64 {
+    if step != 0.0 {
+        (x / step + 0.5).floor() * step
+    } else {
+        x
+    }
+}
+
+/// `is_equal_approx` for floats.
+pub fn is_equal_approx(a: f64, b: f64) -> bool {
+    if a == b {
+        return true;
+    }
+    let mut tolerance = 0.00001 * a.abs();
+    if tolerance < 0.00001 {
+        tolerance = 0.00001;
+    }
+    (a - b).abs() < tolerance
+}

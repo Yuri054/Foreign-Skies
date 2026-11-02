@@ -45,6 +45,8 @@ pub struct AiConfig {
     pub unjustified_share_max: f64,
     /// `ai.json`'s `diplomacy` as the file has it (join and war weights).
     pub diplomacy: Value,
+    /// `ai.json` whole, for the parts of the AI that read it as the file has it.
+    pub raw: Value,
 }
 
 impl AiConfig {
@@ -83,6 +85,7 @@ impl AiConfig {
             variety_temperament: v["variety"]["temperament"].as_f64().unwrap_or(0.0),
             odds_cautious: v["odds"]["cautious"].as_f64().unwrap_or(2.0),
             odds_bold: v["odds"]["bold"].as_f64().unwrap_or(1.2),
+            raw: v.clone(),
             unjustified_share_max: v["unjustified_share_max"].as_f64().unwrap_or(0.15),
             diplomacy: v["diplomacy"].clone(),
         })

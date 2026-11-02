@@ -434,6 +434,10 @@ pub struct GameState {
     /// What the nations' temperaments are (`GameState.ai_traits`), the AI's seed (0: nothing varies), and its war plans.
     pub ai_traits: HashMap<String, (f64, f64)>,
     pub ai_seed: i64,
+    /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
+    pub ai_budget_stamp: HashMap<String, i64>,
+    /// Which parts of the AI's turn run in `advance_day` (the rest of it is not ported yet).
+    pub ai_turn: crate::ai_turn::AiTurn,
     pub crises: Vec<crate::crisis::Crisis>,
     pub crisis_log: Vec<crate::crisis::CrisisEnded>,
     pub crisis_cooldown: HashMap<String, i64>,
@@ -492,6 +496,8 @@ pub struct GameState {
     pub gift_memory: HashMap<String, f64>,
     /// Set when something changed the economy in the middle of the day's step; the step recomputes once at its end.
     pub economy_dirty: bool,
+    /// True while the daily step runs: what changes the economy then only marks it dirty (`Economy.request`).
+    pub in_day_step: bool,
     /// Europe's tension, 0 to 100, the part of it that comes from events, the great powers' men under arms when it began, the
     /// aggression it adds to the AI, and whether it steers the AI (`GameState.tension` and friends; see `Pressure`).
     pub tension: f64,
@@ -713,6 +719,8 @@ impl GameState {
             conference_counter: None,
             ai_traits: HashMap::new(),
             ai_seed: 0,
+            ai_budget_stamp: HashMap::new(),
+            ai_turn: Default::default(),
             crises: vec![],
             crisis_log: vec![],
             crisis_cooldown: HashMap::new(),
@@ -755,6 +763,7 @@ impl GameState {
             relation_projects: vec![],
             gift_memory: HashMap::new(),
             economy_dirty: false,
+            in_day_step: false,
             tension: 0.0,
             tension_impulse: 0.0,
             tension_arms_base: 1.0,
@@ -1621,6 +1630,15 @@ impl GameState {
         }
         if lasting {
             self.economy_dirty = true;
+        }
+    }
+
+    /// `Economy.request`: the economy has changed: recompute now, or, in the middle of the daily step, once at its end.
+    pub fn economy_request(&mut self, data: &Data) {
+        if self.in_day_step {
+            self.economy_dirty = true;
+        } else {
+            self.recompute(data);
         }
     }
 

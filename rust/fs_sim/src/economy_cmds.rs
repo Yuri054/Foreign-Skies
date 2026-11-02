@@ -142,7 +142,7 @@ impl GameState {
                 let cap = self.standing_cap(data, ni).max(0);
                 self.nations[ni].peacetime_army = (value as i64).clamp(0, cap);
                 // The reserve follows at once: Economy.request works the economy out again (outside the day's step).
-                self.recompute(data);
+                self.economy_request(data);
             }
             _ => return false,
         }
