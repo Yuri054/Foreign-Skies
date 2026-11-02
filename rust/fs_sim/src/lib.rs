@@ -17,6 +17,7 @@ pub mod economy;
 pub mod economy_cmds;
 pub mod front;
 pub mod game;
+pub mod group;
 pub mod gd;
 pub mod map;
 pub mod military;

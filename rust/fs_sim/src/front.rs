@@ -689,6 +689,8 @@ impl GameState {
         let d = self.new_army(&tag, &name, province);
         self.armies[d].parent_id = rid;
         self.armies[d].general_skill = self.armies[root].general_skill;
+        self.armies[d].group_id = self.armies[root].group_id;
+        self.armies[d].marshal = self.armies[root].marshal;
         let at = self.armies[from].units.len() - count;
         let moved: Vec<_> = self.armies[from].units.drain(at..).collect();
         self.armies[d].units = moved;
@@ -804,6 +806,8 @@ impl GameState {
                 continue;
             };
             self.armies[ai].general_skill = self.armies[root].general_skill;
+            self.armies[ai].group_id = self.armies[root].group_id;
+            self.armies[ai].marshal = self.armies[root].marshal;
             let a = &self.armies[ai];
             if !a.path.is_empty() || a.fighting || a.embarked() || a.pin != 0 {
                 continue;

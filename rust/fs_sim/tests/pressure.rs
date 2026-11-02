@@ -219,6 +219,8 @@ fn tension_under_strain() {
         pin: 0,
         prepared: false,
         planning: 0.0,
+        group_id: 0,
+        marshal: 1.0,
         training: false,
     });
     for p in w["wars"].as_array().unwrap() {

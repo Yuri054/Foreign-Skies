@@ -66,6 +66,10 @@ pub struct Army {
     pub prepared: bool,
     /// Planning for its army's attack, 0 to 1 (`Offensives`).
     pub planning: f64,
+    /// The army group the army belongs to (0 = none), and what its power is multiplied by for the marshal over the group
+    /// (`Military.marshal_mult`, kept up to date whenever groups or marshals change).
+    pub group_id: u32,
+    pub marshal: f64,
     /// On exercise (`Army.training`): standing still, its divisions gain experience and its men cost more upkeep.
     pub training: bool,
 }
@@ -129,7 +133,7 @@ impl Army {
         }
         let landing = if self.landing_days > 0 { cfg.landing_power_mult } else { 1.0 };
         let planned = if self.attacking { 1.0 + cfg.offensive_planning_max * self.planning } else { 1.0 };
-        total * self.general_skill * 1.0 * landing * planned
+        total * self.general_skill * self.marshal * landing * planned
     }
 }
 

@@ -367,6 +367,10 @@ pub struct GameState {
     pub next_army_id: u32,
     pub fronts: Vec<crate::front::Front>,
     pub next_front_id: u32,
+    pub army_groups: Vec<crate::group::ArmyGroup>,
+    pub next_group_id: u32,
+    pub attack_lines: Vec<crate::group::AttackLine>,
+    pub next_attack_line_id: u32,
     pub offensives: Vec<crate::offensive::Offensive>,
     pub next_offensive_id: u32,
     pub generals: Vec<crate::military::General>,
@@ -648,6 +652,10 @@ impl GameState {
             next_army_id: 1,
             fronts: vec![],
             next_front_id: 1,
+            army_groups: vec![],
+            next_group_id: 1,
+            attack_lines: vec![],
+            next_attack_line_id: 1,
             offensives: vec![],
             next_offensive_id: 1,
             generals: vec![],
@@ -859,6 +867,10 @@ impl GameState {
         self.next_army_id = 1;
         self.generals.clear();
         self.next_general_id = 1;
+        self.army_groups.clear();
+        self.next_group_id = 1;
+        self.attack_lines.clear();
+        self.next_attack_line_id = 1;
         let names: Vec<String> = data.map.provinces.iter().map(|p| p.name.clone()).collect();
         for ni in 0..self.nations.len() {
             let (tag, peacetime) = (self.nations[ni].tag.clone(), self.nations[ni].peacetime_army);
@@ -905,6 +917,8 @@ impl GameState {
                     pin: 0,
                     prepared: false,
                     planning: 0.0,
+                    group_id: 0,
+                    marshal: 1.0,
                     training: false,
                 });
             }
