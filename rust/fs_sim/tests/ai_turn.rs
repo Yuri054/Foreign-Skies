@@ -15,6 +15,15 @@ fn s(v: &Value) -> &str {
     v.as_str().unwrap()
 }
 
+fn norm(v: &Value) -> Value {
+    match v {
+        Value::Number(n) => serde_json::json!(n.as_f64().unwrap()),
+        Value::Array(a) => Value::Array(a.iter().map(norm).collect()),
+        Value::Object(o) => Value::Object(o.iter().map(|(k, v)| (k.clone(), norm(v))).collect()),
+        x => x.clone(),
+    }
+}
+
 fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     if gs.calendar.date_string() != s(&w["date"]) {
         fails.push(format!("{label}: date {} vs {}", gs.calendar.date_string(), w["date"]));
@@ -55,20 +64,58 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     if owners != want {
         fails.push(format!("{label}: owners differ"));
     }
+    let armies: Vec<Value> = gs.armies.iter().map(|a| serde_json::json!([a.id, a.tag, a.province, a.units.len()])).collect();
+    let want_armies: Vec<Value> = w["armies"].as_array().unwrap().iter().map(|a| serde_json::json!([a[0], a[1], a[2], a[4]])).collect();
+    if armies != want_armies {
+        fails.push(format!("{label}: armies differ ({} vs {})", armies.len(), want_armies.len()));
+    }
+    let rec: Vec<Value> = gs.nations.iter().map(|n| Value::Array(n.recruiting.iter().map(|j| serde_json::json!([j.unit_type, j.province, j.days_left])).collect())).collect();
+    if norm(&Value::Array(rec)) != norm(&w["recruiting"]) {
+        fails.push(format!("{label}: units in training {} vs {}", serde_json::Value::Array(gs.nations.iter().map(|n| Value::Array(n.recruiting.iter().map(|j| serde_json::json!([j.unit_type, j.province, j.days_left])).collect())).collect()), w["recruiting"]));
+    }
+    let men: Vec<Value> = gs.nations.iter().map(|n| serde_json::json!([n.manpower, n.men_in_units])).collect();
+    if norm(&Value::Array(men)) != norm(&w["manpower"]) {
+        fails.push(format!("{label}: manpower, men under arms differ"));
+    }
+    let wars: Vec<Value> = gs.wars.iter().map(|x| serde_json::json!([x.id, x.a, x.b])).collect();
+    if Value::Array(wars) != w["wars"] {
+        fails.push(format!("{label}: wars differ"));
+    }
+    let mut amb: Vec<(String, String, i64)> = gs.ai_ambition.iter().map(|(k, v)| (k.clone(), v.0.clone(), v.1)).collect();
+    amb.sort();
+    let mut want_amb: Vec<(String, String, i64)> = w["ambition"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), s(&v["target"]).to_string(), v["since"].as_i64().unwrap())).collect();
+    want_amb.sort();
+    let mut wait: Vec<(String, i64)> = gs.ai_ambition_wait.iter().map(|(k, v)| (k.clone(), *v)).collect();
+    wait.sort();
+    let mut want_wait: Vec<(String, i64)> = w["ambition_wait"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_i64().unwrap())).collect();
+    want_wait.sort();
+    if amb != want_amb || wait != want_wait {
+        fails.push(format!("{label}: ambitions {amb:?} {wait:?} vs {want_amb:?} {want_wait:?}"));
+    }
+    let want_plans: Value = serde_json::from_str(s(&w["plans"])).unwrap();
+    if norm(&Value::Array(gs.ai_plans.clone())) != norm(&want_plans) {
+        fails.push(format!("{label}: plans {} vs {}", Value::Array(gs.ai_plans.clone()), want_plans));
+    }
     if !close(gs.tension, bits(&w["tension"])) {
         fails.push(format!("{label}: tension {:e} vs {:e}", gs.tension, bits(&w["tension"])));
     }
 }
 
 fn run(index: usize) {
-    let data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
+    let mut data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
     let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/ai_turn.json")).unwrap();
     let all: Value = serde_json::from_str(&text).unwrap();
     let run = &all[index];
     let name = s(&run["name"]);
+    for (section, keys) in run["ai_cfg"].as_object().unwrap() {
+        for (k, v) in keys.as_object().unwrap() {
+            data.ai.raw[section][k] = v.clone();
+        }
+    }
     let mut gs = GameState::load_scenario(&data, name).unwrap();
-    gs.pressure_ai = false;
-    gs.ai_turn = AiTurn { budget: true, focus: true };
+    gs.pressure_ai = run["pressure"].as_bool().unwrap();
+    let on = |p: &str| run["parts"].as_array().unwrap().iter().any(|x| x == p);
+    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition") };
     gs.start_scenario_wars(&data);
     gs.player_tag = s(&run["player"]).to_string();
     let purse: Vec<f64> = run["purse"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
@@ -142,4 +189,49 @@ fn july_1914_at_war_with_purses_thrown_about() {
 #[test]
 fn united_states_for_fifteen_hundred_days() {
     run(7);
+}
+
+#[test]
+fn portugal_with_all_of_it_in_july_1914() {
+    run(8);
+}
+
+#[test]
+fn britain_with_purses_and_all_of_it() {
+    run(9);
+}
+
+#[test]
+fn united_states_with_all_of_it_in_1900() {
+    run(10);
+}
+
+#[test]
+fn britain_in_1900_with_the_world_in_tension() {
+    run(11);
+}
+
+#[test]
+fn serbia_in_july_1914_with_the_world_in_tension() {
+    run(12);
+}
+
+#[test]
+fn britain_in_july_1914_with_ambitions_loosened() {
+    run(13);
+}
+
+#[test]
+fn united_states_in_1900_with_ambitions_loosened() {
+    run(14);
+}
+
+#[test]
+fn serbia_with_ambitions_loosened_and_the_world_in_tension() {
+    run(15);
+}
+
+#[test]
+fn britain_in_1900_with_ambitions_loosened_and_the_world_in_tension() {
+    run(16);
 }

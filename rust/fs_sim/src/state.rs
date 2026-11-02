@@ -436,6 +436,9 @@ pub struct GameState {
     pub ai_seed: i64,
     /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
     pub ai_budget_stamp: HashMap<String, i64>,
+    /// The target each AI nation has set its sights on and the day it did, and the day before which it sets none (`ai_ambition`).
+    pub ai_ambition: HashMap<String, (String, i64)>,
+    pub ai_ambition_wait: HashMap<String, i64>,
     /// Which parts of the AI's turn run in `advance_day` (the rest of it is not ported yet).
     pub ai_turn: crate::ai_turn::AiTurn,
     pub crises: Vec<crate::crisis::Crisis>,
@@ -720,6 +723,8 @@ impl GameState {
             ai_traits: HashMap::new(),
             ai_seed: 0,
             ai_budget_stamp: HashMap::new(),
+            ai_ambition: HashMap::new(),
+            ai_ambition_wait: HashMap::new(),
             ai_turn: Default::default(),
             crises: vec![],
             crisis_log: vec![],

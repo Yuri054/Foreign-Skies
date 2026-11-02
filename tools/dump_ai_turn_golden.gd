@@ -17,6 +17,9 @@ var Cri: GDScript
 var AIc: GDScript
 var AIB: GDScript
 var AIF: GDScript
+var AIFo: GDScript
+var AIAm: GDScript
+var parts: Array = []
 
 
 func B(x: float) -> String:
@@ -37,6 +40,8 @@ func _initialize() -> void:
 	AIc = load("res://scripts/ai/ai.gd")
 	AIB = load("res://scripts/ai/ai_budget.gd")
 	AIF = load("res://scripts/ai/ai_focus.gd")
+	AIFo = load("res://scripts/ai/ai_forces.gd")
+	AIAm = load("res://scripts/ai/ai_ambition.gd")
 	var Design: GDScript = load("res://scripts/sim/designate_front.gd")
 	clock.day_ticked.disconnect(gs._on_day_ticked)
 	clock.day_ticked.connect(_day)
@@ -51,13 +56,32 @@ func _initialize() -> void:
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 400, "every": 5, "player": "POR", "wars": [["GER", "FRA"], ["ITA", "AUH"], ["RUS", "OTT"]], "purse": [0.2, 30.0, -2.0, 5.0, 100.0]},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1500, "every": 10, "player": "USA", "wars": [], "purse": [1.0]},
 	]
+	var ALL := ["forces", "budget", "focus", "ambition"]
+	var LAX := {"ambition": {"threshold": 0.3, "start_delay_days": 0, "review_days": 30, "give_up_days": 150, "cooldown_days": 45, "odds_margin": 0.8, "min_aggression": 0.3}, "forces": {"demob_after_days": 20}}
+	runs.append_array([
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 500, "every": 5, "player": "POR", "wars": [["GER", "FRA"], ["ITA", "AUH"], ["RUS", "OTT"]], "parts": ALL},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 800, "every": 10, "player": "GBR", "wars": [["AUH", "SRB"], ["GER", "RUS"]], "parts": ALL, "purse": [3.0, 0.5, 10.0, 1.0]},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 900, "every": 10, "player": "USA", "wars": [["RUS", "OTT"], ["FRA", "GER"]], "parts": ALL},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1500, "every": 10, "player": "GBR", "wars": [], "parts": ALL, "pressure": true},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 900, "every": 10, "player": "SRB", "wars": [], "parts": ALL, "pressure": true},
+		# the AI's ambition and demobilizing loosened, so that they are tried (the same numbers are set by the Rust test)
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 800, "every": 10, "player": "GBR", "wars": [["GER", "FRA"], ["ITA", "AUH"]], "parts": ALL, "ai_cfg": LAX},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1000, "every": 10, "player": "USA", "wars": [["RUS", "OTT"], ["FRA", "GER"]], "parts": ALL, "ai_cfg": LAX},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "SRB", "wars": [], "parts": ALL, "ai_cfg": LAX, "pressure": true},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1200, "every": 10, "player": "GBR", "wars": [], "parts": ALL, "ai_cfg": LAX, "pressure": true, "purse": [2.0, 0.5, 20.0]},
+	])
 	var result := []
 	for run in runs:
 		gs.player_tag = ""
 		gs.load_scenario(run.dir)
 		gs.ai_enabled = false
-		gs.pressure_ai = false
+		gs.pressure_ai = run.get("pressure", false)
 		gs.set_player(run.player)
+		parts = run.get("parts", ["budget", "focus"])
+		AIc.load_config()
+		for section in run.get("ai_cfg", {}):
+			for k in run.ai_cfg[section]:
+				AIc.cfg[section][k] = run.ai_cfg[section][k]
 		var setup := []
 		var purse: Array = run.get("purse", [])
 		if not purse.is_empty():
@@ -76,7 +100,7 @@ func _initialize() -> void:
 			clock.advance_day()
 			if d % run.every == run.every - 1:
 				snaps.append(_snapshot())
-		result.append({"name": run.name, "player": run.player, "wars": run.wars, "purse": run.get("purse", []), "setup": setup, "every": run.every, "snaps": snaps})
+		result.append({"name": run.name, "player": run.player, "wars": run.wars, "purse": run.get("purse", []), "parts": run.get("parts", ["budget", "focus"]), "pressure": run.get("pressure", false), "ai_cfg": run.get("ai_cfg", {}), "setup": setup, "every": run.every, "snaps": snaps})
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()
@@ -95,14 +119,23 @@ func _day() -> void:
 	Dip.step_day(gs)
 	Cri.step_day(gs)
 	for tag in AIc.due_nations(gs):
+		if "forces" in parts:
+			if not gs.wars_of(tag).is_empty():
+				AIFo.step(gs, tag)
+			else:
+				AIFo.rebuild(gs, tag)
+				AIFo.demobilize(gs, tag)
 		var stamp: int = clock.year * 12 + clock.month
-		if gs.ai_budget_stamp.get(tag, 0) != stamp and AIc.cfg.budget.enabled:
+		if "budget" in parts and gs.ai_budget_stamp.get(tag, 0) != stamp and AIc.cfg.budget.enabled:
 			gs.ai_budget_stamp[tag] = stamp
 			AIB._taxes(gs, tag)
 			AIB._arms(gs, tag)
 			AIB._buildings(gs, tag)
 			AIB._points(gs, tag)
-		AIF.step(gs, tag)
+		if "focus" in parts:
+			AIF.step(gs, tag)
+		if "ambition" in parts:
+			AIAm.step(gs, tag)
 	gs.in_day_step = false
 	if gs.economy_dirty:
 		gs.economy_dirty = false
@@ -126,4 +159,17 @@ func _snapshot() -> Dictionary:
 	var owners := []
 	for id in range(1, gs.province_owner.size()):
 		owners.append(gs.province_owner[id])
-	return {"day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension)}
+	var armies := []
+	for a in gs.armies.values():
+		armies.append([a.id, a.tag, a.province, B(a.men()), a.units.size()])
+	var recruiting := []
+	for tag in gs.nations:
+		recruiting.append(gs.nations[tag].recruiting.map(func(j): return [j.type, j.province, j.days_left]))
+	var manpower := []
+	for tag in gs.nations:
+		manpower.append([gs.nations[tag].manpower, gs.nations[tag].men_in_units])
+	var wars := []
+	for w in gs.wars.values():
+		wars.append([w.id, w.a, w.b])
+	return {"day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
+			"manpower": manpower, "wars": wars, "ambition": gs.ai_ambition.duplicate(true), "ambition_wait": gs.ai_ambition_wait.duplicate(), "plans": JSON.stringify(gs.ai_plans)}

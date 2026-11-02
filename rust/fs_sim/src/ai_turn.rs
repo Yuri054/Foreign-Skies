@@ -11,6 +11,8 @@ use serde_json::Value;
 pub struct AiTurn {
     pub budget: bool,
     pub focus: bool,
+    pub forces: bool,
+    pub ambition: bool,
 }
 
 fn bf(c: &Value, k: &str) -> f64 {
@@ -43,11 +45,22 @@ impl GameState {
             return;
         }
         for tag in self.due_nations(data) {
+            if self.ai_turn.forces {
+                if !self.wars_of(&tag).is_empty() {
+                    self.ai_forces_step(data, &tag);
+                } else {
+                    self.ai_forces_rebuild(data, &tag);
+                    self.ai_forces_demobilize(data, &tag);
+                }
+            }
             if self.ai_turn.budget {
                 self.ai_budget_step(data, &tag);
             }
             if self.ai_turn.focus {
                 self.ai_focus_step(data, &tag);
+            }
+            if self.ai_turn.ambition {
+                self.ai_ambition_step(data, &tag);
             }
         }
     }

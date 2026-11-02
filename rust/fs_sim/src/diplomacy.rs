@@ -327,7 +327,7 @@ impl GameState {
     }
 
     /// `Diplomacy.mobilization_target`: the level an AI nation wants: match_response of what threatens it, call_response of
-    /// what threatens an ally, war_floor if at war. (What the AI's own ambitions and called-to-war joins want is not here.)
+    /// what threatens an ally, called_level if called to a war, the ambition level if it has set its sights on a neighbour, war_floor if at war.
     pub fn mobilization_target(&self, data: &Data, tag: &str) -> f64 {
         let c = &data.diplomacy.crisis;
         let mut target = 0.0;
@@ -343,9 +343,13 @@ impl GameState {
                 target = maxf(target, self.nation(&call.against).mobilization * c.call_response);
             }
         }
-        // A nation called to join a conflict mobilizes first (the AI's own ambition, `ai_ambition`, is not ported).
+        // A nation called to join a conflict mobilizes first.
         if self.join_calls.iter().any(|(_, d)| d.tag == tag) {
             target = maxf(target, c.called_level);
+        }
+        // So does one with its sights on a neighbour (`ai_ambition`).
+        if self.ai_ambition.contains_key(tag) {
+            target = maxf(target, data.ai.raw["ambition"]["mobilization"].as_f64().unwrap());
         }
         if self.is_at_war(tag) {
             target = maxf(target, c.war_floor);
