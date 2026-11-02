@@ -22,6 +22,67 @@ fn golden() -> Value {
     serde_json::from_str(&text).unwrap()
 }
 
+/// The nation's own figures (civil spending, wages, men, stockpile) and its whole budget, against the game's.
+fn compare_state_and_budget(tag: &str, n: &fs_sim::state::Nation, w: &Value, fails: &mut Vec<String>) {
+    let st = &w["state"];
+    for (k, got) in [
+        ("civil_mult", n.civil_mult),
+        ("civil_base", n.civil_base),
+        ("civil_index", n.civil_index),
+        ("wage", n.wage),
+        ("naval_budget", n.naval_budget),
+        ("naval_overhead", n.naval_overhead),
+        ("munitions", n.munitions),
+        ("arms_share", n.arms_share),
+        ("war_support", n.war_support),
+        ("mobilization", n.mobilization),
+        ("blockade", n.blockade),
+        ("treasury", n.treasury),
+    ] {
+        if !close(got, bits(&st[k]), 1e-12) {
+            fails.push(format!("{tag}: state.{k} {got:e} vs {:e}", bits(&st[k])));
+        }
+    }
+    for (k, got) in [
+        ("manpower", n.manpower),
+        ("men_in_units", n.men_in_units),
+        ("men_exercising", n.men_exercising),
+        ("peacetime_army", n.peacetime_army),
+    ] {
+        if got != st[k].as_i64().unwrap() {
+            fails.push(format!("{tag}: state.{k} {got} vs {}", st[k]));
+        }
+    }
+    let b = &n.budget;
+    let m = &b.materials;
+    let wb = &w["budget"];
+    for (k, got) in [
+        ("gdp", b.gdp), ("industry", b.industry), ("revenue", b.revenue), ("trade", b.trade),
+        ("gdp_scale", b.gdp_scale), ("trade_scale", b.trade_scale), ("industry_scale", b.industry_scale),
+        ("food_scale", b.food_scale), ("output_scale", b.output_scale), ("revenue_per_gdp", b.revenue_per_gdp),
+        ("civil", b.civil), ("army", b.army), ("naval", b.naval), ("food_imports", b.food_imports),
+        ("materials_cost", b.materials_cost), ("interest", b.interest), ("munitions_storage", b.munitions_storage),
+        ("investment", b.investment), ("tax_relief", b.tax_relief), ("arms_mult", b.arms_mult),
+        ("tax_strain", b.tax_strain), ("expenses", b.expenses), ("net", b.net), ("food_production", b.food_production),
+        ("food_need", b.food_need), ("food_imported", b.food_imported), ("food_shortage", b.food_shortage),
+        ("construction_points", b.construction_points), ("manpower_pool", b.manpower_pool), ("manpower_max", b.manpower_max),
+    ] {
+        if !close(got, bits(&wb[k]), 1e-12) {
+            fails.push(format!("{tag}: budget.{k} {got:e} vs {:e}", bits(&wb[k])));
+        }
+    }
+    for (k, got) in [
+        ("own", m.own), ("need", m.need), ("imported", m.imported), ("exported", m.exported),
+        ("ratio", m.ratio), ("cost", m.cost), ("income", m.income),
+    ] {
+        if !close(got, bits(&wb["materials"][k]), 1e-12) {
+            fails.push(format!("{tag}: budget.materials.{k} {got:e} vs {:e}", bits(&wb["materials"][k])));
+        }
+    }
+    // every key the game puts in the budget is one the port compares
+    assert_eq!(wb.as_object().unwrap().len(), 31, "the game's budget has keys the port does not know");
+}
+
 fn check_scenario(name: &str) {
     let (data, g) = (data(), golden());
     let want = &g[name];
@@ -80,11 +141,7 @@ fn check_scenario(name: &str) {
                 fails.push(format!("{tag}: {k} {got:e} vs {want:e}"));
             }
         }
-        // The scenario's naval budget is raised by Navy.refresh_upkeep to what the fleets cost to keep (the fleets are not
-        // ported yet), so all that holds for now is that the game's figure is never below the scenario's.
-        if n.naval_budget > bits(&w["naval_budget"]) * (1.0 + 1e-12) {
-            fails.push(format!("{tag}: naval_budget {} is above the game's {}", n.naval_budget, bits(&w["naval_budget"])));
-        }
+        compare_state_and_budget(tag, n, w, &mut fails);
         if n.capital != w["capital"].as_i64().unwrap() || n.peacetime_army != w["peacetime_army"].as_i64().unwrap() {
             fails.push(format!("{tag}: capital or peacetime_army"));
         }
@@ -146,8 +203,67 @@ fn occupied_provinces_move_their_output_to_the_holder() {
                 fails.push(format!("{tag}: sums.{k} {got:e} vs {:e}", bits(&w["sums"][k])));
             }
         }
+        compare_state_and_budget(tag, &gs.nations[i], w, &mut fails);
     }
     assert!(close(gs.materials_k, bits(&want["materials_k"]), 1e-12));
     assert!(fails.is_empty(), "{} differences, e.g.\n{}", fails.len(), fails.iter().take(10).cloned().collect::<Vec<_>>().join("\n"));
     println!("july_1914 with {} provinces held by an enemy: nation sums agree", want["changes"].as_array().unwrap().len());
+}
+
+#[test]
+fn a_strained_economy_works_out_like_the_game() {
+    let (data, g) = (data(), golden());
+    let want = &g["july_1914_stressed"];
+    let mut gs = GameState::load_scenario(&data, "july_1914").unwrap();
+    for e in want["spec"].as_array().unwrap() {
+        let tag = e["tag"].as_str().unwrap();
+        let i = gs.nation_index[tag];
+        let n = &mut gs.nations[i];
+        for (k, v) in e.as_object().unwrap() {
+            match k.as_str() {
+                "tag" => {}
+                "mobilization" => n.mobilization = bits(v),
+                "tax_rate" => n.tax_rate = bits(v),
+                "arms_share" => n.arms_share = bits(v),
+                "investment" => n.investment = bits(v),
+                "treasury" => n.treasury = bits(v),
+                "blockade" => n.blockade = bits(v),
+                "weariness" => n.weariness = bits(v),
+                "war_support" => n.war_support = bits(v),
+                "munitions" => n.munitions = bits(v),
+                "materials_need_mult" => n.materials_need_mult = bits(v),
+                "starving" => n.starving = v.as_bool().unwrap(),
+                "men_exercising" => n.men_exercising = v.as_i64().unwrap(),
+                "manpower" => n.manpower = v.as_i64().unwrap(),
+                "focus_fx" => {
+                    n.focus_fx = effects(v);
+                    n.focus_construction = v.get("construction").map(bits).unwrap_or(0.0);
+                }
+                other => panic!("the golden spec sets {other}, which the test does not know"),
+            }
+        }
+    }
+    for w in want["wars"].as_array().unwrap() {
+        gs.wars.push((w[0].as_str().unwrap().to_string(), w[1].as_str().unwrap().to_string()));
+    }
+    gs.recompute(&data);
+    let mut fails = vec![];
+    for (i, w) in want["nations"].as_array().unwrap().iter().enumerate() {
+        let tag = w["tag"].as_str().unwrap();
+        assert_eq!(gs.nations[i].tag, tag);
+        let s = &gs.economy_sums[i];
+        for (k, got) in [("coast", s.coast), ("gdp", s.gdp), ("industry", s.industry), ("food", s.food), ("trade", s.trade), ("pool", s.pool), ("materials", s.materials)] {
+            if !close(got, bits(&w["sums"][k]), 1e-12) {
+                fails.push(format!("{tag}: sums.{k} {got:e} vs {:e}", bits(&w["sums"][k])));
+            }
+        }
+        compare_state_and_budget(tag, &gs.nations[i], w, &mut fails);
+    }
+    assert!(fails.is_empty(), "{} differences, e.g.\n{}", fails.len(), fails.iter().take(12).cloned().collect::<Vec<_>>().join("\n"));
+    println!("july_1914 under strain (mobilization, debt, blockade, famine, investment, two wars): {} nations agree", want["nations"].as_array().unwrap().len());
+}
+
+fn effects(v: &Value) -> fs_sim::config::Effects {
+    let get = |k: &str| v.get(k).map(bits).unwrap_or(0.0);
+    fs_sim::config::Effects { gdp: get("gdp"), industry: get("industry"), food: get("food"), trade: get("trade"), growth: get("growth") }
 }

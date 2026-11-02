@@ -5,11 +5,13 @@
 //! `tests/golden/slice.json`, and `tests/golden.rs` makes this crate reproduce it. See `rust/README.md` for what is
 //! ported and what is not.
 
+pub mod budget;
 pub mod clock;
 pub mod config;
 pub mod economy;
 pub mod gd;
 pub mod map;
+pub mod military;
 pub mod population;
 pub mod state;
 pub mod tsv;

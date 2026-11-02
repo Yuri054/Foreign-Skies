@@ -57,6 +57,34 @@ pub struct EconomyConfig {
     pub materials_extraction_base: f64,
     pub materials_min_deposit: f64,
     pub materials_need_per_industry: f64,
+    pub materials_import_cap: f64,
+    pub materials_import_price: f64,
+    pub materials_import_markup: f64,
+    pub materials_export_share: f64,
+    pub materials_floor: f64,
+    pub mobilization_output_penalty: f64,
+    pub famine_output_penalty: f64,
+    pub blockade_trade_loss: f64,
+    pub tax_drag: f64,
+    pub civil_share: f64,
+    pub start_surplus: f64,
+    pub soldier_upkeep: f64,
+    pub soldier_upkeep_ref: f64,
+    pub wage_min: f64,
+    pub wage_max: f64,
+    pub reserve_upkeep: f64,
+    pub food_import_cost: f64,
+    pub food_state_share: f64,
+    pub debt_interest: f64,
+    pub munitions_default_share: f64,
+    pub munitions_output_penalty: f64,
+    pub munitions_storage_cost: f64,
+    pub munitions_per_gun_power: f64,
+    pub munitions_engaged_share: f64,
+    pub base_ic: f64,
+    pub base_ic_gdp_ref: f64,
+    pub base_ic_min: f64,
+    pub ic_per_industry: f64,
     /// The deposit tables (coal, iron, timber), in file order.
     pub resource_ids: Vec<String>,
     pub buildings: Vec<BuildingDef>,
@@ -146,6 +174,34 @@ impl EconomyConfig {
             materials_extraction_base: num(&v, &["materials", "extraction_base"])?,
             materials_min_deposit: num(&v, &["materials", "min_deposit"])?,
             materials_need_per_industry: num(&v, &["materials", "need_per_industry"])?,
+            materials_import_cap: num(&v, &["materials", "import_cap"])?,
+            materials_import_price: num(&v, &["materials", "import_price"])?,
+            materials_import_markup: num(&v, &["materials", "import_markup"])?,
+            materials_export_share: num(&v, &["materials", "export_share"])?,
+            materials_floor: num(&v, &["materials", "floor"])?,
+            mobilization_output_penalty: num(&v, &["mobilization_output_penalty"])?,
+            famine_output_penalty: num(&v, &["famine_output_penalty"])?,
+            blockade_trade_loss: num(&v, &["blockade_trade_loss"])?,
+            tax_drag: num(&v, &["tax_drag"])?,
+            civil_share: num(&v, &["civil_share"])?,
+            start_surplus: v.get("start_surplus").and_then(Value::as_f64).unwrap_or(0.0),
+            soldier_upkeep: num(&v, &["soldier_upkeep"])?,
+            soldier_upkeep_ref: num(&v, &["soldier_upkeep_ref"])?,
+            wage_min: num(&v, &["wage_min"])?,
+            wage_max: num(&v, &["wage_max"])?,
+            reserve_upkeep: num(&v, &["reserve_upkeep"])?,
+            food_import_cost: num(&v, &["food_import_cost"])?,
+            food_state_share: num(&v, &["food_state_share"])?,
+            debt_interest: num(&v, &["debt", "interest"])?,
+            munitions_default_share: num(&v, &["munitions", "default_share"])?,
+            munitions_output_penalty: num(&v, &["munitions", "output_penalty"])?,
+            munitions_storage_cost: num(&v, &["munitions", "storage_cost"])?,
+            munitions_per_gun_power: num(&v, &["munitions", "per_gun_power"])?,
+            munitions_engaged_share: num(&v, &["munitions", "engaged_share"])?,
+            base_ic: num(&v, &["construction", "base_ic"])?,
+            base_ic_gdp_ref: num(&v, &["construction", "base_ic_gdp_ref"])?,
+            base_ic_min: num(&v, &["construction", "base_ic_min"])?,
+            ic_per_industry: num(&v, &["construction", "ic_per_industry"])?,
             resource_ids,
             buildings,
         })
@@ -153,5 +209,144 @@ impl EconomyConfig {
 
     pub fn building(&self, id: &str) -> Option<&BuildingDef> {
         self.buildings.iter().find(|b| b.id == id)
+    }
+}
+
+
+/// One kind of unit (`data/military.json`, unit_types), in file order.
+#[derive(Debug, Clone)]
+pub struct UnitType {
+    pub id: String,
+    pub size: i64,
+    pub attack: f64,
+    /// Whether the unit burns shells (its "shells" value is above zero).
+    pub shells: bool,
+    /// Its share of a starting army's men.
+    pub share: f64,
+}
+
+/// The parts of `data/military.json` the ported rules read.
+#[derive(Debug, Clone)]
+pub struct MilitaryConfig {
+    pub field_share: f64,
+    pub unit_types: Vec<UnitType>,
+    pub morale_floor_effect: f64,
+    pub training_power_max: f64,
+    pub training_cost_share: f64,
+    pub landing_power_mult: f64,
+    pub marshal_share: f64,
+    pub occupation_income_share: f64,
+    /// Each nation's commanders: name and skill, in order.
+    pub generals: Vec<(String, Vec<(String, f64)>)>,
+}
+
+impl MilitaryConfig {
+    pub fn from_json_str(text: &str) -> Result<MilitaryConfig, String> {
+        let v: Value = serde_json::from_str(text).map_err(|e| format!("military.json is invalid: {e}"))?;
+        let mut unit_types = vec![];
+        for (id, d) in v.get("unit_types").and_then(Value::as_object).ok_or("military.json: unit_types")? {
+            unit_types.push(UnitType {
+                id: id.clone(),
+                size: num(d, &["size"])? as i64,
+                attack: num(d, &["attack"])?,
+                shells: d.get("shells").and_then(Value::as_f64).unwrap_or(0.0) > 0.0,
+                share: num(d, &["share"])?,
+            });
+        }
+        let mut generals = vec![];
+        for (tag, list) in v.get("generals").and_then(Value::as_object).ok_or("military.json: generals")? {
+            let mut l = vec![];
+            for g in list.as_array().ok_or("military.json: generals list")? {
+                l.push((
+                    g[0].as_str().ok_or("general name")?.to_string(),
+                    g[1].as_f64().ok_or("general skill")?,
+                ));
+            }
+            generals.push((tag.clone(), l));
+        }
+        Ok(MilitaryConfig {
+            field_share: num(&v, &["field_share"])?,
+            unit_types,
+            morale_floor_effect: num(&v, &["combat", "morale_floor_effect"])?,
+            training_power_max: v.get("training").and_then(|t| t.get("power_max")).and_then(Value::as_f64).unwrap_or(0.0),
+            training_cost_share: v.get("training").and_then(|t| t.get("cost_share")).and_then(Value::as_f64).unwrap_or(0.0),
+            landing_power_mult: num(&v, &["landing", "power_mult"])?,
+            marshal_share: num(&v, &["army_group", "marshal_share"])?,
+            occupation_income_share: num(&v, &["occupation", "income_share"])?,
+            generals,
+        })
+    }
+
+    pub fn unit_type(&self, id: &str) -> &UnitType {
+        self.unit_types.iter().find(|t| t.id == id).unwrap_or_else(|| panic!("unknown unit type {id}"))
+    }
+
+    pub fn generals_of(&self, tag: &str) -> &[(String, f64)] {
+        self.generals.iter().find(|(t, _)| t == tag).map(|(_, l)| l.as_slice()).unwrap_or(&[])
+    }
+}
+
+/// `data/navy.json`: the ship types' upkeep and the port level they need, in file order.
+#[derive(Debug, Clone)]
+pub struct NavyConfig {
+    pub types: Vec<(String, f64, i64)>,
+}
+
+impl NavyConfig {
+    pub fn from_json_str(text: &str) -> Result<NavyConfig, String> {
+        let v: Value = serde_json::from_str(text).map_err(|e| format!("navy.json is invalid: {e}"))?;
+        let mut types = vec![];
+        for (id, d) in v.get("types").and_then(Value::as_object).ok_or("navy.json: types")? {
+            types.push((id.clone(), num(d, &["upkeep"])?, num(d, &["min_port"])? as i64));
+        }
+        Ok(NavyConfig { types })
+    }
+
+    pub fn upkeep(&self, ship: &str) -> f64 {
+        self.types.iter().find(|(t, _, _)| t == ship).map(|(_, u, _)| *u).unwrap_or_else(|| panic!("unknown ship type {ship}"))
+    }
+
+    pub fn min_port(&self, ship: &str) -> Option<i64> {
+        self.types.iter().find(|(t, _, _)| t == ship).map(|(_, _, m)| *m)
+    }
+}
+
+/// `data/diplomacy.json`, war_support: what a government starts with, and the curve of tax and recruits at war.
+#[derive(Debug, Clone)]
+pub struct WarSupportConfig {
+    pub start_default: f64,
+    pub start: Vec<(String, f64)>,
+    pub economy_curve: [f64; 3],
+}
+
+impl WarSupportConfig {
+    pub fn from_json_str(text: &str) -> Result<WarSupportConfig, String> {
+        let v: Value = serde_json::from_str(text).map_err(|e| format!("diplomacy.json is invalid: {e}"))?;
+        let ws = v.get("war_support").ok_or("diplomacy.json: war_support")?;
+        let start = ws.get("start").and_then(Value::as_object).ok_or("war_support.start")?;
+        Ok(WarSupportConfig {
+            start_default: start.get("default").and_then(Value::as_f64).ok_or("war_support.start.default")?,
+            start: start.iter().filter(|(k, _)| *k != "default").filter_map(|(k, x)| x.as_f64().map(|x| (k.clone(), x))).collect(),
+            economy_curve: [
+                num(ws, &["economy_mult", "at_0"])?,
+                num(ws, &["economy_mult", "at_50"])?,
+                num(ws, &["economy_mult", "at_100"])?,
+            ],
+        })
+    }
+
+    /// What a government type starts with.
+    pub fn start_value(&self, government: &str) -> f64 {
+        self.start.iter().find(|(g, _)| g == government).map(|(_, x)| *x).unwrap_or(self.start_default)
+    }
+
+    /// Multiplier on tax and recruitment at war, from the nation's support (`WarSupport._curve`).
+    pub fn economy_mult_at(&self, support: f64) -> f64 {
+        let [a, b, c] = self.economy_curve;
+        if support <= 50.0 {
+            crate::gd::lerpf(a, b, support / 50.0)
+        } else {
+            crate::gd::lerpf(b, c, (support - 50.0) / 50.0)
+        }
     }
 }
