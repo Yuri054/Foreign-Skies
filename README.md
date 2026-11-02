@@ -8,12 +8,12 @@ their reasons; the guns need the shells your industry makes; events put choices 
 and after a great war the world goes on, with old losses to avenge. The AI plays every other nation. There is no score and no ending: it is an open sandbox, and whether the great war comes is up to you and them. The design is
 in [DESIGN.md](DESIGN.md); [MANUAL.md](MANUAL.md) is a player's guide, and [CHANGELOG.md](CHANGELOG.md) lists what changed.
 
-![The political map, July 1914](docs/screenshots/map.jpg)
+![The 3D map of Europe, July 1914](docs/screenshots/3d-europe.jpg)
 
 | | |
 |---|---|
-| ![Armies and fronts at war](docs/screenshots/war.jpg) | ![The cabinet briefing](docs/screenshots/briefing.jpg) |
-| ![Choosing what to demand](docs/screenshots/war-goals.jpg) | ![Peace talks with a war goal](docs/screenshots/peace-talks.jpg) |
+| ![The sea in 3D: waves and sun glints on the Bay of Biscay](docs/screenshots/3d-biscay.jpg) | ![The Channel, with the land's relief and the cities as buildings](docs/screenshots/3d-channel.jpg) |
+| ![Italy and Greece in 3D](docs/screenshots/3d-italy.jpg) | ![The Aegean in 3D](docs/screenshots/3d-aegean.jpg) |
 
 ## Running it
 
