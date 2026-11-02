@@ -69,6 +69,15 @@ func _initialize() -> void:
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1000, "every": 10, "player": "USA", "wars": [["RUS", "OTT"], ["FRA", "GER"]], "parts": ALL, "ai_cfg": LAX},
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "SRB", "wars": [], "parts": ALL, "ai_cfg": LAX, "pressure": true},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1200, "every": 10, "player": "GBR", "wars": [], "parts": ALL, "ai_cfg": LAX, "pressure": true, "purse": [2.0, 0.5, 20.0]},
+		# armies sent to the enemy's border, so that there is a threat to weigh; and a stricter ambition
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 400, "every": 5, "player": "POR", "wars": [["GER", "FRA"], ["ITA", "AUH"], ["RUS", "OTT"]], "parts": ALL,
+				"orders": [["GER", "FRA", 6], ["FRA", "GER", 6], ["ITA", "AUH", 4], ["AUH", "ITA", 4], ["RUS", "OTT", 4], ["OTT", "RUS", 4]]},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 500, "every": 5, "player": "GBR", "wars": [["GER", "RUS"], ["AUH", "SRB"], ["FRA", "ITA"]], "parts": ALL, "purse": [2.0, 0.6, 6.0],
+				"orders": [["GER", "RUS", 8], ["RUS", "GER", 8], ["AUH", "SRB", 4], ["SRB", "AUH", 4], ["FRA", "ITA", 4], ["ITA", "FRA", 4]]},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 600, "every": 10, "player": "USA", "wars": [["RUS", "OTT"], ["FRA", "GER"], ["GBR", "ESP"]], "parts": ALL,
+				"orders": [["RUS", "OTT", 5], ["OTT", "RUS", 5], ["FRA", "GER", 5], ["GER", "FRA", 5]]},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1100, "every": 10, "player": "GBR", "wars": [], "parts": ALL, "pressure": true,
+				"ai_cfg": {"ambition": {"threshold": 0.7, "start_delay_days": 100, "review_days": 45, "odds_margin": 1.0, "min_aggression": 0.4}, "forces": {"demob_after_days": 60}}},
 	])
 	var result := []
 	for run in runs:
@@ -95,12 +104,27 @@ func _initialize() -> void:
 				var cmd = Design.new(pair[0], "Front " + pair[1], [] as Array[int], pair[1], "line", 0)
 				var ok: bool = cmd.execute(gs)
 				setup.append([pair[0], pair[1], ok])
+		var orders_log := []
+		var MoveCmd: GDScript = load("res://scripts/sim/move_army.gd")
+		for o in run.get("orders", []):
+			var sent := 0
+			for a in Mil.armies_of(gs, o[0]):
+				if sent >= o[2]:
+					break
+				var target := _border_target(o[1], a.province, sent)
+				if target == 0:
+					continue
+				var cmd = MoveCmd.new(o[0], a.id, target)
+				var ok: bool = cmd.execute(gs)
+				orders_log.append([o[0], a.id, target, ok])
+				if ok:
+					sent += 1
 		var snaps := [_snapshot()]
 		for d in run.days:
 			clock.advance_day()
 			if d % run.every == run.every - 1:
 				snaps.append(_snapshot())
-		result.append({"name": run.name, "player": run.player, "wars": run.wars, "purse": run.get("purse", []), "parts": run.get("parts", ["budget", "focus"]), "pressure": run.get("pressure", false), "ai_cfg": run.get("ai_cfg", {}), "setup": setup, "every": run.every, "snaps": snaps})
+		result.append({"name": run.name, "player": run.player, "wars": run.wars, "purse": run.get("purse", []), "parts": run.get("parts", ["budget", "focus"]), "pressure": run.get("pressure", false), "ai_cfg": run.get("ai_cfg", {}), "setup": setup, "orders": orders_log, "every": run.every, "snaps": snaps})
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()
@@ -173,3 +197,18 @@ func _snapshot() -> Dictionary:
 		wars.append([w.id, w.a, w.b])
 	return {"day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
 			"manpower": manpower, "wars": wars, "ambition": gs.ai_ambition.duplicate(true), "ambition_wait": gs.ai_ambition_wait.duplicate(), "plans": JSON.stringify(gs.ai_plans)}
+
+
+func _border_target(enemy: String, from: int, index: int) -> int:
+	var seen := {from: 0}
+	var queue := [from]
+	var found := []
+	while not queue.is_empty() and found.size() <= index + 1:
+		var cur: int = queue.pop_front()
+		if gs.province_owner[cur] == enemy and gs.province_controller[cur] == enemy:
+			found.append(cur)
+		for n in Mil.neighbors(cur):
+			if not seen.has(n):
+				seen[n] = seen[cur] + 1
+				queue.append(n)
+	return found[index] if found.size() > index else (found[0] if not found.is_empty() else 0)

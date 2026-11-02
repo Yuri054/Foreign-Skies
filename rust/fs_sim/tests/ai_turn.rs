@@ -134,6 +134,10 @@ fn run(index: usize) {
         let got = gs.designate_front(&data, s(&st[0]), &format!("Front {}", s(&st[1])), &[], s(&st[1]), "line", 0).is_some();
         assert_eq!(got, st[2].as_bool().unwrap(), "front of {} against {}", st[0], st[1]);
     }
+    for o in run["orders"].as_array().unwrap() {
+        let ok = gs.order_army_to(&data, s(&o[0]), o[1].as_u64().unwrap() as u32, o[2].as_u64().unwrap() as usize);
+        assert_eq!(ok, o[3].as_bool().unwrap(), "{name}: order {o}");
+    }
     let every = run["every"].as_u64().unwrap() as usize;
     let snaps = run["snaps"].as_array().unwrap();
     let mut fails = vec![];
@@ -234,4 +238,24 @@ fn serbia_with_ambitions_loosened_and_the_world_in_tension() {
 #[test]
 fn britain_in_1900_with_ambitions_loosened_and_the_world_in_tension() {
     run(16);
+}
+
+#[test]
+fn portugal_with_armies_at_the_borders() {
+    run(17);
+}
+
+#[test]
+fn britain_with_three_wars_and_armies_at_the_borders() {
+    run(18);
+}
+
+#[test]
+fn united_states_in_1900_with_armies_at_the_borders() {
+    run(19);
+}
+
+#[test]
+fn britain_in_1900_with_a_stricter_ambition() {
+    run(20);
 }
