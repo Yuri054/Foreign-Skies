@@ -170,7 +170,8 @@ func _label(entry: Dictionary, city: Dictionary, pop: int, opacity: float, zoom:
 func _fade(entry: Dictionary, opacity: float, nation: Color, occupied := false) -> void:
 	var body: MeshInstance3D = entry.body
 	if opacity >= 0.985 and not occupied:
-		body.material_override = _material
+		if body.material_override != _material:
+			body.material_override = _material
 		entry.opacity = 1.0
 		entry.tint = Color.WHITE
 	else:
@@ -184,14 +185,16 @@ func _fade(entry: Dictionary, opacity: float, nation: Color, occupied := false) 
 			entry.opacity = opacity
 			entry.tint = nation
 			entry.ruined = occupied
-		body.material_override = fading
+		if body.material_override != fading:
+			body.material_override = fading
+	# Set only what changed: a material's transparency queues a new shader each time it is set, even to the same value.
+	var transparency := BaseMaterial3D.TRANSPARENCY_ALPHA if opacity < 0.985 else BaseMaterial3D.TRANSPARENCY_DISABLED
 	for part: String in ["pole", "flag"]:
 		var piece: MeshInstance3D = entry[part]
 		var mat := piece.material_override as StandardMaterial3D
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if opacity < 0.985 else BaseMaterial3D.TRANSPARENCY_DISABLED
-		if part == "pole":
-			mat.albedo_color.a = opacity
-		else:
+		if mat.transparency != transparency:
+			mat.transparency = transparency
+		if mat.albedo_color.a != opacity:
 			mat.albedo_color.a = opacity
 
 

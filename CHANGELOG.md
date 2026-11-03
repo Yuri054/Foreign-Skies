@@ -7,6 +7,25 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.18.2 (2026-11-03 18:53 UTC)
+
+The 3D map is quicker, and looks the same. Most of its cost is painting the flat map into the picture the 3D plane
+shows, and it did that every frame the map moved, and on every twitch of the mouse.
+
+- **Panning reuses the picture**: it is painted with a margin round the view, and the plane shifts the last picture
+  to where the camera is, so a pan paints it again only when the view nears the margin's edge (about one frame in
+  ten, where it was every frame). A step of the wheel shows the last picture scaled for a moment (50 ms at most).
+- **The picture is painted when something on it changes**: a click or a key, a drag on the map, a new province
+  under the cursor (at most 30 times a second), a new day (at most 10 times a second), and once a second besides.
+  Moving the mouse, and panning with the middle button, no longer paint it.
+- **Left alone, the 3D map draws 30 frames a second** (the waves and the smoke still move); anything that moves
+  brings the full rate back at once. The relief's lighting is no longer worked out when the relief is off.
+- Fixed: a fleet at anchor logged an error each time its model was built; city models no longer set their
+  materials again each frame (which made the graphics driver rebuild shaders).
+- Measured with `tools/profile_3d.gd` (a frame's whole cost on a software renderer, 1600x900; a real card is far
+  quicker, and the caps on hover, zoom and idle frames only bite at real frame rates): panning 96 to 53 ms a frame
+  zoomed out, 103 to 75 at middle zoom, 91 to 58 close in; left alone with the game paused 75 to 70.
+
 ## 0.18.1 (2026-11-03 16:39 UTC)
 
 No change to how the game plays: this release brings the Rust port of the simulation into the main line.

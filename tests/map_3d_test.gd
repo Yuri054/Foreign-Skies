@@ -89,11 +89,50 @@ func _initialize() -> void:
 	for uv in [Vector2(0.5, 0.5), Vector2(0.3, 0.6), Vector2(0.6, 0.4), Vector2(0.45, 0.7)]:
 		var h: float = mode.height_units(uv)
 		var p3 := Vector3((uv.x - 0.5) * mode._plane_size.x, h, (uv.y - 0.5) * mode._plane_size.y)
-		var back: Vector2 = mode.to_picture(mode._camera.unproject_position(p3)) / Vector2(mode._sub.size)
+		var back: Vector2 = mode.plane_uv_of(mode.to_picture(mode._camera.unproject_position(p3)))
 		worst = maxf(worst, back.distance_to(uv))
 	_check(worst < 0.01, "a click on the raised ground is followed down to it (off by %.4f of the picture at most)" % worst)
 	mode.relief_on = false
 	_check(mode.height_units(Vector2(0.5, 0.5)) == 0.0, "with the relief off the plane is flat")
+	# The picture is painted with a margin, and reused while the map pans: the plane is told where the view lies in it.
+	_check(mode._sub.size.x > mode._view_px.x and mode._margin_px.x > 0.0, "the picture has a margin round the view (%s for %s)" % [str(mode._sub.size), str(mode._view_px)])
+	# Headless nothing is drawn, so the step the renderer runs before each frame is run here by hand.
+	mode._paint_now = true
+	await process_frame
+	mode._before_draw()
+	var painted_at: int = mode._painted_at
+	var still: Rect2 = mode.picture_rect(mode._sub.get_canvas_transform(), mode._painted)
+	_check(still.position.is_equal_approx(mode._margin_px / Vector2(mode._sub.size)), "just painted, the view is the middle of the picture")
+	mode._painted_at -= 1
+	painted_at = mode._painted_at
+	main.camera.position += Vector2(mode._margin_px.x * 0.3, 0.0) / main.camera.zoom.x
+	await process_frame
+	mode._before_draw()
+	var panned: Rect2 = mode.picture_rect(mode._sub.get_canvas_transform(), mode._painted)
+	_check(mode._painted_at == painted_at and panned.position.x > still.position.x, "a small pan reuses the picture, shifted (%.4f to %.4f)" % [still.position.x, panned.position.x])
+	mode._painted_at -= 1     # (the clock may not have moved on a millisecond)
+	painted_at = mode._painted_at
+	main.camera.position += Vector2(mode._margin_px.x, 0.0) / main.camera.zoom.x
+	await process_frame
+	mode._before_draw()
+	_check(mode._painted_at != painted_at, "a pan past the margin paints it again")
+	mode._painted_at -= 1
+	painted_at = mode._painted_at
+	main.camera.zoom *= 1.1
+	await process_frame
+	mode._before_draw()
+	_check(mode._painted_at == painted_at, "a step of the zoom shows the last picture scaled for a moment")
+	mode._painted_at -= M3.ZOOM_REUSE_MS
+	painted_at = mode._painted_at
+	await process_frame
+	mode._before_draw()
+	_check(mode._painted_at != painted_at, "and then paints it again")
+	mode._painted_at -= 1
+	painted_at = mode._painted_at
+	main.camera.zoom *= 1.4
+	await process_frame
+	mode._before_draw()
+	_check(mode._painted_at != painted_at, "and paints it at once for a big change of zoom")
 	# Unit models: the flat banners are listed instead, and stand up as models that can be clicked.
 	var armies: Node = get_first_node_in_group("army_layer")
 	var fleets: Node = get_first_node_in_group("fleet_layer")

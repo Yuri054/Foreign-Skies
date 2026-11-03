@@ -241,7 +241,8 @@ static func fleet_mesh(line: Array, colour: Color, moored := false) -> ArrayMesh
 	var mesh := st.commit()
 	# The second surface is the white water, see-through and fading away behind (its own material, wake_material).
 	wakes.commit(mesh)
-	mesh.surface_set_material(1, wake_material())
+	if mesh.get_surface_count() > 1:     # a fleet at anchor makes no white water
+		mesh.surface_set_material(1, wake_material())
 	_cache[key] = mesh
 	return mesh
 

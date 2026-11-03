@@ -14,6 +14,15 @@ extends Node
 ## raised by it (exaggerated, `RELIEF_EXAGGERATION`) and lit from the north west. The sea moves (`water_on`): waves
 ## anchored to the map, the sun and the sky on them, lighter shallows and surf, from data/map/coast.png. The windows and the top bar stay on the screen as they are. Off, the layers go
 ## back to where they were.
+##
+## What it costs (tools/profile_3d.gd): the picture of the flat map is the dear part, so it is painted only when it has
+## to be. It is painted with a margin round the view (MARGIN), and the plane's shader shifts and scales the last
+## picture to where the camera is now: a pan reuses it until the view nears the margin's edge, and a change of zoom
+## paints it again. Otherwise it is painted when something on it changes (a click, a key, the hovered province, a
+## drag, a new day), and a few times a second besides. Left alone, the 3D map draws IDLE_FPS frames a second (the
+## waves and the smoke still move); anything that moves brings it back to full speed.
+
+const MAP_VIEW := preload("res://scripts/map/map_view.gd")
 
 signal toggled(on: bool)
 
@@ -44,6 +53,23 @@ const SELECT_COLOR := Color(1.0, 0.95, 0.4)
 const BATTLE_COLOR := Color(0.95, 0.25, 0.2)
 ## Plane subdivisions: the ground is a grid of this many by this many squares.
 const GRID := Vector2i(260, 146)
+## The picture is painted this share of the view wider on each side, so a pan can reuse it.
+const MARGIN := 0.1
+## The picture is painted again once the view has used this share of the margin.
+const MARGIN_USE := 0.75
+## How often (ms) the picture is painted at most for a change that is not the player's (a new day), and how often at
+## least, to be safe, for a change nothing announced.
+const PAINT_EVERY_MS := 100
+const PAINT_FALLBACK_MS := 1000
+## After a step of the zoom the last picture is shown scaled for at most this long (ms), and only while it is within
+## ZOOM_REUSE of the zoom it was painted at: a turn of the wheel paints a few times, not at every step.
+const ZOOM_REUSE_MS := 50
+const ZOOM_REUSE := 1.25
+## A new province under the cursor (lit on the map) paints the picture at most this often (ms).
+const HOVER_EVERY_MS := 33
+## Frames a second while nothing moves and the player does nothing (0 is unlimited); the full rate comes back at once.
+const IDLE_FPS := 30
+const IDLE_AFTER_MS := 600
 
 var enabled := false
 ## The angle of the camera above the horizon, in degrees: 90 looks straight down.
@@ -55,6 +81,19 @@ var _sub: SubViewport
 var _scene: Node3D
 var _camera: Camera3D
 var _plane_size := Vector2(16.0, PLANE_HEIGHT)
+## The part of the off-screen picture the plane shows (its pixels), and where it starts: the rest is the margin.
+var _view_px := Vector2(1, 1)
+var _margin_px := Vector2.ZERO
+## The canvas transform the picture was last painted with, when (ms), and whether it must be painted again.
+var _painted := Transform2D()
+var _painted_at := -1000000
+var _paint_now := true
+var _paint_soon := false
+var _paint_hover := false
+var _last_hover := Vector2i(-1, -1)
+## When the player last did something, or the camera last moved (ms), for the idle frame rate.
+var _active_at := 0
+var _saved_max_fps := 0
 ## The layers moved into the off-screen viewport and where each stood: [{node, index}].
 var _moved: Array = []
 var _tilting := false
@@ -83,7 +122,6 @@ var _sea_offsets := {}
 var _fits := {}
 var _last_cam_pos := Vector2.ZERO
 var _last_cam_zoom := Vector2.ONE
-var _touched := true
 var _frame_count := 0
 var _markers_dirty := true
 var _city_signature: Array = []
@@ -173,12 +211,17 @@ func _enter() -> void:
 	OS.low_processor_usage_mode = false     # the smoke and the sprites move by the clock of the shaders
 	var window := get_window()
 	_sub = SubViewport.new()
-	_sub.size = picture_size(window.size, picture_scale())
-	_sub.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_view_px = Vector2(picture_size(window.size, picture_scale()))
+	_sub.size = Vector2i((_view_px * (1.0 + 2.0 * MARGIN)).round())
+	_margin_px = (Vector2(_sub.size) - _view_px) * 0.5
+	_sub.render_target_update_mode = SubViewport.UPDATE_ONCE
 	_sub.handle_input_locally = true
 	_sub.disable_3d = true
 	add_child(_sub)
-	_plane_size = Vector2(PLANE_HEIGHT * float(_sub.size.x) / float(_sub.size.y), PLANE_HEIGHT)
+	_plane_size = Vector2(PLANE_HEIGHT * _view_px.x / _view_px.y, PLANE_HEIGHT)
+	_paint_now = true
+	_active_at = Time.get_ticks_msec()
+	_saved_max_fps = Engine.max_fps
 	_moved.clear()
 	for child in main.get_children():
 		if child is CanvasItem:
@@ -196,11 +239,20 @@ func _enter() -> void:
 	_set_city_markers(cities_on)
 	_set_land_floor(LAND_ZOOM_FLOOR)
 	_apply_tilt()
+	if not RenderingServer.frame_pre_draw.is_connected(_before_draw):
+		RenderingServer.frame_pre_draw.connect(_before_draw)
+	if not Clock.date_changed.is_connected(_soon):
+		Clock.date_changed.connect(_soon)
 	get_tree().call_group("event_feed", "say", "3D map on. Page Up and Page Down tilt it, [ and ] turn it, V goes back to the flat map.", Fmt.DIM)
 
 
 func _leave() -> void:
 	OS.low_processor_usage_mode = true
+	Engine.max_fps = _saved_max_fps
+	if RenderingServer.frame_pre_draw.is_connected(_before_draw):
+		RenderingServer.frame_pre_draw.disconnect(_before_draw)
+	if Clock.date_changed.is_connected(_soon):
+		Clock.date_changed.disconnect(_soon)
 	_watch_layers(false)
 	_set_layers_to_markers(false)
 	_set_city_markers(false)
@@ -259,6 +311,8 @@ func _build_scene() -> void:
 	shader.code = """shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform sampler2D picture : source_color, filter_linear;
+// Where the plane's corners fall in the picture last painted: its top left and its size (see Map3D.MARGIN).
+uniform vec4 picture_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform sampler2D relief : hint_default_black, filter_linear, repeat_disable;
 // data/map/coast.png (tools/build_coast.py): red the signed distance to the shore, green how far out to sea.
 uniform sampler2D coast : hint_default_black, filter_linear, repeat_disable;
@@ -329,14 +383,16 @@ void vertex() {
 }
 
 void fragment() {
-	vec4 c = texture(picture, UV);
-	vec2 e = 1.0 / vec2(textureSize(relief, 0));
-	float dx = (metres(ground_uv + vec2(e.x, 0.0)) - metres(ground_uv - vec2(e.x, 0.0))) / (2.0 * texel_m);
-	float dz = (metres(ground_uv + vec2(0.0, e.y)) - metres(ground_uv - vec2(0.0, e.y))) / (2.0 * texel_m);
-	vec3 n = normalize(vec3(-dx * 3.5, 1.0, -dz * 3.5));
+	vec4 c = texture(picture, picture_rect.xy + UV * picture_rect.zw);
 	vec3 light = normalize(SUN);
-	float shade = dot(n, light) - light.y;
-	float lit = rise > 0.0 ? clamp(1.0 + shade * 0.8, 0.7, 1.3) : 1.0;
+	float lit = 1.0;
+	if (rise > 0.0) {
+		vec2 e = 1.0 / vec2(textureSize(relief, 0));
+		float dx = (metres(ground_uv + vec2(e.x, 0.0)) - metres(ground_uv - vec2(e.x, 0.0))) / (2.0 * texel_m);
+		float dz = (metres(ground_uv + vec2(0.0, e.y)) - metres(ground_uv - vec2(0.0, e.y))) / (2.0 * texel_m);
+		vec3 n = normalize(vec3(-dx * 3.5, 1.0, -dz * 3.5));
+		lit = clamp(1.0 + (dot(n, light) - light.y) * 0.8, 0.7, 1.3);
+	}
 	vec3 color = c.rgb * lit;
 
 	// The sea: waves, the sky and the sun on them, lighter shallows and surf on the shore, over the map's own colours.
@@ -441,35 +497,111 @@ func apply_quality() -> void:
 		set_enabled(true)
 
 
-## Whether the flat map's picture needs painting again this frame: every frame while the map is being moved,
-## zoomed or touched, and otherwise ten times a second, enough for what moves by itself (armies, smoke, the clock).
-func _picture_due() -> bool:
-	var cam2d: Camera2D = main.get("camera")
-	var moving := false
-	if cam2d != null:
-		moving = cam2d.position != _last_cam_pos or cam2d.zoom != _last_cam_zoom
-		_last_cam_pos = cam2d.position
-		_last_cam_zoom = cam2d.zoom
-	var due := moving or _touched or _frame_count % 6 == 0
-	_touched = false
-	return due
+## Something on the picture changed that is not the player's doing (a new day): it is painted again, but not more
+## often than every PAINT_EVERY_MS.
+func _soon() -> void:
+	_paint_soon = true
+
+
+## Right before the frame is drawn, once the camera has moved for the last time: whether to paint the picture again,
+## and where the plane is to find the view in the picture last painted.
+func _before_draw() -> void:
+	if not enabled or _sub == null or _material == null:
+		return
+	var now := Time.get_ticks_msec()
+	var current := _sub.get_canvas_transform()
+	var due := _paint_now or _view_left_picture(current, now) or now - _painted_at >= PAINT_FALLBACK_MS
+	if not due and _paint_soon and now - _painted_at >= PAINT_EVERY_MS:
+		due = true
+	if not due and _paint_hover and now - _painted_at >= HOVER_EVERY_MS:
+		due = true
+	if due:
+		_painted = current
+		_painted_at = now
+		_paint_now = false
+		_paint_soon = false
+		_paint_hover = false
+	_sub.render_target_update_mode = SubViewport.UPDATE_ONCE if due else SubViewport.UPDATE_DISABLED
+	var rect := picture_rect(current, _painted)
+	_material.set_shader_parameter("picture_rect", Vector4(rect.position.x, rect.position.y, rect.size.x, rect.size.y))
+	_update_view(current)
+
+
+## The part of the map the plane shows (in map pixels), for the relief under it and for the models standing on it.
+func _update_view(current: Transform2D) -> void:
+	var inverse := current.affine_inverse()
+	_view_origin = inverse * _margin_px
+	_view_size = inverse.basis_xform(_view_px)
+	_material.set_shader_parameter("view_origin", _view_origin)
+	_material.set_shader_parameter("view_size", _view_size)
+
+
+## Where the view the plane shows with the canvas transform `current` lies in the picture painted with `painted`, as a
+## share of the picture (0 to 1 on each side).
+func picture_rect(current: Transform2D, painted: Transform2D) -> Rect2:
+	var to_painted := painted * current.affine_inverse()
+	var a := to_painted * _margin_px
+	var b := to_painted * (_margin_px + _view_px)
+	var size := Vector2(_sub.size)
+	return Rect2(a / size, (b - a) / size)
+
+
+## Whether the last picture will no longer do: the view has gone too far into its margin, or the zoom has changed and
+## the picture has been shown scaled for long enough (or by too much).
+func _view_left_picture(current: Transform2D, now: int) -> bool:
+	var rect := picture_rect(current, _painted)
+	var keep := _margin_px * (1.0 - MARGIN_USE) / Vector2(_sub.size)
+	if rect.position.x < keep.x or rect.position.y < keep.y or rect.end.x > 1.0 - keep.x or rect.end.y > 1.0 - keep.y:
+		return true
+	if is_equal_approx(current.x.x, _painted.x.x) and is_equal_approx(current.y.y, _painted.y.y):
+		return false
+	var ratio := absf(current.x.x / _painted.x.x)
+	return now - _painted_at >= ZOOM_REUSE_MS or ratio > ZOOM_REUSE or ratio < 1.0 / ZOOM_REUSE
 
 
 func _input(event: InputEvent) -> void:
-	if enabled and (event is InputEventMouse or event is InputEventKey):
-		_touched = true
+	if not enabled:
+		return
+	if event is InputEventKey or event is InputEventMouseButton:
+		_paint_now = true
+		_active_at = Time.get_ticks_msec()
+	elif event is InputEventMouseMotion:
+		_active_at = Time.get_ticks_msec()
+		# Moving the mouse changes the picture only while a button drags something on the map (a box, a plan) or a tool
+		# or a tip follows the cursor; a pan with the middle button is the camera's, and the margin covers it.
+		if event.button_mask & (MOUSE_BUTTON_MASK_LEFT | MOUSE_BUTTON_MASK_RIGHT) != 0 or _cursor_drawn():
+			_paint_now = true
+
+
+## Whether something drawn on the map follows the cursor: a battle plan tool in hand, or the diplomacy tip.
+func _cursor_drawn() -> bool:
+	var tool := get_tree().get_first_node_in_group("map_tool")
+	if tool != null and tool.has_method("is_active") and tool.is_active():
+		return true
+	var view: Node = main.get("map_view") if main != null else null
+	return view != null and view.get("mode") == MAP_VIEW.Mode.DIPLOMACY
 
 
 func _process(_delta: float) -> void:
 	if not enabled or _sub == null or _material == null:
 		return
 	_frame_count += 1
-	_sub.render_target_update_mode = SubViewport.UPDATE_ONCE if _picture_due() else SubViewport.UPDATE_DISABLED
-	var inverse := _sub.get_canvas_transform().affine_inverse()
-	_view_origin = inverse * Vector2.ZERO
-	_view_size = inverse.basis_xform(Vector2(_sub.size))
-	_material.set_shader_parameter("view_origin", _view_origin)
-	_material.set_shader_parameter("view_size", _view_size)
+	_update_view(_sub.get_canvas_transform())
+	var cam2d: Camera2D = main.get("camera")
+	if cam2d != null and (cam2d.position != _last_cam_pos or cam2d.zoom != _last_cam_zoom):
+		_last_cam_pos = cam2d.position
+		_last_cam_zoom = cam2d.zoom
+		_active_at = Time.get_ticks_msec()
+	# The province or sea zone under the cursor is lit on the map: a new one is a change to the picture.
+	var view: Node = main.get("map_view")
+	if view != null:
+		var hover := Vector2i(int(view.get("hover_id")), int(view.get("hover_zone")))
+		if hover != _last_hover:
+			_last_hover = hover
+			_paint_hover = true
+	if _tilting:
+		_active_at = Time.get_ticks_msec()
+	Engine.max_fps = IDLE_FPS if Time.get_ticks_msec() - _active_at > IDLE_AFTER_MS else _saved_max_fps
 	_material.set_shader_parameter("rise", rise_per_metre() if relief_on else 0.0)
 	_marker_frame += 1
 	if markers_on:
@@ -579,7 +711,7 @@ func screen_of(point: Vector3) -> Vector2:
 func ground_point(world: Vector2) -> Variant:
 	if _sub == null:
 		return null
-	var at := (_sub.get_canvas_transform() * world) / Vector2(_sub.size)
+	var at := plane_uv_of(_sub.get_canvas_transform() * world)
 	if at.x < -0.02 or at.x > 1.02 or at.y < -0.02 or at.y > 1.02:
 		return null
 	return Vector3((at.x - 0.5) * _plane_size.x, height_units(at), (at.y - 0.5) * _plane_size.y)
@@ -920,7 +1052,17 @@ func to_picture(screen: Vector2) -> Vector2:
 			uv = next if next.x >= 0.0 else uv
 			break
 		uv = next
-	return uv * Vector2(_sub.size)
+	return picture_point_of(uv)
+
+
+## A point of the plane (0 to 1 on each side) as a pixel of the off-screen picture, and back: the plane shows the
+## middle of the picture, without its margin.
+func picture_point_of(uv: Vector2) -> Vector2:
+	return _margin_px + uv * _view_px
+
+
+func plane_uv_of(picture_point: Vector2) -> Vector2:
+	return (picture_point - _margin_px) / _view_px
 
 
 # ------------------------------------------------------------------ input
