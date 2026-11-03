@@ -171,8 +171,8 @@ fn run(index: usize) -> String {
                 assert_eq!(got.is_some(), ok(5), "{label}");
                 assert_eq!(got.unwrap_or(0) as i64, act[6].as_i64().unwrap(), "{label}");
             }
-            "alset" => assert_eq!(gs.set_attack_line(s(&act[1]), act[2].as_u64().unwrap() as u32, ok(3)), ok(4), "{label}"),
-            "aldelete" => assert_eq!(gs.delete_attack_line(s(&act[1]), act[2].as_u64().unwrap() as u32), ok(3), "{label}"),
+            "alset" => assert_eq!(gs.set_attack_line(&data, s(&act[1]), act[2].as_u64().unwrap() as u32, ok(3)), ok(4), "{label}"),
+            "aldelete" => assert_eq!(gs.delete_attack_line(&data, s(&act[1]), act[2].as_u64().unwrap() as u32), ok(3), "{label}"),
             "peace" => {
                 let w = gs.war_between(s(&act[1]), s(&act[2])).unwrap();
                 gs.end_war(w);

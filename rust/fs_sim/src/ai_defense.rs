@@ -114,7 +114,7 @@ impl GameState {
         maxf(total, df("min_need", data))
     }
 
-    fn ai_power_on(&self, data: &Data, fid: u32) -> f64 {
+    pub(crate) fn ai_power_on(&self, data: &Data, fid: u32) -> f64 {
         let mut total = 0.0;
         for id in &self.front_ref(fid).army_ids {
             if let Some(a) = self.armies.iter().find(|a| a.id == *id) {
@@ -152,10 +152,10 @@ impl GameState {
     fn ai_idle(&self, tag: &str) -> Vec<u32> {
         let mut ids: Vec<&crate::military::Army> = self.armies.iter().filter(|a| a.tag == tag).collect();
         ids.sort_by_key(|a| a.id);
-        ids.into_iter().filter(|a| a.path.is_empty() && !a.fighting && !a.embarked()).map(|a| a.id).collect()
+        ids.into_iter().filter(|a| a.path.is_empty() && !a.fighting && !a.embarked() && !self.ai_in_campaign(tag, a.id)).map(|a| a.id).collect()
     }
 
-    fn army_ref(&self, id: u32) -> &crate::military::Army {
+    pub(crate) fn army_ref(&self, id: u32) -> &crate::military::Army {
         self.armies.iter().find(|a| a.id == id).unwrap()
     }
 
@@ -429,7 +429,7 @@ impl GameState {
     }
 
     /// `AIDefense._defence_at`: what stands in the way of taking a province.
-    fn ai_defence_at(&self, data: &Data, tag: &str, target: usize) -> f64 {
+    pub(crate) fn ai_defence_at(&self, data: &Data, tag: &str, target: usize) -> f64 {
         let (mut inside, mut dug) = (0.0, 0.0);
         for a in self.armies.iter().filter(|a| a.province == target && !a.embarked()) {
             if self.at_war(tag, &a.tag) {

@@ -127,6 +127,45 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
             fails.push(format!("{label}: {what} differ"));
         }
     }
+    let controllers: Vec<&str> = gs.province_controller.iter().skip(1).map(|x| x.as_str()).collect();
+    let want_controllers: Vec<&str> = w["controllers"].as_array().unwrap().iter().map(s).collect();
+    if controllers != want_controllers {
+        fails.push(format!("{label}: holders differ"));
+    }
+    let camp = |c: &fs_sim::ai_offense::Campaign| serde_json::json!([c.enemy, c.target, c.staging, c.armies, if c.advancing { "advance" } else { "gather" }, c.started]);
+    let mut camps: Vec<Value> = vec![];
+    let mut tags: Vec<&String> = gs.ai_campaign.keys().collect();
+    tags.sort();
+    for t in &tags {
+        let c = &gs.ai_campaign[*t];
+        camps.push(serde_json::json!([t, "main", c.enemy, c.target, c.staging, c.armies, if c.advancing { "advance" } else { "gather" }, c.started]));
+    }
+    let mut extra_tags: Vec<&String> = gs.ai_campaign_extra.keys().collect();
+    extra_tags.sort();
+    for t in extra_tags {
+        for c in &gs.ai_campaign_extra[t] {
+            camps.push(serde_json::json!([t, "extra", c.enemy, c.target, c.staging, c.armies, if c.advancing { "advance" } else { "gather" }, c.started]));
+        }
+    }
+    let mut want_camps: Vec<Value> = w["campaigns"].as_array().unwrap().clone();
+    let key = |v: &Value| format!("{}{}{}", v[0], v[1], v[2]);
+    camps.sort_by_key(|v| key(v));
+    want_camps.sort_by_key(|v| key(v));
+    if norm(&Value::Array(camps.clone())) != norm(&Value::Array(want_camps.clone())) {
+        fails.push(format!("{label}: campaigns\n  mine {}\n  want {}", Value::Array(camps), Value::Array(want_camps)));
+    }
+    let mut wait: Vec<(String, i64)> = gs.ai_campaign_wait.iter().map(|(k, v)| (k.clone(), *v)).collect();
+    wait.sort();
+    let mut want_wait: Vec<(String, i64)> = w["campaign_wait"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_i64().unwrap())).collect();
+    want_wait.sort();
+    if wait != want_wait {
+        fails.push(format!("{label}: campaign waits {wait:?} vs {want_wait:?}"));
+    }
+    let lines: Vec<Value> = gs.attack_lines.iter().map(|l| serde_json::json!([l.id, l.active, l.wait, match &l.campaign { Some(c) => serde_json::json!([c.enemy, c.target, c.staging, c.armies, if c.advancing { "advance" } else { "gather" }, c.started, c.done]), None => serde_json::json!([]) }])).collect();
+    if norm(&Value::Array(lines.clone())) != norm(&w["lines"]) {
+        fails.push(format!("{label}: attack lines\n  mine {}\n  want {}", Value::Array(lines), w["lines"]));
+    }
+    let _ = camp;
     let want_plans: Value = serde_json::from_str(s(&w["plans"])).unwrap();
     if norm(&Value::Array(gs.ai_plans.clone())) != norm(&want_plans) {
         fails.push(format!("{label}: plans {} vs {}", Value::Array(gs.ai_plans.clone()), want_plans));
@@ -158,7 +197,7 @@ fn run(index: usize) {
     let mut gs = GameState::load_scenario(&data, name).unwrap();
     gs.pressure_ai = run["pressure"].as_bool().unwrap();
     let on = |p: &str| run["parts"].as_array().unwrap().iter().any(|x| x == p);
-    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition"), defence: on("defence"), diplomacy: on("diplomacy") };
+    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition"), defence: on("defence"), diplomacy: on("diplomacy"), offence: on("offence") };
     gs.start_scenario_wars(&data);
     gs.player_tag = s(&run["player"]).to_string();
     let purse: Vec<f64> = run["purse"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
@@ -180,6 +219,15 @@ fn run(index: usize) {
     for o in run["orders"].as_array().unwrap() {
         let ok = gs.order_army_to(&data, s(&o[0]), o[1].as_u64().unwrap() as u32, o[2].as_u64().unwrap() as usize);
         assert_eq!(ok, o[3].as_bool().unwrap(), "{name}: order {o}");
+    }
+    for g in run["groups"].as_array().unwrap() {
+        let ids: Vec<u32> = g[2].as_array().unwrap().iter().map(|x| x.as_u64().unwrap() as u32).collect();
+        let gid = gs.create_army_group(&data, s(&g[0]), s(&g[1]), &ids);
+        assert_eq!(gid.is_some(), g[3].as_bool().unwrap(), "{name}: group {g}");
+        let lid = gs.create_attack_line(s(&g[0]), gid.unwrap_or(0), s(&g[9]), g[8].as_u64().unwrap() as u32);
+        assert_eq!(lid.is_some(), g[5].as_bool().unwrap(), "{name}: line {g}");
+        let set = gs.set_attack_line(&data, s(&g[0]), lid.unwrap_or(0), true);
+        assert_eq!(set, g[7].as_bool().unwrap(), "{name}: switching the line on {g}");
     }
     let every = run["every"].as_u64().unwrap() as usize;
     let snaps = run["snaps"].as_array().unwrap();
@@ -383,4 +431,34 @@ fn diplomacy_in_1900_without_the_tension_gate() {
 #[test]
 fn diplomacy_in_1900_with_stricter_thresholds() {
     run(35);
+}
+
+#[test]
+fn offence_with_portugal_looking_on() {
+    run(36);
+}
+
+#[test]
+fn offence_in_four_wars_and_every_target_worth_it() {
+    run(37);
+}
+
+#[test]
+fn offence_in_1900() {
+    run(38);
+}
+
+#[test]
+fn offence_by_attack_lines() {
+    run(39);
+}
+
+#[test]
+fn everything_in_july_1914_for_serbia() {
+    run(40);
+}
+
+#[test]
+fn everything_in_1900_for_the_united_states() {
+    run(41);
 }

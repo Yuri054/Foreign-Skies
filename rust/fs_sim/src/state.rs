@@ -436,6 +436,11 @@ pub struct GameState {
     pub ai_seed: i64,
     /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
     pub ai_budget_stamp: HashMap<String, i64>,
+    /// The campaigns the AI runs: the main one and the others against other enemies, and the day each nation may look for another (`ai_campaign`).
+    pub ai_campaign: HashMap<String, crate::ai_offense::Campaign>,
+    pub ai_campaign_extra: HashMap<String, Vec<crate::ai_offense::Campaign>>,
+    pub ai_campaign_wait: HashMap<String, i64>,
+    pub next_campaign_uid: u64,
     /// The month each nation last looked over its treaties (`ai_diplo_stamp`).
     pub ai_diplo_stamp: HashMap<String, i64>,
     /// While a batch of evaluations runs (the monthly treaty search), each nation's power added up once (`AIDiplomacy._powers`).
@@ -730,6 +735,10 @@ impl GameState {
             ai_traits: HashMap::new(),
             ai_seed: 0,
             ai_budget_stamp: HashMap::new(),
+            ai_campaign: HashMap::new(),
+            ai_campaign_extra: HashMap::new(),
+            ai_campaign_wait: HashMap::new(),
+            next_campaign_uid: 0,
             ai_diplo_stamp: HashMap::new(),
             ai_powers: std::cell::RefCell::new(None),
             ai_anchor_stamp: HashMap::new(),

@@ -529,7 +529,7 @@ impl GameState {
         self.step_fronts(data);
         self.offensives_step_day(data);
         self.prune_groups(data);
-        self.attack_lines_step_day();
+        self.attack_lines_step_day(data);
         self.release_orphan_generals(data);
         self.train_recruits(data);
         self.drill(data);

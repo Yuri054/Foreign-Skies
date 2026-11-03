@@ -26,6 +26,8 @@ pub struct AttackLine {
     pub front_id: u32,
     pub active: bool,
     pub wait: i64,
+    /// The campaign it runs for its group (`AttackLine.campaign`), if one is under way.
+    pub campaign: Option<crate::ai_offense::Campaign>,
 }
 
 impl GameState {
@@ -196,7 +198,7 @@ impl GameState {
         let id = self.next_attack_line_id;
         self.next_attack_line_id += 1;
         let name = format!("{} vs {}", self.army_groups[gi].name, self.nation(enemy).display_name);
-        self.attack_lines.push(AttackLine { id, tag: tag.to_string(), name, group_id, enemy: enemy.to_string(), front_id, active: false, wait: 0 });
+        self.attack_lines.push(AttackLine { id, tag: tag.to_string(), name, group_id, enemy: enemy.to_string(), front_id, active: false, wait: 0, campaign: None });
         Some(id)
     }
 
@@ -212,27 +214,49 @@ impl GameState {
         ""
     }
 
-    /// `AttackLines.stop` for a line with no campaign running (a campaign is the AI's and is not ported).
-    fn stop_attack_line(&mut self, line: usize) {
+    /// `AttackLines.stop`: calls the attack off: armies on the march halt and the group's armies go back to the front.
+    fn stop_attack_line(&mut self, data: &Data, line: usize) {
         self.attack_lines[line].active = false;
+        let c = self.attack_lines[line].campaign.take();
         self.attack_lines[line].wait = 0;
+        let Some(c) = c else { return };
+        let tag = self.attack_lines[line].tag.clone();
+        let mut ids = vec![];
+        for id in c.armies {
+            let Some(a) = self.armies.iter().find(|a| a.id == id) else { continue };
+            ids.push(id);
+            if !a.path.is_empty() && !a.embarked() {
+                let province = a.province;
+                self.order_army_to(data, &tag, id, province);
+            }
+        }
+        self.attack_line_rejoin_front(line, &ids);
+    }
+
+    /// `AttackLines._rejoin_front`.
+    fn attack_line_rejoin_front(&mut self, line: usize, ids: &[u32]) {
+        let (tag, front) = (self.attack_lines[line].tag.clone(), self.attack_lines[line].front_id);
+        if ids.is_empty() || !self.fronts.iter().any(|f| f.id == front) {
+            return;
+        }
+        self.assign_to_front(&tag, front, ids);
     }
 
     /// `DeleteAttackLine.execute`.
-    pub fn delete_attack_line(&mut self, tag: &str, line_id: u32) -> bool {
+    pub fn delete_attack_line(&mut self, data: &Data, tag: &str, line_id: u32) -> bool {
         let Some(li) = self.attack_lines.iter().position(|l| l.id == line_id) else { return false };
         if self.attack_lines[li].tag != tag {
             return false;
         }
         if self.attack_lines[li].active {
-            self.stop_attack_line(li);
+            self.stop_attack_line(data, li);
         }
         self.attack_lines.remove(li);
         true
     }
 
     /// `SetAttackLine.execute`.
-    pub fn set_attack_line(&mut self, tag: &str, line_id: u32, active: bool) -> bool {
+    pub fn set_attack_line(&mut self, data: &Data, tag: &str, line_id: u32, active: bool) -> bool {
         let Some(li) = self.attack_lines.iter().position(|l| l.id == line_id) else { return false };
         if self.attack_lines[li].tag != tag || self.attack_lines[li].active == active {
             return false;
@@ -244,14 +268,14 @@ impl GameState {
             self.attack_lines[li].active = true;
             self.attack_lines[li].wait = 0;
         } else {
-            self.stop_attack_line(li);
+            self.stop_attack_line(data, li);
         }
         true
     }
 
-    /// `AttackLines.step_day`: a line whose group is gone is dropped; an active one that can no longer go on stops. One that would
-    /// run a campaign stops the port (the campaign is the AI's).
-    pub fn attack_lines_step_day(&mut self) {
+    /// `AttackLines.step_day`: a line whose group is gone is dropped; an active one that can no longer go on stops; the others look for a
+    /// campaign for their group (the AI's offence picks the target and the force) or run the one they have.
+    pub fn attack_lines_step_day(&mut self, data: &Data) {
         let ids: Vec<u32> = self.attack_lines.iter().map(|l| l.id).collect();
         for id in ids {
             let Some(li) = self.attack_lines.iter().position(|l| l.id == id) else { continue };
@@ -263,10 +287,103 @@ impl GameState {
                 continue;
             }
             if !self.attack_line_block(li).is_empty() {
-                self.stop_attack_line(li);
+                self.stop_attack_line(data, li);
                 continue;
             }
-            panic!("attack line {id} would run a campaign: the AI's offence (AIOffense) is not ported yet");
+            self.attack_line_step(data, li);
         }
+    }
+
+    /// `AttackLines._step_line`.
+    fn attack_line_step(&mut self, data: &Data, li: usize) {
+        let retry = data.ai.raw["offense"]["retry_days"].as_i64().unwrap();
+        let today = self.calendar.days_elapsed as i64;
+        let tag = self.attack_lines[li].tag.clone();
+        let mut c = self.attack_lines[li].campaign.take();
+        if let Some(cc) = c.as_mut() {
+            if !self.ai_campaign_alive(&tag, cc) {
+                c = None;
+                self.attack_lines[li].wait = today + retry;
+            }
+        }
+        let mut c = match c {
+            Some(c) => c,
+            None => {
+                if today < self.attack_lines[li].wait {
+                    return;
+                }
+                match self.attack_line_start(data, li) {
+                    Some(c) => c,
+                    None => {
+                        self.attack_lines[li].wait = today + retry;
+                        return;
+                    }
+                }
+            }
+        };
+        self.ai_run(data, &tag, &mut c);
+        if c.done {
+            let ids: Vec<u32> = c.armies.iter().copied().filter(|id| self.armies.iter().any(|a| a.id == *id)).collect();
+            self.attack_lines[li].campaign = None;
+            self.attack_lines[li].wait = today + retry;
+            self.attack_line_rejoin_front(li, &ids);
+        } else {
+            self.attack_lines[li].campaign = Some(c);
+        }
+    }
+
+    /// `AttackLines._candidates`: the provinces the attack may aim at: enemy ground next to the front's line, or next to any ground the nation
+    /// holds when the line is tied to no front.
+    fn attack_line_candidates(&self, data: &Data, li: usize) -> Vec<usize> {
+        let l = &self.attack_lines[li];
+        let Some(front) = self.fronts.iter().find(|f| f.id == l.front_id) else { return self.ai_frontier(data, &l.tag, &l.enemy) };
+        let mut seen: Vec<usize> = vec![];
+        for &p in &front.provinces {
+            for n in data.map.neighbors(p) {
+                if self.province_controller[n] == l.enemy && !seen.contains(&n) {
+                    seen.push(n);
+                }
+            }
+        }
+        seen.sort();
+        seen
+    }
+
+    /// `AttackLines._start`: picks a target and the group's armies to send; returns the campaign (none if nothing fits).
+    fn attack_line_start(&mut self, data: &Data, li: usize) -> Option<crate::ai_offense::Campaign> {
+        let (tag, enemy, group_id, line_id) = (self.attack_lines[li].tag.clone(), self.attack_lines[li].enemy.clone(), self.attack_lines[li].group_id, self.attack_lines[li].id);
+        let gi = self.group_pos(group_id)?;
+        let mut armies: Vec<u32> = vec![];
+        for &id in &self.army_groups[gi].army_ids {
+            if let Some(a) = self.armies.iter().find(|a| a.id == id) {
+                if a.path.is_empty() && !a.fighting && !a.embarked() && self.province_controller[a.province] == tag {
+                    armies.push(id);
+                }
+            }
+        }
+        let mil = &data.military;
+        crate::gd::sort_custom(&mut armies, |&x, &y| {
+            let (px, py) = (self.army_ref(x).power(mil), self.army_ref(y).power(mil));
+            px > py || (px == py && x < y)
+        });
+        if armies.is_empty() {
+            return None;
+        }
+        let candidates = self.attack_line_candidates(data, li);
+        let pick = self.ai_offense_target(data, &tag, &enemy, &candidates, &armies, f64::INFINITY, false)?;
+        // The armies sent leave their front for the attack; they return to it afterwards.
+        self.assign_to_front(&tag, 0, &pick.armies);
+        self.next_campaign_uid += 1;
+        Some(crate::ai_offense::Campaign {
+            uid: self.next_campaign_uid,
+            enemy,
+            target: pick.target,
+            staging: pick.staging,
+            armies: pick.armies,
+            advancing: false,
+            started: self.calendar.days_elapsed as i64,
+            line: Some(line_id),
+            done: false,
+        })
     }
 }

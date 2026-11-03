@@ -15,6 +15,7 @@ pub struct AiTurn {
     pub ambition: bool,
     pub defence: bool,
     pub diplomacy: bool,
+    pub offence: bool,
 }
 
 fn bf(c: &Value, k: &str) -> f64 {
@@ -49,6 +50,9 @@ impl GameState {
         for tag in self.due_nations(data) {
             if self.ai_turn.defence && !self.wars_of(&tag).is_empty() {
                 self.ai_defense_step(data, &tag);
+            }
+            if self.ai_turn.offence && !self.wars_of(&tag).is_empty() {
+                self.ai_offense_step(data, &tag);
             }
             if self.ai_turn.forces {
                 if !self.wars_of(&tag).is_empty() {
