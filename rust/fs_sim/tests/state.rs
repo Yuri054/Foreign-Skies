@@ -137,7 +137,7 @@ fn check_scenario(name: &str) {
             ("materials_need_mult", n.materials_need_mult, bits(&w["materials_need_mult"])),
         ] {
             // Development came through pow() and a division: allow rounding in the last places.
-            if !close(got, want, 1e-13) {
+            if !close(got, want, 0.0) {
                 fails.push(format!("{tag}: {k} {got:e} vs {want:e}"));
             }
         }

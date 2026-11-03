@@ -78,7 +78,7 @@ fn apply_spec(gs: &mut GameState, spec: &Value) {
 }
 
 /// How far two floats may differ, relative. Here the port matches the game bit for bit (0.0 passes); the margin keeps another machine's maths library from tripping it.
-const REL: f64 = 1e-13;
+const REL: f64 = 0.0;
 
 fn compare_month(label: &str, month: usize, gs: &GameState, row: &Value, fails: &mut Vec<String>) {
     for (i, w) in row.as_array().unwrap().iter().enumerate() {

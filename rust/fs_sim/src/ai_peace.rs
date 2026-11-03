@@ -112,7 +112,7 @@ pub struct Proposal {
     pub demands: Vec<Demand>,
 }
 
-pub(crate) fn demand_of(v: &Value) -> Option<Demand> {
+pub fn demand_of(v: &Value) -> Option<Demand> {
     Some(match v["kind"].as_str()? {
         "province" => Demand::Province(v["ids"].as_array()?.iter().filter_map(|x| x.as_u64().map(|x| x as usize)).collect()),
         "indemnity" => Demand::Indemnity { share: v["share"].as_f64()?, months: v["months"].as_i64()? },

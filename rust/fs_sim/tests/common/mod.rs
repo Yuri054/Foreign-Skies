@@ -9,8 +9,9 @@ pub fn bits(v: &Value) -> f64 {
     f64::from_bits(v.as_str().unwrap().parse::<i64>().unwrap() as u64)
 }
 
+/// The port's numbers are the game's, bit for bit (the whole suite passes with no tolerance at all).
 pub fn close(a: f64, b: f64) -> bool {
-    a == b || (a - b).abs() <= 1e-13 * a.abs().max(b.abs())
+    a == b
 }
 
 pub fn demands(v: &Value) -> Vec<Demand> {

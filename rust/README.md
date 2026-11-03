@@ -11,7 +11,7 @@ original before the next one begins.
 `tools/dump_sim_golden.gd` runs the real GDScript code over a grid of inputs and writes what it returns to
 `fs_sim/tests/golden/slice.json`, with every float as the bits of its 64-bit value, so nothing is lost in the text.
 `fs_sim/tests/golden.rs` makes the Rust code reproduce every number. The comparison is exact, except for results that
-go through `pow()`, which may differ by a few units in the last place between maths libraries (the tests allow 4).
+go through `pow()` in the first golden file, which may differ by a few units in the last place between maths libraries (that test allows 4 ulps). Every other golden file, the whole games included, is compared with no tolerance at all: the numbers are the game's, bit for bit.
 
 ```sh
 cd rust && cargo test                      # no Godot needed: the golden file is in the repository
@@ -72,7 +72,7 @@ A third golden file, `steps.json` (made by `tools/dump_steps_golden.gd`), is the
 the queue, a year of January 1900, and 18 months of July 1914 at war (strain, blockade, famine, enemy-held ground, war
 deaths). Every nation's treasury, development, wage, stockpile, weariness, war support, men, people and budget, and the
 state of every job, are compared after every month, and the people, fractions and works of every province at the end.
-The Rust reproduces all of it bit for bit (the tolerance in the test is 1e-13, and 0 passes too).
+The Rust reproduces all of it bit for bit.
 
 A fourth golden file, `focus.json` (made by `tools/dump_focus_golden.gd`), has every nation of July 1914 working through
 its focus tree for forty-eight months (464 foci, the repeatable ones included) and of January 1900 for eighteen, with the
@@ -187,6 +187,8 @@ A twenty-first golden file, `ai_turn.json` (made by `tools/dump_ai_turn_golden.g
 `ai_turn.json.gz` (gzipped: the plain file is over GitHub's size limit; `tools/dump_ai_turn_golden.gd` writes it and the comment at its top says how to pack it) now has 42 campaigns. New with the diplomacy: wars the AI declares itself (justified and not), demands it presses, treaties of every kind it proposes, the thresholds loosened, 1900 without the tension gate. New with the offence: four campaign-heavy wars, army groups with attack lines switched on, and runs with every part of the AI's turn on at once. Compared every five or ten days besides the rest: treaties, opinions, grievances, the crises and casus belli, who holds each province, the campaigns each nation runs and the attack lines. The test reads the file once for all of them.
 
 `ai_game.json.gz` (made by `tools/dump_ai_game_golden.gd`) is the whole game as it ships: a scenario loaded, `ai_enabled` on and the scenario's own `pressure_ai`, the clock driven by the game's own day pipeline, in which the AI's turn runs where the game puts it. The port runs the same days with `AiTurn::all()`. Fifteen games: July 1914 for 900 and for 3,000 days (to 1922) with Serbia, Britain, Germany, Russia, Italy and Austria left to the player in turn (so each time a different nation is left to the AI), and January 1900 for 1,800 and 4,500 days (to 1912) with Germany, the United States, France, Russia and Britain; and four games on the `challenging` and `sandbox` difficulties (`Data::load_with_difficulty`, from `Difficulty.apply`: the preset scales the AI's and the crisis generator's numbers from the files), which differ from the shipped game in July 1914. Compared every 10 to 30 days: the nations, who holds each province, the armies and fleets, the fronts, the wars, treaties, opinions, grievances and crises, the casus belli, and everything the AI keeps (campaigns, landings, plans, stations, reserves, anchors, ambitions).
+
+`player.json.gz` (made by `tools/dump_player_golden.gd`) is six whole games in which the player plays and the AI plays the rest: a rotation of twenty kinds of command (policies, works, recruiting, marches, a declaration of war, treaties, gifts, demands, peace offers, ships and fleets, a focus, crisis answers, demobilizing, cancelling a treaty) made through `GameState.issue` and logged with their arguments and results, and every question put to the player answered (events, calls to arms, peace offers). Four July 1914 games (Britain, Serbia, Germany, Italy; 700 days) and two January 1900 games (France, Russia; 1,200 days); about 2,300 commands, all giving the same result in the port, and the world compared every 10 or 20 days.
 
 A second golden file, `state.json` (made by `tools/dump_state_golden.gd`), holds what the real game's state is right after it
 loads each scenario: all 941 provinces (owner, holder, people, works, deposits and what each makes), the 22 nations

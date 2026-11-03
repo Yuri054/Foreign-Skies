@@ -15,7 +15,7 @@ fn close(a: f64, b: f64, rel: f64) -> bool {
     a == b || (a - b).abs() <= rel * a.abs().max(b.abs())
 }
 
-const REL: f64 = 1e-13;
+const REL: f64 = 0.0;
 
 fn data() -> Data {
     Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap()

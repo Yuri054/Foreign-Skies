@@ -12,7 +12,7 @@ fn bits(v: &Value) -> f64 {
 }
 
 fn close(a: f64, b: f64) -> bool {
-    a == b || (a - b).abs() <= 1e-13 * a.abs().max(b.abs())
+    a == b || (a - b).abs() <= 0.0 * a.abs().max(b.abs())
 }
 
 fn data() -> Data {
