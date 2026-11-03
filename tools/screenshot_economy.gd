@@ -65,7 +65,7 @@ func _peace_state(gs: Node) -> void:
 	var Build = load("res://scripts/sim/construct_building.gd")
 	var Eco = load("res://scripts/sim/economy.gd")
 	var ger = gs.nations["GER"]
-	ger.treasury = 110.0
+	ger.treasury = 200.0
 	ger.cp = 420.0
 	var queued := 0
 	for pair: Array in [["civilian_factory", 2], ["construction_sector", 1]]:

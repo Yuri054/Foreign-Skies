@@ -83,12 +83,13 @@ One currency, called **gold** everywhere (interface, tooltips, manual). A nation
 ```
 income = base income (from population, fixed) + civilian factories × 1.5 + ports × 0.3
          × war and blockade modifiers
-expenses = army upkeep + building upkeep + navy upkeep + reconstruction (R4)
+expenses = administration (35% of the income above) + army upkeep + building upkeep + navy upkeep
+           + reconstruction (R4)
 ```
 
 - **Base income** comes from each province's population, slightly concave (so small nations get relatively more),
   and does not grow: growth comes from building.
-- **Targets for 1914**: Germany about 25 gold a month, the United Kingdom about 28, France about 20, Russia about 18,
+- **Targets for 1914**: Germany about 25 gold a month, the United Kingdom about 28, France about 20, Russia about 22 (its great army needs it),
   Austria-Hungary about 14, Italy about 10, Serbia about 1.
 - **Army upkeep** is the big expense: about 0.05 to 0.1 gold a month a division, so a great power's peacetime army
   costs about a fifth to a quarter of its income.
@@ -119,7 +120,7 @@ costs the same in Berlin as in Belgrade, which keeps it readable.
 
 | Building | Gold | CP | Upkeep a month | Effect |
 |---|---|---|---|---|
-| Civilian factory | 60 | 240 | 0 | +1.5 gold a month |
+| Civilian factory | 150 | 240 | 0 | +1.5 gold a month |
 | Military factory | 60 | 240 | 0.10 | equipment (R5) |
 | Construction sector | 40 | 160 | 0.05 | +1 CP a day |
 | Port | 30 | 120 | 0 | docking, naval invasions from it, +0.3 gold a month, supply in the province and its neighbours |
@@ -129,7 +130,8 @@ costs the same in Berlin as in Belgrade, which keeps it readable.
 | Air base | 30 | 120 | 0.05 | aircraft (R8) |
 | Research center | 80 | 300 | 0.20 | research (R8) |
 
-The civilian factory pays back in 40 months. A small nation starts with one already earning, and its next takes a few
+The civilian factory pays back in about 13 years once administration takes its share (decided after the first AI-only
+runs: at 60 gold and with no administration the AI's incomes grew sixfold in ten years). A small nation starts with one already earning, and its next takes a few
 years of saving; after that each one comes sooner. Ports, at 30 gold for 0.3 a month, pay back slower, in 100 months; they are built for
 what else they do.
 

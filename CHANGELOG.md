@@ -7,6 +7,34 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.18.0 (TIMESTAMP)
+
+The second and third stages of the big rework (docs/REWORK.md, R2 and R3): one currency, **gold**, and **construction
+points** take the place of the resource economy. Saves from 0.17 and earlier do not load.
+
+- **The resource economy is gone**: coal, iron, timber, food, raw materials, IC, munitions, taxes, investment and
+  population growth, from the game and from every screen. The whole old game is kept on the branch
+  `archive/resource-economy`, and docs/archive/RESOURCE_ECONOMY.md says how it worked.
+- **Gold**: each month your provinces pay their base income (from their people; it does not grow), each civilian factory
+  1.5 gold and each port 0.3. Out go **administration** (35% of that income: the state grows with the economy), the army
+  (each unit's upkeep), the navy, the buildings' upkeep and interest on debt. In 1914 Germany earns about 25 gold a
+  month, Britain 28, France 20, Russia 22.
+- **Construction points**: each construction sector makes one a day, the capital a quarter. A building costs gold and
+  points when it starts and takes fixed days: a civilian factory 150 gold, 240 points and 60 days (it pays back in about
+  13 years, then earns for ever); a construction sector 40 gold and 160 points; a fort 15 and 80; a trench 5, 30 and a
+  week. One project at a time in a province, at most ten of each building there; the queue starts each one when it can,
+  in order, and the Build tab shows what is under way and what waits, and why.
+- **Units and ships cost gold**: an infantry division 6 gold to raise and 0.08 a month, a cavalry division 5 and 0.04,
+  an artillery brigade 10 and 0.05; ships cost their price when laid down and take their days.
+- **Forts and trenches** are +10% and +4% defence a level (they are cheap now, and the same price everywhere).
+- **National foci** raise base income, build civilian factories at once or add construction points.
+- **The AI** builds a few projects a month where they are most wanted per gold (factories in peace, a construction sector
+  when its gold runs ahead of its points, works behind the front at war) and grows its standing army in peace while its
+  surplus pays for it. From 1900 its incomes about double by 1911.
+- **Interface**: the top bar shows gold and construction points; the Economy tab shows income by source, spending by
+  kind and the points; the Build tab the costs, what a building earns after administration, and the queue. The
+  Resources map mode is gone; the Income mode shows what each province earns.
+
 ## 0.18.0-test.1 (2026-10-30 15:30 UTC)
 
 A **test build** of the next big stage (docs/REWORK.md, R2 and R3), from the branch `rework-r2-r3`: not finished, and
