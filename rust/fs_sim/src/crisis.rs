@@ -87,7 +87,7 @@ impl GameState {
                     format!("{} provinces ({} and {} more)", names.len(), names[..4].join(", "), names.len() - 4)
                 }
             }
-            Demand::Indemnity { share, months } => format!("an indemnity of {}% of revenue a year for {} months", (share * 100.0).round() as i64, months),
+            Demand::Indemnity { share, months } => format!("an indemnity of {}% of income for {} months", (share * 100.0).round() as i64, months),
             Demand::ReleaseAlly(n) => format!("an end to its ties with {}", self.nation(n).display_name),
             Demand::DisarmBorder(y) => format!("its border armies withdrawn for {y} years"),
             Demand::FleetLimit(y) => format!("no new warships for {y} years"),

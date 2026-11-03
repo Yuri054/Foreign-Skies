@@ -228,7 +228,7 @@ impl GameState {
             return false;
         }
         let cost = def.cost;
-        let cushion = maxf(0.0, -n.budget.net / 12.0) * ff(f, "deficit_months");
+        let cushion = maxf(0.0, -n.budget.net) * ff(f, "deficit_months");
         if n.treasury - cost < ff(f, "treasury_floor") + cushion {
             return false;
         }

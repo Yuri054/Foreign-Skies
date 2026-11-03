@@ -264,9 +264,8 @@ func _day() -> void:
 			AIDip.step(gs, tag)
 		if "budget" in parts and gs.ai_budget_stamp.get(tag, 0) != stamp and AIc.cfg.budget.enabled:
 			gs.ai_budget_stamp[tag] = stamp
-			AIB._taxes(gs, tag)
-			AIB._arms(gs, tag)
 			AIB._buildings(gs, tag)
+			AIB._army(gs, tag)
 			if "navy" in parts:
 				AIN.build(gs, tag)
 			AIB._points(gs, tag)
