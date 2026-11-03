@@ -64,8 +64,8 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     if owners != want {
         fails.push(format!("{label}: owners differ"));
     }
-    let armies: Vec<Value> = gs.armies.iter().map(|a| serde_json::json!([a.id, a.tag, a.province, a.units.len(), a.path, a.front_id, a.pin, a.parent_id])).collect();
-    let want_armies: Vec<Value> = w["armies"].as_array().unwrap().iter().map(|a| serde_json::json!([a[0], a[1], a[2], a[4], a[9], a[6], a[7], a[8]])).collect();
+    let armies: Vec<Value> = gs.armies.iter().map(|a| serde_json::json!([a.id, a.tag, a.province, a.units.len(), a.path, a.front_id, a.pin, a.parent_id, a.fleet_id])).collect();
+    let want_armies: Vec<Value> = w["armies"].as_array().unwrap().iter().map(|a| serde_json::json!([a[0], a[1], a[2], a[4], a[9], a[6], a[7], a[8], a[11]])).collect();
     if armies != want_armies {
         let only_mine: Vec<&Value> = armies.iter().filter(|a| !want_armies.contains(a)).collect();
         let only_want: Vec<&Value> = want_armies.iter().filter(|a| !armies.contains(a)).collect();
@@ -166,6 +166,41 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
         fails.push(format!("{label}: attack lines\n  mine {}\n  want {}", Value::Array(lines), w["lines"]));
     }
     let _ = camp;
+    let fleets: Vec<Value> = gs.fleets.iter().map(|f| serde_json::json!([f.id, f.tag, f.name, f.port, f.zone, f.ships.iter().map(|s| serde_json::json!([s.kind, s.strength, s.morale])).collect::<Vec<_>>(), f.path, f.dest_port, f.mission, f.landing, f.days_out, f.entering, f.fighting, f.retreating])).collect();
+    let want_fleets: Vec<Value> = w["fleets_ai"].as_array().unwrap().iter().map(|f| {
+        let ships: Vec<Value> = f[5].as_array().unwrap().iter().map(|s| serde_json::json!([s[0], bits(&s[1]), bits(&s[2])])).collect();
+        serde_json::json!([f[0], f[1], f[2], f[3], f[4], ships, f[6], f[7], f[8], f[9], f[10], f[11], f[12], f[13]])
+    }).collect();
+    if norm(&Value::Array(fleets.clone())) != norm(&Value::Array(want_fleets.clone())) {
+        let at = fleets.iter().zip(&want_fleets).position(|(a, b)| norm(a) != norm(b));
+        fails.push(format!("{label}: fleets differ ({} vs {}), first at {at:?}\n  mine {:?}\n  want {:?}", fleets.len(), want_fleets.len(), at.map(|i| &fleets[i]), at.map(|i| &want_fleets[i])));
+    }
+    let mut mem: Vec<(String, Vec<(u32, usize)>)> = gs.ai_navy.iter().map(|(k, v)| { let mut e: Vec<(u32, usize)> = v.iter().map(|(a, b)| (*a, *b)).collect(); e.sort(); (k.clone(), e) }).filter(|x| !x.1.is_empty()).collect();
+    mem.sort();
+    let mut want_mem: Vec<(String, Vec<(u32, usize)>)> = w["navy_mem"].as_object().unwrap().iter().map(|(k, v)| { let mut e: Vec<(u32, usize)> = v.as_object().unwrap().iter().map(|(a, b)| (a.parse().unwrap(), b.as_u64().unwrap() as usize)).collect(); e.sort(); (k.clone(), e) }).filter(|x| !x.1.is_empty()).collect();
+    want_mem.sort();
+    if mem != want_mem {
+        fails.push(format!("{label}: fleets' stations {mem:?} vs {want_mem:?}"));
+    }
+    let mut lands: Vec<Value> = gs.ai_landing.iter().map(|(k, l)| serde_json::json!([k, l.enemy, l.target, l.port, l.fleet, l.armies, l.phase, l.started, l.zone])).collect();
+    lands.sort_by_key(|v| v[0].to_string());
+    let mut want_lands: Vec<Value> = w["landings"].as_object().unwrap().iter().map(|(k, l)| serde_json::json!([k, l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7]])).collect();
+    want_lands.sort_by_key(|v| v[0].to_string());
+    let mut lwait: Vec<(String, i64)> = gs.ai_landing_wait.iter().map(|(k, v)| (k.clone(), *v)).collect();
+    lwait.sort();
+    let mut want_lwait: Vec<(String, i64)> = w["landing_wait"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_i64().unwrap())).collect();
+    want_lwait.sort();
+    let mut need: Vec<(String, String)> = gs.ai_navy_need.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    need.sort();
+    let mut want_need: Vec<(String, String)> = w["navy_need"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), s(v).to_string())).collect();
+    want_need.sort();
+    if norm(&Value::Array(lands.clone())) != norm(&Value::Array(want_lands.clone())) || lwait != want_lwait || need != want_need {
+        fails.push(format!("{label}: landings {} {lwait:?} {need:?} vs {} {want_lwait:?} {want_need:?}", Value::Array(lands), Value::Array(want_lands)));
+    }
+    let yards: Vec<Value> = gs.nations.iter().map(|n| Value::Array(n.shipbuilding.iter().map(|j| serde_json::json!([j.kind, j.province, j.days_left])).collect())).collect();
+    if norm(&Value::Array(yards.clone())) != norm(&w["yards"]) {
+        fails.push(format!("{label}: ships on the slips {} vs {}", Value::Array(yards), w["yards"]));
+    }
     let want_plans: Value = serde_json::from_str(s(&w["plans"])).unwrap();
     if norm(&Value::Array(gs.ai_plans.clone())) != norm(&want_plans) {
         fails.push(format!("{label}: plans {} vs {}", Value::Array(gs.ai_plans.clone()), want_plans));
@@ -212,7 +247,7 @@ fn run(index: usize) {
     let mut gs = GameState::load_scenario(&data, name).unwrap();
     gs.pressure_ai = run["pressure"].as_bool().unwrap();
     let on = |p: &str| run["parts"].as_array().unwrap().iter().any(|x| x == p);
-    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition"), defence: on("defence"), diplomacy: on("diplomacy"), offence: on("offence") };
+    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition"), defence: on("defence"), diplomacy: on("diplomacy"), offence: on("offence"), navy: on("navy") };
     gs.start_scenario_wars(&data);
     gs.player_tag = s(&run["player"]).to_string();
     let purse: Vec<f64> = run["purse"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
@@ -476,4 +511,29 @@ fn everything_in_july_1914_for_serbia() {
 #[test]
 fn everything_in_1900_for_the_united_states() {
     run(41);
+}
+
+#[test]
+fn navy_in_three_wars() {
+    run(42);
+}
+
+#[test]
+fn navy_and_landings_for_serbia() {
+    run(43);
+}
+
+#[test]
+fn navy_in_1900() {
+    run(44);
+}
+
+#[test]
+fn everything_with_the_navy_in_july_1914() {
+    run(45);
+}
+
+#[test]
+fn everything_with_the_navy_in_1900() {
+    run(46);
 }

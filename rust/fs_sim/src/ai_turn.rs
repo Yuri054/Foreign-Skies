@@ -16,6 +16,7 @@ pub struct AiTurn {
     pub defence: bool,
     pub diplomacy: bool,
     pub offence: bool,
+    pub navy: bool,
 }
 
 fn bf(c: &Value, k: &str) -> f64 {
@@ -48,19 +49,24 @@ impl GameState {
             return;
         }
         for tag in self.due_nations(data) {
-            if self.ai_turn.defence && !self.wars_of(&tag).is_empty() {
-                self.ai_defense_step(data, &tag);
-            }
-            if self.ai_turn.offence && !self.wars_of(&tag).is_empty() {
-                self.ai_offense_step(data, &tag);
-            }
-            if self.ai_turn.forces {
-                if !self.wars_of(&tag).is_empty() {
-                    self.ai_forces_step(data, &tag);
-                } else {
-                    self.ai_forces_rebuild(data, &tag);
-                    self.ai_forces_demobilize(data, &tag);
+            // `AI._think`: the war (defence, offence, recruiting, navy, landing) when at war, else rebuilding and demobilizing
+            if !self.wars_of(&tag).is_empty() {
+                if self.ai_turn.defence {
+                    self.ai_defense_step(data, &tag);
                 }
+                if self.ai_turn.offence {
+                    self.ai_offense_step(data, &tag);
+                }
+                if self.ai_turn.forces {
+                    self.ai_forces_step(data, &tag);
+                }
+                if self.ai_turn.navy {
+                    self.ai_navy_step(data, &tag);
+                    self.ai_landing_step(data, &tag);
+                }
+            } else if self.ai_turn.forces {
+                self.ai_forces_rebuild(data, &tag);
+                self.ai_forces_demobilize(data, &tag);
             }
             if self.ai_turn.diplomacy {
                 self.ai_diplomacy_step(data, &tag);
@@ -148,6 +154,9 @@ impl GameState {
         self.ai_taxes(data, tag);
         self.ai_arms(data, tag);
         self.ai_buildings(data, tag);
+        if self.ai_turn.navy {
+            self.ai_navy_build(data, tag);
+        }
         self.ai_points(data, tag);
     }
 

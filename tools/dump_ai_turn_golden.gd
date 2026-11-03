@@ -23,6 +23,8 @@ var AIAm: GDScript
 var AID: GDScript
 var AIDip: GDScript
 var AIO: GDScript
+var AIN: GDScript
+var AIL: GDScript
 var parts: Array = []
 
 
@@ -49,6 +51,8 @@ func _initialize() -> void:
 	AID = load("res://scripts/ai/ai_defense.gd")
 	AIDip = load("res://scripts/ai/ai_diplomacy.gd")
 	AIO = load("res://scripts/ai/ai_offense.gd")
+	AIN = load("res://scripts/ai/ai_navy.gd")
+	AIL = load("res://scripts/ai/ai_landing.gd")
 	var Design: GDScript = load("res://scripts/sim/designate_front.gd")
 	clock.day_ticked.disconnect(gs._on_day_ticked)
 	clock.day_ticked.connect(_day)
@@ -122,6 +126,14 @@ func _initialize() -> void:
 				"groups": [["GER", "Rhine", 6, "FRA", false], ["FRA", "Alsace", 5, "GER", false], ["AUH", "Balkans", 5, "SRB", false]]},
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "SRB", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "budget", "focus", "ambition"], "pressure": true, "ai_cfg": LAX_AD},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 900, "every": 10, "player": "USA", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "budget", "focus", "ambition"], "ai_cfg": LAX_AD},
+		# the AI at sea
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 400, "every": 5, "player": "POR", "wars": [["GBR", "GER"], ["FRA", "ITA"], ["RUS", "OTT"]], "parts": ["defence", "offence", "forces", "navy"], "nofronts": true,
+				"orders": [["FRA", "ITA", 4], ["ITA", "FRA", 4], ["RUS", "OTT", 4], ["OTT", "RUS", 4]]},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 500, "every": 5, "player": "SRB", "wars": [["GBR", "GER"], ["GBR", "OTT"], ["FRA", "AUH"]], "parts": ["defence", "offence", "forces", "navy", "budget"], "nofronts": true, "purse": [3.0, 1.0, 0.5, 8.0],
+				"ai_cfg": {"navy": {"landing": {"min_force": 1, "min_utility": -5.0}}}},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 500, "every": 10, "player": "USA", "wars": [["GBR", "FRA"], ["GER", "RUS"], ["ESP", "ITA"]], "parts": ["defence", "offence", "forces", "navy", "budget"], "nofronts": true},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "BEL", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "navy", "budget", "focus", "ambition"], "pressure": true, "ai_cfg": LAX_AD},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 800, "every": 10, "player": "FRA", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "navy", "budget", "focus", "ambition"], "ai_cfg": LAX_AD},
 	])
 	var result := []
 	for run in runs:
@@ -213,6 +225,9 @@ func _day() -> void:
 		if "forces" in parts:
 			if not gs.wars_of(tag).is_empty():
 				AIFo.step(gs, tag)
+				if "navy" in parts:
+					AIN.step(gs, tag)
+					AIL.step(gs, tag)
 			else:
 				AIFo.rebuild(gs, tag)
 				AIFo.demobilize(gs, tag)
@@ -224,6 +239,8 @@ func _day() -> void:
 			AIB._taxes(gs, tag)
 			AIB._arms(gs, tag)
 			AIB._buildings(gs, tag)
+			if "navy" in parts:
+				AIN.build(gs, tag)
 			AIB._points(gs, tag)
 		if "focus" in parts:
 			AIF.step(gs, tag)
@@ -254,7 +271,7 @@ func _snapshot() -> Dictionary:
 		owners.append(gs.province_owner[id])
 	var armies := []
 	for a in gs.armies.values():
-		armies.append([a.id, a.tag, a.province, B(a.men()), a.units.size(), a.path.size(), a.front_id, a.pin, a.parent_id, a.path.duplicate(), B(a.move_days_left)])
+		armies.append([a.id, a.tag, a.province, B(a.men()), a.units.size(), a.path.size(), a.front_id, a.pin, a.parent_id, a.path.duplicate(), B(a.move_days_left), a.fleet_id])
 	var recruiting := []
 	for tag in gs.nations:
 		recruiting.append(gs.nations[tag].recruiting.map(func(j): return [j.type, j.province, j.days_left]))
@@ -281,6 +298,19 @@ func _snapshot() -> Dictionary:
 	for l in gs.attack_lines.values():
 		var lc: Dictionary = l.campaign
 		lines.append([l.id, l.active, l.wait, [lc.enemy, lc.target, lc.staging, lc.armies.duplicate(), lc.phase, lc.started, lc.get("done", false)] if not lc.is_empty() else []])
+	var fleets := []
+	for f in gs.fleets.values():
+		fleets.append([f.id, f.tag, f.display_name, f.port, f.zone, f.ships.map(func(sh): return [sh.type, B(sh.strength), B(sh.morale)]), f.path.duplicate(), f.dest_port, f.mission, f.landing, f.days_out, f.entering, f.fighting, f.retreating, B(f.move_days_left)])
+	var navy_mem := {}
+	for tag in gs.ai_navy:
+		navy_mem[tag] = gs.ai_navy[tag].assign.duplicate()
+	var landings := {}
+	for tag in gs.ai_landing:
+		var l: Dictionary = gs.ai_landing[tag]
+		landings[tag] = [l.enemy, l.target, l.port, l.fleet, l.armies.duplicate(), l.phase, l.started, l.zone]
+	var yards := []
+	for tag in gs.nations:
+		yards.append(gs.nations[tag].shipbuilding.map(func(j): return [j.type, j.province, j.days_left]))
 	var treaties := []
 	for t in gs.treaties:
 		treaties.append([t.id, t.kind, t.a, t.b, t.start_day, t.end_day])
@@ -296,7 +326,7 @@ func _snapshot() -> Dictionary:
 	var grv := {}
 	for k in gs.grievance:
 		grv[k] = B(gs.grievance[k])
-	return {"controllers": controllers, "campaigns": camps, "campaign_wait": gs.ai_campaign_wait.duplicate(), "lines": lines, "treaties": treaties, "crises": crises, "cbs": cbs, "relations": rel, "grievance": grv, "declarations": [gs.ai_declarations.total, gs.ai_declarations.unjustified], "fronts": fronts, "reserve": gs.ai_reserve.duplicate(), "anchor_stamp": gs.ai_anchor_stamp.duplicate(), "day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
+	return {"fleets_ai": fleets, "navy_mem": navy_mem, "landings": landings, "landing_wait": gs.ai_landing_wait.duplicate(), "navy_need": gs.ai_navy_need.duplicate(), "yards": yards, "controllers": controllers, "campaigns": camps, "campaign_wait": gs.ai_campaign_wait.duplicate(), "lines": lines, "treaties": treaties, "crises": crises, "cbs": cbs, "relations": rel, "grievance": grv, "declarations": [gs.ai_declarations.total, gs.ai_declarations.unjustified], "fronts": fronts, "reserve": gs.ai_reserve.duplicate(), "anchor_stamp": gs.ai_anchor_stamp.duplicate(), "day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
 			"manpower": manpower, "wars": wars, "ambition": gs.ai_ambition.duplicate(true), "ambition_wait": gs.ai_ambition_wait.duplicate(), "plans": JSON.stringify(gs.ai_plans)}
 
 

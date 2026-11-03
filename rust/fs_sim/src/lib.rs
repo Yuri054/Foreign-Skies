@@ -12,6 +12,7 @@ pub mod ai_defense;
 pub mod ai_diplo_step;
 pub mod ai_forces;
 pub mod ai_turn;
+pub mod ai_navy;
 pub mod ai_offense;
 pub mod ai_peace;
 pub mod army_mgmt;

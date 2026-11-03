@@ -13,7 +13,7 @@ use crate::military::{self, Army};
 use crate::tsv::Table;
 use serde_json::Value;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 /// Everything the simulation reads from `data/`, loaded once.
@@ -436,6 +436,15 @@ pub struct GameState {
     pub ai_seed: i64,
     /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
     pub ai_budget_stamp: HashMap<String, i64>,
+    /// The AI's navy: each nation's fleets and the zone each was sent to (`ai_navy`), the landing being prepared (`ai_landing`) and the day it may
+    /// look for another, the ship a nation asks its budget for (`ai_navy_need`), the fleets with armies aboard (`AINavy._carrying`) and what the
+    /// AI keeps for the day about the sea.
+    pub ai_navy: HashMap<String, HashMap<u32, usize>>,
+    pub ai_landing: HashMap<String, crate::ai_navy::Landing>,
+    pub ai_landing_wait: HashMap<String, i64>,
+    pub ai_navy_need: HashMap<String, String>,
+    pub ai_carrying: std::cell::RefCell<HashSet<u32>>,
+    pub ai_navy_caches: std::cell::RefCell<crate::ai_navy::NavyCaches>,
     /// What the AI keeps for the day (`AI._index`, `_threat_cache`, `_worth_cache`): the armies in each province as they stood when the first
     /// question of the day was asked (it is built again only when the number of armies or wars changes), the threat on a province, and a
     /// nation's output. They are forgotten when a province changes hands.
@@ -741,6 +750,12 @@ impl GameState {
             ai_traits: HashMap::new(),
             ai_seed: 0,
             ai_budget_stamp: HashMap::new(),
+            ai_navy: HashMap::new(),
+            ai_landing: HashMap::new(),
+            ai_landing_wait: HashMap::new(),
+            ai_navy_need: HashMap::new(),
+            ai_carrying: std::cell::RefCell::new(HashSet::new()),
+            ai_navy_caches: std::cell::RefCell::new(crate::ai_navy::NavyCaches { weight_day: -1, ..Default::default() }),
             ai_index: std::cell::RefCell::new((-1, HashMap::new())),
             ai_threat_cache: std::cell::RefCell::new(HashMap::new()),
             ai_worth_cache: std::cell::RefCell::new(HashMap::new()),

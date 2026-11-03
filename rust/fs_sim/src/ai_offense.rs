@@ -57,7 +57,7 @@ impl GameState {
 
     /// `AIOffense.in_campaign`: whether an army is on one of the nation's campaigns (or a landing).
     pub fn ai_in_campaign(&self, tag: &str, army: u32) -> bool {
-        self.ai_campaign.get(tag).map(|c| c.armies.contains(&army)).unwrap_or(false) || self.ai_campaign_extra.get(tag).map(|l| l.iter().any(|c| c.armies.contains(&army))).unwrap_or(false)
+        self.ai_campaign.get(tag).map(|c| c.armies.contains(&army)).unwrap_or(false) || self.ai_campaign_extra.get(tag).map(|l| l.iter().any(|c| c.armies.contains(&army))).unwrap_or(false) || self.ai_landing_involves(tag, army)
     }
 
     /// `AIOffense._drop`: removes a campaign from the nation's books.
@@ -149,7 +149,7 @@ impl GameState {
         out
     }
 
-    fn ai_km(data: &Data, a: usize, b: usize) -> f64 {
+    pub(crate) fn ai_km(data: &Data, a: usize, b: usize) -> f64 {
         let (pa, pb) = (data.map.provinces[a].center, data.map.provinces[b].center);
         let (dx, dy) = (pa.0 - pb.0, pa.1 - pb.1);
         (dx * dx + dy * dy).sqrt() as f64 * crate::war::KM_PER_PX
@@ -157,7 +157,7 @@ impl GameState {
 
     /// `AIOffense._resistance`: what stands against an attack on a province: the defenders there and the enemy power around it, plus a share of
     /// every enemy army within reach.
-    fn ai_resistance(&self, data: &Data, tag: &str, target: usize) -> f64 {
+    pub(crate) fn ai_resistance(&self, data: &Data, tag: &str, target: usize) -> f64 {
         let o = &data.ai.raw["offense"];
         let reach = self.hops_from(data, target, of(o, "support_hops") as i64);
         let mut around = 0.0;
@@ -203,12 +203,12 @@ impl GameState {
     }
 
     /// `AIOffense._defensive`: whether a plan against this enemy says to stay on the defensive.
-    fn ai_defensive_plan(&self, tag: &str, enemy: &str) -> bool {
+    pub(crate) fn ai_defensive_plan(&self, tag: &str, enemy: &str) -> bool {
         self.ai_plans.iter().any(|p| p["nation"] == tag && p["enemy"] == enemy && p["posture"] == "defensive")
     }
 
     /// `AIOffense._worth`: how much taking a province is worth, before the odds and the cost.
-    fn ai_worth(&self, data: &Data, tag: &str, enemy: &str, target: usize) -> f64 {
+    pub(crate) fn ai_worth(&self, data: &Data, tag: &str, enemy: &str, target: usize) -> f64 {
         let w = &data.ai.raw["offense"];
         let owner = self.province_owner[target].clone();
         let mut points = self.province_share(data, target, &owner) * data.diplomacy.peace.score_occupation_points;
