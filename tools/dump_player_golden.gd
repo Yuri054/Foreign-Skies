@@ -37,6 +37,8 @@ var C_DemobilizeUnits: GDScript
 var C_CancelTreaty: GDScript
 var C_AnswerJoin: GDScript
 var C_AnswerPeace: GDScript
+var C_MergeFleets: GDScript
+var C_SplitFleet: GDScript
 
 
 func B(x: float) -> String:
@@ -75,6 +77,8 @@ func _initialize() -> void:
 	C_CancelTreaty = load("res://scripts/sim/cancel_treaty.gd")
 	C_AnswerJoin = load("res://scripts/sim/answer_join.gd")
 	C_AnswerPeace = load("res://scripts/sim/answer_peace.gd")
+	C_MergeFleets = load("res://scripts/sim/merge_fleets.gd")
+	C_SplitFleet = load("res://scripts/sim/split_fleet.gd")
 	var runs := [
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "GBR"},
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "SRB"},
@@ -143,7 +147,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 	var n = gs.nations[me]
 	if n.provinces.is_empty():
 		return
-	var kind := k % 22
+	var kind := k % 24
 	var cmd = null
 	var args: Array = []
 	var name := ""
@@ -215,7 +219,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 		9:
 			name = "treaty"
 			var kinds: Array = ["alliance", "guarantee", "nap", "passage"]
-			args = [_other(me, k * 3), kinds[(k / 22) % 4]]
+			args = [_other(me, k * 3), kinds[(k / 24) % 4]]
 			cmd = C_ProposeTreaty.new(me, args[0], args[1])
 		10:
 			name = "improve"
@@ -247,7 +251,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 			var targets2: Array = Dip.neighbor_nations(gs, me)
 			if targets2.is_empty():
 				return
-			args = [targets2[k % targets2.size()], pk[(k / 22) % 6]]
+			args = [targets2[k % targets2.size()], pk[(k / 24) % 6]]
 			cmd = C_PressDemand.new(me, args[0], args[1])
 		15:
 			name = "peace"
@@ -258,9 +262,9 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 			var foe: String = w.other(me)
 			var mode: String = "offer" if k % 2 == 0 else "demand"
 			var demands: Array = []
-			if (k / 22) % 3 == 1:
+			if (k / 24) % 3 == 1:
 				demands = [{"kind": "indemnity", "share": 0.1, "months": 12}]
-			elif (k / 22) % 3 == 2:
+			elif (k / 24) % 3 == 2:
 				var held: Array = []
 				for id2 in gs.nations[me if mode == "offer" else foe].provinces:
 					if gs.province_controller[id2] == (foe if mode == "offer" else me):
@@ -282,7 +286,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 			if ports.is_empty():
 				return
 			var st: Array = ["destroyer", "cruiser", "submarine", "transport", "dreadnought"]
-			args = [ports[k % ports.size()], st[(k / 22) % 5], 1]
+			args = [ports[k % ports.size()], st[(k / 24) % 5], 1]
 			cmd = C_RaiseShips.new(me, args[0], args[1], 1)
 		18:
 			name = "fleet"
@@ -302,12 +306,40 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 				return
 			var c = gs.crises[k % gs.crises.size()]
 			var acts: Array = ["yield", "refuse", "mobilize", "appeal"] if c.b == me else ["mediate", "back_a", "back_b"]
-			args = [c.id, acts[(k / 22) % acts.size()]]
+			args = [c.id, acts[(k / 24) % acts.size()]]
 			cmd = C_CrisisAction.new(me, c.id, args[1])
 		20:
 			name = "demobilize"
 			args = [0, 1 + k % 3]
 			cmd = C_DemobilizeUnits.new(me, 0, args[1])
+		23:
+			name = "split"
+			var big: Array = []
+			for fs in Nav.fleets_of(gs, me):
+				if fs.ships.size() >= 2:
+					big.append(fs.id)
+			if big.is_empty():
+				return
+			args = [big[k % big.size()], [0]]
+			cmd = C_SplitFleet.new(me, args[0], [0] as Array[int])
+		22:
+			name = "merge"
+			var by_place := {}
+			for fm in Nav.fleets_of(gs, me):
+				var key := "%d:%d" % [fm.port, fm.zone]
+				if not by_place.has(key):
+					by_place[key] = []
+				by_place[key].append(fm.id)
+			var groups: Array = []
+			for key in by_place:
+				if by_place[key].size() >= 2:
+					groups.append(by_place[key])
+			if groups.is_empty():
+				return
+			var picked: Array[int] = []
+			picked.assign(groups[k % groups.size()])
+			args = [picked]
+			cmd = C_MergeFleets.new(me, picked)
 		21:
 			name = "cancel"
 			var mine: Array = []
@@ -324,6 +356,24 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 	if name == "policy":
 		args = [args[0], B(args[1])]
 	log.append([d, name, args, ok])
+	# a fleet just split is put together again (one time out of two), and once with a wrong order
+	if name == "split" and ok:
+		var pair: Array[int] = []
+		if k % 2 == 0:
+			pair.append(args[0])
+			pair.append(cmd.new_fleet_id)
+		else:
+			pair.append(cmd.new_fleet_id)
+			pair.append(args[0])
+		var back = C_MergeFleets.new(me, pair)
+		var ok2: bool = gs.issue(back)
+		log.append([d, "merge", [pair.duplicate()], ok2])
+		var twice: Array[int] = []
+		twice.append(args[0])
+		twice.append(args[0])
+		var bad = C_MergeFleets.new(me, twice)
+		var ok3: bool = gs.issue(bad)
+		log.append([d, "merge", [twice.duplicate()], ok3])
 
 
 func MapData_zones(id: int) -> Array:

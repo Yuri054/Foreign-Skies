@@ -181,6 +181,43 @@ impl GameState {
         Some(d.id)
     }
 
+    /// `MergeFleets.execute`: combines fleets of one nation standing together into the first one listed.
+    pub fn merge_fleets(&mut self, tag: &str, fleet_ids: &[u32]) -> bool {
+        if fleet_ids.len() < 2 {
+            return false;
+        }
+        let Some(ti) = self.fleet_index(fleet_ids[0]) else { return false };
+        if self.fleets[ti].tag != tag || self.fleets[ti].fighting {
+            return false;
+        }
+        let (port, zone) = (self.fleets[ti].port, self.fleets[ti].zone);
+        for &id in &fleet_ids[1..] {
+            match self.fleet_index(id) {
+                Some(fi) if id != fleet_ids[0] && self.fleets[fi].tag == tag && self.fleets[fi].port == port && self.fleets[fi].zone == zone && !self.fleets[fi].fighting => {}
+                _ => return false,
+            }
+        }
+        let target_id = fleet_ids[0];
+        for &id in &fleet_ids[1..] {
+            let fi = self.fleet_index(id).unwrap();
+            let f = self.fleets.remove(fi);
+            let ti = self.fleet_index(target_id).unwrap();
+            self.fleets[ti].ships.extend(f.ships);
+            for a in &mut self.armies {
+                if a.fleet_id == id {
+                    a.fleet_id = target_id;
+                }
+            }
+        }
+        let ti = self.fleet_index(target_id).unwrap();
+        let t = &mut self.fleets[ti];
+        t.path.clear();
+        t.landing = 0;
+        t.entering = false;
+        t.dest_port = 0;
+        true
+    }
+
     // ---------------------------------------------------------------- where the enemy is
 
     /// `AINavy.enemy_map`: enemy fighting power bearing on each sea zone.

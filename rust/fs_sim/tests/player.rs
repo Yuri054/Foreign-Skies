@@ -137,6 +137,8 @@ fn command(gs: &mut GameState, data: &Data, me: &str, e: &[Value]) -> bool {
         "fleet" => gs.move_fleet(data, me, u(0) as u32, u(1), 0),
         "crisis" => gs.crisis_action(data, me, u(0) as u32, s(&a[1])),
         "demobilize" => gs.demobilize_units(data, me, 0, a[1].as_i64().unwrap()),
+        "split" => gs.split_fleet(me, u(0) as u32, &[0]).is_some(),
+        "merge" => gs.merge_fleets(me, &a[0].as_array().unwrap().iter().map(|x| x.as_u64().unwrap() as u32).collect::<Vec<_>>()),
         "cancel" => gs.cancel_treaty(data, me, u(0) as u32).is_empty(),
         "answer_event" => return gs.answer_event(data, u(0) as u32, u(1)),
         "answer_join" => gs.answer_join(data, u(0) as u32, a[1].as_bool().unwrap()),
