@@ -19,6 +19,7 @@ var AIB: GDScript
 var AIF: GDScript
 var AIFo: GDScript
 var AIAm: GDScript
+var AID: GDScript
 var parts: Array = []
 
 
@@ -42,6 +43,7 @@ func _initialize() -> void:
 	AIF = load("res://scripts/ai/ai_focus.gd")
 	AIFo = load("res://scripts/ai/ai_forces.gd")
 	AIAm = load("res://scripts/ai/ai_ambition.gd")
+	AID = load("res://scripts/ai/ai_defense.gd")
 	var Design: GDScript = load("res://scripts/sim/designate_front.gd")
 	clock.day_ticked.disconnect(gs._on_day_ticked)
 	clock.day_ticked.connect(_day)
@@ -85,6 +87,16 @@ func _initialize() -> void:
 				"ai_cfg": {"ambition": {"threshold": 0.8, "start_delay_days": 0, "review_days": 30, "odds_margin": 0.9, "min_aggression": 0.4, "give_up_days": 200, "cooldown_days": 60}}},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1500, "every": 10, "player": "FRA", "wars": [], "parts": ["forces", "ambition"], "purse": [1.0],
 				"ai_cfg": {"ambition": {"threshold": 1.0, "start_delay_days": 0, "review_days": 20, "odds_margin": 0.8, "min_aggression": 0.3, "give_up_days": 150, "cooldown_days": 30}}},
+		# the AI at war on the defensive: fronts drawn by the AI (or by hand), armies sent to the border, wars of many nations
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 300, "every": 5, "player": "POR", "wars": [["GER", "FRA"], ["ITA", "AUH"], ["RUS", "OTT"]], "parts": ["defence", "forces"], "nofronts": true,
+				"orders": [["GER", "FRA", 6], ["FRA", "GER", 6], ["ITA", "AUH", 4], ["AUH", "ITA", 4], ["RUS", "OTT", 4], ["OTT", "RUS", 4]]},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 400, "every": 5, "player": "GBR", "wars": [["GER", "RUS"], ["AUH", "SRB"], ["FRA", "ITA"], ["OTT", "GRE"]], "parts": ["defence", "forces", "budget"], "nofronts": true,
+				"orders": [["GER", "RUS", 8], ["RUS", "GER", 8], ["AUH", "SRB", 4], ["SRB", "AUH", 4], ["FRA", "ITA", 4], ["ITA", "FRA", 4], ["OTT", "GRE", 3], ["GRE", "OTT", 3]]},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 300, "every": 5, "player": "SRB", "wars": [["GER", "FRA"], ["AUH", "SRB"], ["RUS", "AUH"]], "parts": ["defence", "forces", "budget", "focus"]},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 500, "every": 10, "player": "USA", "wars": [["RUS", "OTT"], ["FRA", "GER"], ["GBR", "ESP"]], "parts": ["defence", "forces"], "nofronts": true,
+				"orders": [["RUS", "OTT", 5], ["OTT", "RUS", 5], ["FRA", "GER", 5], ["GER", "FRA", 5]]},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 700, "every": 10, "player": "GBR", "wars": [["FRA", "GER"], ["RUS", "AUH"], ["ITA", "OTT"], ["ESP", "POR"]], "parts": ["defence", "forces", "budget"], "purse": [3.0, 1.0, 0.4],
+				"orders": [["FRA", "GER", 6], ["GER", "FRA", 6], ["RUS", "AUH", 6], ["AUH", "RUS", 6]]},
 	])
 	var result := []
 	for run in runs:
@@ -107,7 +119,7 @@ func _initialize() -> void:
 				gs.nations[tags[i]].treasury *= purse[i % purse.size()]
 		for w in run.wars:
 			Dip.start_war(gs, w[0], w[1], true)
-			for pair in [[w[0], w[1]], [w[1], w[0]]]:
+			for pair in ([] if run.get("nofronts", false) else [[w[0], w[1]], [w[1], w[0]]]):
 				var cmd = Design.new(pair[0], "Front " + pair[1], [] as Array[int], pair[1], "line", 0)
 				var ok: bool = cmd.execute(gs)
 				setup.append([pair[0], pair[1], ok])
@@ -150,6 +162,8 @@ func _day() -> void:
 	Dip.step_day(gs)
 	Cri.step_day(gs)
 	for tag in AIc.due_nations(gs):
+		if "defence" in parts and not gs.wars_of(tag).is_empty():
+			AID.step(gs, tag)
 		if "forces" in parts:
 			if not gs.wars_of(tag).is_empty():
 				AIFo.step(gs, tag)
@@ -192,7 +206,7 @@ func _snapshot() -> Dictionary:
 		owners.append(gs.province_owner[id])
 	var armies := []
 	for a in gs.armies.values():
-		armies.append([a.id, a.tag, a.province, B(a.men()), a.units.size()])
+		armies.append([a.id, a.tag, a.province, B(a.men()), a.units.size(), a.path.size(), a.front_id, a.pin, a.parent_id, a.path.duplicate(), B(a.move_days_left)])
 	var recruiting := []
 	for tag in gs.nations:
 		recruiting.append(gs.nations[tag].recruiting.map(func(j): return [j.type, j.province, j.days_left]))
@@ -202,7 +216,10 @@ func _snapshot() -> Dictionary:
 	var wars := []
 	for w in gs.wars.values():
 		wars.append([w.id, w.a, w.b])
-	return {"day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
+	var fronts := []
+	for f in gs.fronts.values():
+		fronts.append([f.id, f.tag, f.against, f.provinces.duplicate(), f.anchors.duplicate(), f.army_ids.duplicate()])
+	return {"fronts": fronts, "reserve": gs.ai_reserve.duplicate(), "anchor_stamp": gs.ai_anchor_stamp.duplicate(), "day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
 			"manpower": manpower, "wars": wars, "ambition": gs.ai_ambition.duplicate(true), "ambition_wait": gs.ai_ambition_wait.duplicate(), "plans": JSON.stringify(gs.ai_plans)}
 
 

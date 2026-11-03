@@ -64,10 +64,12 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     if owners != want {
         fails.push(format!("{label}: owners differ"));
     }
-    let armies: Vec<Value> = gs.armies.iter().map(|a| serde_json::json!([a.id, a.tag, a.province, a.units.len()])).collect();
-    let want_armies: Vec<Value> = w["armies"].as_array().unwrap().iter().map(|a| serde_json::json!([a[0], a[1], a[2], a[4]])).collect();
+    let armies: Vec<Value> = gs.armies.iter().map(|a| serde_json::json!([a.id, a.tag, a.province, a.units.len(), a.path, a.front_id, a.pin, a.parent_id])).collect();
+    let want_armies: Vec<Value> = w["armies"].as_array().unwrap().iter().map(|a| serde_json::json!([a[0], a[1], a[2], a[4], a[9], a[6], a[7], a[8]])).collect();
     if armies != want_armies {
-        fails.push(format!("{label}: armies differ ({} vs {})", armies.len(), want_armies.len()));
+        let only_mine: Vec<&Value> = armies.iter().filter(|a| !want_armies.contains(a)).collect();
+        let only_want: Vec<&Value> = want_armies.iter().filter(|a| !armies.contains(a)).collect();
+        fails.push(format!("{label}: armies differ ({} vs {})\n  only mine {only_mine:?}\n  only want {only_want:?}", armies.len(), want_armies.len()));
     }
     let rec: Vec<Value> = gs.nations.iter().map(|n| Value::Array(n.recruiting.iter().map(|j| serde_json::json!([j.unit_type, j.province, j.days_left])).collect())).collect();
     if norm(&Value::Array(rec)) != norm(&w["recruiting"]) {
@@ -92,6 +94,21 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     if amb != want_amb || wait != want_wait {
         fails.push(format!("{label}: ambitions {amb:?} {wait:?} vs {want_amb:?} {want_wait:?}"));
     }
+    let fronts: Vec<Value> = gs.fronts.iter().map(|f| serde_json::json!([f.id, f.tag, f.against, f.provinces, f.anchors, f.army_ids])).collect();
+    if norm(&Value::Array(fronts.clone())) != norm(&w["fronts"]) {
+        fails.push(format!("{label}: fronts\n  mine {}\n  want {}", Value::Array(fronts), w["fronts"]));
+    }
+    let mut reserve: Vec<(String, u32)> = gs.ai_reserve.iter().map(|(k, v)| (k.clone(), *v)).collect();
+    reserve.sort();
+    let mut want_reserve: Vec<(String, u32)> = w["reserve"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_u64().unwrap() as u32)).collect();
+    want_reserve.sort();
+    let mut stamps: Vec<(u32, i64)> = gs.ai_anchor_stamp.iter().map(|(k, v)| (*k, *v)).collect();
+    stamps.sort();
+    let mut want_stamps: Vec<(u32, i64)> = w["anchor_stamp"].as_object().unwrap().iter().map(|(k, v)| (k.parse().unwrap(), v.as_i64().unwrap())).collect();
+    want_stamps.sort();
+    if reserve != want_reserve || stamps != want_stamps {
+        fails.push(format!("{label}: reserves {reserve:?} stamps {stamps:?} vs {want_reserve:?} {want_stamps:?}"));
+    }
     let want_plans: Value = serde_json::from_str(s(&w["plans"])).unwrap();
     if norm(&Value::Array(gs.ai_plans.clone())) != norm(&want_plans) {
         fails.push(format!("{label}: plans {} vs {}", Value::Array(gs.ai_plans.clone()), want_plans));
@@ -103,7 +120,7 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
 
 fn run(index: usize) {
     let mut data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
-    let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/ai_turn.json")).unwrap();
+    let text = std::fs::read_to_string(std::env::var("AI_GOLDEN").unwrap_or(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/ai_turn.json").to_string())).unwrap();
     let all: Value = serde_json::from_str(&text).unwrap();
     let run = &all[index];
     let name = s(&run["name"]);
@@ -115,7 +132,7 @@ fn run(index: usize) {
     let mut gs = GameState::load_scenario(&data, name).unwrap();
     gs.pressure_ai = run["pressure"].as_bool().unwrap();
     let on = |p: &str| run["parts"].as_array().unwrap().iter().any(|x| x == p);
-    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition") };
+    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition"), defence: on("defence") };
     gs.start_scenario_wars(&data);
     gs.player_tag = s(&run["player"]).to_string();
     let purse: Vec<f64> = run["purse"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
@@ -153,6 +170,13 @@ fn run(index: usize) {
     }
     assert!(fails.is_empty(), "{} differences, e.g.\n{}", fails.len(), fails.iter().take(8).cloned().collect::<Vec<_>>().join("\n"));
     println!("{name}/{}: {} days agree with the GDScript", s(&run["player"]), (snaps.len() - 1) * every);
+}
+
+#[test]
+fn debug_run() {
+    if let Ok(i) = std::env::var("AI_RUN") {
+        run(i.parse().unwrap());
+    }
 }
 
 #[test]
@@ -273,4 +297,29 @@ fn united_states_with_ambition_near_its_threshold_in_tension() {
 #[test]
 fn france_with_ambition_at_its_threshold() {
     run(23);
+}
+
+#[test]
+fn defence_with_portugal_looking_on() {
+    run(24);
+}
+
+#[test]
+fn defence_in_four_wars() {
+    run(25);
+}
+
+#[test]
+fn defence_of_serbia() {
+    run(26);
+}
+
+#[test]
+fn defence_in_1900() {
+    run(27);
+}
+
+#[test]
+fn defence_in_four_wars_in_1900() {
+    run(28);
 }

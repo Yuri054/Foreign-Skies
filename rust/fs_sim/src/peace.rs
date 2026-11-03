@@ -724,6 +724,9 @@ impl GameState {
             }
         }
         self.withdraw_armies(data, &a, &b);
+        for f in &mut self.fronts {
+            f.dirty = true;
+        }
         self.recompute(data);
         if !offer.demands.is_empty() {
             // Terms earn the taker standing, and cost the giver some of it.

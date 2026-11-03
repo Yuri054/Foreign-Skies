@@ -436,6 +436,9 @@ pub struct GameState {
     pub ai_seed: i64,
     /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
     pub ai_budget_stamp: HashMap<String, i64>,
+    /// The day each front's anchors were last chosen, and the army each nation holds in reserve (`ai_anchor_stamp`, `ai_reserve`).
+    pub ai_anchor_stamp: HashMap<u32, i64>,
+    pub ai_reserve: HashMap<String, u32>,
     /// The target each AI nation has set its sights on and the day it did, and the day before which it sets none (`ai_ambition`).
     pub ai_ambition: HashMap<String, (String, i64)>,
     pub ai_ambition_wait: HashMap<String, i64>,
@@ -723,6 +726,8 @@ impl GameState {
             ai_traits: HashMap::new(),
             ai_seed: 0,
             ai_budget_stamp: HashMap::new(),
+            ai_anchor_stamp: HashMap::new(),
+            ai_reserve: HashMap::new(),
             ai_ambition: HashMap::new(),
             ai_ambition_wait: HashMap::new(),
             ai_turn: Default::default(),
