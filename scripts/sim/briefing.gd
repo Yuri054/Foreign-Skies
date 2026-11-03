@@ -30,37 +30,27 @@ static func issues(gs: Node, tag: String) -> Array[Dictionary]:
 	for w: War in gs.wars_of(tag):
 		if w.a == tag and not w.goal.is_empty() and WarGoal.progress(gs, w) < 0.5 and w.days_lasted(Clock.days_elapsed) > 120:
 			_add(out, "goal_" + w.b, 45.0, "The war on %s is not reaching its goal" % gs.nations[w.b].display_name, "%s Take the ground or make a limited peace." % WarGoal.line(gs, w), "Military")
-	# Munitions for the guns.
-	if at_war:
-		var days := Munitions.days_left(gs, tag)
-		if n.shell_ratio < 0.99:
-			_add(out, "shells", 84.0, "The guns are short of shells", "They got %d%% of what they needed. Raise arms production or buy munitions abroad." % roundi(n.shell_ratio * 100.0), "Economy")
-		elif days < 60.0:
-			_add(out, "shells", 72.0, "Munitions for about %d days of war" % roundi(days), "At the present rate the stockpile runs out. Raise arms production or buy abroad.", "Economy")
-	# Money and supply.
+	# Money and building.
 	if not b.is_empty():
 		if n.treasury < 0.0:
-			_add(out, "debt", 90.0, "The treasury is in debt: £%.1fM" % -n.treasury, "Interest takes £%.1fM a month. Raise taxes or cut spending." % Fmt.monthly(b.interest), "Economy")
+			_add(out, "debt", 90.0, "The treasury is in debt: %s gold" % Fmt.money(-n.treasury), "Interest takes %s gold a month. Cut spending (the army, the navy, building upkeep) or raise income." % Fmt.money(b.interest), "Economy")
 		elif b.net < 0.0 and n.treasury < -b.net * 6.0:
 			var months := maxi(1, ceili(n.treasury / maxf(-b.net, 0.01)))
-			_add(out, "deficit", 70.0 if months <= 6 else 50.0, "A deficit of £%.1fM a month" % -Fmt.monthly(b.net), "The treasury is empty in about %d months." % months, "Economy")
-		if b.food_shortage > 0.0:
-			_add(out, "famine", 85.0, "Famine: %d%% of the food is missing" % roundi(b.food_shortage * 100.0), "People starve and growth falls. Import food or end a blockade.", "Economy")
-		if b.materials.ratio < 0.8:
-			_add(out, "materials", 55.0, "Raw materials are short (%d%% of the need)" % roundi(b.materials.ratio * 100.0), "Industry is cut by the same share. A blockade is cutting the imports: keep the sea open, or hold the provinces with coal, iron and timber.", "Economy")
+			_add(out, "deficit", 70.0 if months <= 6 else 50.0, "A deficit of %s gold a month" % Fmt.money(-b.net), "The treasury is empty in about %d months." % months, "Economy")
 		if n.blockade > 0.1:
-			_add(out, "blockade", 55.0 + n.blockade * 20.0, "A blockade cuts %d%% of your imports" % roundi(n.blockade * 100.0), "Break it with your fleet or make peace with the nation enforcing it.", "Navy")
-		var used: float = n.construction_used
-		var pool: float = b.get("construction_points", 0.0)
-		if pool > 0.0 and used < pool * 0.5 and n.construction.is_empty():
-			_add(out, "idle_industry", 35.0, "Your industry sits idle", "%d of %d IC a day are not used. Queue buildings." % [roundi(pool - used), roundi(pool)], "Build")
-		# Money piling up in peace buys nothing: say what it could.
-		var revenue_month: float = float(b.revenue) / 12.0
-		if not at_war and revenue_month > 0.0 and n.treasury > revenue_month * 12.0 and b.net > 0.0:
+			_add(out, "blockade", 55.0 + n.blockade * 20.0, "A blockade cuts %d%% of your port income" % roundi(n.blockade * 100.0), "Break it with your fleet or make peace with the nation enforcing it.", "Navy")
+		var cp_month := float(b.get("cp", 0.0)) * 30.0
+		var factory: Dictionary = Economy.build_plan(gs, 0, "civilian_factory")
+		if n.construction.is_empty() and n.cp >= factory.cp and n.treasury >= factory.gold:
+			_add(out, "idle_industry", 35.0, "Nothing is being built", "You have %s gold and %d construction points (%d a month): enough for a civilian factory, which earns %s gold a month. Queue buildings." % [
+					Fmt.money(n.treasury), roundi(n.cp), roundi(cp_month), Fmt.money(float(Economy.cfg.buildings.civilian_factory.income))], "Build")
+		# Gold piling up in peace buys nothing: say what it could.
+		var income: float = float(b.income)
+		if not at_war and income > 0.0 and n.treasury > income * 12.0 and b.net > 0.0:
 			var war_cost := Economy.mobilization_cost(gs, n, 1.0)
 			var decade: float = Economy.division_upkeep(gs, n) * 120.0 + float(Military.cfg.unit_types.infantry.cost)
 			var chest := "a war chest for %d months of full mobilization" % floori(n.treasury / war_cost) if war_cost > 0.01 else "a war chest"
-			_add(out, "idle_money", 28.0, "£%.0fM lies idle in the treasury" % n.treasury, "It could begin buildings, raise and keep %d more divisions for ten years, or buy munitions; as it is, it is %s." % [floori(n.treasury / maxf(decade, 0.001)), chest], "Economy")
+			_add(out, "idle_money", 28.0, "%s gold lies idle in the treasury" % Fmt.money(n.treasury), "It could begin buildings, or raise and keep %d more divisions for ten years; as it is, it is %s." % [floori(n.treasury / maxf(decade, 0.001)), chest], "Economy")
 	# Neighbours and Europe.
 	for key: String in gs.alarms:
 		if key.ends_with(">" + tag):

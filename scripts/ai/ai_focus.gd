@@ -2,7 +2,7 @@ class_name AIFocus
 extends RefCounted
 ## An AI nation with no focus in hand takes up the one it likes best from those it can start.
 ## The score is the focus's `ai` weight in data/focus.json, raised by what the nation needs: a
-## nation at war likes army and construction foci, a poor one likes output, a hungry one food;
+## nation at war likes army and construction foci, one at peace likes income and factories;
 ## a focus with a min_aggression is left to nations at least that aggressive. Repeatable foci wait until the rest of the
 ## tree is done or out of reach.
 
@@ -31,16 +31,13 @@ static func step(gs: Node, tag: String) -> void:
 static func score_of(gs: Node, tag: String, f: Dictionary) -> float:
 	if f.has("min_aggression") and float(AI.temperament(gs, tag).aggression) < float(f.min_aggression):
 		return 0.0
-	var n: Nation = gs.nations[tag]
 	var fx: Dictionary = f.effects
 	var score := float(f.ai)
 	var at_war: bool = not gs.wars_of(tag).is_empty()
-	if at_war and (fx.has("army_size") or fx.has("construction") or fx.has("war_support")):
+	if at_war and (fx.has("army_size") or fx.has("cp") or fx.has("war_support")):
 		score += 1.0
-	if not at_war and (fx.has("gdp") or fx.has("industry") or fx.has("growth")):
+	if not at_war and (fx.has("income") or fx.has("civilian_factories")):
 		score += 0.5
-	if fx.has("food") and n.budget.get("food_production", 1.0) < n.population * 0.9:
-		score += 1.0
 	if fx.has("claim") and not at_war:
 		score += 0.3
 	# Cheaper foci first among equals.

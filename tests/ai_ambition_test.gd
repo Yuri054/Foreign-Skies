@@ -101,13 +101,12 @@ func _initialize() -> void:
 	var F = load("res://scripts/sim/focus.gd")
 	var Set = load("res://scripts/sim/set_focus.gd")
 	var nn = gs.nations["DEN"]
-	var gdp: float = nn.focus_fx.get("gdp", 0.0)
 	for i in 3:
 		gs.issue(Set.new("DEN", "local_investment"))
 		nn.focus.days_left = 1
 		clock.advance_day()
 	_check(nn.focus_count.get("local_investment", 0) == 3 and F.block(gs, "DEN", "local_investment") == "", "a repeatable focus can be taken again (%d times)" % nn.focus_count.get("local_investment", 0))
-	_check(absf(nn.focus_fx.gdp - 0.03) < 0.0001, "and its effect adds up (+%.0f%%)" % (nn.focus_fx.gdp * 100.0))
+	_check(absf(nn.focus_fx.income - 0.15) < 0.0001, "and its effect adds up (+%.0f%%)" % (nn.focus_fx.income * 100.0))
 	for i in 3:
 		gs.issue(Set.new("DEN", "local_investment"))
 		nn.focus.days_left = 1

@@ -6,7 +6,7 @@ extends RefCounted
 ## money, war support, army size, relations, casus belli).
 
 const CONFIG_PATH := "res://data/focus.json"
-const PERSISTENT := ["gdp", "industry", "food", "trade", "growth", "diplomacy", "construction"]
+const PERSISTENT := ["income", "diplomacy", "cp"]
 
 static var cfg: Dictionary = {}
 static var _trees: Dictionary = {}
@@ -127,6 +127,9 @@ static func apply_effects(gs: Node, tag: String, fx: Dictionary) -> void:
 		Diplomacy.gain(gs, tag, float(fx.points))
 	if fx.has("treasury"):
 		n.treasury += float(fx.treasury)
+	if fx.has("civilian_factories"):
+		_grant_factories(gs, tag, int(fx.civilian_factories))
+		lasting = true
 	if fx.has("war_support"):
 		WarSupport.change(gs, tag, float(fx.war_support))
 	if fx.has("army_size"):
@@ -144,23 +147,31 @@ static func apply_effects(gs: Node, tag: String, fx: Dictionary) -> void:
 		gs.economy_dirty = true
 
 
+## Builds `count` civilian factories at once, one each in the nation's best provinces that have room (Economy).
+static func _grant_factories(gs: Node, tag: String, count: int) -> void:
+	for id in Economy.mass_candidates(gs, tag, "civilian_factory").slice(0, count):
+		var owned: Dictionary = gs.province_buildings[id]
+		owned["civilian_factory"] = int(owned.get("civilian_factory", 0)) + 1
+		gs.building_completed.emit(tag, id, "civilian_factory")
+
+
 ## A short line for what a focus does, for the interface.
 static func effects_text(fx: Dictionary) -> String:
 	var parts: PackedStringArray = []
-	var names := {"gdp": "output", "industry": "industry", "food": "food", "trade": "trade", "growth": "growth"}
-	for k in names:
-		if fx.has(k):
-			parts.append("%+.1f%% %s" % [float(fx[k]) * 100.0, names[k]] if k != "growth" else "%+.1f points a year of growth" % (float(fx[k]) * 100.0))
+	if fx.has("income"):
+		parts.append("%+d%% base income" % roundi(float(fx.income) * 100.0))
+	if fx.has("civilian_factories"):
+		parts.append("%d civilian factor%s built" % [int(fx.civilian_factories), "y" if int(fx.civilian_factories) == 1 else "ies"])
 	if fx.has("diplomacy"):
 		parts.append("%+.1f diplomacy points a month" % float(fx.diplomacy))
-	if fx.has("construction"):
-		parts.append("%+d IC a day" % int(fx.construction))
+	if fx.has("cp"):
+		parts.append("%+.2f construction points a day" % float(fx.cp))
 	if fx.has("prestige"):
 		parts.append("%+d prestige" % int(fx.prestige))
 	if fx.has("points"):
 		parts.append("%+d diplomacy points" % int(fx.points))
 	if fx.has("treasury"):
-		parts.append("£%+.1fM" % float(fx.treasury))
+		parts.append("%s gold" % Fmt.money(float(fx.treasury), true))
 	if fx.has("war_support"):
 		parts.append("%+d war support" % int(fx.war_support))
 	if fx.has("army_size"):

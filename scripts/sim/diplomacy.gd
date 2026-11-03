@@ -446,7 +446,7 @@ static func point_income_parts(gs: Node, tag: String) -> Dictionary:
 	var base: float = inc.base
 	var prestige: float = n.prestige * inc.prestige_weight
 	var output := 0.0
-	var rank := Standings.rank_of(gs, tag, "gdp")
+	var rank := Standings.rank_of(gs, tag, "income")
 	if rank > 0 and rank <= int(inc.top_output_count):
 		output = inc.top_output_bonus
 	var focus: float = n.focus_fx.get("diplomacy", 0.0)
@@ -482,7 +482,7 @@ static func gain_prestige(gs: Node, tag: String, amount: float) -> void:
 
 # --- Buying points -------------------------------------------------------------------------
 
-## What the next batch of points costs the treasury, GBP millions.
+## What the next batch of points costs the treasury, gold.
 static func purchase_price(gs: Node, tag: String) -> float:
 	return cfg.points.purchase.base_cost * gs.nations[tag].points_price
 
@@ -639,7 +639,7 @@ static func gift(gs: Node, from: String, to: String, amount: float) -> bool:
 ## How much a gift of `amount` would raise the receiver's opinion now.
 static func gift_effect(gs: Node, from: String, to: String, amount: float) -> float:
 	var a: Dictionary = cfg.actions
-	var ref := maxf(float(a.gift_ref_floor), float(a.gift_ref_share) * maxf(0.0, float(gs.nations[to].budget.get("revenue", 0.0))))
+	var ref := maxf(float(a.gift_ref_floor), float(a.gift_ref_share) * 12.0 * maxf(0.0, float(gs.nations[to].budget.get("income", 0.0))))
 	var recent: float = gs.gift_memory.get(from + ">" + to, 0.0)
 	return float(a.gift_max_relation) * (1.0 - exp(-amount / ref)) * exp(-recent / ref)
 

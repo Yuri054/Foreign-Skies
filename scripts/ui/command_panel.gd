@@ -488,7 +488,7 @@ func _army_title(armies: Array[Army]) -> String:
 		var a := armies[0]
 		var status := ""
 		if a.fighting:
-			status = " · FIGHTING" + (" · SHORT OF SHELLS" if GameState.nations[a.tag].shell_ratio < 0.99 and a.shelling_share() > 0.0 else "")
+			status = " · FIGHTING"
 		elif a.embarked():
 			status = " · aboard"
 		elif not a.supplied:

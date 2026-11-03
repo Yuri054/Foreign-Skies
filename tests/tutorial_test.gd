@@ -143,7 +143,7 @@ func _do(step: Dictionary) -> bool:
 		"SetFocus":
 			return gs.issue(load("res://scripts/sim/set_focus.gd").new(tag, load("res://scripts/sim/focus.gd").tree_of(tag)[0].id))
 		"SetEconomyPolicy":
-			return gs.issue(load("res://scripts/sim/set_economy_policy.gd").new(tag, "tax_rate", nation.tax_rate + 0.02))
+			return gs.issue(load("res://scripts/sim/set_economy_policy.gd").new(tag, "standing_army", float(nation.peacetime_army + 12000)))
 		"MoveArmy":
 			for a in gs.armies.values():
 				if a.tag == tag:

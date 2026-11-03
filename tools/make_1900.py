@@ -49,7 +49,6 @@ def copy_scaled_cities():
             row["pop"] = str(int(round(int(row["pop"]) * pop.get(o, .88) * .97, -3)))
             g.write("\t".join(row[k] for k in rd.fieldnames) + "\n")
 copy_scaled_cities()
-open(DST + "resources.tsv", "w").write(open(SRC + "resources.tsv").read())
 
 # ---- fleets: no submarines yet, battle squadrons thinner, a smaller German navy
 navy_cut = {"GER": {"dreadnought": 1}, "AUH": {"dreadnought": 1}, "ITA": {"dreadnought": 1}, "RUS": {"dreadnought": 1}}
@@ -69,21 +68,18 @@ with open(SRC + "navy.tsv") as f, open(DST + "navy.tsv", "w") as g:
         g.write("\t".join(row[k] for k in rd.fieldnames) + "\n")
 
 # ---- nations
-dev = {"GER": .78, "RUS": .80, "AUH": .82, "ITA": .82, "FRA": .88, "GBR": .88}
 army = {"GER": .72, "FRA": .85, "RUS": .80, "AUH": .80, "ITA": .85, "GBR": .85, "OTT": .8}
 navy = {"GER": .40, "GBR": .72, "FRA": .80, "RUS": .60, "ITA": .70, "AUH": .55}
 nations = {}
 for tag, v in sc["nations"].items():
     w = dict(v)
-    w["development"] = round(v["development"] * dev.get(tag, .85), 3)
     w["peacetime_army"] = int(round(v["peacetime_army"] * army.get(tag, .85), -3))
     w["naval_budget"] = round(v["naval_budget"] * navy.get(tag, .7), 2)
     w["treasury"] = round(v["treasury"] * .7, 1)
-    w["pop_growth"] = v["pop_growth"]
     if tag == "RUS":
         w["government"] = "constitutional_monarchy"
     nations[tag] = w
-nations["ALB"] = {"pop_growth": 0.0}
+nations["ALB"] = {}
 
 out = {
     "name": "January 1900",
@@ -125,8 +121,6 @@ out = {
     },
     # The long game does not reach for war in its first years: the AI's war gate falls from 48 in 1900 to 35 by 1912.
     "ai_war_gate": {"start": 48, "end": 35, "from": 1900, "to": 1912},
-    # Arms in store in 1900: a modest share of industry, and stocks for a short war.
-    "munitions": {"share": 0.05, "days": 45},
     # Old quarrels that fade slowly: holder resents target at least this much, less fade a year (Diplomacy rivalries).
     "rivalries": [
         {"holder": "FRA", "target": "GER", "grievance": 40, "note": "Alsace-Lorraine"},
@@ -172,5 +166,5 @@ dep["OTT"] += [{"name": "Army of Macedonia (Salonika)", "at": "Kentriki Makedoni
                {"name": "Kosovo Corps", "at": "Priština", "weight": 1}]
 json.dump(out, open(DST + "scenario.json", "w"), indent="\t", ensure_ascii=False)
 import subprocess
-subprocess.run(["python3", "tools/make_start_buildings.py", DST], check=True)
+subprocess.run(["python3", "tools/make_start_economy.py", DST], check=True)
 print("owner changes:", len(owner_changes))

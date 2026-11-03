@@ -70,7 +70,7 @@ static func urge_parts(gs: Node, tag: String, war: War) -> Dictionary:
 	parts.score = u
 	parts.support = maxf(0.0, float(c.support_ref) - n.war_support) * float(c.k_support)
 	u += parts.support
-	var monthly_revenue := maxf(float(n.budget.get("revenue", 0.0)), 1.0) / 12.0
+	var monthly_revenue := maxf(float(n.budget.get("income", 0.0)), 1.0 / 12.0)
 	parts.debt = float(c.k_debt) * minf(float(c.debt_cap_months), maxf(0.0, -n.treasury) / monthly_revenue)
 	u += parts.debt
 	parts.duration = float(c.k_days_per_month) * war.days_lasted(Clock.days_elapsed) / 30.0
@@ -176,11 +176,11 @@ static func affordable(gs: Node, giver: String, demands: Array) -> bool:
 
 
 static func _affordable(gs: Node, giver: String, demands: Array) -> bool:
-	var revenue := maxf(float(gs.nations[giver].budget.get("revenue", 0.0)), 0.001)
+	var income := maxf(float(gs.nations[giver].budget.get("income", 0.0)), 0.001)
 	var committed := 0.0
 	for ind: Dictionary in gs.indemnities:
 		if ind.payer == giver:
-			committed += ind.monthly / (revenue / 12.0)
+			committed += ind.monthly / income
 	for d: Dictionary in demands:
 		if d.get("kind", "") == "indemnity":
 			committed += float(d.share)
@@ -306,7 +306,7 @@ static func indemnity_for(gs: Node, taker: String, giver: String, left: float) -
 		return {}
 	var ind := {"kind": "indemnity", "share": snappedf(share, 0.01), "months": months}
 	# An indemnity too small to notice is no term at all.
-	if ind.share * float(gs.nations[giver].budget.get("revenue", 0.0)) / 12.0 < float(Diplomacy.cfg.peace.price.indemnity_min_monthly):
+	if ind.share * float(gs.nations[giver].budget.get("income", 0.0)) < float(Diplomacy.cfg.peace.price.indemnity_min_monthly):
 		return {}
 	if Peace.demand_cost(gs, taker, giver, ind) >= 0.0 and _affordable(gs, giver, [ind]):
 		return ind

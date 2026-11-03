@@ -19,5 +19,5 @@ func _initialize() -> void:
 		for tag in args[0].split(","):
 			var n = gs.nations[tag]
 			var b: Dictionary = n.budget
-			print("%d-%02d %s men_in_service %dk manpower %dk (max %dk) treasury %.1f revenue/mo %.1f net/mo %.1f training %d war_mult_target %dk" % [clock.year, clock.month, tag, Mil.men_in_service(gs, tag) / 1000.0, n.manpower / 1000.0, b.get("manpower_max", 0.0) / 1000.0, n.treasury, b.get("revenue", 0.0) / 12.0, b.get("net", 0.0) / 12.0, n.recruiting.size(), n.peacetime_army * 4.5 / 1000.0])
+			print("%d-%02d %s men_in_service %dk manpower %dk (max %dk) treasury %.1f income/mo %.1f net/mo %.1f training %d war_mult_target %dk" % [clock.year, clock.month, tag, Mil.men_in_service(gs, tag) / 1000.0, n.manpower / 1000.0, b.get("manpower_max", 0.0) / 1000.0, n.treasury, b.get("income", 0.0), b.get("net", 0.0), n.recruiting.size(), n.peacetime_army * 4.5 / 1000.0])
 	quit()

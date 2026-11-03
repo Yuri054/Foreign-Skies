@@ -86,7 +86,7 @@ func _test_labels() -> void:
 	var entries: Array = Labels.entries(gs, "railway")
 	_check(entries.size() == fra.provinces.size(), "every province of the player is written on (%d)" % entries.size())
 	var e: Dictionary = entries[0]
-	var most: int = load("res://scripts/sim/economy.gd").cfg.buildings.railway.max_level
+	var most: int = load("res://scripts/sim/economy.gd").max_level()
 	_check(e.text == "0/%d" % most and not e.full, "a railway shows its level out of the most (%s)" % e.text)
 	gs.province_buildings[e.id]["railway"] = most
 	var again: Dictionary = {}

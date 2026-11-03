@@ -136,7 +136,7 @@ func _test_drift_and_economy() -> void:
 	var ger = gs.nations["GER"]
 	_days(8)
 	_check(ger.blockade == 0.0, "no blockade without ships")
-	var before: float = ger.budget.revenue
+	var before: float = ger.budget.income
 	_cordon("GBR", ["Northern North Sea", "Central North Sea", "Eastern Channel"])
 	_days(8)
 	var early: float = ger.blockade
@@ -145,7 +145,7 @@ func _test_drift_and_economy() -> void:
 	_check(absf(ger.blockade - ger.blockade_target) < 0.0001 and ger.blockade > 0.4, "and settles at its target (%.2f)" % ger.blockade)
 	_check(ger.blockade_by == ["GBR"], "the nation records who holds it")
 	Economy_recompute()
-	_check(ger.budget.revenue < before, "revenue falls under blockade (%.0f against %.0f)" % [ger.budget.revenue, before])
+	_check(ger.budget.income < before, "income falls under blockade (%.1f against %.1f)" % [ger.budget.income, before])
 	var support: float = ger.war_support
 	_days(1)
 	# Ships leave: the blockade lifts, but slower than a sortie could end it.

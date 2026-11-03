@@ -564,7 +564,7 @@ func _test_income_sources() -> void:
 func _test_buying() -> void:
 	_fresh()
 	var money: float = gs.nations["FRA"].treasury
-	_check(is_equal_approx(D.purchase_price(gs, "FRA"), 3.0), "ten points first cost £3M")
+	_check(is_equal_approx(D.purchase_price(gs, "FRA"), 3.0), "ten points first cost 3 gold")
 	var buy = BuyC.new("FRA")
 	_check(gs.issue(buy) and gs.nations["FRA"].diplomacy_points == 60.0 and is_equal_approx(gs.nations["FRA"].treasury, money - 3.0), "buying gives ten points for the money")
 	_check(is_equal_approx(D.purchase_price(gs, "FRA"), 3.75), "and the next batch costs a quarter more")

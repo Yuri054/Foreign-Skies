@@ -183,15 +183,11 @@ static func problems(n: Nation) -> PackedStringArray:
 	if b.is_empty():
 		return out
 	if n.treasury < 0.0:
-		out.append("The treasury is in debt (£%.1fM): interest takes £%.1fM a month." % [-n.treasury, Fmt.monthly(b.interest)])
-	elif b.net < 0.0 and n.treasury < -b.net * 0.5:
-		out.append("A deficit of £%.1fM a month will empty the treasury in %d months." % [-Fmt.monthly(b.net), maxi(1, ceili(n.treasury / maxf(-Fmt.monthly(b.net), 0.01)))])
-	if b.food_shortage > 0.0:
-		out.append("Famine: %d%% of the food is missing." % roundi(b.food_shortage * 100.0))
-	if b.materials.ratio < 0.999:
-		out.append("Raw materials are short (%d%% of the need): industry is cut." % roundi(b.materials.ratio * 100.0))
+		out.append("The treasury is in debt (%s): interest takes %s a month." % [Fmt.gold(-n.treasury), Fmt.gold(b.interest)])
+	elif b.net < 0.0 and n.treasury < -b.net * 6.0:
+		out.append("A deficit of %s a month will empty the treasury in %d months." % [Fmt.gold(-b.net), maxi(1, ceili(n.treasury / maxf(-b.net, 0.01)))])
 	if n.blockade > 0.05:
-		out.append("A blockade cuts %d%% of the imports." % roundi(n.blockade * 100.0))
+		out.append("A blockade cuts %d%% of the port income." % roundi(n.blockade * 100.0))
 	if not GameState.wars_of(n.tag).is_empty() and n.war_support <= 35.0:
 		out.append("War support is %d: the people may force a peace." % roundi(n.war_support))
 	return out
@@ -218,22 +214,21 @@ func _refresh() -> void:
 	_box.add_child(_heading("The nation"))
 	var g := _grid()
 	_box.add_child(g)
-	var net := Fmt.monthly(b.net)
-	_pair(g, "Treasury", "£%.1fM" % n.treasury, Fmt.BAD if n.treasury < 0.0 else Color.WHITE)
+	var net: float = b.net
+	_pair(g, "Treasury", Fmt.gold(n.treasury), Fmt.BAD if n.treasury < 0.0 else Color.WHITE)
 	_pair(g, "Population", Fmt.people(n.population))
 	# A balance that rounds to nothing is shown as nothing, not as a red "-0.0".
 	var level := absf(net) < 0.05
-	_pair(g, "Net a month", "£%.1fM" % 0.0 if level else "£%+.1fM" % net, Color.WHITE if level else (Fmt.GOOD if net > 0.0 else Fmt.BAD))
+	_pair(g, "Net a month", Fmt.gold(0.0) if level else Fmt.gold(net, true), Color.WHITE if level else (Fmt.GOOD if net > 0.0 else Fmt.BAD))
 	_pair(g, "Under arms", Fmt.people(n.men_in_units), Color.WHITE, "In armies and in training.")
-	_pair(g, "Income", "£%.1fM" % Fmt.monthly(b.revenue))
+	_pair(g, "Income", Fmt.gold(b.income))
 	_pair(g, "Reserve", Fmt.people(n.manpower), Color.WHITE, "Recruits not yet in a unit.")
-	_pair(g, "Spending", "£%.1fM" % Fmt.monthly(b.expenses))
+	_pair(g, "Spending", Fmt.gold(b.expenses))
 	_pair(g, "Mobilization", "%d%%" % roundi(n.mobilization * 100.0))
-	_pair(g, "Tax rate", "%d%%" % roundi(n.tax_rate * 100.0))
+	_pair(g, "Construction points", "%d (+%d a month)" % [roundi(n.cp), roundi(float(b.cp) * 30.0)], Color.WHITE, "Starting a building spends its gold and its construction points.")
 	_pair(g, "War support", "%d" % roundi(n.war_support), Fmt.BAD if n.war_support <= 35.0 and not GameState.wars_of(n.tag).is_empty() else Color.WHITE)
-	_pair(g, "Industry", "%d points a day" % roundi(b.construction_points), Color.WHITE, "What the buildings and ships under way share.")
+	_pair(g, "Civilian factories", "%d" % int(b.get("levels", {}).get("civilian_factory", 0)), Color.WHITE, "Each earns %s a month." % Fmt.gold(float(Economy.cfg.buildings.civilian_factory.income)))
 	_pair(g, "Prestige", "%d" % roundi(n.prestige))
-	_pair(g, "Raw materials", "%d%% of the need" % roundi(b.materials.ratio * 100.0), Fmt.GOOD if b.materials.ratio >= 0.999 else Fmt.WARN)
 	_pair(g, "Diplomacy points", "%d  (+%.1f a month)" % [roundi(n.diplomacy_points), Diplomacy.point_income(GameState, n.tag)])
 	_ambition_row(n)
 

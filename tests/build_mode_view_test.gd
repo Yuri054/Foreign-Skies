@@ -36,25 +36,22 @@ func _initialize() -> void:
 			labels = c
 	_check(army_layer != null and fleet_layer != null and labels != null, "the layers and the slot numbers exist")
 	_check(army_layer.modulate.a == 1.0 and fleet_layer.modulate.a == 1.0, "armies and fleets are solid at first")
-	view.set_mode(Mode.CONSTRUCTION, "factory")
+	view.set_mode(Mode.CONSTRUCTION, "civilian_factory")
 	_check(army_layer.modulate.a < 0.5 and fleet_layer.modulate.a < 0.5, "they fade back in the Construction mode")
 	_check(labels.z_index > army_layer.z_index and labels.z_index > fleet_layer.z_index, "and the level numbers are drawn above them")
 	var gs: Node = root.get_node("GameState")
 	var SlotLabels = load("res://scripts/map/slot_labels.gd")
-	gs.province_buildings[gs.nations[gs.player_tag].provinces[0]]["factory"] = 1
-	var rows: Array = SlotLabels.entries(gs, "factory")
+	gs.province_buildings[gs.nations[gs.player_tag].provinces[0]]["civilian_factory"] = 1
+	var rows: Array = SlotLabels.entries(gs, "civilian_factory")
 	var with_factory: Dictionary = {}
-	var with_deposit: Dictionary = {}
 	for e in rows:
 		if e.factories > 0 and with_factory.is_empty():
 			with_factory = e
-		if not e.deposits.is_empty() and with_deposit.is_empty():
-			with_deposit = e
-	_check(not with_factory.is_empty() and with_factory.factories == gs.province_buildings[with_factory.id].get("factory", 0), "each entry counts the factories on its province")
-	_check(not with_deposit.is_empty() and with_deposit.deposits[0] in ["coal", "iron", "wood"], "and lists the resources it yields (%s)" % str(with_deposit.get("deposits")))
-	gs.province_buildings[with_factory.id]["factory"] = with_factory.factories + 2
+	_check(not with_factory.is_empty() and with_factory.factories == gs.province_buildings[with_factory.id].get("civilian_factory", 0), "each entry counts the factories on its province")
+	_check(with_factory.text == "%d/10" % with_factory.factories, "and writes the levels out of ten (%s)" % with_factory.text)
+	gs.province_buildings[with_factory.id]["civilian_factory"] = with_factory.factories + 2
 	var after: Dictionary = {}
-	for e in SlotLabels.entries(gs, "factory"):
+	for e in SlotLabels.entries(gs, "civilian_factory"):
 		if e.id == with_factory.id:
 			after = e
 	_check(after.factories == with_factory.factories + 2, "the count follows the factories built")

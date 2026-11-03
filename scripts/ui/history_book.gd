@@ -192,12 +192,12 @@ func _fill_map() -> void:
 
 func _fill_nations() -> void:
 	_clear(_nations)
-	for h in ["Nation", "Provinces", "People", "Industry"]:
+	for h in ["Nation", "Provinces", "People", "Income"]:
 		var l := _line(h, Fmt.DIM)
 		l.custom_minimum_size = Vector2(0, 0)
 		_nations.add_child(l)
 	for n: Dictionary in History.nations_section(GameState):
-		var cells := [n.name, "%d (%+d)" % [n.provinces, n.d_provinces], "%s (%s)" % [Fmt.people(n.population), History._signed_people(n.d_population)], "%.1f (%+.1f)" % [n.industry, n.d_industry]]
+		var cells := [n.name, "%d (%+d)" % [n.provinces, n.d_provinces], "%s (%s)" % [Fmt.people(n.population), History._signed_people(n.d_population)], "%.1f (%+.1f)" % [n.income, n.d_income]]
 		for c in cells:
 			var l := _line(c)
 			l.custom_minimum_size = Vector2(0, 0)

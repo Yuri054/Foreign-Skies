@@ -38,9 +38,9 @@ func _initialize() -> void:
 		if day % 30 == 0:
 			for tag in ["GER", "FRA", "GBR", "RUS", "AUH", "ITA"]:
 				var n = gs.nations[tag]
-				worst = minf(worst, n.treasury / maxf(n.budget.revenue, 1.0))
-	print("wars declared in five years: ", declared, "; worst treasury in years of revenue: ", worst)
+				worst = minf(worst, n.treasury / maxf(12.0 * n.budget.income, 1.0))
+	print("wars declared in five years: ", declared, "; worst treasury in years of income: ", worst)
 	_check(collapsed.is_empty(), "no nation collapses in five years (%s)" % str(collapsed))
-	_check(worst > -1.5, "no great power sinks past a year and a half of revenue in debt (%.2f)" % worst)
+	_check(worst > -1.5, "no great power sinks past a year and a half of income in debt (%.2f)" % worst)
 	print("FAILURES: ", _failures)
 	quit(1 if _failures > 0 else 0)

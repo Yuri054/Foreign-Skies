@@ -1,6 +1,6 @@
 class_name Gift
 extends Command
-## `from` sends `amount` (GBP millions) to `to`, which improves the receiver's opinion.
+## `from` sends `amount` (gold) to `to`, which improves the receiver's opinion.
 
 var from: String
 var to: String

@@ -74,7 +74,7 @@ static func step_month(gs: Node) -> void:
 
 static func _top_powers(gs: Node, count: int) -> Array:
 	var out: Array = []
-	for r: Dictionary in Standings.ranking(gs, "industry").slice(0, count):
+	for r: Dictionary in Standings.ranking(gs, "income").slice(0, count):
 		out.append(r.tag)
 	return out
 
@@ -127,7 +127,7 @@ static func year_summary(gs: Node, year: int) -> String:
 	if provinces > 0:
 		line += "; %d provinces changed hands" % provinces
 	if not top.is_empty():
-		line += "; the leading industries: %s" % ", ".join(top.map(func(t: String) -> String: return gs.nations[t].display_name if gs.nations.has(t) else t))
+		line += "; the richest: %s" % ", ".join(top.map(func(t: String) -> String: return gs.nations[t].display_name if gs.nations.has(t) else t))
 	return line + "."
 
 
@@ -197,18 +197,18 @@ static func territory_lines(gs: Node, year := 0) -> PackedStringArray:
 	return out
 
 
-## How the nations stand against the start: [{tag, name, provinces, d_provinces, population, d_population, industry, d_industry}],
-## the most industrial first.
+## How the nations stand against the start: [{tag, name, provinces, d_provinces, population, d_population, income, d_income}],
+## the richest first.
 static func nations_section(gs: Node) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var first: Dictionary = gs.standings_history[0].values if not gs.standings_history.is_empty() else {}
-	for r: Dictionary in Standings.ranking(gs, "industry").slice(0, 12):
+	for r: Dictionary in Standings.ranking(gs, "income").slice(0, 12):
 		var t: String = r.tag
 		var then: Dictionary = first.get(t, {})
 		out.append({"tag": t, "name": gs.nations[t].display_name,
 				"provinces": Standings.value(gs, t, "provinces"), "d_provinces": Standings.value(gs, t, "provinces") - then.get("provinces", Standings.value(gs, t, "provinces")),
 				"population": Standings.value(gs, t, "population"), "d_population": Standings.value(gs, t, "population") - then.get("population", Standings.value(gs, t, "population")),
-				"industry": r.value, "d_industry": r.value - then.get("industry", r.value)})
+				"income": r.value, "d_income": r.value - then.get("income", r.value)})
 	return out
 
 
@@ -262,10 +262,10 @@ static func markdown(gs: Node) -> String:
 			out.append("- %s" % l)
 		out.append("")
 	out.append("## The nations")
-	out.append("| Nation | Provinces | People | Industry |")
+	out.append("| Nation | Provinces | People | Income |")
 	out.append("|---|---|---|---|")
 	for n: Dictionary in nations_section(gs):
-		out.append("| %s | %d (%+d) | %s (%s) | %.1f (%+.1f) |" % [n.name, n.provinces, n.d_provinces, Fmt.people(n.population), _signed_people(n.d_population), n.industry, n.d_industry])
+		out.append("| %s | %d (%+d) | %s (%s) | %.1f (%+.1f) |" % [n.name, n.provinces, n.d_provinces, Fmt.people(n.population), _signed_people(n.d_population), n.income, n.d_income])
 	return "\n".join(out) + "\n"
 
 

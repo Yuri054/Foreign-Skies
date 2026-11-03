@@ -1,7 +1,6 @@
 class_name Fmt
 extends RefCounted
-## Number formatting shared by the economy UI. Money is GBP millions and every flow is shown
-## per month; amounts (stockpiles) are plain quantities.
+## Number formatting shared by the economy UI. Money is gold and every flow is shown per month.
 
 const GOOD := Color(0.55, 0.85, 0.55)
 const BAD := Color(0.95, 0.5, 0.45)
@@ -9,24 +8,16 @@ const WARN := Color(0.95, 0.75, 0.4)
 const DIM := Color(1, 1, 1, 0.6)
 
 
-## Money in GBP millions, optionally with an explicit sign.
+## A sum of gold as a bare number (one decimal), optionally with an explicit sign.
 static func money(m: float, signed := false) -> String:
 	if absf(m) < 0.05:
 		return "0" if not signed else "+0.0"
 	return ("%+.1f" if signed else "%.1f") % m
 
 
-## Thousand tonnes as "850 kt" or "12.4 Mt".
-static func kt(amount: float, signed := false) -> String:
-	var sign := "+" if signed and amount > 0.5 else ""
-	if absf(amount) >= 1000.0:
-		return "%s%.1f Mt" % [sign, amount / 1000.0]
-	return "%s%d kt" % [sign, roundi(amount)]
-
-
-## A yearly figure shown per month.
-static func monthly(per_year: float) -> float:
-	return per_year / 12.0
+## A sum of gold with its unit: "12.5 gold".
+static func gold(m: float, signed := false) -> String:
+	return "%s gold" % money(m, signed)
 
 
 ## A head count as "39.6M", "412k" or "850".

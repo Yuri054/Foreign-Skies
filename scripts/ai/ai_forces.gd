@@ -98,13 +98,13 @@ static func _affordable(gs: Node, tag: String, def: Dictionary) -> bool:
 	if n.manpower < def.size:
 		return false
 	var cost := float(def.cost)
-	var deficit_cushion := maxf(0.0, -float(n.budget.get("net", 0.0)) / 12.0) * float(f.deficit_months)
+	var deficit_cushion := maxf(0.0, -float(n.budget.get("net", 0.0))) * float(f.deficit_months)
 	if n.treasury - cost < float(f.treasury_floor) + deficit_cushion:
 		return false
 	var in_training := cost
 	for job in n.recruiting:
 		in_training += float(Military.cfg.unit_types[job.type].cost)
-	var monthly_revenue := maxf(0.0, float(n.budget.get("revenue", 0.0))) / 12.0
+	var monthly_revenue := maxf(0.0, float(n.budget.get("income", 0.0)))
 	return in_training <= float(f.income_share) * monthly_revenue * float(f.horizon_months)
 
 

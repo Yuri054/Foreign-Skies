@@ -121,20 +121,11 @@ static func men_in_service(gs: Node, tag: String) -> int:
 	return roundi(total)
 
 
-## Whether a nation's railways run: with under half of the raw materials its industry needs
-## (see Economy.materials_of) the engines stop and they help neither movement nor supply.
-static func railway_ok(gs: Node, tag: String) -> bool:
-	var n: Nation = gs.nations.get(tag)
-	if n == null or not n.budget.has("materials"):
-		return true
-	return float(n.budget.materials.ratio) >= 0.5
-
-
 ## The cost of a supply hop into province `id` for `tag`: 1, or less where a railway runs (each
 ## level beyond the first makes it cheaper still).
-static func hop_cost(gs: Node, tag: String, id: int) -> float:
+static func hop_cost(gs: Node, _tag: String, id: int) -> float:
 	var level: int = gs.province_buildings[id].get("railway", 0)
-	if level <= 0 or not railway_ok(gs, tag):
+	if level <= 0:
 		return 1.0
 	return maxf(0.2, float(cfg.supply.railway_hop_cost) * (1.0 - float(cfg.supply.railway_level_gain) * (level - 1)))
 
@@ -143,9 +134,9 @@ static func hop_cost(gs: Node, tag: String, id: int) -> float:
 static func move_days(gs: Node, tag: String, speed: float, from: int, to: int) -> float:
 	var km := (MapData.provinces[from].center as Vector2).distance_to(MapData.provinces[to].center) * KM_PER_PX
 	var days: float = km / speed * terrain_of(to).move
-	if gs.province_controller[to] == tag and railway_ok(gs, tag):
-		# Built railways, and over everything an industrial nation owns a network of lesser lines.
-		days /= 1.0 + cfg.movement.railway_speedup * gs.province_buildings[to].get("railway", 0) + cfg.movement.home_rail * gs.nations[tag].development
+	if gs.province_controller[to] == tag:
+		# Built railways, and over everything a nation owns a network of lesser lines.
+		days /= 1.0 + cfg.movement.railway_speedup * gs.province_buildings[to].get("railway", 0) + cfg.movement.home_rail
 	var link: String = MapData.sea_links.get(Vector2i(mini(from, to), maxi(from, to)), "")
 	if link == "sea":
 		days += cfg.movement.sea_link_days
@@ -1021,18 +1012,6 @@ static func _fight(gs: Node) -> void:
 	var armies: Array = gs.armies.values()
 	var at := _by_province(armies)
 	var routed: Array[Army] = []
-	# The day's munitions: every army in a battle burns its guns' need first (see Munitions).
-	var in_battle := {}
-	for id: int in at:
-		var here: Array = at[id]
-		if here.size() < 2:
-			continue
-		for a: Army in here:
-			for b: Army in here:
-				if a.tag != b.tag and gs.at_war(a.tag, b.tag):
-					in_battle[a] = true
-					break
-	var shells := Munitions.burn(gs, in_battle, at)
 	for id: int in at:
 		var here: Array = at[id]
 		if here.size() < 2:
@@ -1053,7 +1032,7 @@ static func _fight(gs: Node) -> void:
 			incoming[a] = 0.0
 			parts[a] = {}
 		for b in foes:
-			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, shells.get(b.tag, 1.0)) * (1.0 + naval_support(gs, b.tag, id) if b.attacking else 1.0) / foes[b].size()
+			var share: float = b.power() * WarSupport.morale_mult(gs, b.tag) * (1.0 + naval_support(gs, b.tag, id) if b.attacking else 1.0) / foes[b].size()
 			var shelling: float = b.shelling_share()
 			for a in foes[b]:
 				var dealt: float = share * (1.0 - works_reduction(gs, a, shelling))
@@ -1138,7 +1117,7 @@ static func battle_forecast(gs: Node, province: int, tweaks := {}) -> Dictionary
 	for a in foes:
 		incoming[a] = 0.0
 	for b in foes:
-		var share: float = b.power() * float(power_mult.get(b.tag, 1.0)) * WarSupport.morale_mult(gs, b.tag) * Munitions.power_factor(b, gs.nations[b.tag].shell_ratio) * (1.0 + naval_support(gs, b.tag, province) if b.attacking else 1.0) / foes[b].size()
+		var share: float = b.power() * float(power_mult.get(b.tag, 1.0)) * WarSupport.morale_mult(gs, b.tag) * (1.0 + naval_support(gs, b.tag, province) if b.attacking else 1.0) / foes[b].size()
 		var shelling: float = b.shelling_share()
 		for a in foes[b]:
 			incoming[a] += share * (1.0 - works_reduction(gs, a, shelling))

@@ -52,25 +52,25 @@ static func best_target(gs: Node, tag: String) -> Dictionary:
 	if float(AI.temperament(gs, tag).aggression) < float(c.min_aggression) or not Pressure.ai_may_declare(gs):
 		return {}
 	var best := {}
-	var own_gdp := maxf(float(gs.nations[tag].budget.get("gdp", 0.0)), 0.01)
+	var own_income := maxf(float(gs.nations[tag].budget.get("income", 0.0)), 0.01)
 	for target in Diplomacy.neighbor_nations(gs, tag):
 		if Diplomacy.declare_block(gs, tag, target) != "" or AIDiplomacy.in_truce(gs, tag, target):
 			continue
 		if AIDiplomacy.odds_against(gs, tag, target) < AI.required_odds(gs, tag) * float(c.odds_margin):
 			continue
-		var score := score_of(gs, tag, target, own_gdp)
+		var score := score_of(gs, tag, target, own_income)
 		if score >= float(c.threshold) and (best.is_empty() or score > best.score + 0.000001):
 			best = {"target": target, "score": score}
 	return best
 
 
-static func score_of(gs: Node, tag: String, target: String, own_gdp: float) -> float:
+static func score_of(gs: Node, tag: String, target: String, own_income: float) -> float:
 	var c: Dictionary = AI.cfg.ambition
 	var options := Diplomacy.casus_belli_options(gs, tag, target)
 	var claim := 1.0 if options[0] != "none" else 0.0
 	var hostile := clampf(-Diplomacy.relation(gs, tag, target) / 100.0, 0.0, 1.0)
 	var grievance := clampf(Diplomacy.grievance(gs, tag, target) / 100.0, 0.0, 1.0)
-	var weak := clampf(1.0 - float(gs.nations[target].budget.get("gdp", 0.0)) / own_gdp, 0.0, 1.0)
+	var weak := clampf(1.0 - float(gs.nations[target].budget.get("income", 0.0)) / own_income, 0.0, 1.0)
 	var margin := AIDiplomacy.odds_against(gs, tag, target) / maxf(AI.required_odds(gs, tag), 0.01)
 	var opportunity := clampf(log(maxf(margin, 1.0)) / log(10.0), 0.0, 1.0)
 	return float(c.w_claim) * claim + float(c.w_opportunity) * opportunity + float(c.w_hostile) * hostile + float(c.w_grievance) * grievance \

@@ -226,8 +226,8 @@ func _test_occupation(pair: Array) -> void:
 	_fresh()
 	var ger = gs.nations["GER"]
 	var fra = gs.nations["FRA"]
-	var gdp_before: float = ger.budget.gdp
-	var fra_gdp: float = fra.budget.gdp
+	var gdp_before: float = ger.budget.income
+	var fra_gdp: float = fra.budget.income
 	_check(gs.issue(WarC.new("FRA", "GER", true)), "declare war")
 	var army = _army("FRA", pair[0], 3)
 	_check(gs.issue(MoveC.new("FRA", army.id, pair[1])), "march on an undefended province")
@@ -237,8 +237,8 @@ func _test_occupation(pair: Array) -> void:
 		days += 1
 	_check(gs.province_controller[pair[1]] == "FRA", "France takes control of the undefended province as its army arrives (%d days of march)" % days)
 	_check(gs.province_owner[pair[1]] == "GER", "ownership does not change")
-	_check(ger.budget.gdp < gdp_before, "Germany loses the province's output")
-	_check(fra.budget.gdp > fra_gdp, "France collects a share")
+	_check(ger.budget.income < gdp_before, "Germany loses the province's income")
+	_check(fra.budget.income > fra_gdp, "France collects a share")
 	_check(gs.occupation.is_empty(), "occupation progress is cleared")
 	# Liberation: with the French gone, a German army retakes its own province.
 	gs.armies.erase(army.id)
@@ -246,7 +246,7 @@ func _test_occupation(pair: Array) -> void:
 	_check(Mil.can_enter(gs, "GER", pair[1]), "Germany may enter its own occupied province")
 	_step(Mil.terrain_of(pair[1]).occupy_days)
 	_check(gs.province_controller[pair[1]] == "GER", "a German army in the province takes it back")
-	_check(absf(ger.budget.gdp - gdp_before) < 0.01, "Germany's output returns")
+	_check(absf(ger.budget.income - gdp_before) < 0.01, "Germany's income returns")
 	# An army that does not move accumulates days to take territory, and a contested province does not fall.
 	_fresh()
 	gs.set_war("FRA", "GER", true)
@@ -300,10 +300,11 @@ func _test_recruiting() -> void:
 	fra.manpower = 100000
 	fra.treasury = 0.1
 	_check(not gs.issue(RaiseC.new("FRA", paris, "infantry", 1)), "no money rejected")
-	fra.treasury = 10.0
+	fra.treasury = 2.0 * def.cost + 10.0
+	var money: float = fra.treasury
 	var men_before: int = fra.total_men()
 	_check(gs.issue(RaiseC.new("FRA", paris, "infantry", 2)), "raising two divisions works")
-	_check(fra.manpower == 100000 - 2 * def.size and absf(fra.treasury - (10.0 - 2 * def.cost)) < 0.001, "recruits and money are paid up front")
+	_check(fra.manpower == 100000 - 2 * def.size and absf(fra.treasury - (money - 2 * def.cost)) < 0.001, "recruits and gold are paid up front")
 	_check(fra.total_men() == men_before, "trainees still count as men in service")
 	var before: int = Mil.armies_at(gs, paris).size()
 	_step(def.train_days - 1)

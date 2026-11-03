@@ -85,19 +85,19 @@ func _with(cfg: Dictionary, changes: Dictionary) -> Dictionary:
 	return out
 
 
-## What each nation controls: the share of Europe's people and output (GDP and industry) in the provinces it holds, and its men.
+## What each nation controls: the share of Europe's people and income in the provinces it holds, and its men.
 func _state(gs: Node) -> Dictionary:
 	var pop_total := 0.0
 	var out_total := 0.0
 	for id in range(1, gs.province_owner.size()):
 		pop_total += gs.province_population[id]
-		out_total += gs.province_gdp[id] + gs.province_industry[id]
+		out_total += Economy.province_income(gs, id)
 	var value := {}
 	var provinces := {}
 	var count := float(gs.province_owner.size() - 1)
 	for id in range(1, gs.province_owner.size()):
 		var c: String = gs.province_controller[id]
-		var v: float = 0.5 * gs.province_population[id] / maxf(pop_total, 1.0) + 0.5 * (gs.province_gdp[id] + gs.province_industry[id]) / maxf(out_total, 1.0)
+		var v: float = 0.5 * gs.province_population[id] / maxf(pop_total, 1.0) + 0.5 * Economy.province_income(gs, id) / maxf(out_total, 1.0)
 		value[c] = value.get(c, 0.0) + v
 		provinces[c] = provinces.get(c, 0.0) + 1.0 / maxf(count, 1.0)
 	var men := {}

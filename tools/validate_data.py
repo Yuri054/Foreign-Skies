@@ -246,9 +246,6 @@ def check_scenario(folder: Path, tags: set, province_names: set, province_ids: s
     for r in read_tsv(folder / "provinces.tsv", problems):
         if int(r["id"]) not in province_ids:
             problems.append(f"{label}/provinces.tsv: id {r['id']} is not a province")
-    for r in read_tsv(folder / "resources.tsv", problems):
-        if int(r["id"]) not in province_ids:
-            problems.append(f"{label}/resources.tsv: id {r['id']} is not a province")
     for r in read_tsv(folder / "cities.tsv", problems):
         if int(r["province"]) not in province_ids:
             problems.append(f"{label}/cities.tsv: {r['name']} is in province {r['province']}, which does not exist")

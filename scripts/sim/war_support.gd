@@ -2,7 +2,7 @@ class_name WarSupport
 extends RefCounted
 ## War support (phase 5, step 6): how far a nation's people stand behind the war, 0..100.
 ## It falls with casualties, blockade and lost ground and rises with victories; in peace it
-## drifts back to the nation's base level. While a nation is at war its support scales tax
+## drifts back to the nation's base level. While a nation is at war its support scales income
 ## and recruitment (economy_mult) and the fighting power of its armies (morale_mult). Weary
 ## nations take worse terms (see Peace), and one at the end of its tether is forced into a
 ## white peace unless it is clearly losing. Constants: data/diplomacy.json, "war_support".
@@ -25,7 +25,7 @@ static func _curve(curve: Dictionary, support: float) -> float:
 	return lerpf(curve.at_50, curve.at_100, (support - 50.0) / 50.0)
 
 
-## Multiplier on tax and recruitment; 1 in peace.
+## Multiplier on income and recruitment; 1 in peace.
 static func economy_mult(gs: Node, tag: String) -> float:
 	if gs.wars_of(tag).is_empty():
 		return 1.0
@@ -76,21 +76,17 @@ static func occupied_share(gs: Node, tag: String) -> float:
 
 
 ## What moves a nation's war support this month, by cause: {label: points}. At war it is the
-## weariness of fighting, the economy law, heavy taxes, the men lost so far this month, the
-## blockade, ground under the enemy and debt; in peace it is the people settling back to their level.
+## weariness of fighting, the men lost so far this month, the blockade, ground under the enemy and
+## debt; in peace it is the people settling back to their level.
 static func monthly_changes(gs: Node, tag: String) -> Dictionary:
 	var c: Dictionary = cfg()
 	var n: Nation = gs.nations[tag]
-	var strain := Economy.tax_strain(n)
 	if gs.wars_of(tag).is_empty():
-		# Heavy taxes lower the level the people settle at; light ones raise it a little.
-		var settle: float = n.war_support_base - Economy.cfg.tax_strain.support_penalty * strain + float(Economy.cfg.tax_relief.support_bonus) * Economy.tax_relief(n)
-		return {"settling back": clampf(settle - n.war_support, -c.recovery_per_month, c.recovery_per_month)}
+		return {"settling back": clampf(n.war_support_base - n.war_support, -c.recovery_per_month, c.recovery_per_month)}
 	var lost := n.men_lost_month / maxf(float(n.total_men()) + n.men_lost_month, 1.0)
-	var debt: float = maxf(-n.treasury, 0.0) / maxf(n.budget.get("revenue", 1.0), 1.0)
+	var debt: float = maxf(-n.treasury, 0.0) / maxf(12.0 * float(n.budget.get("income", 0.0)), 1.0)
 	return {
 		"the war itself": -c.weariness,
-		"heavy taxes": -Economy.cfg.tax_strain.war_weariness * strain,
 		"men lost": -c.casualty_weight * lost,
 		"blockade": -c.blockade_weight * n.blockade,
 		"ground lost": -c.occupied_weight * occupied_share(gs, tag),
@@ -98,13 +94,13 @@ static func monthly_changes(gs: Node, tag: String) -> Dictionary:
 	}
 
 
-## What a nation's support does now, in words: at war its fighting power, recruits and taxes.
+## What a nation's support does now, in words: at war its fighting power, recruits and income.
 static func effects_text(gs: Node, tag: String) -> String:
 	var n: Nation = gs.nations[tag]
 	if gs.wars_of(tag).is_empty():
-		return "At peace war support does nothing; at war it sets how hard the army fights and how much tax and how many recruits the people give (now %d: fighting x%.2f, tax and recruits x%.2f)." % [
+		return "At peace war support does nothing; at war it sets how hard the army fights and how much income and how many recruits the people give (now %d: fighting x%.2f, income and recruits x%.2f)." % [
 				roundi(n.war_support), _curve(cfg().morale_mult, n.war_support), _curve(cfg().economy_mult, n.war_support)]
-	return "Fighting power x%.2f, tax and recruits x%.2f. At %d or less the people are forced into a peace." % [
+	return "Fighting power x%.2f, income and recruits x%.2f. At %d or less the people are forced into a peace." % [
 			morale_mult(gs, tag), economy_mult(gs, tag), int(cfg().white_peace_below)]
 
 

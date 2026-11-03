@@ -50,7 +50,7 @@ func _test_standings() -> void:
 	var ids: PackedStringArray = []
 	for m: Dictionary in S.METRICS:
 		ids.append(m.id)
-	_check(ids.size() == 12 and "navy" in ids and "diplomacy_points" in ids and "population" in ids and "treasury" in ids and "war_support" in ids, "twelve figures can be ranked (%s)" % ", ".join(ids))
+	_check(ids.size() == 11 and "navy" in ids and "diplomacy_points" in ids and "population" in ids and "treasury" in ids and "war_support" in ids, "eleven figures can be ranked (%s)" % ", ".join(ids))
 	var pop: Array = S.ranking(gs, "population")
 	_check(pop.size() == 22, "every nation with land is ranked (%d)" % pop.size())
 	var sorted := true
@@ -60,7 +60,7 @@ func _test_standings() -> void:
 	_check(sorted and pop[0].tag == "RUS", "best first, Russia the most populous (%s)" % pop[0].tag)
 	_check(S.rank_of(gs, "RUS", "population") == 1 and S.rank_of(gs, "FRA", "population") > 1, "rank_of agrees")
 	_check(S.rank_of(gs, "XXX", "population") == 0, "and is 0 for a stranger")
-	_check(is_equal_approx(S.value(gs, "FRA", "gdp"), gs.nations["FRA"].budget.gdp / 12.0), "output is a monthly figure")
+	_check(is_equal_approx(S.value(gs, "FRA", "income"), gs.nations["FRA"].budget.income), "income is the month's figure")
 	_check(S.value(gs, "GER", "provinces") == gs.nations["GER"].provinces.size(), "provinces are a count")
 	gs.nations["GER"].treasury = -40.0
 	var treasuries: Array = S.ranking(gs, "treasury")
@@ -127,12 +127,12 @@ func _test_window() -> void:
 	await process_frame
 	await process_frame
 	_check(win._table.get_child_count() == (2 + win.TABLE_COLUMNS.size()) * 23, "the table has a heading row and a row per nation (%d cells)" % win._table.get_child_count())
-	var heading: Button = win._table.get_child(2 + win.TABLE_COLUMNS.find("gdp"))
+	var heading: Button = win._table.get_child(2 + win.TABLE_COLUMNS.find("income"))
 	heading.pressed.emit()
 	await process_frame
 	await process_frame
-	_check(win._sort == "gdp", "clicking a heading sorts by it")
-	var sorted_heading: Button = win._table.get_child(2 + win.TABLE_COLUMNS.find("gdp"))
+	_check(win._sort == "income", "clicking a heading sorts by it")
+	var sorted_heading: Button = win._table.get_child(2 + win.TABLE_COLUMNS.find("income"))
 	_check(sorted_heading.text.contains("▾"), "and marks the column")
 
 	# Trend.

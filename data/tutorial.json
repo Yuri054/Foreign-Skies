@@ -40,9 +40,9 @@
 			}
 		},
 		{
-			"id": "taxes",
-			"title": "Set the taxes and the arms",
-			"text": "On the Economy tab (E) the Money section shows what comes in and goes out each month. Move the tax rate: more tax fills the treasury but slows growth and wears down the people's support. Below it, Arms production puts a share of your industry into shells for the guns: guns without shells fight much weaker, so a nation that expects war arms before it.",
+			"id": "economy",
+			"title": "Read the budget",
+			"text": "On the Economy tab (E) the Gold section shows what comes in each month (your provinces' base income, civilian factories and ports) and what goes out (the army, the navy, the buildings' upkeep). Construction shows your construction points. Under People, set the standing army: every division costs upkeep each month, so a nation that expects war keeps a larger one.",
 			"highlight": {
 				"button": "Nation"
 			},
@@ -53,7 +53,7 @@
 		{
 			"id": "build",
 			"title": "Build something",
-			"text": "On the Build tab (B) pick a building, then click a green province on the map. Building uses building capacity, not money, and takes weeks. The queue at the bottom right shows progress.",
+			"text": "On the Build tab (B) pick a building, then click a green province on the map. A building costs gold and construction points, paid when it starts, and is finished after its days; a civilian factory earns gold every month. The queue at the bottom right shows progress.",
 			"highlight": {
 				"button": "Nation"
 			},
@@ -64,7 +64,7 @@
 		{
 			"id": "raise",
 			"title": "Raise an army",
-			"text": "On the Military tab (M), pick one of your provinces on the map, open Recruit and raise a unit. Units cost money and recruits, and form an army where they were raised.",
+			"text": "On the Military tab (M), pick one of your provinces on the map, open Recruit and raise a unit. Units cost gold and recruits, then upkeep every month, and form an army where they were raised.",
 			"highlight": {
 				"button": "Nation"
 			},

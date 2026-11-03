@@ -112,7 +112,7 @@ func _test_issue_quiet() -> void:
 	var ok: bool = gs.issue_quiet(MoveC.new(tag, army.id, dest))
 	_check(ok and gs.command_log.size() == before + 1, "issue_quiet runs and logs the command")
 	_check(not gs.economy_dirty, "an order to an army does not touch the economy")
-	gs.issue_quiet(load("res://scripts/sim/set_economy_policy.gd").new(tag, "tax_rate", 0.2))
+	gs.issue_quiet(load("res://scripts/sim/set_economy_policy.gd").new(tag, "mobilization", 0.2))
 	_check(gs.economy_dirty, "a change of policy is left to the day's step to recompute")
 	_check(not gs.issue_quiet(MoveC.new(tag, 99999, dest)) and gs.command_log.size() == before + 2, "a rejected quiet command is not logged")
 	gs.load_scenario(gs.DEFAULT_SCENARIO)

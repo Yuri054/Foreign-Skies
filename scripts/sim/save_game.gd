@@ -14,19 +14,19 @@ extends RefCounted
 ## alone, and add the step to `_migrate`. A save of OLDEST up to VERSION is read; anything else is refused.
 ##   1  the first format
 ##   2  wars carry a goal (War.goal); a version 1 save loads with every war goalless
-##   3  nations have munitions (Nation.munitions, arms_share): a version 2 save starts each at the default arms share
-##      and an empty stockpile
+##   3  (the resource economy's arms stockpile)
 ##   4  war justification is gone (a demand does its work): a case being built in a version 3 save becomes the casus
 ##      belli it would have made, with its goal
-const VERSION := 4
-const OLDEST := 1
+##   5  the gold economy (0.18.0): no older save can be read (the resource economy is on the branch
+##      archive/resource-economy, which reads them)
+const VERSION := 5
+const OLDEST := 5
 ## Where saves live; tests point it somewhere else.
 static var dir := "user://saves/"
 const EXT := ".sav"
 const MAGIC := "godot-1914-save"
 ## GameState fields that are not saved: read again from the scenario, or worked out from the rest.
-const SKIPPED := ["scenario", "scenario_dir", "economy_dirty", "budget_dirty", "control_version", "autosave_enabled", "economy_sums", "province_deposit", "province_gdp", "province_industry",
-		"province_food", "province_pool", "owner_version", "cities", "cities_by_province", "province_pop_base", "in_day_step", "_day_stages"]
+const SKIPPED := ["scenario", "scenario_dir", "economy_dirty", "budget_dirty", "control_version", "autosave_enabled", "economy_sums", "province_base_income", "owner_version", "cities", "cities_by_province", "province_pop_base", "in_day_step", "_day_stages"]
 const CLASS_NAMES := ["Nation", "Army", "Unit", "Fleet", "Ship", "Front", "War", "Treaty", "General", "ArmyGroup", "AttackLine", "Offensive"]
 
 
@@ -142,26 +142,8 @@ static func _migrate(state: Dictionary, from: int) -> void:
 	var v := from
 	while v < VERSION:
 		match v:
-			1:
-				pass   # 1 -> 2: War.goal is new; an old war has none, which is its default
-			2:
-				# 2 -> 3: munitions. An empty stockpile is the default; the arms share is the scenarios' usual one.
-				var flat: Array = state.get("nations", {}).get("@m", [])
-				for i in range(1, flat.size(), 2):
-					var props: Dictionary = flat[i].get("p", {})
-					if not props.has("arms_share"):
-						props["arms_share"] = float(Economy.cfg.munitions.default_share)
-			3:
-				# 3 -> 4: each justification under way {holder, target, goal, done_day} becomes its casus belli, dated
-				# from the day the work would have been done.
-				var cbs: Array = state.get("casus_belli", [])
-				for item: Variant in state.get("justifications", []):
-					var j: Variant = _decode(item)
-					if j is Dictionary and j.has("holder") and j.has("target"):
-						cbs.append(_encode({"holder": j.holder, "target": j.target, "kind": "fabricated_claim", "goal": j.get("goal", {}),
-								"expires_day": int(j.get("done_day", 0)) + int(Diplomacy.cfg.war.cb_years * 365)}))
-				state["casus_belli"] = cbs
-				state.erase("justifications")
+			_:
+				pass
 		v += 1
 
 

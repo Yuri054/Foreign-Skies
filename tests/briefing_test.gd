@@ -58,7 +58,7 @@ func _initialize() -> void:
 
 	var n = gs.nations["GER"]
 	_check(not ("idle_money" in _ids(B.issues(gs, "GER"))), "a treasury of a few months' revenue is not idle")
-	n.treasury = float(n.budget.revenue) * 2.0
+	n.treasury = float(n.budget.income) * 24.0
 	var idle: Array = B.issues(gs, "GER").filter(func(i: Dictionary) -> bool: return i.id == "idle_money")
 	_check(idle.size() == 1 and idle[0].why.contains("divisions") and idle[0].why.contains("months of full mobilization"), "two years' revenue in peace is money lying idle, and it says what it buys: %s" % (idle[0].why if idle.size() > 0 else ""))
 	n.treasury = -40.0

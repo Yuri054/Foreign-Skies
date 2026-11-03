@@ -46,7 +46,7 @@ func _fingerprint() -> String:
 	parts.append(str(gs.province_controller))
 	for tag in gs.nations:
 		var n = gs.nations[tag]
-		parts.append("%s %.4f %d %.4f %.4f %.4f %.4f %.6f %d" % [tag, n.treasury, n.manpower, n.war_support, n.blockade, n.civil_mult, n.civil_base, n.civil_index, n.peacetime_army])
+		parts.append("%s %.4f %d %.4f %.4f %.4f %d %d" % [tag, n.treasury, n.manpower, n.war_support, n.blockade, n.cp, n.construction.size(), n.peacetime_army])
 	var men := 0.0
 	for a in gs.armies.values():
 		men += a.men() + a.province
@@ -112,16 +112,14 @@ func _test_refused() -> void:
 	_check(err != "" and "newer game" in err, "a save from a newer game is refused with a message: " + err)
 	_check(Clock.days_elapsed == day, "and changes nothing")
 
-	# A version 1 save (made before war goals) still loads: its wars simply have no goal.
+	# A save from before the gold economy (version 4) is refused, saying why.
 	gs.load_scenario(gs.DEFAULT_SCENARIO)
-	gs.set_war("GER", "FRA", true, "none")
-	var war: War = gs.war_between("GER", "FRA")
-	_check(SaveGame.write(gs, DIR + "v1.sav", 1) == "", "a version 1 save can be made")
-	war.goal = {"kind": "provinces", "ids": [1]}
-	_check(gs.load_game(DIR + "v1.sav") == "", "and is read by this game")
-	_check(gs.war_between("GER", "FRA") != null and gs.war_between("GER", "FRA").goal.is_empty(), "its war loads with no goal")
-	_check(SaveGame.read_header(DIR + "v1.sav").version == 1, "the header keeps the version it was made in")
+	_check(SaveGame.write(gs, DIR + "v4.sav", 4) == "", "a version 4 save can be made")
+	err = gs.load_game(DIR + "v4.sav")
+	_check(err != "" and "too old" in err, "a save from before the gold economy is refused with a message: " + err)
+	_check(SaveGame.read_header(DIR + "v4.sav").get("error", "").contains("version 4"), "and the save list says the same of it")
 	gs.load_game(good)
+	day = Clock.days_elapsed
 	var f := FileAccess.open(DIR + "junk.sav", FileAccess.WRITE)
 	f.store_string("not a save at all")
 	f.close()

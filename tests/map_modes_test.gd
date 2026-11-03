@@ -53,27 +53,23 @@ func _initialize() -> void:
 
 	palette.pick_group(2)
 	await process_frame
-	_check(view.mode == Mode.INCOME and palette._buttons[2].button_pressed, "Economy opens on tax income")
+	_check(view.mode == Mode.INCOME and palette._buttons[2].button_pressed, "Economy opens on income")
 	var labels: PackedStringArray = []
 	for c in palette._strip.get_children():
 		labels.append(c.text)
-	_check(labels == PackedStringArray(["Tax income", "Coal", "Iron / Steel", "Timber", "Buildings"]), "with its variants as chips (%s)" % ", ".join(labels))
+	_check(labels == PackedStringArray(["Income", "Buildings"]), "with its variants as chips (%s)" % ", ".join(labels))
 	_check(palette._strip_title.text == "Economy ›", "and the kind named beside them")
-	palette._chips[1].pressed.emit()
-	await process_frame
-	_check(view.mode == Mode.RESOURCES and view.submode == "coal", "the Coal chip shows coal")
-	_check(palette._legend_panel.visible and palette._legend_title.text.contains("Coal"), "with a legend for coal (%s)" % palette._legend_title.text)
-	_check(palette._chips[1].button_pressed and not palette._chips[0].button_pressed, "and the chip lit")
+	_check(palette._legend_panel.visible and palette._legend_title.text.contains("Income"), "with a legend for income (%s)" % palette._legend_title.text)
+	_check(palette._chips[0].button_pressed and not palette._chips[1].button_pressed, "and the chip lit")
 
 	palette.pick_group(3)
 	await process_frame
 	_check(view.mode == Mode.POPULATION and not palette._strip.visible, "Population is a single map")
+
 	palette.pick_group(2)
 	await process_frame
-	_check(view.mode == Mode.RESOURCES and view.submode == "coal", "going back to Economy remembers the coal you left it on")
-
 	# Buildings and their kinds.
-	palette._chips[4].pressed.emit()
+	palette._chips[1].pressed.emit()
 	await process_frame
 	_check(view.mode == Mode.BUILDINGS and palette._sub_picker.visible and palette._sub_picker.item_count >= 5, "Buildings brings up a list of building kinds (%d)" % palette._sub_picker.item_count)
 	palette._sub_picker.select(2)

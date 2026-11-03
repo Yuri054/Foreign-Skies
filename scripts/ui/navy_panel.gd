@@ -84,18 +84,18 @@ func _build_yard_tab() -> void:
 		_type_picker.add_item(def.name)
 		_type_picker.set_item_metadata(_type_picker.item_count - 1, type)
 	_type_picker.focus_mode = Control.FOCUS_NONE
-	_type_picker.tooltip_text = "The kind of ship. Bigger ships fight better but cost more IC and take longer."
+	_type_picker.tooltip_text = "The kind of ship. Bigger ships fight better but cost more gold and take longer."
 	_type_picker.item_selected.connect(func(_i: int) -> void: _refresh_yard())
 	_yard_box.add_child(_row("Build", _type_picker))
 	_count.min_value = 1
 	_count.max_value = 8
 	_count.value = 1
-	_count.tooltip_text = "How many squadrons to lay down at once. Ships are paid in industry (IC), not money."
+	_count.tooltip_text = "How many squadrons to lay down at once. Ships are paid in gold when they are laid down."
 	_count.value_changed.connect(func(_v: float) -> void: _refresh_yard())
 	_yard_box.add_child(_row("Squadrons", _count))
 	_build.text = "Build"
 	_build.focus_mode = Control.FOCUS_NONE
-	_build.tooltip_text = "Starts the ships in the selected port. They are paid from the daily IC and come out when finished."
+	_build.tooltip_text = "Starts the ships in the selected port. They are paid for now and come out when finished."
 	_build.pressed.connect(_on_build)
 	_yard_box.add_child(_build)
 	_build_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -316,7 +316,7 @@ func _refresh_yard() -> void:
 		_yard_info.text = "Select one of your coastal provinces on the map to build ships there."
 	var problem := Navy.build_problem(GameState, tag, _province, type, count) if ok_province else "Select a coastal province of yours."
 	var def: Dictionary = Navy.cfg.types[type]
-	var cost := "£%.1fM, %s IC, at least %d days, needs a level %d port" % [def.cost * count, Fmt.thousands(roundi(def.ic * count)), def.build_days, def.min_port]
+	var cost := "%s, %d days, needs a level %d port" % [Fmt.gold(def.cost * count), def.build_days, def.min_port]
 	_build.disabled = not problem.is_empty()
 	_build_label.text = cost if problem.is_empty() else "%s (%s)" % [problem, cost]
 	_build_label.modulate = Color.WHITE if problem.is_empty() else Fmt.WARN
@@ -354,8 +354,8 @@ func _refresh_sea() -> void:
 	for f in Navy.fleets_of(GameState, tag):
 		mine += f.ships.size()
 		power += f.power()
-	lines.append("%d squadrons afloat, fighting power %.0f. Navy costs £%.1fM a month (£%.1fM of it ships)." % [
-			mine, power, Fmt.monthly(n.naval_budget), Fmt.monthly(Navy.ship_upkeep(GameState, tag))])
+	lines.append("%d squadrons afloat, fighting power %.0f. Navy costs %s a month (%s of it ships)." % [
+			mine, power, Fmt.gold(n.naval_budget / 12.0), Fmt.gold(Navy.ship_upkeep(GameState, tag) / 12.0)])
 	var theirs := 0.0
 	var their_ships := 0
 	for other in GameState.nations:

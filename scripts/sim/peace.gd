@@ -22,13 +22,6 @@ static func cfg() -> Dictionary:
 
 # --- War score -----------------------------------------------------------------------------
 
-static func nation_gdp(gs: Node, tag: String) -> float:
-	var total := 0.0
-	for id: int in gs.nations[tag].provinces:
-		total += gs.province_gdp[id]
-	return total
-
-
 ## What a province is worth in a war (diplomacy.json capitulation.value): its people, its city and its buildings. The
 ## capital's bonus is added by Capitulation.value_of. Worked out once a day.
 static func province_value(gs: Node, id: int) -> float:
@@ -328,7 +321,7 @@ static func describe_demand(gs: Node, d: Dictionary) -> String:
 				names.append(MapData.provinces[id].name)
 			return "the provinces of %s" % ", ".join(names) if names.size() <= 6 else "%d provinces (%s and %d more)" % [names.size(), ", ".join(names.slice(0, 4)), names.size() - 4]
 		"indemnity":
-			return "an indemnity of %d%% of revenue a year for %d months" % [roundi(d.share * 100.0), d.months]
+			return "an indemnity of %d%% of income for %d months" % [roundi(d.share * 100.0), d.months]
 		"release_ally":
 			return "an end to its ties with %s" % gs.nations[d.nation].display_name
 		"disarm_border":
@@ -571,7 +564,7 @@ static func _apply_demand(gs: Node, taker: String, giver: String, d: Dictionary,
 				_move_capital(gs, giver)
 			return ", ".join(names)
 		"indemnity":
-			var monthly: float = d.share * gs.nations[giver].budget.revenue / 12.0
+			var monthly: float = d.share * gs.nations[giver].budget.income
 			gs.indemnities.append({"payer": giver, "receiver": taker, "monthly": monthly, "months_left": d.months})
 			return "an indemnity of %.1f a month for %d months" % [monthly, d.months]
 		"release_ally":

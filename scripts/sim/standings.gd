@@ -5,14 +5,12 @@ extends RefCounted
 
 const MAX_MONTHS := 240
 
-## The rankable figures. `kind` says how to show them: people, money (GBP millions, a month or
-## a stock), men, count, points.
+## The rankable figures. `kind` says how to show them: people, money (gold, a month or a stock), men, count, points.
 const METRICS := [
 	{"id": "population", "label": "Population", "kind": "people", "tip": "People living in the nation's provinces."},
-	{"id": "gdp", "label": "Output", "kind": "money", "tip": "What the economy produces each month (GBP millions)."},
-	{"id": "industry", "label": "Industry", "kind": "money", "tip": "Industrial output each month (GBP millions)."},
-	{"id": "income", "label": "Income", "kind": "money", "tip": "What the state takes in each month (GBP millions)."},
-	{"id": "treasury", "label": "Treasury", "kind": "money", "tip": "Money in the treasury (GBP millions); a debt is negative."},
+	{"id": "income", "label": "Income", "kind": "money", "tip": "Gold the nation takes in each month."},
+	{"id": "factories", "label": "Civilian factories", "kind": "count", "tip": "Civilian factories in the provinces it holds."},
+	{"id": "treasury", "label": "Treasury", "kind": "money", "tip": "Gold in the treasury; a debt is negative."},
 	{"id": "army", "label": "Army", "kind": "men", "tip": "Men under arms and in training."},
 	{"id": "navy", "label": "Navy", "kind": "count", "tip": "Squadrons of warships and transports afloat."},
 	{"id": "manpower", "label": "Manpower", "kind": "men", "tip": "The pool of men that could be called up."},
@@ -37,12 +35,10 @@ static func value(gs: Node, tag: String, id: String) -> float:
 	match id:
 		"population":
 			return float(n.population)
-		"gdp":
-			return b.get("gdp", 0.0) / 12.0
-		"industry":
-			return b.get("industry", 0.0) / 12.0
 		"income":
-			return b.get("revenue", 0.0) / 12.0
+			return b.get("income", 0.0)
+		"factories":
+			return float(b.get("levels", {}).get("civilian_factory", 0.0))
 		"treasury":
 			return n.treasury
 		"army":
@@ -125,23 +121,23 @@ static func year_report(gs: Node) -> String:
 		return ""
 	var then: Dictionary = h[h.size() - 13].values
 	var now: Dictionary = h[h.size() - 1].values
-	if not then.has(me) or not now.has(me) or float(then[me].gdp) <= 0.0:
+	if not then.has(me) or not now.has(me) or float(then[me].get("income", 0.0)) <= 0.0:
 		return ""
-	var growth: float = float(now[me].gdp) / float(then[me].gdp) - 1.0
-	var rank_then := _rank_in(then, me, "gdp")
-	var rank_now := _rank_in(now, me, "gdp")
+	var growth: float = float(now[me].income) / float(then[me].income) - 1.0
+	var rank_then := _rank_in(then, me, "income")
+	var rank_now := _rank_in(now, me, "income")
 	var passed: PackedStringArray = []
 	var lost: PackedStringArray = []
 	for tag: String in now:
 		if tag == me or not then.has(tag) or not gs.nations.has(tag):
 			continue
-		var was_ahead: bool = float(then[tag].gdp) > float(then[me].gdp)
-		var is_ahead: bool = float(now[tag].gdp) > float(now[me].gdp)
+		var was_ahead: bool = float(then[tag].get("income", 0.0)) > float(then[me].income)
+		var is_ahead: bool = float(now[tag].income) > float(now[me].income)
 		if was_ahead and not is_ahead:
 			passed.append(gs.nations[tag].display_name)
 		elif is_ahead and not was_ahead:
 			lost.append(gs.nations[tag].display_name)
-	var line := "The year %d: output %+.1f%%, %s largest economy" % [Clock.year - 1, growth * 100.0, Fmt.ordinal(rank_now)]
+	var line := "The year %d: income %+.1f%%, %s largest economy" % [Clock.year - 1, growth * 100.0, Fmt.ordinal(rank_now)]
 	if rank_now != rank_then:
 		line += " (%s last year)" % Fmt.ordinal(rank_then)
 	if not passed.is_empty():

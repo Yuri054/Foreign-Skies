@@ -92,7 +92,7 @@ static func status(gs: Node) -> Dictionary:
 		"great_power":
 			var rank := 1
 			for other: String in gs.nations:
-				if other != tag and not gs.nations[other].provinces.is_empty() and float(gs.nations[other].budget.get("gdp", 0.0)) > float(n.budget.get("gdp", 0.0)):
+				if other != tag and not gs.nations[other].provinces.is_empty() and float(gs.nations[other].budget.get("income", 0.0)) > float(n.budget.get("income", 0.0)):
 					rank += 1
 			var need := int(_cfg().ambitions.great_power.get("rank", 6))
 			if rank <= need:

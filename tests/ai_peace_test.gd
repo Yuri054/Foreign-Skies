@@ -185,7 +185,7 @@ func _test_affordability() -> void:
 	_check(not AP.accepts(gs, _offer("FRA", "GER", "demand", heavy, 5.0)), "a nation refuses an indemnity it cannot carry")
 	var light: Array = [{"kind": "indemnity", "share": 0.1, "months": 12}]
 	_check(AP.accepts(gs, _offer("FRA", "GER", "demand", light, 2.0)), "but takes a lighter one when it is losing")
-	gs.indemnities.append({"payer": "GER", "receiver": "FRA", "monthly": gs.nations["GER"].budget.revenue / 12.0 * 0.35, "months_left": 10})
+	gs.indemnities.append({"payer": "GER", "receiver": "FRA", "monthly": gs.nations["GER"].budget.income * 0.35, "months_left": 10})
 	_check(not AP.accepts(gs, _offer("FRA", "GER", "demand", light, 2.0)), "and refuses it on top of what it already pays")
 
 

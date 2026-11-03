@@ -117,14 +117,14 @@ func _test_effects() -> void:
 	var ger = gs.nations["GER"]
 	ger.war_support = 50.0
 	Eco.recompute(gs)
-	var rev50: float = ger.budget.revenue
+	var rev50: float = ger.budget.income
 	ger.war_support = 0.0
 	Eco.recompute(gs)
-	var rev0: float = ger.budget.revenue
-	_check(rev0 < rev50 * 0.9 and rev0 > rev50 * 0.6, "tax revenue falls with war support (%.1f at 50, %.1f at 0)" % [rev50, rev0])
+	var rev0: float = ger.budget.income
+	_check(rev0 < rev50 * 0.9 and rev0 > rev50 * 0.6, "income falls with war support (%.1f at 50, %.1f at 0)" % [rev50, rev0])
 	gs.set_war("FRA", "GER", false)
 	Eco.recompute(gs)
-	_check(is_equal_approx(ger.budget.revenue, rev50), "and returns in peace")
+	_check(is_equal_approx(ger.budget.income, rev50), "and returns in peace")
 	gs.set_war("FRA", "GER", true)
 
 	ger.mobilization = 1.0  # a roomy cap, so one month's recruiting does not fill it

@@ -3,7 +3,7 @@ extends FloatingWindow
 ## beneath it, a Trend line chart of the leaders and you over the months. Pick the figure at the top; click a
 ## nation anywhere to see it in the country panel. A page of the Nation screen (R).
 
-const TABLE_COLUMNS := ["population", "gdp", "income", "treasury", "army", "navy", "prestige", "provinces"]
+const TABLE_COLUMNS := ["population", "income", "factories", "treasury", "army", "navy", "prestige", "provinces"]
 const TREND_LEADERS := 5
 const YOU_COLOR := Color(0.78, 0.88, 1.0)
 
@@ -114,7 +114,7 @@ static func format_value(id: String, v: float) -> String:
 		"people", "men":
 			return Fmt.people(v)
 		"money":
-			return "£%.1fM" % v if absf(v) < 1000.0 else "£%.2fB" % (v / 1000.0)
+			return Fmt.gold(v)
 	return "%d" % roundi(v)
 
 
@@ -124,7 +124,7 @@ static func short_value(id: String, v: float) -> String:
 		"people", "men":
 			return Fmt.people(v)
 		"money":
-			return "£%dM" % roundi(v)
+			return "%d gold" % roundi(v)
 	return "%d" % roundi(v)
 
 

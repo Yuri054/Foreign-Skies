@@ -1,6 +1,6 @@
 extends Sprite2D
 ## Draws the province bitmap through shaders/map.gdshader and handles picking. A map mode
-## decides what color each province is painted; some modes have submodes (which resource,
+## decides what color each province is painted; some modes have submodes (which building,
 ## which building). Colors go into a lookup texture, so changing a mode or the data behind it
 ## only rewrites one pixel per province.
 
@@ -26,10 +26,9 @@ signal mode_changed(mode: Mode, submode: String)
 ## In the Diplomacy mode, whose point of view the map shows changed (see set_viewpoint).
 signal viewpoint_changed(tag: String)
 
-enum Mode { POLITICAL, RESOURCES, INCOME, POPULATION, BUILDINGS, PROVINCES, TERRAIN, MILITARY, DIPLOMACY, SEA_CONTROL, BLOCKADE, CONSTRUCTION }
+enum Mode { POLITICAL, INCOME, POPULATION, BUILDINGS, PROVINCES, TERRAIN, MILITARY, DIPLOMACY, SEA_CONTROL, BLOCKADE, CONSTRUCTION }
 const MODE_NAMES := {
 	Mode.POLITICAL: "Political",
-	Mode.RESOURCES: "Resources",
 	Mode.INCOME: "Income",
 	Mode.POPULATION: "Population",
 	Mode.BUILDINGS: "Buildings",
@@ -98,7 +97,7 @@ const STRENGTH_COLOR := Color(0.85, 0.35, 0.2)
 const LOOKUP_WIDTH := 256
 
 var mode: Mode = Mode.POLITICAL
-## Which resource or building a mode shows; "" when the mode has no submodes.
+## Which building or military view a mode shows; "" when the mode has no submodes.
 var submode := ""
 var selected_id := 0
 var hover_id := 0
@@ -266,11 +265,8 @@ func _process(_delta: float) -> void:
 func submodes(for_mode: Mode = mode) -> Array:
 	var list := []
 	match for_mode:
-		Mode.RESOURCES:
-			for r in Economy.resource_ids():
-				list.append([r, Economy.cfg.resources[r].name])
 		Mode.BUILDINGS:
-			list.append([ALL_BUILDINGS, "All except mines"])
+			list.append([ALL_BUILDINGS, "All"])
 			for type in Economy.building_ids():
 				list.append([type, Economy.cfg.buildings[type].name])
 		Mode.CONSTRUCTION:
@@ -425,7 +421,7 @@ func repaint() -> void:
 	var values := PackedFloat32Array()
 	values.resize(count)
 	_max_value = 0.0
-	if MODE_COLORS.has(mode) or mode == Mode.RESOURCES:
+	if MODE_COLORS.has(mode):
 		for id in range(1, count):
 			values[id] = _value(id)
 			_max_value = maxf(_max_value, values[id])
@@ -489,21 +485,15 @@ func _paint_diplomacy_marks() -> void:
 ## The number a province is shaded by in the current mode.
 func _value(id: int) -> float:
 	match mode:
-		Mode.RESOURCES:
-			var amount: float = GameState.province_deposit[id].get(submode, 0.0)
-			return amount if amount >= Economy.cfg.materials.min_deposit else 0.0
 		Mode.INCOME:
-			# Tax the province yields each month.
-			return Fmt.monthly(GameState.province_gdp[id]) * GameState.nations[GameState.province_owner[id]].tax_rate
+			# What the province earns its owner each month.
+			return Economy.province_income(GameState, id)
 		Mode.POPULATION:
 			return float(GameState.province_population[id])
 		Mode.BUILDINGS:
 			var levels := 0
 			for type in GameState.province_buildings[id]:
-				if submode == ALL_BUILDINGS:
-					if not str(Economy.cfg.buildings[type].get("requires", "")).begins_with("deposit:") and not Economy.cfg.buildings[type].get("slot", false):
-						levels += GameState.province_buildings[id][type]
-				elif type == submode:
+				if submode == ALL_BUILDINGS or type == submode:
 					levels += GameState.province_buildings[id][type]
 			return float(levels)
 	return 0.0
@@ -527,7 +517,7 @@ func _paint_color(id: int, value: float) -> Color:
 		# Who holds the ground. Political stripes occupied provinces with the owner's colour
 		# (in the shader).
 		return GameState.nations[GameState.province_controller[id]].color
-	if mode != Mode.RESOURCES and not MODE_COLORS.has(mode):
+	if not MODE_COLORS.has(mode):
 		return GameState.owner_color(id)
 	if value <= 0.0:
 		return NO_DATA_COLOR
@@ -604,20 +594,14 @@ func construction_color(id: int, type: String) -> Color:
 	return CONSTRUCT_BUILD if can else CONSTRUCT_BLOCKED
 
 
-## 0..1 position of a value on the mode's color scale: deposits span orders of magnitude, so
-## they use a log scale; everything else uses a square root so small values stay visible.
+## 0..1 position of a value on the mode's color scale: a square root, so small values stay visible.
 func _scale(value: float) -> float:
 	if _max_value <= 0.0:
 		return 0.0
-	if mode == Mode.RESOURCES:
-		var floor_value: float = Economy.cfg.materials.min_deposit
-		return clampf(log(maxf(value, floor_value) / floor_value) / maxf(log(_max_value / floor_value), 0.001), 0.0, 1.0)
 	return clampf(sqrt(value / _max_value), 0.0, 1.0)
 
 
 func _mode_color() -> Color:
-	if mode == Mode.RESOURCES:
-		return Color(Economy.cfg.resources[submode].color)
 	return MODE_COLORS[mode]
 
 
@@ -625,7 +609,7 @@ func _mode_color() -> Color:
 ## and its color. Empty for modes that are not shaded.
 func legend() -> Dictionary:
 	if mode == Mode.BLOCKADE:
-		return {"title": "Trade cut off by blockade", "low": "none", "high": "all", "from": NO_DATA_COLOR, "to": BLOCKADE_COLOR}
+		return {"title": "Port income cut off by blockade", "low": "none", "high": "all", "from": NO_DATA_COLOR, "to": BLOCKADE_COLOR}
 	if mode == Mode.DIPLOMACY:
 		return {"title": "Opinion of %s" % GameState.nations[diplomacy_viewpoint()].display_name if GameState.nations.has(diplomacy_viewpoint()) else "Opinion",
 				"low": "hostile", "high": "friendly", "from": HOSTILE_COLOR, "to": FRIENDLY_COLOR}
@@ -648,17 +632,14 @@ func legend() -> Dictionary:
 				return {"title": "Men stationed", "low": "none", "high": Fmt.people(_max_value) if _max_value > 0.0 else "none",
 						"from": NO_DATA_COLOR.lerp(STRENGTH_COLOR, 0.25), "to": STRENGTH_COLOR}
 		return {}
-	if mode != Mode.RESOURCES and not MODE_COLORS.has(mode):
+	if not MODE_COLORS.has(mode):
 		return {}
 	var title := ""
 	var high := ""
 	match mode:
-		Mode.RESOURCES:
-			title = "%s per month" % Economy.cfg.resources[submode].name
-			high = Fmt.kt(Fmt.monthly(_max_value))
 		Mode.INCOME:
-			title = "Tax income per month"
-			high = "£%.1fM" % _max_value
+			title = "Income per month"
+			high = Fmt.gold(_max_value)
 		Mode.POPULATION:
 			title = "Population"
 			high = Fmt.people(_max_value)

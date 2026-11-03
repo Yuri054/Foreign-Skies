@@ -119,7 +119,7 @@ func _test_limits() -> void:
 		var spent := 0.0
 		for job in gs.nations["BEL"].recruiting:
 			spent += Mil.cfg.unit_types[job.type].cost
-		var monthly: float = gs.nations["BEL"].budget.revenue / 12.0
+		var monthly: float = gs.nations["BEL"].budget.income
 		if spent > A.cfg.forces.income_share * monthly * A.cfg.forces.horizon_months + 0.0001:
 			_check(false, "units in training cost more than the income share allows")
 			break
