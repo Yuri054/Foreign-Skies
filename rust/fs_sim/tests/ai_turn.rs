@@ -109,6 +109,24 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     if reserve != want_reserve || stamps != want_stamps {
         fails.push(format!("{label}: reserves {reserve:?} stamps {stamps:?} vs {want_reserve:?} {want_stamps:?}"));
     }
+    let treaties: Vec<Value> = gs.treaties.iter().map(|t| serde_json::json!([t.id, t.kind, t.a, t.b, t.start_day, t.end_day])).collect();
+    if norm(&Value::Array(treaties.clone())) != norm(&w["treaties"]) {
+        fails.push(format!("{label}: treaties\n  mine {}\n  want {}", Value::Array(treaties), w["treaties"]));
+    }
+    let crises: Vec<Value> = gs.crises.iter().map(|c| serde_json::json!([c.id, c.kind, c.a, c.b])).collect();
+    let cbs: Vec<Value> = gs.casus_belli.iter().map(|c| serde_json::json!([c.holder, c.target, c.kind])).collect();
+    if norm(&Value::Array(crises.clone())) != norm(&w["crises"]) || norm(&Value::Array(cbs.clone())) != norm(&w["cbs"]) {
+        fails.push(format!("{label}: crises {} {} vs {} {}", Value::Array(crises), Value::Array(cbs), w["crises"], w["cbs"]));
+    }
+    if (gs.ai_declarations.0 as i64, gs.ai_declarations.1 as i64) != (w["declarations"][0].as_i64().unwrap(), w["declarations"][1].as_i64().unwrap()) {
+        fails.push(format!("{label}: declarations {:?} vs {}", gs.ai_declarations, w["declarations"]));
+    }
+    for (what, mine, want) in [("relations", &gs.relations, &w["relations"]), ("grievance", &gs.grievance, &w["grievance"])] {
+        let want = want.as_object().unwrap();
+        if want.iter().any(|(k, v)| mine.get(k).map(|x| !close(*x, bits(v))).unwrap_or(true)) || mine.iter().any(|(k, v)| *v != 0.0 && !want.contains_key(k)) {
+            fails.push(format!("{label}: {what} differ"));
+        }
+    }
     let want_plans: Value = serde_json::from_str(s(&w["plans"])).unwrap();
     if norm(&Value::Array(gs.ai_plans.clone())) != norm(&want_plans) {
         fails.push(format!("{label}: plans {} vs {}", Value::Array(gs.ai_plans.clone()), want_plans));
@@ -355,4 +373,14 @@ fn diplomacy_in_1900_as_the_game_has_it() {
 #[test]
 fn diplomacy_in_july_1914_as_the_game_has_it() {
     run(33);
+}
+
+#[test]
+fn diplomacy_in_1900_without_the_tension_gate() {
+    run(34);
+}
+
+#[test]
+fn diplomacy_in_1900_with_stricter_thresholds() {
+    run(35);
 }

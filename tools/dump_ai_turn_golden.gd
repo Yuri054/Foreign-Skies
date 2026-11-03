@@ -107,6 +107,9 @@ func _initialize() -> void:
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 500, "every": 10, "player": "SRB", "wars": [], "parts": ["diplomacy", "forces", "defence"], "ai_cfg": LAX_D},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 900, "every": 10, "player": "GBR", "wars": [], "parts": ["diplomacy", "forces", "defence", "budget", "focus", "ambition"], "pressure": true},
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 600, "every": 10, "player": "POR", "wars": [], "parts": ["diplomacy", "forces", "defence", "budget", "focus", "ambition"], "pressure": true},
+		# 1900 with no tension gate, so that ambitions lead to demands and wars
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 900, "every": 10, "player": "USA", "wars": [], "parts": ["diplomacy", "forces", "defence", "budget", "focus", "ambition"], "ai_cfg": LAX_AD},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1100, "every": 10, "player": "FRA", "wars": [], "parts": ["diplomacy", "forces", "defence", "ambition"], "purse": [1.0], "ai_cfg": {"ambition": LAX_AD.ambition, "diplomacy": {"war": {"declare_threshold": 0.8, "min_motive": 0.3, "truce_days": 400, "unjustified_odds": 2.0}, "treaties": {"points_reserve": 15, "propose_threshold": 0.5}}}},
 	])
 	var result := []
 	for run in runs:
@@ -230,7 +233,22 @@ func _snapshot() -> Dictionary:
 	var fronts := []
 	for f in gs.fronts.values():
 		fronts.append([f.id, f.tag, f.against, f.provinces.duplicate(), f.anchors.duplicate(), f.army_ids.duplicate()])
-	return {"fronts": fronts, "reserve": gs.ai_reserve.duplicate(), "anchor_stamp": gs.ai_anchor_stamp.duplicate(), "day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
+	var treaties := []
+	for t in gs.treaties:
+		treaties.append([t.id, t.kind, t.a, t.b, t.start_day, t.end_day])
+	var crises := []
+	for c in gs.crises:
+		crises.append([c.id, c.kind, c.a, c.b])
+	var cbs := []
+	for c in gs.casus_belli:
+		cbs.append([c.holder, c.target, c.kind])
+	var rel := {}
+	for k in gs.relations:
+		rel[k] = B(gs.relations[k])
+	var grv := {}
+	for k in gs.grievance:
+		grv[k] = B(gs.grievance[k])
+	return {"treaties": treaties, "crises": crises, "cbs": cbs, "relations": rel, "grievance": grv, "declarations": [gs.ai_declarations.total, gs.ai_declarations.unjustified], "fronts": fronts, "reserve": gs.ai_reserve.duplicate(), "anchor_stamp": gs.ai_anchor_stamp.duplicate(), "day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "tension": B(gs.tension), "armies": armies, "recruiting": recruiting,
 			"manpower": manpower, "wars": wars, "ambition": gs.ai_ambition.duplicate(true), "ambition_wait": gs.ai_ambition_wait.duplicate(), "plans": JSON.stringify(gs.ai_plans)}
 
 
