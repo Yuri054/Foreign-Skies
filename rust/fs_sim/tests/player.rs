@@ -281,6 +281,8 @@ fn run(index: usize) {
         gs.advance_day(data);
         if d % every == every - 1 {
             compare(&format!("{name}/{me} day {}", d + 1), &gs, &snaps[d / every + 1], &mut fails);
+            // The game is saved and loaded at every snapshot, and goes on from the loaded copy: a save loses nothing.
+            gs = fs_sim::save::from_bytes(&fs_sim::save::to_bytes(&gs).unwrap()).unwrap();
         }
         if !fails.is_empty() {
             break;

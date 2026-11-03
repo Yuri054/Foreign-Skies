@@ -278,6 +278,8 @@ fn run(index: usize) {
             gs.advance_day(&data);
         }
         compare(&format!("{name}/{} day {}", s(&run["player"]), i * every), &gs, snap, &mut fails);
+        // Saved and loaded at every snapshot: the game goes on from the loaded copy.
+        gs = fs_sim::save::from_bytes(&fs_sim::save::to_bytes(&gs).unwrap()).unwrap();
         if !fails.is_empty() {
             break;
         }
