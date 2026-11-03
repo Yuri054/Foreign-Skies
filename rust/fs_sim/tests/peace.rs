@@ -279,7 +279,7 @@ fn run(name: &str) {
         }
         if let Some(j) = plan["pre"].get("job") {
             let ti = gs.nation_index[j[0].as_str().unwrap()];
-            gs.nations[ti].construction.push(fs_sim::economy::new_job(j[1].as_u64().unwrap() as usize, j[2].as_str().unwrap(), j[3].as_f64().unwrap(), j[4].as_i64().unwrap() as i32));
+            gs.nations[ti].construction.push(fs_sim::economy::new_job(j[1].as_u64().unwrap() as usize, j[2].as_str().unwrap(), j[3].as_i64().unwrap() as i32));
         }
         if let Some(bp) = plan["pre"].get("battle_points") {
             let war = gs.war_between(taker, giver).unwrap();

@@ -1,7 +1,8 @@
 //! The player's economy commands against the GDScript: `tests/golden/economy_cmds.json` is what `tools/dump_economy_cmds_golden.gd` got
-//! out of the real commands run through `GameState.issue` (which works the economy out again after each): works started and refused,
-//! the queue reordered, mass orders, the policy sliders and munitions bought abroad, with the real game running by itself for days
-//! in between. After each step the nations' money, policies, queues and output, and the works in every province, are compared.
+//! out of the real commands run through `GameState.issue` (which works the economy out again after each): projects queued and
+//! refused (with the reason the panel shows), the queue reordered, mass orders and the policy sliders, with the real game
+//! running by itself for days in between. After each step the nations' gold, points, policies, queues and budgets, and the
+//! buildings in every province, are compared.
 
 mod common;
 
@@ -17,33 +18,20 @@ fn s(v: &Value) -> &str {
 fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     for (n, x) in gs.nations.iter().zip(w["nations"].as_array().unwrap()) {
         for (k, got, i) in [
-            ("treasury", n.treasury, 0), ("tax", n.tax_rate, 1), ("mobilization", n.mobilization, 2), ("arms share", n.arms_share, 3), ("investment", n.investment, 4),
-            ("munitions", n.munitions, 6), ("net", n.budget.net, 7), ("gdp", n.budget.gdp, 8), ("industry", n.budget.industry, 9), ("construction used", n.construction_used, 11),
-            ("blockade", n.blockade, 12),
+            ("treasury", n.treasury, 0), ("cp", n.cp, 1), ("mobilization", n.mobilization, 2), ("net", n.budget.net, 4),
+            ("income", n.budget.income, 5), ("cp a day", n.budget.cp, 6), ("blockade", n.blockade, 8),
         ] {
             if !close(got, bits(&x[i])) {
                 fails.push(format!("{label} {}: {k} {got:e} vs {:e}", n.tag, bits(&x[i])));
             }
         }
-        if (n.peacetime_army, n.manpower) != (x[5].as_i64().unwrap(), x[13].as_i64().unwrap()) {
-            fails.push(format!("{label} {}: standing army and recruits {} {} vs {} {}", n.tag, n.peacetime_army, n.manpower, x[5], x[13]));
+        if (n.peacetime_army, n.manpower) != (x[3].as_i64().unwrap(), x[9].as_i64().unwrap()) {
+            fails.push(format!("{label} {}: standing army and recruits {} {} vs {} {}", n.tag, n.peacetime_army, n.manpower, x[3], x[9]));
         }
-        let jobs = x[10].as_array().unwrap();
-        if n.construction.len() != jobs.len() {
-            fails.push(format!("{label} {}: {} projects vs {}", n.tag, n.construction.len(), jobs.len()));
-            continue;
-        }
-        for (j, y) in n.construction.iter().zip(jobs) {
-            let mine = serde_json::json!([j.province, j.kind, j.days_total, j.days_left]);
-            let want = serde_json::json!([y[0], y[1], y[5].as_f64().unwrap() as i64, y[6].as_f64().unwrap() as i64]);
-            if mine != want {
-                fails.push(format!("{label} {}: project {mine} vs {want}", n.tag));
-            }
-            for (k, got, i) in [("points total", j.points_total, 2), ("points left", j.points_left, 3), ("rate", j.rate, 4)] {
-                if !close(got, bits(&y[i])) {
-                    fails.push(format!("{label} {}: project {} {k} {got:e} vs {:e}", n.tag, j.kind, bits(&y[i])));
-                }
-            }
+        let jobs = x[7].as_array().unwrap();
+        let mine: Vec<Value> = n.construction.iter().map(|j| serde_json::json!([j.province, j.kind, j.started as i64, j.days_total, j.days_left])).collect();
+        if mine != *jobs {
+            fails.push(format!("{label} {}: projects {mine:?} vs {jobs:?}", n.tag));
         }
     }
     let works: Vec<Value> = (1..gs.province_buildings.len())
@@ -77,12 +65,13 @@ fn run(index: usize) -> String {
         let mut compare_now = false;
         match s(&act[0]) {
             "war" => gs.set_war_goal(s(&act[1]), s(&act[2]), "none", Value::Null),
-            "treasury" | "blockade" | "pin" => {
+            "treasury" | "blockade" | "pin" | "cp" => {
                 let ni = gs.nation_index[s(&act[1])];
                 let v = act[2].as_f64().unwrap();
                 match s(&act[0]) {
                     "treasury" => gs.nations[ni].treasury = v,
                     "blockade" => gs.nations[ni].blockade = v,
+                    "cp" => gs.nations[ni].cp = v,
                     _ => gs.nations[ni].blockade_pinned = v,
                 }
             }
@@ -116,7 +105,7 @@ fn run(index: usize) -> String {
                 assert_eq!(r.ok, ok(5), "{label}");
                 let built: Vec<usize> = act[6].as_array().unwrap().iter().map(|x| x.as_u64().unwrap() as usize).collect();
                 assert_eq!(r.built, built, "{label}");
-                assert!(close(r.spent, bits(&act[7])) && close(r.gold, bits(&act[8])), "{label}: spent {} gold {}", r.spent, r.gold);
+                assert!(close(r.gold, bits(&act[7])) && close(r.cp, bits(&act[8])), "{label}: gold {} cp {}", r.gold, r.cp);
                 assert_eq!(r.stopped_by, s(&act[9]), "{label}");
                 if r.ok {
                     gs.recompute(&data);
@@ -129,12 +118,9 @@ fn run(index: usize) -> String {
                     gs.recompute(&data);
                 }
             }
-            "munitions" => {
-                let got = gs.buy_munitions(&data, s(&act[1]), act[2].as_f64().unwrap());
-                assert_eq!(got, ok(3), "{label}");
-                if got {
-                    gs.recompute(&data);
-                }
+            "problem" => {
+                let got = gs.build_problem(&data, s(&act[1]), u(2), s(&act[3]), true);
+                assert_eq!(got, s(&act[4]), "{label}");
             }
             "shot" => compare_now = true,
             "day" => {

@@ -3,7 +3,7 @@
 //! by hand.
 
 use fs_sim::config::FocusEffects;
-use fs_sim::state::{CasusBelli, Data, GameState};
+use fs_sim::state::{building_level, CasusBelli, Data, GameState};
 use serde_json::Value;
 use std::path::Path;
 
@@ -60,8 +60,7 @@ fn compare_snapshot(label: &str, gs: &GameState, snap: &Value, fails: &mut Vec<S
         // the lasting bonuses: a key the game never set is nothing here
         let fx = w["fx"].as_object().unwrap();
         for (k, got) in [
-            ("gdp", n.focus_fx.gdp), ("industry", n.focus_fx.industry), ("food", n.focus_fx.food), ("trade", n.focus_fx.trade),
-            ("growth", n.focus_fx.growth), ("diplomacy", n.focus_diplomacy), ("construction", n.focus_construction),
+            ("income", n.focus_income), ("diplomacy", n.focus_diplomacy), ("cp", n.focus_cp),
         ] {
             let want = fx.get(k).map(bits).unwrap_or(0.0);
             if !close(got, want, REL) {
@@ -69,7 +68,7 @@ fn compare_snapshot(label: &str, gs: &GameState, snap: &Value, fails: &mut Vec<S
             }
         }
         for k in fx.keys() {
-            if !["gdp", "industry", "food", "trade", "growth", "diplomacy", "construction"].contains(&k.as_str()) {
+            if !["income", "diplomacy", "cp"].contains(&k.as_str()) {
                 fails.push(format!("{label} {tag}: the game has a focus bonus {k} the port does not know"));
             }
         }
@@ -85,10 +84,12 @@ fn compare_snapshot(label: &str, gs: &GameState, snap: &Value, fails: &mut Vec<S
                 fails.push(format!("{label} {tag}: {k} {got} vs {}", w[k]));
             }
         }
-        if let Some(x) = w.get("development") {
-            if !close(n.development, bits(x), REL) || !close(n.budget.net, bits(&w["net"]), REL) {
-                fails.push(format!("{label} {tag}: development or net budget"));
-            }
+        if !close(n.cp, bits(&w["cp"]), REL) || !close(n.budget.net, bits(&w["net"]), REL) {
+            fails.push(format!("{label} {tag}: construction points {:e} or net budget {:e}", n.cp, n.budget.net));
+        }
+        let factories: i64 = n.provinces.iter().map(|&id| building_level(&gs.province_buildings[id], "civilian_factory") as i64).sum();
+        if factories != w["factories"].as_i64().unwrap() {
+            fails.push(format!("{label} {tag}: {factories} civilian factories vs {}", w["factories"]));
         }
     }
     let rel = snap["relations"].as_object().unwrap();
@@ -166,13 +167,10 @@ fn every_nation_works_through_its_focus_tree_in_january_1900() {
 fn effects_from_json(v: &Value) -> FocusEffects {
     let f = |k: &str| v.get(k).and_then(Value::as_f64);
     FocusEffects {
-        gdp: f("gdp"),
-        industry: f("industry"),
-        food: f("food"),
-        trade: f("trade"),
-        growth: f("growth"),
+        income: f("income"),
         diplomacy: f("diplomacy"),
-        construction: f("construction"),
+        cp: f("cp"),
+        civilian_factories: v.get("civilian_factories").and_then(Value::as_i64),
         prestige: f("prestige"),
         points: f("points"),
         treasury: f("treasury"),

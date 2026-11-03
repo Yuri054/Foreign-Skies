@@ -161,7 +161,7 @@ func _summary(gs: Node) -> Array:
 	var rows := []
 	for tag in gs.nations:
 		var n = gs.nations[tag]
-		rows.append([n.men_in_units, n.manpower, B(n.deaths_month), B(n.men_lost_month), B(n.war_support), B(n.prestige), B(n.munitions)])
+		rows.append([n.men_in_units, n.manpower, B(n.deaths_month), B(n.men_lost_month), B(n.war_support), B(n.prestige), B(n.treasury)])
 	return rows
 
 

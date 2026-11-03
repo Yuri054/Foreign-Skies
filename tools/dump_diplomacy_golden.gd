@@ -71,12 +71,12 @@ func _initialize() -> void:
 	# economy, with two wars, enemy-held ground, debt, blockade and men lost.
 	gs.load_scenario(peace_dir)
 	var War_spec := [
-		{"tag": "GER", "mobilization": 0.3, "tax_rate": 0.2, "men_lost_month": 120000.0, "war_support": 70.0},
-		{"tag": "FRA", "treasury": -900.0, "blockade": 0.4, "tax_rate": 0.3, "men_lost_month": 50000.0, "war_support": 55.0},
-		{"tag": "AUH", "men_lost_month": 30000.0, "war_support": 80.0, "tax_rate": 0.07},
+		{"tag": "GER", "mobilization": 0.3, "men_lost_month": 120000.0, "war_support": 70.0},
+		{"tag": "FRA", "treasury": -900.0, "blockade": 0.4, "men_lost_month": 50000.0, "war_support": 55.0},
+		{"tag": "AUH", "men_lost_month": 30000.0, "war_support": 80.0},
 		{"tag": "SRB", "blockade": 0.9, "men_lost_month": 5000.0, "war_support": 60.0},
-		{"tag": "GBR", "tax_rate": 0.35, "war_support": 40.0},
-		{"tag": "RUS", "tax_rate": 0.05, "war_support": 56.0},
+		{"tag": "GBR", "war_support": 40.0},
+		{"tag": "RUS", "war_support": 56.0},
 	]
 	for entry in War_spec:
 		for k in entry:

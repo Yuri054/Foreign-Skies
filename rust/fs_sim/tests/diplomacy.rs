@@ -190,7 +190,6 @@ fn war_support_at_war() {
             match k.as_str() {
                 "tag" => {}
                 "mobilization" => n.mobilization = bits(v),
-                "tax_rate" => n.tax_rate = bits(v),
                 "men_lost_month" => n.men_lost_month = bits(v),
                 "war_support" => n.war_support = bits(v),
                 "treasury" => n.treasury = bits(v),

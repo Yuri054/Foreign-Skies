@@ -22,8 +22,8 @@ fn compare(label: &str, gs: &GameState, data: &Data, w: &Value, fails: &mut Vec<
     for (n, x) in gs.nations.iter().zip(w["nations"].as_array().unwrap()) {
         for (k, got, i) in [
             ("treasury", n.treasury, 0), ("prestige", n.prestige, 1), ("war support", n.war_support, 2), ("mobilization", n.mobilization, 3),
-            ("blockade", n.blockade, 7), ("net", n.budget.net, 9), ("points", n.diplomacy_points, 10), ("munitions", n.munitions, 12),
-            ("tax", n.tax_rate, 14), ("investment", n.investment, 15),
+            ("blockade", n.blockade, 7), ("net", n.budget.net, 9), ("points", n.diplomacy_points, 10), ("cp", n.cp, 12),
+            ("income", n.budget.income, 14), ("cp a day", n.budget.cp, 15),
         ] {
             if !close(got, bits(&x[i])) {
                 fails.push(format!("{label} {}: {k} {got:e} vs {:e}", n.tag, bits(&x[i])));

@@ -42,7 +42,7 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     for (n, x) in gs.nations.iter().zip(w["nations"].as_array().unwrap()) {
         for (k, got, i) in [
             ("treasury", n.treasury, 0), ("prestige", n.prestige, 1), ("war support", n.war_support, 2), ("mobilization", n.mobilization, 3), ("points", n.diplomacy_points, 4),
-            ("tax", n.tax_rate, 7), ("investment", n.investment, 8), ("arms share", n.arms_share, 9), ("munitions", n.munitions, 10),
+            ("cp", n.cp, 7), ("income", n.budget.income, 8), ("cp a day", n.budget.cp, 9), ("naval budget", n.naval_budget, 10),
         ] {
             if !close(got, bits(&x[i])) {
                 fails.push(format!("{label} {}: {k} {got:e} vs {:e}", n.tag, bits(&x[i])));
@@ -223,7 +223,13 @@ fn command(gs: &mut GameState, data: &Data, me: &str, e: &[Value]) -> bool {
         "treaty" => gs.propose_treaty(data, me, s(&a[0]), s(&a[1])).ok,
         "improve" => gs.improve_relations(data, me, s(&a[0])).is_empty(),
         "points" => gs.buy_points(data, me),
-        "munitions" => gs.buy_munitions(data, me, a[0].as_f64().unwrap()),
+        "prio" => gs.prioritize_construction(me, u(0), s(&a[1])),
+        "mass" => {
+            let r = gs.mass_construct(data, me, s(&a[0]), u(1), bits(&a[2]));
+            let built: Vec<usize> = a[3].as_array().unwrap().iter().map(|x| x.as_u64().unwrap() as usize).collect();
+            assert_eq!((&r.built, b(r.gold), b(r.cp), r.stopped_by), (&built, a[4].clone(), a[5].clone(), s(&a[6])), "mass order {a:?}");
+            r.ok
+        }
         "focus" => gs.focus_start(data, me, s(&a[0])),
         "press" => gs.press_demand(data, me, s(&a[0]), s(&a[1]), None).is_empty(),
         "peace" => {

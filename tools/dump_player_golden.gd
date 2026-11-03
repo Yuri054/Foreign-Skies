@@ -25,7 +25,8 @@ var C_DeclareWar: GDScript
 var C_ProposeTreaty: GDScript
 var C_ImproveRelations: GDScript
 var C_BuyPoints: GDScript
-var C_BuyMunitions: GDScript
+var C_MassConstruct: GDScript
+var C_Prioritize: GDScript
 var C_SetFocus: GDScript
 var C_PressDemand: GDScript
 var C_ProposePeace: GDScript
@@ -67,7 +68,8 @@ func _initialize() -> void:
 	C_ProposeTreaty = load("res://scripts/sim/propose_treaty.gd")
 	C_ImproveRelations = load("res://scripts/sim/improve_relations.gd")
 	C_BuyPoints = load("res://scripts/sim/buy_points.gd")
-	C_BuyMunitions = load("res://scripts/sim/buy_munitions.gd")
+	C_MassConstruct = load("res://scripts/sim/mass_construct_building.gd")
+	C_Prioritize = load("res://scripts/sim/prioritize_construction.gd")
 	C_SetFocus = load("res://scripts/sim/set_focus.gd")
 	C_PressDemand = load("res://scripts/sim/press_demand.gd")
 	C_ProposePeace = load("res://scripts/sim/propose_peace.gd")
@@ -158,20 +160,24 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 	match kind:
 		0:
 			name = "policy"
-			args = ["tax_rate", 0.08 + 0.04 * (k % 7)]
+			args = ["standing_army", float(n.peacetime_army) * (0.8 + 0.1 * (k % 5))]
 			cmd = C_SetEconomyPolicy.new(me, args[0], args[1])
 		1:
-			name = "policy"
-			args = ["arms_share", 0.05 * (k % 9)]
-			cmd = C_SetEconomyPolicy.new(me, args[0], args[1])
+			name = "mass"
+			var mtypes: Array = Eco.building_ids()
+			args = [mtypes[k % mtypes.size()], 1 + k % 3, 0.0 if k % 2 == 0 else 100.0]
+			cmd = C_MassConstruct.new(me, args[0], args[1], args[2])
 		2:
 			name = "policy"
 			args = ["mobilization", 0.15 * (k % 5)]
 			cmd = C_SetEconomyPolicy.new(me, args[0], args[1])
 		3:
-			name = "policy"
-			args = ["investment", 0.3 * (k % 4)]
-			cmd = C_SetEconomyPolicy.new(me, args[0], args[1])
+			name = "prio"
+			if n.construction.is_empty():
+				return
+			var job: Dictionary = n.construction[k % n.construction.size()]
+			args = [job.province, job.type]
+			cmd = C_Prioritize.new(me, job.province, job.type)
 		4:
 			name = "build"
 			var types: Array = Eco.building_ids()
@@ -233,9 +239,20 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 			name = "points"
 			cmd = C_BuyPoints.new(me)
 		12:
-			name = "munitions"
-			args = [5.0 + k % 4]
-			cmd = C_BuyMunitions.new(me, args[0])
+			name = "build"
+			var qtypes: Array = Eco.building_ids()
+			var qtype: String = qtypes[(k / 25) % qtypes.size()]
+			var qprovs: Array = Array(n.provinces)
+			var qpick := 0
+			for i in qprovs.size():
+				var id: int = qprovs[(i + k * 3) % qprovs.size()]
+				if Eco.build_problem(gs, me, id, qtype).is_empty():
+					qpick = id
+					break
+			if qpick == 0:
+				return
+			args = [qpick, qtype]
+			cmd = C_ConstructBuilding.new(me, qpick, qtype)
 		13:
 			name = "focus"
 			var tree: Array = Foc.tree_of(me)
@@ -365,6 +382,8 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 	var ok: bool = gs.issue(cmd)
 	if name == "policy":
 		args = [args[0], B(args[1])]
+	elif name == "mass":
+		args = [args[0], args[1], B(args[2]), Array(cmd.built).duplicate(), B(cmd.gold), B(cmd.cp), cmd.stopped_by]
 	log.append([d, name, args, ok])
 	# a fleet just split is put together again (one time out of two), and once with a wrong order
 	if name == "split" and ok:
@@ -426,7 +445,7 @@ func _war_book(w) -> Array:
 
 
 func _books(full: bool) -> Dictionary:
-	var METRICS := ["population", "gdp", "industry", "income", "treasury", "army", "navy", "manpower", "provinces", "diplomacy_points", "prestige", "war_support"]
+	var METRICS := ["population", "income", "factories", "treasury", "army", "navy", "manpower", "provinces", "diplomacy_points", "prestige", "war_support"]
 	var wars := []
 	for w in gs.wars.values():
 		wars.append(_war_book(w))
@@ -513,8 +532,8 @@ func _snapshot() -> Dictionary:
 	var nations := []
 	for tag in gs.nations:
 		var n = gs.nations[tag]
-		nations.append([B(n.treasury), B(n.prestige), B(n.war_support), B(n.mobilization), B(n.diplomacy_points), n.provinces.size(), n.capital, B(n.tax_rate), B(n.investment),
-				B(n.arms_share), B(n.munitions), n.population, n.manpower, n.men_in_units, n.focus.get("id", "") if not n.focus.is_empty() else "", n.construction.size(), n.recruiting.size(), n.shipbuilding.size()])
+		nations.append([B(n.treasury), B(n.prestige), B(n.war_support), B(n.mobilization), B(n.diplomacy_points), n.provinces.size(), n.capital, B(n.cp), B(n.budget.get("income", 0.0)),
+				B(n.budget.get("cp", 0.0)), B(n.naval_budget), n.population, n.manpower, n.men_in_units, n.focus.get("id", "") if not n.focus.is_empty() else "", n.construction.size(), n.recruiting.size(), n.shipbuilding.size()])
 	var owners := []
 	var controllers := []
 	for id in range(1, gs.province_owner.size()):

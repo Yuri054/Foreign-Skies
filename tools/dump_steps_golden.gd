@@ -1,6 +1,6 @@
 extends SceneTree
 ## Writes what the GDScript economy does over time, for the Rust port (rust/fs_sim) to reproduce: Economy.step_day thirty
-## times and Economy.step_month, month after month, on a loaded scenario with nothing else running (no AI, no diplomacy),
+## times and Economy.step_month, month after month (income, construction points, the queue, manpower, war deaths), on a loaded scenario with nothing else running (no AI, no diplomacy),
 ## and each nation's figures after every month. Floats are the bits of their 64-bit value.
 ##   godot --headless --path . -s res://tools/dump_steps_golden.gd -- rust/fs_sim/tests/golden/steps.json
 
@@ -30,36 +30,31 @@ func _initialize() -> void:
 	var result := {}
 	var peace_dir := _make_peace_copy("july_1914")
 
-	# 1. July 1914 at peace, with works under construction in six nations, for two years.
+	# 1. July 1914 at peace, with projects queued in six nations, for two years.
 	gs.load_scenario(peace_dir)
-	# Italy: a standing army just under what its people allow (so the cap binds), a leftover weariness that eases in peace, and
-	# a mobilization above what peace allows (it is brought down).
+	# Italy: a standing army just under what its people allow (so the cap binds), and a mobilization above what peace
+	# allows (it is brought down).
 	var ita = gs.nations["ITA"]
 	var cap: int = Eco.standing_cap(gs, ita)
-	var peace_spec := [{"tag": "ITA", "peacetime_army": cap - 500, "weariness": 0.2, "mobilization": 0.7}]
-	for entry in peace_spec:
-		for k in entry:
-			if k != "tag":
-				gs.nations[entry.tag].set(k, entry[k])
+	ita.peacetime_army = cap - 500
+	ita.mobilization = 0.7
 	var jobs := _give_jobs(gs, Eco, ["GBR", "FRA", "GER", "RUS", "AUH", "ITA"])
-	jobs.append_array(_give_stuck_jobs(gs, Eco, "GBR"))
-	result["peace_with_works"] = {"spec": [{"tag": "ITA", "peacetime_army": cap - 500, "weariness": B(0.2), "mobilization": B(0.7)}],
+	result["peace_with_works"] = {"spec": [{"tag": "ITA", "peacetime_army": cap - 500, "mobilization": B(0.7)}],
 			"jobs": jobs, "months": _run(gs, Eco, 24), "end": _end_state(gs)}
 
-	# 2. January 1900, nothing built, one year.
+	# 2. January 1900, nothing queued, one year.
 	gs.load_scenario("res://data/scenarios/jan_1900/")
 	result["jan_1900"] = {"months": _run(gs, Eco, 12), "end": _end_state(gs)}
 
-	# 3. July 1914 at war: strain, blockade, famine, enemy-held ground, war deaths, works, a year and a half.
+	# 3. July 1914 at war: strain, blockade, debt, enemy-held ground, war deaths, projects, a year and a half.
 	gs.load_scenario(peace_dir)
 	var spec := [
-		{"tag": "GER", "mobilization": 0.3, "tax_rate": 0.2, "arms_share": 0.4, "men_exercising": 20000, "investment": 3.0,
-				"deaths_month": 30000.0, "focus_fx": {"gdp": 0.04, "industry": 0.03, "food": 0.02, "trade": 0.01, "growth": 0.002, "construction": 4.0}},
-		{"tag": "FRA", "treasury": -80.0, "blockade": 0.4, "weariness": 0.1, "starving": true, "mobilization": 0.15, "war_support": 25.0,
-				"deaths_month": 50000.0, "war_dead": 200000.0},
-		{"tag": "AUH", "tax_rate": 0.07, "mobilization": 0.5, "manpower": 123456, "war_support": 80.0, "materials_need_mult": 1.4, "deaths_month": 4000.0},
-		{"tag": "SRB", "blockade": 0.9, "starving": true, "weariness": 0.3, "munitions": 5000.0, "war_support": 60.0, "deaths_month": 9000.0},
-		{"tag": "GBR", "investment": 1.5, "tax_rate": 0.35},
+		{"tag": "GER", "mobilization": 0.3, "men_exercising": 20000, "deaths_month": 30000.0, "focus_fx": {"income": 0.04, "cp": 0.75}},
+		{"tag": "FRA", "treasury": -80.0, "blockade": 0.4, "mobilization": 0.15, "war_support": 25.0, "deaths_month": 50000.0,
+				"war_dead": 200000.0},
+		{"tag": "AUH", "mobilization": 0.5, "manpower": 123456, "war_support": 80.0, "deaths_month": 4000.0},
+		{"tag": "SRB", "blockade": 0.9, "war_support": 60.0, "deaths_month": 9000.0},
+		{"tag": "GBR", "treasury": 5000.0, "cp": 2000.0},
 	]
 	for entry in spec:
 		var n = gs.nations[entry.tag]
@@ -72,7 +67,13 @@ func _initialize() -> void:
 	for c in changes:
 		gs.set_controller(c[0], c[1])
 	Eco.recompute(gs)
-	var war_jobs := _give_jobs(gs, Eco, ["GER", "FRA", "AUH", "SRB", "RUS"])
+	var war_jobs := _give_jobs(gs, Eco, ["GER", "FRA", "AUH", "SRB", "RUS", "GBR"])
+	# France queues work in a province Germany holds: it waits (and does not hold up the rest) until it is free.
+	for c in changes:
+		if gs.province_owner[c[0]] == "FRA":
+			gs.nations["FRA"].construction.push_front(Eco.new_job(c[0], "railway", 45))
+			war_jobs.push_front({"tag": "FRA", "province": c[0], "type": "railway", "days": 45, "front": true})
+			break
 	var spec_out := []
 	for entry in spec:
 		var e := {}
@@ -93,40 +94,29 @@ func _initialize() -> void:
 	quit(0)
 
 
-## Starts a few works in each nation, in its biggest provinces, straight into the queue: [{tag, province, type, ic, days}].
+## Queues a few projects in each nation, in its richest provinces, straight onto the end of the queue: two in the
+## richest (the second waits for the first, one project a province at a time), then a railway and a construction
+## sector, then a costly batch of factories that waits for gold. And a hull on the slips. [{tag, province, type, days}]
 func _give_jobs(gs: Node, Eco: GDScript, tags: Array) -> Array:
 	var out := []
 	for tag in tags:
 		var n = gs.nations[tag]
 		var ids: Array = Array(n.provinces)
-		ids.sort_custom(func(a: int, b: int) -> bool: return gs.province_gdp[a] > gs.province_gdp[b] or (gs.province_gdp[a] == gs.province_gdp[b] and a < b))
-		var types := ["factory", "railway", "port", "factory"]
-		for i in 4:
-			var id: int = ids[i]
-			var type: String = types[i]
-			var ic: float = Eco.level_cost(gs, id, type)
-			var days: int = int(Eco.cfg.buildings[type].min_days)
-			n.construction.append(Eco.new_job(id, type, ic, days))
-			out.append({"tag": tag, "province": id, "type": type, "ic": B(ic), "days": days})
-		# a hull on the slips as well (its job has the same fields the daily step reads)
-		var hull = Eco.new_job(ids[0], "dreadnought", 9000.0, 300)
-		n.shipbuilding.append(hull)
-		out.append({"tag": tag, "province": ids[0], "type": "dreadnought", "ic": B(9000.0), "days": 300, "ship": true})
-	return out
-
-
-## Two works that get no points (their rate is nothing) but are nearly done: one just above the point at which the game
-## counts a project as finished, one just below it.
-func _give_stuck_jobs(gs: Node, Eco: GDScript, tag: String) -> Array:
-	var out := []
-	var ids: Array = Array(gs.nations[tag].provinces)
-	for left in [0.005, 0.00005]:
-		var id: int = ids[out.size() + 5]
-		var job = Eco.new_job(id, "railway", 100.0, 10)
-		job.points_left = left
-		job.rate = 0.0
-		gs.nations[tag].construction.append(job)
-		out.append({"tag": tag, "province": id, "type": "railway", "ic": B(100.0), "days": 10, "points_left": B(left), "rate": B(0.0)})
+		ids.sort_custom(func(a: int, b: int) -> bool:
+			return gs.province_base_income[a] > gs.province_base_income[b] or (gs.province_base_income[a] == gs.province_base_income[b] and a < b))
+		var plan := [[0, "civilian_factory"], [0, "railway"], [1, "railway"], [2, "construction_sector"], [3, "civilian_factory"],
+				[4, "civilian_factory"], [5, "trench"]]
+		for pair in plan:
+			if pair[0] >= ids.size():
+				continue
+			var id: int = ids[pair[0]]
+			var type: String = pair[1]
+			var days: int = int(Eco.build_plan(gs, id, type).days)
+			n.construction.append(Eco.new_job(id, type, days))
+			out.append({"tag": tag, "province": id, "type": type, "days": days})
+		# a hull on the slips as well (the daily step counts its days down)
+		n.shipbuilding.append({"type": "dreadnought", "province": ids[0], "days_total": 300, "days_left": 300})
+		out.append({"tag": tag, "province": ids[0], "type": "dreadnought", "days": 300, "ship": true})
 	return out
 
 
@@ -139,8 +129,8 @@ func _run(gs: Node, Eco: GDScript, months: int) -> Array:
 		var nations := []
 		for tag in gs.nations:
 			var n = gs.nations[tag]
-			nations.append({"tag": tag, "state": _state(n), "net": B(n.budget.net), "gdp": B(n.budget.gdp), "industry": B(n.budget.industry),
-					"revenue": B(n.budget.revenue), "cp": B(n.budget.construction_points), "jobs": _jobs(n.construction), "ships": _jobs(n.shipbuilding)})
+			nations.append({"tag": tag, "state": _state(n), "budget": _bits_of(n.budget), "jobs": _jobs(n.construction),
+					"ships": _ships(n.shipbuilding)})
 		rows.append(nations)
 	return rows
 
@@ -148,17 +138,21 @@ func _run(gs: Node, Eco: GDScript, months: int) -> Array:
 func _jobs(list: Array) -> Array:
 	var out := []
 	for j in list:
-		out.append([j.province, j.type, B(j.points_left), B(j.given), j.days_left])
+		out.append([j.province, j.type, 1 if j.started else 0, j.days_total, j.days_left])
+	return out
+
+
+func _ships(list: Array) -> Array:
+	var out := []
+	for j in list:
+		out.append([j.province, j.type, j.days_left])
 	return out
 
 
 func _state(n) -> Dictionary:
-	return {"treasury": B(n.treasury), "development": B(n.development), "civil_index": B(n.civil_index), "wage": B(n.wage),
-			"civil_mult": B(n.civil_mult), "civil_base": B(n.civil_base), "munitions": B(n.munitions), "construction_used": B(n.construction_used),
-			"war_support": B(n.war_support), "weariness": B(n.weariness), "war_dead": B(n.war_dead), "deaths_month": B(n.deaths_month),
-			"mobilization": B(n.mobilization), "naval_budget": B(n.naval_budget), "manpower": n.manpower, "men_in_units": n.men_in_units,
-			"peacetime_army": n.peacetime_army, "population": n.population, "starving": 1 if n.starving else 0,
-			"munitions_used_last": B(n.munitions_used_last), "munitions_used_month": B(n.munitions_used_month)}
+	return {"treasury": B(n.treasury), "cp": B(n.cp), "war_support": B(n.war_support), "war_dead": B(n.war_dead),
+			"deaths_month": B(n.deaths_month), "mobilization": B(n.mobilization), "naval_budget": B(n.naval_budget),
+			"manpower": n.manpower, "men_in_units": n.men_in_units, "peacetime_army": n.peacetime_army, "population": n.population}
 
 
 func _end_state(gs: Node) -> Dictionary:
@@ -175,7 +169,7 @@ func _end_state(gs: Node) -> Dictionary:
 	var budgets := {}
 	for tag in gs.nations:
 		budgets[tag] = _bits_of(gs.nations[tag].budget)
-	return {"population": pops, "frac": fracs, "buildings": buildings, "budgets": budgets, "materials_k": B(gs.materials_k)}
+	return {"population": pops, "frac": fracs, "buildings": buildings, "budgets": budgets}
 
 
 func _make_peace_copy(name: String) -> String:

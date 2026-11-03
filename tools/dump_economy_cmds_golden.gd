@@ -1,7 +1,7 @@
 extends SceneTree
-## Writes what the GDScript does when the player manages the economy, for the Rust port (rust/fs_sim) to reproduce: works started
-## (and refused for every reason), the queue reordered, mass orders stopped by a count, an amount of IC or the money, the policy
-## sliders (tax, mobilization, arms, investment, standing army) and munitions bought abroad. Commands go through GameState.issue,
+## Writes what the GDScript does when the player manages the economy, for the Rust port (rust/fs_sim) to reproduce: projects
+## queued (and refused for every reason, with the reason the panel shows), the queue reordered, mass orders stopped by a count
+## or an amount of gold, and the policy sliders (mobilization, standing army). Commands go through GameState.issue,
 ## which works the economy out again after each; the real game runs by itself for days between them. Floats are the bits of their
 ## 64-bit value.
 ##   godot --headless --path . -s res://tools/dump_economy_cmds_golden.gd -- rust/fs_sim/tests/golden/economy_cmds.json
@@ -22,24 +22,31 @@ func _initialize() -> void:
 	var peace_dir := _make_peace_copy("july_1914")
 	var campaigns := [
 		{"name": "build", "player": "POR", "actions": [
-			["build", "GBR", 0, "factory"], ["build", "GBR", 0, "factory"], ["build", "GBR", 1, "railway"], ["build", "GBR", 2, "port"], ["build", "GBR", 3, "farm"],
-			["build", "GBR", 1000314, "nonsense"], ["build", "GBR", 1000999, "factory"], ["build", "GBR", 0, "trench"], ["build", "FRA", 1000314, "factory"], ["build", "XXX", 0, "factory"],
-			["build", "GBR", 5, "fortification"], ["prio", "GBR", 1, "railway"], ["prio", "GBR", 0, "factory"], ["prio", "GBR", 0, "factory"], ["prio", "GBR", 0, "railway"], ["setlevel", "GBR", 12, "factory", 10], ["build", "GBR", 12, "factory"], ["prio", "GBR", 1, "factory"],
-			["days", 40, 10], ["build", "GBR", 0, "factory"], ["days", 400, 50], ["treasury", "GBR", 1.0], ["build", "GBR", 6, "factory"], ["build", "GBR", 6, "railway"],
-			["war", "GER", "GBR"], ["seize_one", "GBR", "GER", 7], ["build", "GBR", 7, "factory"], ["days", 30, 10]]},
+			["problem", "GBR", 0, "civilian_factory"], ["build", "GBR", 0, "civilian_factory"], ["build", "GBR", 0, "civilian_factory"],
+			["build", "GBR", 1, "railway"], ["build", "GBR", 2, "port"], ["build", "GBR", 3, "farm"], ["problem", "GBR", 3, "farm"],
+			["build", "GBR", 1000314, "nonsense"], ["build", "GBR", 1000999, "civilian_factory"], ["problem", "GBR", 1000999, "civilian_factory"],
+			["build", "GBR", 0, "trench"], ["build", "FRA", 1000314, "civilian_factory"], ["problem", "FRA", 1000314, "civilian_factory"],
+			["build", "XXX", 0, "civilian_factory"], ["build", "GBR", 5, "fortification"], ["build", "GBR", 4, "construction_sector"],
+			["prio", "GBR", 1, "railway"], ["prio", "GBR", 0, "civilian_factory"], ["prio", "GBR", 0, "civilian_factory"], ["prio", "GBR", 0, "railway"],
+			["setlevel", "GBR", 12, "civilian_factory", 10], ["build", "GBR", 12, "civilian_factory"], ["problem", "GBR", 12, "civilian_factory"],
+			["prio", "GBR", 1, "civilian_factory"], ["problem", "GBR", 6, "civilian_factory"],
+			["days", 40, 10], ["build", "GBR", 0, "civilian_factory"], ["days", 400, 50], ["treasury", "GBR", 1.0], ["problem", "GBR", 6, "civilian_factory"],
+			["build", "GBR", 6, "civilian_factory"], ["build", "GBR", 6, "railway"], ["treasury", "GBR", 500.0], ["cp", "GBR", 10.0],
+			["problem", "GBR", 8, "civilian_factory"], ["build", "GBR", 8, "civilian_factory"], ["days", 20, 5], ["cp", "GBR", 1000.0],
+			["war", "GER", "GBR"], ["seize_one", "GBR", "GER", 7], ["build", "GBR", 7, "civilian_factory"], ["problem", "GBR", 7, "civilian_factory"],
+			["days", 70, 10]]},
 		{"name": "mass", "player": "POR", "actions": [
-			["mass", "GER", "factory", 5, 0.0], ["mass", "GER", "railway", 1000000, 20000.0], ["mass", "GER", "port", 3, 0.0], ["mass", "FRA", "farm", 1000000, 0.0],
-			["mass", "XXX", "factory", 1, 0.0], ["mass", "FRA", "nonsense", 1, 0.0], ["treasury", "RUS", 60.0], ["mass", "RUS", "factory", 1000000, 0.0], ["days", 60, 20],
-			["mass", "RUS", "railway", 1000000, 0.0], ["days", 200, 50]]},
+			["mass", "GER", "civilian_factory", 5, 0.0], ["mass", "GER", "railway", 1000000, 2000.0], ["mass", "GER", "port", 3, 0.0],
+			["mass", "FRA", "farm", 1000000, 0.0], ["mass", "XXX", "civilian_factory", 1, 0.0], ["mass", "FRA", "nonsense", 1, 0.0],
+			["treasury", "RUS", 600.0], ["cp", "RUS", 900.0], ["mass", "RUS", "civilian_factory", 1000000, 0.0], ["days", 60, 20],
+			["mass", "RUS", "railway", 1000000, 0.0], ["mass", "RUS", "trench", 1000000, 100.0], ["days", 200, 50]]},
 		{"name": "policy", "player": "POR", "actions": [
-			["policy", "GBR", "tax_rate", 0.5], ["policy", "GBR", "tax_rate", -1.0], ["policy", "GBR", "tax_rate", 0.2], ["policy", "GBR", "mobilization", 0.9], ["policy", "GBR", "mobilization", 0.1],
-			["policy", "GBR", "arms_share", 0.5], ["policy", "GBR", "arms_share", 2.0], ["policy", "GBR", "investment", 5.0], ["policy", "GBR", "investment", 1000.0],
-			["policy", "GBR", "standing_army", 400000.0], ["policy", "GBR", "standing_army", 5000000.0], ["policy", "GBR", "standing_army", -5.0], ["policy", "GBR", "standing_army", 120000.7],
-			["policy", "GBR", "nonsense", 1.0], ["policy", "XXX", "tax_rate", 0.1], ["days", 40, 8], ["war", "GBR", "GER"], ["policy", "GBR", "mobilization", 1.5], ["policy", "GBR", "mobilization", 0.0],
-			["days", 30, 10], ["policy", "GBR", "tax_rate", 0.3], ["days", 40, 10]]},
-		{"name": "munitions", "player": "POR", "actions": [
-			["munitions", "GBR", 3.0], ["munitions", "GBR", 0.0], ["munitions", "GBR", -2.0], ["munitions", "GBR", 99999.0], ["blockade", "GBR", 0.4], ["munitions", "GBR", 3.0],
-			["pin", "GBR", 1.0], ["munitions", "GBR", 3.0], ["days", 20, 5], ["munitions", "XXX", 1.0]]},
+			["policy", "GBR", "tax_rate", 0.5], ["policy", "GBR", "mobilization", 0.9], ["policy", "GBR", "mobilization", 0.1],
+			["policy", "GBR", "arms_share", 0.5], ["policy", "GBR", "investment", 5.0],
+			["policy", "GBR", "standing_army", 400000.0], ["policy", "GBR", "standing_army", 5000000.0], ["policy", "GBR", "standing_army", -5.0],
+			["policy", "GBR", "standing_army", 120000.7], ["policy", "GBR", "nonsense", 1.0], ["policy", "XXX", "mobilization", 0.1], ["days", 40, 8],
+			["war", "GBR", "GER"], ["policy", "GBR", "mobilization", 1.5], ["policy", "GBR", "mobilization", 0.0], ["days", 30, 10],
+			["blockade", "GBR", 0.4], ["pin", "GBR", 0.4], ["policy", "GBR", "mobilization", 0.3], ["days", 40, 10]]},
 	]
 	var result := []
 	for camp in campaigns:
@@ -77,6 +84,13 @@ func _play(act: Array, log: Array, snaps: Array) -> void:
 		"treasury":
 			gs.nations[act[1]].treasury = act[2]
 			log.append(act)
+		"cp":
+			gs.nations[act[1]].cp = act[2]
+			log.append(act)
+		"problem":
+			var id := _province(act[1], act[2])
+			log.append(["problem", act[1], id, act[3], load("res://scripts/sim/economy.gd").build_problem(gs, act[1], id, act[3], true)])
+			return
 		"blockade":
 			gs.nations[act[1]].blockade = act[2]
 			log.append(act)
@@ -106,15 +120,11 @@ func _play(act: Array, log: Array, snaps: Array) -> void:
 			var cmd: GDScript = load("res://scripts/sim/mass_construct_building.gd")
 			var c = cmd.new(act[1], act[2], act[3], act[4])
 			var ok: bool = gs.issue(c)
-			log.append(["mass", act[1], act[2], act[3], act[4], ok, Array(c.built).duplicate(), B(c.spent), B(c.gold), c.stopped_by])
+			log.append(["mass", act[1], act[2], act[3], act[4], ok, Array(c.built).duplicate(), B(c.gold), B(c.cp), c.stopped_by])
 		"policy":
 			var cmd: GDScript = load("res://scripts/sim/set_economy_policy.gd")
 			var ok: bool = gs.issue(cmd.new(act[1], act[2], act[3]))
 			log.append(["policy", act[1], act[2], act[3], ok])
-		"munitions":
-			var cmd: GDScript = load("res://scripts/sim/buy_munitions.gd")
-			var ok: bool = gs.issue(cmd.new(act[1], act[2]))
-			log.append(["munitions", act[1], act[2], ok])
 		"days":
 			for i in act[1]:
 				clock.advance_day()
@@ -133,9 +143,9 @@ func _snapshot() -> Dictionary:
 		var n = gs.nations[tag]
 		var jobs := []
 		for j in n.construction:
-			jobs.append([j.province, j.type, B(j.points_total), B(j.points_left), B(j.rate), j.days_total, j.days_left])
-		nations.append([B(n.treasury), B(n.tax_rate), B(n.mobilization), B(n.arms_share), B(n.investment), n.peacetime_army, B(n.munitions), B(n.budget.net),
-				B(n.budget.gdp), B(n.budget.industry), jobs, B(n.construction_used), B(n.blockade), n.manpower])
+			jobs.append([j.province, j.type, 1 if j.started else 0, j.days_total, j.days_left])
+		nations.append([B(n.treasury), B(n.cp), B(n.mobilization), n.peacetime_army, B(n.budget.net), B(n.budget.income),
+				B(n.budget.cp), jobs, B(n.blockade), n.manpower])
 	var works := []
 	for id in range(1, gs.province_buildings.size()):
 		var b: Dictionary = gs.province_buildings[id]

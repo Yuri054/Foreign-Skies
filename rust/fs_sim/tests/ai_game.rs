@@ -31,8 +31,8 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     }
     for (n, x) in gs.nations.iter().zip(w["nations"].as_array().unwrap()) {
         for (k, got, i) in [
-            ("treasury", n.treasury, 0), ("tax", n.tax_rate, 1), ("investment", n.investment, 2), ("arms share", n.arms_share, 3),
-            ("munitions", n.munitions, 4), ("points", n.diplomacy_points, 5), ("prestige", n.prestige, 6), ("mobilization", n.mobilization, 7),
+            ("treasury", n.treasury, 0), ("cp", n.cp, 1), ("income", n.budget.income, 2), ("cp a day", n.budget.cp, 3),
+            ("naval budget", n.naval_budget, 4), ("points", n.diplomacy_points, 5), ("prestige", n.prestige, 6), ("mobilization", n.mobilization, 7),
             ("net", n.budget.net, 8),
         ] {
             if !close(got, bits(&x[i])) {
@@ -45,8 +45,8 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
             fails.push(format!("{label} {}: works {jobs:?} vs {want_jobs:?}", n.tag));
         } else {
             for (j, wj) in n.construction.iter().zip(x[9].as_array().unwrap()) {
-                if !close(j.points_left, bits(&wj[3])) {
-                    fails.push(format!("{label} {}: work points {:e} vs {:e}", n.tag, j.points_left, bits(&wj[3])));
+                if j.started as i64 != wj[3].as_i64().unwrap() {
+                    fails.push(format!("{label} {}: project {} {} started {} vs {}", n.tag, j.province, j.kind, j.started, wj[3]));
                 }
             }
         }

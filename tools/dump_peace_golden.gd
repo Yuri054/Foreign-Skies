@@ -237,8 +237,8 @@ func _initialize() -> void:
 			# works under construction in the first province asked for (they are lost with the ground)
 			for d in demands:
 				if d.kind == "province" and not pre.has("job"):
-					gs.nations[giver].construction.append(Eco.new_job(d.ids[0], "railway", 800.0, 40))
-					pre["job"] = [giver, d.ids[0], "railway", 800.0, 40]
+					gs.nations[giver].construction.append(Eco.new_job(d.ids[0], "railway", 40))
+					pre["job"] = [giver, d.ids[0], "railway", 40]
 			var parts := _bits_map(Pea.score_parts(gs, war, taker))
 			var c: Dictionary = Pea.check(gs, taker, giver, "demand", demands)
 			if not c.ok:

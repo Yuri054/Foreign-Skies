@@ -100,7 +100,7 @@ func _snapshot() -> Dictionary:
 	for tag in gs.nations:
 		var n = gs.nations[tag]
 		nations.append([B(n.treasury), B(n.prestige), B(n.war_support), B(n.mobilization), n.population, n.manpower, n.men_in_units, B(n.blockade),
-				n.capital, B(n.budget.net), B(n.diplomacy_points), n.provinces.size(), B(n.munitions), n.capitulated, B(n.tax_rate), B(n.investment)])
+				n.capital, B(n.budget.net), B(n.diplomacy_points), n.provinces.size(), B(n.cp), n.capitulated, B(n.budget.income), B(n.budget.cp)])
 	var armies := []
 	for a in gs.armies.values():
 		armies.append([a.id, a.tag, a.province, B(a.men()), a.path.size(), a.fighting])

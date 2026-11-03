@@ -55,9 +55,9 @@ func _initialize() -> void:
 	for k in gs.relations:
 		direct_relations0[k] = B(gs.relations[k])
 	var cases := [
-		["GBR", {"gdp": 0.02, "construction": 2.0, "diplomacy": 0.4, "prestige": 3.0, "points": 15.0, "treasury": 12.5, "war_support": -7.0,
+		["GBR", {"income": 0.02, "cp": 2.0, "civilian_factories": 3, "diplomacy": 0.4, "prestige": 3.0, "points": 15.0, "treasury": 12.5, "war_support": -7.0,
 				"army_size": 0.05, "relation": [["FRA", 12.0], ["GER", -30.0], ["XXX", 5.0]], "claim": ["FRA", "XXX"]}],
-		["ITA", {"food": 0.1, "trade": 0.01, "growth": 0.004, "industry": 0.0, "points": 400.0, "war_support": 90.0, "army_size": 0.333,
+		["ITA", {"income": -0.1, "cp": 0.0, "civilian_factories": 0, "points": 400.0, "war_support": 90.0, "army_size": 0.333,
 				"relation": [["AUH", 200.0], ["GER", -500.0]], "claim": ["AUH"]}],
 		["GER", {"prestige": -2.0, "points": -5.0, "treasury": -30.0, "army_size": -0.1}],
 	]
@@ -72,6 +72,13 @@ func _initialize() -> void:
 	f.close()
 	print("wrote ", out_path)
 	quit(0)
+
+
+func _factories(gs: Node, n) -> int:
+	var count := 0
+	for id: int in n.provinces:
+		count += int(gs.province_buildings[id].get("civilian_factory", 0))
+	return count
 
 
 func _claims_made(months: Array) -> int:
@@ -91,7 +98,7 @@ func _snapshot(gs: Node) -> Dictionary:
 		nations.append({"tag": tag, "focus": [n.focus.get("id", ""), n.focus.get("days_left", 0), n.focus.get("days_total", 0)],
 				"done": n.focus_done.duplicate(), "count": counts, "fx": fx, "treasury": B(n.treasury), "war_support": B(n.war_support),
 				"peacetime_army": n.peacetime_army, "manpower": n.manpower, "prestige": B(n.prestige),
-				"points": B(n.diplomacy_points), "development": B(n.development), "net": B(n.budget.net)})
+				"points": B(n.diplomacy_points), "cp": B(n.cp), "factories": _factories(gs, n), "net": B(n.budget.net)})
 	var relations := {}
 	for k in gs.relations:
 		relations[k] = B(gs.relations[k])

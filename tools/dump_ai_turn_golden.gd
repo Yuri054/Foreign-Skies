@@ -290,8 +290,8 @@ func _snapshot() -> Dictionary:
 		var n = gs.nations[tag]
 		var jobs := []
 		for j in n.construction:
-			jobs.append([j.province, j.type, j.days_left, B(j.points_left)])
-		nations.append([B(n.treasury), B(n.tax_rate), B(n.investment), B(n.arms_share), B(n.munitions), B(n.diplomacy_points), B(n.prestige),
+			jobs.append([j.province, j.type, j.days_left, 1 if j.started else 0])
+		nations.append([B(n.treasury), B(n.cp), B(n.budget.get("income", 0.0)), B(n.budget.get("cp", 0.0)), B(n.naval_budget), B(n.diplomacy_points), B(n.prestige),
 				B(n.mobilization), B(n.budget.get("net", 0.0)), jobs, n.focus.get("id", "") if not n.focus.is_empty() else "", n.focus_done.duplicate(),
 				JSON.stringify(n.focus_count), gs.ai_budget_stamp.get(tag, 0), n.provinces.size()])
 	var owners := []

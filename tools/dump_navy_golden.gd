@@ -74,7 +74,7 @@ func _initialize() -> void:
 			["war", "GBR", "GER"], ["gather", "GBR", "Channel Fleet"], ["weaken", "GBR", "Channel Fleet", 4, 0.049], ["weaken", "GBR", "Channel Fleet", 5, 0.049],
 			["send", "GBR", "Channel Fleet", 394], ["move_zone_of", "GER", "High Seas Fleet", 394], ["days", 6, 1], ["weaken", "GBR", "Channel Fleet", 6, 0.049], ["days", 30, 2]]},
 		{"name": "launch", "player": "POR", "actions": [
-			["raise", "GBR", 330, "destroyer", 2], ["raise", "GBR", 289, "cruiser", 1], ["raise", "GER", 394, "submarine", 1], ["days", 20, 5], ["rush", "GBR", 0.00001],
+			["raise", "GBR", 330, "destroyer", 2], ["raise", "GBR", 289, "cruiser", 1], ["raise", "GER", 394, "submarine", 1], ["days", 20, 5], ["rush", "GBR", 2.0],
 			["days", 3, 1], ["raise", "GBR", 330, "destroyer", 1], ["rush", "GBR", 0.0], ["rush", "GER", 0.0], ["days", 2, 1], ["days", 6, 3]]},
 		{"name": "yard", "player": "POR", "actions": [
 			["war", "GBR", "GER"], ["spawn", "GBR", 330, "Tender", "destroyer", 1, 1.0], ["raise", "GBR", 330, "destroyer", 1], ["rush", "GBR", 0.0], ["days", 2, 1],
@@ -244,7 +244,7 @@ func _play(act: Array, log: Array, snaps: Array) -> void:
 			log.append(["weaken", act[1], f.id, act[3], act[4]])
 		"rush":
 			for j in gs.nations[act[1]].shipbuilding:
-				j.points_left = act[2]
+				j.days_left = int(act[2])
 			log.append(act)
 		"disembark":
 			var f = _fleet(act[1], act[2])

@@ -155,7 +155,7 @@ fn run(index: usize) -> (String, usize) {
             "rush" => {
                 let ni = gs.nation_index[s(&act[1])];
                 for j in &mut gs.nations[ni].shipbuilding {
-                    j.points_left = act[2].as_f64().unwrap();
+                    j.days_left = act[2].as_f64().unwrap() as i32;
                 }
             }
             "shot" => {}

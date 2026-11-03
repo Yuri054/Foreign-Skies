@@ -34,7 +34,7 @@ fn compare_day(label: &str, gs: &GameState, rows: &Value, fails: &mut Vec<String
                 fails.push(format!("{label} {}: {k} {got} vs {want}", n.tag));
             }
         }
-        let floats = [("deaths_month", n.deaths_month, &r[2]), ("men_lost_month", n.men_lost_month, &r[3]), ("war_support", n.war_support, &r[4]), ("prestige", n.prestige, &r[5]), ("munitions", n.munitions, &r[6])];
+        let floats = [("deaths_month", n.deaths_month, &r[2]), ("men_lost_month", n.men_lost_month, &r[3]), ("war_support", n.war_support, &r[4]), ("prestige", n.prestige, &r[5]), ("treasury", n.treasury, &r[6])];
         for (k, got, want) in floats {
             if !close(got, bits(want)) {
                 fails.push(format!("{label} {}: {k} {got:e} vs {:e}", n.tag, bits(want)));
