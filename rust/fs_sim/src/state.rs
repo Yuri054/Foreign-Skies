@@ -436,6 +436,10 @@ pub struct GameState {
     pub ai_seed: i64,
     /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
     pub ai_budget_stamp: HashMap<String, i64>,
+    /// The month each nation last looked over its treaties (`ai_diplo_stamp`).
+    pub ai_diplo_stamp: HashMap<String, i64>,
+    /// While a batch of evaluations runs (the monthly treaty search), each nation's power added up once (`AIDiplomacy._powers`).
+    pub ai_powers: std::cell::RefCell<Option<HashMap<String, f64>>>,
     /// The day each front's anchors were last chosen, and the army each nation holds in reserve (`ai_anchor_stamp`, `ai_reserve`).
     pub ai_anchor_stamp: HashMap<u32, i64>,
     pub ai_reserve: HashMap<String, u32>,
@@ -726,6 +730,8 @@ impl GameState {
             ai_traits: HashMap::new(),
             ai_seed: 0,
             ai_budget_stamp: HashMap::new(),
+            ai_diplo_stamp: HashMap::new(),
+            ai_powers: std::cell::RefCell::new(None),
             ai_anchor_stamp: HashMap::new(),
             ai_reserve: HashMap::new(),
             ai_ambition: HashMap::new(),

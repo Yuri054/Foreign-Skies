@@ -9,6 +9,7 @@ pub mod actions;
 pub mod ai_diplomacy;
 pub mod ai_ambition;
 pub mod ai_defense;
+pub mod ai_diplo_step;
 pub mod ai_forces;
 pub mod ai_turn;
 pub mod ai_peace;

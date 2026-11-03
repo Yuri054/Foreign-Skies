@@ -28,6 +28,13 @@ fn dv(data: &Data, path: &[&str]) -> f64 {
 impl GameState {
     /// `AIDiplomacy.side_power`: the fighting power of the armies of a set of nations.
     pub fn side_power(&self, data: &Data, tags: &[String]) -> f64 {
+        if let Some(powers) = self.ai_powers.borrow().as_ref() {
+            let mut sum = 0.0;
+            for t in tags {
+                sum += powers.get(t).copied().unwrap_or(0.0);
+            }
+            return sum;
+        }
         let mut total = 0.0;
         for a in &self.armies {
             if tags.contains(&a.tag) {

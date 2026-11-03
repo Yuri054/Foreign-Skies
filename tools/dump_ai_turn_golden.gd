@@ -20,6 +20,7 @@ var AIF: GDScript
 var AIFo: GDScript
 var AIAm: GDScript
 var AID: GDScript
+var AIDip: GDScript
 var parts: Array = []
 
 
@@ -44,6 +45,7 @@ func _initialize() -> void:
 	AIFo = load("res://scripts/ai/ai_forces.gd")
 	AIAm = load("res://scripts/ai/ai_ambition.gd")
 	AID = load("res://scripts/ai/ai_defense.gd")
+	AIDip = load("res://scripts/ai/ai_diplomacy.gd")
 	var Design: GDScript = load("res://scripts/sim/designate_front.gd")
 	clock.day_ticked.disconnect(gs._on_day_ticked)
 	clock.day_ticked.connect(_day)
@@ -59,6 +61,8 @@ func _initialize() -> void:
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1500, "every": 10, "player": "USA", "wars": [], "purse": [1.0]},
 	]
 	var ALL := ["forces", "budget", "focus", "ambition"]
+	var LAX_D := {"diplomacy": {"war": {"declare_threshold": 0.4, "min_motive": 0.15, "truce_days": 200, "unjustified_odds": 1.3, "unjustified_min_aggression": 0.4}, "treaties": {"points_reserve": 5, "propose_threshold": 0.35, "improve_threshold": 0.2}}}
+	var LAX_AD := {"ambition": {"threshold": 0.3, "start_delay_days": 0, "review_days": 30, "give_up_days": 150, "cooldown_days": 45, "odds_margin": 0.8, "min_aggression": 0.3}, "forces": {"demob_after_days": 20}, "diplomacy": LAX_D.diplomacy}
 	var LAX := {"ambition": {"threshold": 0.3, "start_delay_days": 0, "review_days": 30, "give_up_days": 150, "cooldown_days": 45, "odds_margin": 0.8, "min_aggression": 0.3}, "forces": {"demob_after_days": 20}}
 	runs.append_array([
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 500, "every": 5, "player": "POR", "wars": [["GER", "FRA"], ["ITA", "AUH"], ["RUS", "OTT"]], "parts": ALL},
@@ -97,6 +101,12 @@ func _initialize() -> void:
 				"orders": [["RUS", "OTT", 5], ["OTT", "RUS", 5], ["FRA", "GER", 5], ["GER", "FRA", 5]]},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 700, "every": 10, "player": "GBR", "wars": [["FRA", "GER"], ["RUS", "AUH"], ["ITA", "OTT"], ["ESP", "POR"]], "parts": ["defence", "forces", "budget"], "purse": [3.0, 1.0, 0.4],
 				"orders": [["FRA", "GER", 6], ["GER", "FRA", 6], ["RUS", "AUH", 6], ["AUH", "RUS", 6]]},
+		# the AI's diplomacy: declaring wars, pressing demands, proposing treaties
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "GBR", "wars": [], "parts": ["diplomacy", "forces", "defence", "budget", "focus", "ambition"], "pressure": true, "ai_cfg": LAX_AD},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1300, "every": 10, "player": "USA", "wars": [], "parts": ["diplomacy", "forces", "defence", "budget", "focus", "ambition"], "pressure": true, "ai_cfg": LAX_AD},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 500, "every": 10, "player": "SRB", "wars": [], "parts": ["diplomacy", "forces", "defence"], "ai_cfg": LAX_D},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 900, "every": 10, "player": "GBR", "wars": [], "parts": ["diplomacy", "forces", "defence", "budget", "focus", "ambition"], "pressure": true},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 600, "every": 10, "player": "POR", "wars": [], "parts": ["diplomacy", "forces", "defence", "budget", "focus", "ambition"], "pressure": true},
 	])
 	var result := []
 	for run in runs:
@@ -108,8 +118,7 @@ func _initialize() -> void:
 		parts = run.get("parts", ["budget", "focus"])
 		AIc.load_config()
 		for section in run.get("ai_cfg", {}):
-			for k in run.ai_cfg[section]:
-				AIc.cfg[section][k] = run.ai_cfg[section][k]
+			_merge(AIc.cfg[section], run.ai_cfg[section])
 		var setup := []
 		var purse: Array = run.get("purse", [])
 		if not purse.is_empty():
@@ -171,6 +180,8 @@ func _day() -> void:
 				AIFo.rebuild(gs, tag)
 				AIFo.demobilize(gs, tag)
 		var stamp: int = clock.year * 12 + clock.month
+		if "diplomacy" in parts:
+			AIDip.step(gs, tag)
 		if "budget" in parts and gs.ai_budget_stamp.get(tag, 0) != stamp and AIc.cfg.budget.enabled:
 			gs.ai_budget_stamp[tag] = stamp
 			AIB._taxes(gs, tag)
@@ -236,3 +247,11 @@ func _border_target(enemy: String, from: int, index: int) -> int:
 				seen[n] = seen[cur] + 1
 				queue.append(n)
 	return found[index] if found.size() > index else (found[0] if not found.is_empty() else 0)
+
+
+func _merge(dst: Dictionary, src: Dictionary) -> void:
+	for k in src:
+		if src[k] is Dictionary and dst.get(k) is Dictionary:
+			_merge(dst[k], src[k])
+		else:
+			dst[k] = src[k]

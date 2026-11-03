@@ -14,6 +14,7 @@ pub struct AiTurn {
     pub forces: bool,
     pub ambition: bool,
     pub defence: bool,
+    pub diplomacy: bool,
 }
 
 fn bf(c: &Value, k: &str) -> f64 {
@@ -56,6 +57,9 @@ impl GameState {
                     self.ai_forces_rebuild(data, &tag);
                     self.ai_forces_demobilize(data, &tag);
                 }
+            }
+            if self.ai_turn.diplomacy {
+                self.ai_diplomacy_step(data, &tag);
             }
             if self.ai_turn.budget {
                 self.ai_budget_step(data, &tag);

@@ -124,15 +124,23 @@ fn run(index: usize) {
     let all: Value = serde_json::from_str(&text).unwrap();
     let run = &all[index];
     let name = s(&run["name"]);
-    for (section, keys) in run["ai_cfg"].as_object().unwrap() {
-        for (k, v) in keys.as_object().unwrap() {
-            data.ai.raw[section][k] = v.clone();
+    fn merge(dst: &mut Value, src: &Value) {
+        for (k, v) in src.as_object().unwrap() {
+            if v.is_object() && dst.get(k).map(Value::is_object).unwrap_or(false) {
+                merge(&mut dst[k], v);
+            } else {
+                dst[k] = v.clone();
+            }
         }
     }
+    for (section, keys) in run["ai_cfg"].as_object().unwrap() {
+        merge(&mut data.ai.raw[section], keys);
+    }
+    data.ai.diplomacy = data.ai.raw["diplomacy"].clone();
     let mut gs = GameState::load_scenario(&data, name).unwrap();
     gs.pressure_ai = run["pressure"].as_bool().unwrap();
     let on = |p: &str| run["parts"].as_array().unwrap().iter().any(|x| x == p);
-    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition"), defence: on("defence") };
+    gs.ai_turn = AiTurn { budget: on("budget"), focus: on("focus"), forces: on("forces"), ambition: on("ambition"), defence: on("defence"), diplomacy: on("diplomacy") };
     gs.start_scenario_wars(&data);
     gs.player_tag = s(&run["player"]).to_string();
     let purse: Vec<f64> = run["purse"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
@@ -322,4 +330,29 @@ fn defence_in_1900() {
 #[test]
 fn defence_in_four_wars_in_1900() {
     run(28);
+}
+
+#[test]
+fn diplomacy_in_july_1914_with_the_thresholds_loosened() {
+    run(29);
+}
+
+#[test]
+fn diplomacy_in_1900_with_the_thresholds_loosened() {
+    run(30);
+}
+
+#[test]
+fn diplomacy_in_july_1914_without_tension() {
+    run(31);
+}
+
+#[test]
+fn diplomacy_in_1900_as_the_game_has_it() {
+    run(32);
+}
+
+#[test]
+fn diplomacy_in_july_1914_as_the_game_has_it() {
+    run(33);
 }
