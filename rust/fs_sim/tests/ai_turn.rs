@@ -259,3 +259,18 @@ fn united_states_in_1900_with_armies_at_the_borders() {
 fn britain_in_1900_with_a_stricter_ambition() {
     run(20);
 }
+
+#[test]
+fn britain_with_ambition_near_its_threshold() {
+    run(21);
+}
+
+#[test]
+fn united_states_with_ambition_near_its_threshold_in_tension() {
+    run(22);
+}
+
+#[test]
+fn france_with_ambition_at_its_threshold() {
+    run(23);
+}

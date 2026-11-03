@@ -78,6 +78,13 @@ func _initialize() -> void:
 				"orders": [["RUS", "OTT", 5], ["OTT", "RUS", 5], ["FRA", "GER", 5], ["GER", "FRA", 5]]},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1100, "every": 10, "player": "GBR", "wars": [], "parts": ALL, "pressure": true,
 				"ai_cfg": {"ambition": {"threshold": 0.7, "start_delay_days": 100, "review_days": 45, "odds_margin": 1.0, "min_aggression": 0.4}, "forces": {"demob_after_days": 60}}},
+		# the ambition's score near its real threshold, where each weight can decide
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 900, "every": 10, "player": "GBR", "wars": [["GER", "FRA"], ["AUH", "SRB"]], "parts": ["forces", "ambition"],
+				"ai_cfg": {"ambition": {"threshold": 0.85, "start_delay_days": 0, "review_days": 30, "odds_margin": 1.0, "min_aggression": 0.4}, "forces": {"demob_after_days": 30}}},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1500, "every": 10, "player": "USA", "wars": [["RUS", "OTT"]], "parts": ["forces", "ambition"], "pressure": true,
+				"ai_cfg": {"ambition": {"threshold": 0.8, "start_delay_days": 0, "review_days": 30, "odds_margin": 0.9, "min_aggression": 0.4, "give_up_days": 200, "cooldown_days": 60}}},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1500, "every": 10, "player": "FRA", "wars": [], "parts": ["forces", "ambition"], "purse": [1.0],
+				"ai_cfg": {"ambition": {"threshold": 1.0, "start_delay_days": 0, "review_days": 20, "odds_margin": 0.8, "min_aggression": 0.3, "give_up_days": 150, "cooldown_days": 30}}},
 	])
 	var result := []
 	for run in runs:
