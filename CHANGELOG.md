@@ -7,6 +7,17 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
+## 0.18.1 (2026-11-03 16:39 UTC)
+
+No change to how the game plays: this release brings the Rust port of the simulation into the main line.
+
+- **The simulation in Rust** (`rust/fs_sim`): the whole game's rules, the AI included, rewritten in Rust and now on the
+  gold economy of 0.18.0. The real game records what it does (`tools/dump_*_golden.gd`) and the Rust tests check that
+  the port does exactly the same, bit for bit: 135 tests, among them 15 whole AI games, 52 AI campaigns and 6 games
+  with a player giving about 2,600 commands. rust/README.md says what is ported. The game still runs on the GDScript.
+- **A landing page** for the game (`docs/site`) and new README pictures of the 3D map.
+- The Rust folder and its test files are kept out of the Windows build.
+
 ## 0.18.0 (2026-11-03 15:45 UTC)
 
 The second and third stages of the big rework (docs/REWORK.md, R2 and R3): one currency, **gold**, and **construction
