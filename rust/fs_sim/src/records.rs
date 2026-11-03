@@ -118,6 +118,7 @@ pub struct Texts {
     pub treaty_labels: HashMap<String, String>,
     pub terrain_names: HashMap<String, String>,
     pub ship_names: HashMap<String, String>,
+    pub sea_zone_names: Vec<String>,
 }
 
 pub fn ordinal(n: i64) -> String {

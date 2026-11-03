@@ -146,7 +146,36 @@ fn books(gs: &GameState, full: bool) -> Value {
             serde_json::json!([r.day, r.date, vals])
         })
         .collect();
+    let bits = |l: &[(String, f64)]| l.iter().map(|(k, v)| serde_json::json!([k, b(*v)])).collect::<Vec<_>>();
+    let ints = |l: &[(String, i64)]| l.iter().map(|(k, v)| serde_json::json!([k, v])).collect::<Vec<_>>();
+    let land: Vec<Value> = gs
+        .battle_archive
+        .iter()
+        .chain(gs.engagements.iter())
+        .map(|e| {
+            let sides: Vec<Value> = e
+                .sides
+                .iter()
+                .map(|(t, s)| {
+                    let armies: Vec<Value> = s.armies.iter().map(|(i, n)| serde_json::json!([i, n])).collect();
+                    serde_json::json!([t, armies, s.generals, ints(&s.comp_start), ints(&s.comp_now), ints(&s.comp_end), b(s.men_now), b(s.men_end), b(s.morale), b(s.defense)])
+                })
+                .collect();
+            let line: Vec<Value> = e.timeline.iter().map(|d| serde_json::json!([d.day, d.date, bits(&d.men), bits(&d.lost), bits(&d.morale), bits(&d.defense)])).collect();
+            serde_json::json!([e.id, e.province, e.name, e.terrain, e.start_day, e.start_date, e.end_date, e.days, e.attacker, e.winner, e.active, bits(&e.start_men), bits(&e.lost), e.armies, sides, line, e.events])
+        })
+        .collect();
+    let sea: Vec<Value> = gs
+        .sea_battle_archive
+        .iter()
+        .chain(gs.sea_battles.iter().map(|(_, e)| e))
+        .map(|e| {
+            let line: Vec<Value> = e.timeline.iter().map(|(d, l)| serde_json::json!([d, bits(l)])).collect();
+            serde_json::json!([e.id, e.zone, e.name, e.start_day, e.start_date, e.end_date, e.days, e.winner, e.active, e.fleets, ints(&e.start_ships), bits(&e.lost), ints(&e.sunk), line, e.events])
+        })
+        .collect();
     serde_json::json!({
+        "battles": land, "sea_battles": sea,
         "wars": gs.wars.iter().map(war_book).collect::<Vec<_>>(),
         "past": gs.war_history.iter().map(war_book).collect::<Vec<_>>(),
         "ambition": [gs.ambition.id, gs.ambition.tag, gs.ambition.since, gs.ambition.state],
@@ -157,16 +186,21 @@ fn books(gs: &GameState, full: bool) -> Value {
 
 fn compare_books(label: &str, gs: &GameState, want: &Value, full: bool, fails: &mut Vec<String>) {
     let mine = books(gs, full);
-    for k in ["sizes", "ambition", "notes", "territory", "months", "standings", "wars", "past"] {
+    for k in ["sizes", "ambition", "notes", "territory", "months", "standings", "wars", "past", "battles", "sea_battles"] {
         if norm(&mine[k]) != norm(&want[k]) {
             let detail = match (mine[k].as_array(), want[k].as_array()) {
                 (Some(a), Some(w)) => {
                     let at = a.iter().zip(w).position(|(x, y)| norm(x) != norm(y)).unwrap_or(a.len().min(w.len()));
-                    format!("({} vs {} entries) first at {at}:\n  mine {}\n  want {}", a.len(), w.len(), a.get(at).map(|v| v.to_string()).unwrap_or_default(), w.get(at).map(|v| v.to_string()).unwrap_or_default())
+                    {
+                        let (m, wn) = (a.get(at).map(|v| v.to_string()).unwrap_or_default(), w.get(at).map(|v| v.to_string()).unwrap_or_default());
+                        let c = m.chars().zip(wn.chars()).position(|(x, y)| x != y).unwrap_or(m.len().min(wn.len()));
+                        let cut = |s: &str| s.chars().skip(c.saturating_sub(250)).take(500).collect::<String>();
+                        format!("({} vs {} entries) first at {at}, char {c}:\n  mine ..{}\n  want ..{}", a.len(), w.len(), cut(&m), cut(&wn))
+                    }
                 }
                 _ => format!("{} vs {}", mine[k], want[k]),
             };
-            fails.push(format!("{label}: the {k} of the books differ {}", detail.chars().take(900).collect::<String>()));
+            fails.push(format!("{label}: the {k} of the books differ {}", detail.chars().take(1500).collect::<String>()));
         }
     }
 }

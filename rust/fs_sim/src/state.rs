@@ -86,6 +86,7 @@ impl Data {
             province_names: map.provinces.iter().map(|p| p.name.clone()).collect(),
             cb_labels: label_map(&diplomacy_json["war"]["casus_belli"]),
             treaty_labels: label_map(&diplomacy_json["treaties"]),
+            sea_zone_names: map.sea_zone_names.clone(),
             ship_names: {
                 let navy_json: serde_json::Value = serde_json::from_str(&read("navy.json")?).map_err(|e| format!("navy.json is invalid: {e}"))?;
                 navy_json["types"].as_object().map(|o| o.iter().filter_map(|(k, d)| d.get("name").and_then(serde_json::Value::as_str).map(|l| (k.clone(), l.to_string()))).collect()).unwrap_or_default()
@@ -332,6 +333,40 @@ pub struct Engagement {
     /// What each side has lost in it.
     pub lost: Vec<(String, f64)>,
     pub armies: Vec<u32>,
+    /// The account of the battle (`Military._engagement`'s dictionary in full): the ground, how it ended, each side, each day, in words.
+    pub terrain: String,
+    pub end_date: String,
+    pub days: i64,
+    pub winner: String,
+    pub active: bool,
+    pub sides: Vec<(String, BattleSide)>,
+    pub timeline: Vec<BattleDay>,
+    pub events: Vec<String>,
+}
+
+/// One side of a land battle.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BattleSide {
+    pub armies: Vec<(u32, String)>,
+    pub generals: Vec<String>,
+    pub comp_start: Vec<(String, i64)>,
+    pub comp_now: Vec<(String, i64)>,
+    pub comp_end: Vec<(String, i64)>,
+    pub men_now: f64,
+    pub men_end: f64,
+    pub morale: f64,
+    pub defense: f64,
+}
+
+/// A day of a land battle: men left, losses, morale and the defender's advantage per nation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BattleDay {
+    pub day: i64,
+    pub date: String,
+    pub men: Vec<(String, f64)>,
+    pub lost: Vec<(String, f64)>,
+    pub morale: Vec<(String, f64)>,
+    pub defense: Vec<(String, f64)>,
 }
 
 /// One standing agreement between two nations (`Treaty`). Kinds are in `data/diplomacy.json`.
@@ -459,6 +494,8 @@ pub struct GameState {
     pub sea_control: Vec<(usize, SeaControl)>,
     pub sea_battles: Vec<(usize, SeaBattle)>,
     pub sea_battle_archive: Vec<SeaBattle>,
+    /// The finished land battles, the oldest dropped past 300 (`GameState.battle_archive`).
+    pub battle_archive: Vec<Engagement>,
     /// Set when a nation's blockade moved enough for its budget to be worked out again (`GameState.budget_dirty`).
     pub budget_dirty: bool,
     /// Naval bases (dockyards) from the scenario: province -> level the biggest ship there needs. They count as a port for the
@@ -740,6 +777,12 @@ pub struct SeaBattle {
     pub sunk: Vec<(String, i64)>,
     pub winner: String,
     pub active: bool,
+    /// The account of the battle: where and when, what happened each day, and in words.
+    pub name: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub timeline: Vec<(i64, Vec<(String, f64)>)>,
+    pub events: Vec<String>,
 }
 
 /// Who holds a sea zone today (`GameState.sea_control`).
@@ -805,6 +848,7 @@ impl GameState {
             sea_control: vec![],
             sea_battles: vec![],
             sea_battle_archive: vec![],
+            battle_archive: vec![],
             budget_dirty: false,
             naval_bases: HashMap::new(),
             wars: vec![],

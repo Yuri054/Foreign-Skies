@@ -731,6 +731,7 @@ impl GameState {
                     }
                 }
             }
+            self.log_day(data, bi, &foes, today);
             for (a, _) in &foes {
                 if self.armies[*a].units.is_empty() || self.armies[*a].morale(mil) < mil.combat.rout_morale {
                     routed.push(*a);
@@ -778,11 +779,21 @@ impl GameState {
                     start_men: vec![],
                     lost: vec![],
                     armies: vec![],
+                    terrain: data.map.provinces[id].terrain.clone(),
+                    end_date: String::new(),
+                    days: 0,
+                    winner: String::new(),
+                    active: true,
+                    sides: vec![],
+                    timeline: vec![],
+                    events: vec![],
                 });
                 self.next_battle_id += 1;
                 self.engagements.len() - 1
             }
         };
+        let fresh = self.engagements[bi].armies.is_empty() && self.engagements[bi].sides.is_empty();
+        let day = self.day_i() - self.engagements[bi].start_day + 1;
         for (a, _) in foes {
             let army = &self.armies[*a];
             if self.engagements[bi].armies.contains(&army.id) {
@@ -794,6 +805,42 @@ impl GameState {
             if army.attacking && self.engagements[bi].attacker.is_empty() {
                 self.engagements[bi].attacker = army.tag.clone();
             }
+            let general = self.generals.iter().find(|g| g.id == army.general_id && army.general_id != 0).map(|g| g.name.clone()).unwrap_or_default();
+            let comp = composition(&data.military, army);
+            let battle = &mut self.engagements[bi];
+            let si = match battle.sides.iter().position(|(t, _)| *t == army.tag) {
+                Some(i) => i,
+                None => {
+                    battle.sides.push((army.tag.clone(), crate::state::BattleSide { armies: vec![], generals: vec![], comp_start: vec![], comp_now: vec![], comp_end: vec![], men_now: 0.0, men_end: 0.0, morale: 1.0, defense: 1.0 }));
+                    battle.sides.len() - 1
+                }
+            };
+            let side = &mut battle.sides[si].1;
+            side.armies.push((army.id, army.name.clone()));
+            if !general.is_empty() && !side.generals.contains(&general) {
+                side.generals.push(general);
+            }
+            for (t, n) in comp {
+                match side.comp_start.iter_mut().find(|(k, _)| *k == t) {
+                    Some(slot) => slot.1 += n,
+                    None => side.comp_start.push((t, n)),
+                }
+            }
+            if !fresh {
+                let line = format!("Day {}: {}'s {} joins the battle.", day, self.nation(&army.tag).display_name, army.name);
+                self.engagements[bi].events.push(line);
+            }
+        }
+        if fresh {
+            let battle = &self.engagements[bi];
+            let terrain = self.texts.terrain_names.get(&battle.terrain).cloned().unwrap_or_default().to_lowercase();
+            let defenders: Vec<String> = battle.sides.iter().filter(|(t, _)| *t != battle.attacker).map(|(t, _)| self.nation(t).display_name.clone()).collect();
+            let line = if battle.attacker.is_empty() {
+                format!("Day 1: armies clash at {} ({}).", battle.name, terrain)
+            } else {
+                format!("Day 1: {} attacks {} at {} ({}).", self.nation(&battle.attacker).display_name, defenders.join(" and "), battle.name, terrain)
+            };
+            self.engagements[bi].events.push(line);
         }
         bi
     }
@@ -802,7 +849,7 @@ impl GameState {
     /// one side still standing in the province.
     fn finish_engagement(&mut self, data: &Data, id: usize) {
         let pos = self.engagements.iter().position(|e| e.province == id).unwrap();
-        let battle = self.engagements.remove(pos);
+        let mut battle = self.engagements.remove(pos);
         self.last_battle_day.insert(id, self.day_i());
         let present: HashSet<&str> = self.armies.iter().filter(|a| a.province == id && !a.embarked()).map(|a| a.tag.as_str()).collect();
         let standing: Vec<&String> = battle.start_men.iter().map(|(t, _)| t).filter(|t| present.contains(t.as_str())).collect();
@@ -811,6 +858,30 @@ impl GameState {
         let get = |list: &[(String, f64)], t: &str| list.iter().find(|(k, _)| k == t).map(|(_, v)| *v).unwrap_or(0.0);
         let days = self.day_i() - battle.start_day + 1;
         let end_date = self.calendar.date_string();
+        battle.active = false;
+        battle.winner = winner.clone();
+        battle.days = days;
+        battle.end_date = end_date.clone();
+        for (tag, side) in battle.sides.iter_mut() {
+            let mut men = 0.0;
+            let mut comp: Vec<(String, i64)> = vec![];
+            for a in self.armies.iter().filter(|a| a.province == id && !a.embarked() && a.tag == *tag) {
+                men += a.men(&data.military);
+                for (t, n) in composition(&data.military, a) {
+                    match comp.iter_mut().find(|(k, _)| *k == t) {
+                        Some(slot) => slot.1 += n,
+                        None => comp.push((t, n)),
+                    }
+                }
+            }
+            side.men_end = men;
+            side.comp_end = comp;
+        }
+        battle.events.push(format!("Day {}: {}", days, if winner.is_empty() { "The fighting ends without a clear winner.".to_string() } else { format!("{} holds the field.", self.nation(&winner).display_name) }));
+        self.battle_archive.push(battle.clone());
+        while self.battle_archive.len() > 300 {
+            self.battle_archive.remove(0);
+        }
         for i in 0..tags.len() {
             for j in i + 1..tags.len() {
                 let Some(w) = self.war_between(&tags[i], &tags[j]) else { continue };
@@ -869,6 +940,62 @@ impl GameState {
                 let date = self.calendar.date_string();
                 self.war_log(w, &date, "battle", &text, id, battle.id);
             }
+        }
+    }
+
+    /// `Military._log_day`: adds the day's figures to a battle's timeline.
+    fn log_day(&mut self, data: &Data, bi: usize, foes: &[(usize, Vec<usize>)], today: Vec<(String, f64)>) {
+        let mil = &data.military;
+        let mut men: Vec<(String, f64)> = vec![];
+        let mut morale: Vec<(String, f64)> = vec![];
+        let mut comp: Vec<(String, Vec<(String, i64)>)> = vec![];
+        let mut defense: Vec<(String, f64)> = vec![];
+        for (a, _) in foes {
+            let army = &self.armies[*a];
+            let m = army.men(mil);
+            add_to(&mut men, &army.tag, m);
+            add_to(&mut morale, &army.tag, army.morale(mil) * m);
+            if !comp.iter().any(|(t, _)| *t == army.tag) {
+                comp.push((army.tag.clone(), vec![]));
+            }
+            let slot = &mut comp.iter_mut().find(|(t, _)| *t == army.tag).unwrap().1;
+            for (t, n) in composition(mil, army) {
+                match slot.iter_mut().find(|(k, _)| *k == t) {
+                    Some(s) => s.1 += n,
+                    None => slot.push((t, n)),
+                }
+            }
+            if !army.attacking {
+                let cur = defense.iter().find(|(t, _)| *t == army.tag).map(|(_, v)| *v).unwrap_or(1.0);
+                let d = maxf(cur, self.defense_multiplier(data, army));
+                match defense.iter_mut().find(|(t, _)| *t == army.tag) {
+                    Some(s) => s.1 = d,
+                    None => defense.push((army.tag.clone(), d)),
+                }
+            }
+        }
+        for (tag, v) in morale.iter_mut() {
+            let m = men.iter().find(|(t, _)| t == tag).unwrap().1;
+            *v = if m > 0.0 { *v / m } else { 0.0 };
+        }
+        let day = self.day_i() - self.engagements[bi].start_day + 1;
+        let date = self.calendar.date_string();
+        let battle = &mut self.engagements[bi];
+        for (tag, side) in battle.sides.iter_mut() {
+            side.men_now = men.iter().find(|(t, _)| t == tag).map(|(_, v)| *v).unwrap_or(0.0);
+            side.morale = morale.iter().find(|(t, _)| t == tag).map(|(_, v)| *v).unwrap_or(0.0);
+            side.comp_now = comp.iter().find(|(t, _)| t == tag).map(|(_, v)| v.clone()).unwrap_or_default();
+            side.defense = defense.iter().find(|(t, _)| t == tag).map(|(_, v)| *v).unwrap_or(1.0);
+        }
+        battle.timeline.push(crate::state::BattleDay { day, date, men, lost: today, morale, defense });
+    }
+
+    /// `Military._battle_event`: notes something that happened in the battle in progress at a province, if there is one.
+    fn battle_event(&mut self, province: usize, text: &str) {
+        let today = self.day_i();
+        if let Some(b) = self.engagements.iter_mut().find(|e| e.province == province) {
+            let day = today - b.start_day + 1;
+            b.events.push(format!("Day {}: {}", day, text));
         }
     }
 
@@ -934,6 +1061,8 @@ impl GameState {
         if best == 0 {
             let men = self.armies[a].men(mil);
             self.armies[a].units.clear();
+            let text = format!("{}'s {} broke and was cut off ({}k men lost).", self.nation(&tag).display_name, self.armies[a].name, (men / 1000.0).round() as i64);
+            self.battle_event(self.armies[a].province, &text);
             self.add_loss(&tag, &enemies, men, "surrendered");
             for e in &enemies {
                 if let Some(wi) = self.war_between(&tag, e) {
@@ -945,6 +1074,8 @@ impl GameState {
             }
             return;
         }
+        let text = format!("{}'s {} routed and fell back to {}.", self.nation(&tag).display_name, self.armies[a].name, self.texts.province_names[best]);
+        self.battle_event(self.armies[a].province, &text);
         let before = self.armies[a].men(mil);
         let loss = mil.combat.routed_loss + self.pursuit(data, a, at);
         for u in &mut self.armies[a].units {
@@ -1259,6 +1390,18 @@ fn apply_casualties(cfg: &MilitaryConfig, a: &mut Army, casualties: f64) -> f64 
 }
 
 /// Adds to a tag's entry in an ordered list, appending it the first time.
+/// `Army.composition`: how many units of each type, in the order of the unit types.
+fn composition(mil: &MilitaryConfig, a: &Army) -> Vec<(String, i64)> {
+    let mut out = vec![];
+    for t in &mil.unit_types {
+        let n = a.units.iter().filter(|u| u.unit_type == t.id).count() as i64;
+        if n > 0 {
+            out.push((t.id.clone(), n));
+        }
+    }
+    out
+}
+
 fn add_to(list: &mut Vec<(String, f64)>, tag: &str, x: f64) {
     match list.iter_mut().find(|(k, _)| k == tag) {
         Some(slot) => slot.1 += x,

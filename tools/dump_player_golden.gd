@@ -462,7 +462,51 @@ func _books(full: bool) -> Dictionary:
 			vals.append([tag, METRICS.map(func(mm): return B(r.values[tag][mm]))])
 		stand.append([r.day, r.date, vals])
 	out["standings"] = stand
+	var land := []
+	for b in gs.battle_archive.values():
+		land.append(_land_book(b))
+	for b in gs.engagements.values():
+		land.append(_land_book(b))
+	out["battles"] = land
+	var sea := []
+	for b in gs.sea_battle_archive.values():
+		sea.append(_sea_book(b))
+	for b in gs.sea_battles.values():
+		sea.append(_sea_book(b))
+	out["sea_battles"] = sea
 	return out
+
+
+func _bits(d: Dictionary) -> Array:
+	var r := []
+	for k in d:
+		r.append([k, B(d[k])])
+	return r
+
+
+func _pairs(d: Dictionary) -> Array:
+	var r := []
+	for k in d:
+		r.append([k, d[k]])
+	return r
+
+
+func _land_book(b: Dictionary) -> Array:
+	var sides := []
+	for tag in b.sides:
+		var s: Dictionary = b.sides[tag]
+		sides.append([tag, _pairs(s.armies), s.generals.duplicate(), _pairs(s.comp_start), _pairs(s.comp_now), _pairs(s.comp_end), B(s.men_now), B(s.men_end), B(s.morale), B(s.defense)])
+	var line := []
+	for t in b.timeline:
+		line.append([t.day, t.date, _bits(t.men), _bits(t.lost), _bits(t.morale), _bits(t.defense)])
+	return [b.id, b.province, b.name, b.terrain, b.start_day, b.start_date, b.end_date, b.days, b.attacker, b.winner, b.active, _bits(b.start_men), _bits(b.lost), b.armies.keys(), sides, line, b.events.duplicate()]
+
+
+func _sea_book(b: Dictionary) -> Array:
+	var line := []
+	for t in b.timeline:
+		line.append([t.day, _bits(t.lost)])
+	return [b.id, b.zone, b.name, b.start_day, b.start_date, b.end_date, b.days, b.winner, b.active, b.fleets.keys(), _pairs(b.start_ships), _bits(b.lost), _pairs(b.sunk), line, b.events.duplicate()]
 
 
 func _snapshot() -> Dictionary:

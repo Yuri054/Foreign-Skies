@@ -373,6 +373,7 @@ impl GameState {
                 }
             }
             let battle_at = self.sea_engagement(zone, &foes);
+            let mut today: Vec<(String, f64)> = vec![];
             for (a, targets) in &foes {
                 self.fleets[*a].fighting = true;
                 self.fleets[*a].engaged = true;
@@ -383,8 +384,15 @@ impl GameState {
                     }
                 }
                 let points = incoming.iter().find(|(k, _)| k == a).unwrap().1;
-                self.sea_damage(data, *a, points, &enemies, battle_at);
+                let tag = self.fleets[*a].tag.clone();
+                let report = self.sea_damage(data, *a, points, &enemies, battle_at);
+                match today.iter_mut().find(|(t, _)| *t == tag) {
+                    Some(slot) => slot.1 += report,
+                    None => today.push((tag, report)),
+                }
             }
+            let days = self.sea_battles[battle_at].1.days;
+            self.sea_battles[battle_at].1.timeline.push((days, today));
             for (a, targets) in &foes {
                 for b in targets {
                     if let Some(w) = self.war_between(&self.fleets[*a].tag, &self.fleets[*b].tag) {
@@ -428,7 +436,7 @@ impl GameState {
     }
 
     /// `NavalCombat._damage`: damages a fleet by `points` of enemy fire.
-    fn sea_damage(&mut self, data: &Data, fi: usize, points: f64, enemies: &[String], battle_at: usize) {
+    fn sea_damage(&mut self, data: &Data, fi: usize, points: f64, enemies: &[String], battle_at: usize) -> f64 {
         let c = &data.navy.combat;
         let zone = self.fleets[fi].zone;
         let mut asw = false;
@@ -449,7 +457,7 @@ impl GameState {
             total_weight += w;
         }
         if total_weight <= 0.0 || points <= 0.0 {
-            return;
+            return 0.0;
         }
         let (mut lost, mut crew_lost) = (0.0, 0.0);
         let mut sunk: Vec<usize> = vec![];
@@ -482,6 +490,8 @@ impl GameState {
             let ni = self.nation_index[&tag];
             self.nations[ni].ships_lost += 1;
             let text = format!("{}'s {} lost a {}.", self.nations[ni].display_name, fleet_name, self.texts.ship_names[&s.kind].to_lowercase());
+            let day = self.sea_battles[battle_at].1.days;
+            self.sea_battles[battle_at].1.events.push(format!("Day {day}: {text}"));
             let line = format!("{} in the {}.", text.trim_end_matches('.'), data.map.sea_zone_names[fleet_zone]);
             for e in enemies {
                 if let Some(wi) = self.war_between(&tag, e) {
@@ -495,6 +505,7 @@ impl GameState {
             None => battle.lost.push((tag.clone(), lost)),
         }
         self.add_loss(&tag, enemies, crew_lost, "losses");
+        lost
     }
 
     /// `NavalCombat._retreat`: a beaten fleet runs for the nearest port its nation may use. With none in reach it fights on.
@@ -532,6 +543,12 @@ impl GameState {
         } else {
             f.move_days_left = Self::zone_days(data, speed, f.zone, f.path[0]);
         }
+        let (zone, dest_port, name) = (f.zone, f.dest_port, f.name.clone());
+        if let Some(at) = self.sea_battles.iter().position(|(z, _)| *z == zone) {
+            let day = self.sea_battles[at].1.days;
+            let text = format!("Day {day}: {}'s {} breaks and runs for {}.", self.nation(&tag).display_name, name, self.texts.province_names[dest_port]);
+            self.sea_battles[at].1.events.push(text);
+        }
     }
 
     /// `NavalCombat._engagement`: the battle being fought in a zone, started if it is new. Returns its index in `sea_battles`.
@@ -550,10 +567,25 @@ impl GameState {
                     sunk: vec![],
                     winner: String::new(),
                     active: true,
+                    name: self.texts.sea_zone_names[zone].clone(),
+                    start_date: self.calendar.date_string(),
+                    end_date: String::new(),
+                    timeline: vec![],
+                    events: vec![],
                 };
                 self.next_battle_id += 1;
                 self.sea_battles.push((zone, b));
-                self.sea_battles.len() - 1
+                let at = self.sea_battles.len() - 1;
+                let mut names: Vec<String> = vec![];
+                for (f, _) in foes {
+                    let n = self.nation(&self.fleets[*f].tag).display_name.clone();
+                    if !names.contains(&n) {
+                        names.push(n);
+                    }
+                }
+                let text = format!("Day 1: {} fleets meet in the {}.", names.join(" and "), self.sea_battles[at].1.name);
+                self.sea_battles[at].1.events.push(text);
+                at
             }
         };
         let today = self.nday();
@@ -567,7 +599,11 @@ impl GameState {
             battle.fleets.push(id);
             match battle.start_ships.iter_mut().find(|(t, _)| *t == tag) {
                 Some(slot) => slot.1 += ships,
-                None => battle.start_ships.push((tag, ships)),
+                None => battle.start_ships.push((tag.clone(), ships)),
+            }
+            if battle.days > 1 {
+                let text = format!("Day {}: {}'s {} joins the battle.", battle.days, self.nations[self.nation_index[&tag]].display_name, self.fleets[*f].name);
+                self.sea_battles[at].1.events.push(text);
             }
         }
         at
@@ -590,6 +626,8 @@ impl GameState {
             }
         }
         battle.winner = best;
+        battle.end_date = self.calendar.date_string();
+        battle.events.push(format!("Day {}: the battle ends.", battle.days));
         self.sea_battle_archive.push(battle);
         for f in &mut self.fleets {
             if f.zone == zone || f.port > 0 {
