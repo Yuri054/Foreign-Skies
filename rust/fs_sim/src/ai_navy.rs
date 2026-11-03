@@ -10,7 +10,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
 /// A landing being prepared (`GameState.ai_landing`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Landing {
     pub enemy: String,
     pub target: usize,
@@ -28,7 +28,7 @@ fn nf(c: &Value, k: &str) -> f64 {
 }
 
 /// What the AI keeps for the day about the sea (`AINavy._weight_cache`, `_cordons`).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct NavyCaches {
     pub weight_day: i64,
     pub weights: HashMap<String, Vec<(usize, f64)>>,

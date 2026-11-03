@@ -7,7 +7,7 @@
 
 use crate::state::{Data, GameState};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArmyGroup {
     pub id: u32,
     pub tag: String,
@@ -16,7 +16,7 @@ pub struct ArmyGroup {
     pub marshal_id: u32,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AttackLine {
     pub id: u32,
     pub tag: String,

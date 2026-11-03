@@ -8,7 +8,7 @@ use crate::military::Army;
 use crate::state::{Data, GameState};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Front {
     pub id: u32,
     pub tag: String,
@@ -31,7 +31,7 @@ pub struct Front {
     pub order: Vec<usize>,
     pub weights: Vec<f64>,
     pub weights_day: i64,
-    pub deploying: HashSet<u32>,
+    pub deploying: std::collections::BTreeSet<u32>,
 }
 
 fn dist(data: &Data, a: usize, b: usize) -> f32 {
@@ -186,7 +186,7 @@ impl GameState {
             order: vec![],
             weights: vec![],
             weights_day: -1,
-            deploying: HashSet::new(),
+            deploying: Default::default(),
         });
         Some(id)
     }

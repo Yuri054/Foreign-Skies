@@ -7,7 +7,7 @@ use crate::gd::{clampf, lerpf, maxf, minf};
 use crate::state::{Nation, Sums};
 
 /// A nation's raw materials (`Economy.materials_of`).
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Materials {
     pub own: f64,
     pub need: f64,
@@ -18,7 +18,7 @@ pub struct Materials {
     pub income: f64,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Budget {
     pub gdp: f64,
     pub industry: f64,

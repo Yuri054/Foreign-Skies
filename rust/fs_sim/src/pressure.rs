@@ -27,7 +27,7 @@ fn role_set(roles: &mut Roles, key: &str, value: &str) {
 }
 
 /// The parts of tension (`Pressure.parts`).
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 pub struct TensionParts {
     pub arms: f64,
     pub mobilization: f64,

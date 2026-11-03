@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 /// A campaign (`GameState.ai_campaign`): who it is against, the province aimed at, where the armies gather, which armies, and whether it is
 /// still gathering or already advancing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Campaign {
     /// Identity inside the port (the game tells campaigns apart by their contents).
     pub uid: u64,
@@ -28,7 +28,7 @@ pub struct Campaign {
 }
 
 /// What `_best_target` finds.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Pick {
     pub target: usize,
     pub staging: usize,

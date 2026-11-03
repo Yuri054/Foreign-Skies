@@ -10,7 +10,7 @@ use crate::state::{Data, GameState};
 use serde_json::Value;
 
 /// The parts of `data/ai.json` the peace rules read.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AiConfig {
     pub k_score: f64,
     pub k_support: f64,
@@ -93,7 +93,7 @@ impl AiConfig {
 }
 
 /// What the urge is made of (`AIPeace.urge_parts`).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UrgeParts {
     pub score: f64,
     pub support: f64,
@@ -106,7 +106,7 @@ pub struct UrgeParts {
 }
 
 /// What an AI nation puts on the table (`AIPeace.proposal`): the mode ("demand" or "offer") and the demands.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Proposal {
     pub mode: String,
     pub demands: Vec<Demand>,

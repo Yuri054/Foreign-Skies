@@ -10,7 +10,7 @@ use crate::state::{Data, GameState, Indemnity, Restriction};
 use serde_json::{json, Value};
 
 /// One demand of a peace (`{kind: "province", ids}`, `{kind: "indemnity", share, months}`, ...).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Demand {
     Province(Vec<usize>),
     Indemnity { share: f64, months: i64 },
@@ -32,7 +32,7 @@ impl Demand {
 }
 
 /// A proposal waiting for the player, or being resolved (`GameState.pending_offers`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Offer {
     pub id: u32,
     pub war_id: u32,
@@ -49,7 +49,7 @@ pub struct Offer {
 }
 
 /// What `Peace.check` finds: {ok, reason, cost, budget, taker, giver, forced, war}.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Check {
     pub ok: bool,
     pub reason: String,
@@ -62,7 +62,7 @@ pub struct Check {
 }
 
 /// What `Peace.propose` answers: `accepted` is None while the player still has to answer.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Proposed {
     pub ok: bool,
     pub reason: String,

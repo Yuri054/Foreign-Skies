@@ -8,7 +8,7 @@ use crate::state::{Data, GameState};
 
 /// What `AIDiplomacy.war_check` finds: the reason a nation would not declare ("" if it would), the casus belli it would use, and the
 /// figures weighed.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WarCheck {
     pub reason: &'static str,
     pub cb: String,

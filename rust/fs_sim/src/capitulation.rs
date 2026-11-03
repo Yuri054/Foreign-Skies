@@ -8,7 +8,7 @@ use crate::peace::Demand;
 use crate::state::{Data, GameState};
 
 /// `GameState.capital_choice`: the player's capital has fallen and a new one is to be chosen.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CapitalChoice {
     pub tag: String,
     pub candidates: Vec<usize>,
@@ -16,7 +16,7 @@ pub struct CapitalChoice {
 }
 
 /// What the AI decided for one war a capitulation ended: `enemy` dictating to `tag` in war `war_id`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Dictation {
     pub enemy: String,
     pub tag: String,

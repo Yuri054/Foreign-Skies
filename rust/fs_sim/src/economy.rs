@@ -23,7 +23,7 @@ pub struct EconNation {
 }
 
 /// A province's output before nation-wide modifiers (`Economy.province_output`).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ProvinceOutput {
     pub gdp: f64,
     pub industry: f64,
@@ -34,7 +34,7 @@ pub struct ProvinceOutput {
 }
 
 /// Everything needed to start the next level of a building.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BuildPlan {
     pub ic: f64,
     pub days: i32,
@@ -169,7 +169,7 @@ pub fn build_plan(cfg: &EconomyConfig, def: &BuildingDef, level: i32, size_facto
 
 /// A project in a nation's queue (`Economy.new_job`): it costs `points_total` IC and takes in at most `rate` a day.
 /// `days_left` is the estimate shown to the player, worked out each day from what the project is getting.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Job {
     pub province: usize,
     pub kind: String,

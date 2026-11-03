@@ -6,7 +6,8 @@ description = "Foreign Skies simulation, ported from scripts/sim (GDScript) to R
 publish = false
 
 [dependencies]
+ciborium = "0.2.2"
+flate2 = "1.1.10"
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 
-[dev-dependencies]
-flate2 = "1.1.10"

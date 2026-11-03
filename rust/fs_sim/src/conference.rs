@@ -7,14 +7,14 @@ use crate::peace::{Demand, Offer};
 use crate::state::{Data, GameState};
 
 /// One partner's part of the package (`{tag, demands}`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Entry {
     pub tag: String,
     pub demands: Vec<Demand>,
 }
 
 /// A counter-offer waiting for the player (`GameState.conference_counter`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Counter {
     pub from: String,
     pub enemy: String,
@@ -24,7 +24,7 @@ pub struct Counter {
 }
 
 /// What `Conference.propose` answers: `accepted` is None while a player enemy must answer.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Conferred {
     pub ok: bool,
     pub reason: String,

@@ -9,13 +9,13 @@ pub const MONTH_NAMES: [&str; 12] = [
 ];
 
 /// What a day's step crossed: a new month and/or a new year began.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DayTick {
     pub new_month: bool,
     pub new_year: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Calendar {
     pub year: i32,
     pub month: i32,

@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 /// Fractional bonuses (a province's buildings and a nation's focus add up to one of these).
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Effects {
     pub gdp: f64,
     pub industry: f64,

@@ -6,7 +6,7 @@ use crate::gd::clampf;
 use crate::state::{Data, GameState};
 
 /// What a mass order did (`MassConstructBuilding`): the provinces built in, the IC spent, the money paid, and what stopped it.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MassBuild {
     pub built: Vec<usize>,
     pub spent: f64,

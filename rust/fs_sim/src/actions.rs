@@ -8,7 +8,7 @@ use crate::state::{Data, GameState, RelationProject};
 use serde_json::{json, Value};
 
 /// The result of proposing a treaty (`Diplomacy.propose_treaty`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Proposal {
     pub ok: bool,
     pub reason: String,

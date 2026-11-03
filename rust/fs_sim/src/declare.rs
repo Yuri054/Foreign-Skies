@@ -11,7 +11,7 @@ use crate::state::{CasusBelli, Data, GameState};
 use serde_json::{json, Value};
 
 /// A conflict: the pairwise wars opened together (`GameState.war_groups`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WarGroup {
     pub id: u32,
     pub attacker: String,
@@ -41,7 +41,7 @@ impl WarGroup {
 }
 
 /// The decision a nation faces because of its tie to a member of a conflict (`Diplomacy._make_decision`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct JoinDecision {
     pub id: u32,
     pub tag: String,

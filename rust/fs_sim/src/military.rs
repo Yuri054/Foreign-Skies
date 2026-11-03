@@ -6,7 +6,7 @@ use crate::config::MilitaryConfig;
 use crate::gd::lerpf;
 use serde_json::Value;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Unit {
     pub unit_type: String,
     /// The share of its full size still fit to fight.
@@ -32,7 +32,7 @@ impl Unit {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Army {
     pub id: u32,
     pub tag: String,
@@ -75,7 +75,7 @@ pub struct Army {
 }
 
 /// A commander a nation holds (`General`): in the pool until he leads an army.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct General {
     pub id: u32,
     pub tag: String,
@@ -88,7 +88,7 @@ pub struct General {
 }
 
 /// A unit in training (`Nation.recruiting`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Recruit {
     pub unit_type: String,
     pub province: usize,
@@ -155,7 +155,7 @@ pub fn starting_units(cfg: &MilitaryConfig, men: i64) -> Vec<Unit> {
 }
 
 /// One place a nation's army stands, from the scenario's deployment list.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Stack {
     pub name: String,
     pub province: usize,

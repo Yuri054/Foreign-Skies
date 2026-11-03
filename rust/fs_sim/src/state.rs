@@ -13,7 +13,7 @@ use crate::military::{self, Army};
 use crate::tsv::Table;
 use serde_json::Value;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// Everything the simulation reads from `data/`, loaded once.
@@ -111,7 +111,7 @@ impl Data {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Nation {
     pub tag: String,
     pub display_name: String,
@@ -205,7 +205,7 @@ impl Nation {
 }
 
 /// The focus a nation is working on (`Nation.focus`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ActiveFocus {
     pub id: String,
     pub days_left: i64,
@@ -214,7 +214,7 @@ pub struct ActiveFocus {
 
 /// The record of one war (`War`): who started it and what each side lost and took. (Its log of events and battles, kept
 /// for the screens, is not ported.)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct War {
     pub id: u32,
     pub a: String,
@@ -289,7 +289,7 @@ impl War {
 }
 
 /// A money payment from one nation to another at the end of a war (`GameState.indemnities`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Indemnity {
     pub payer: String,
     pub receiver: String,
@@ -299,7 +299,7 @@ pub struct Indemnity {
 
 /// A peace clause (`GameState.restrictions`): `nation`'s armies stay out of `provinces` (or it builds no new warships, when
 /// `kind` is "fleet_limit") until `until_day`, unless it is at war with `holder`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Restriction {
     pub nation: String,
     pub holder: String,
@@ -309,7 +309,7 @@ pub struct Restriction {
 }
 
 /// A major city (`data/scenarios/<scenario>/cities.tsv`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct City {
     pub id: i64,
     pub name: String,
@@ -320,7 +320,7 @@ pub struct City {
 }
 
 /// A battle in progress in a province (the part of `Military._engagement`'s record that bears on what happens).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Engagement {
     pub id: u32,
     pub province: usize,
@@ -345,7 +345,7 @@ pub struct Engagement {
 }
 
 /// One side of a land battle.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BattleSide {
     pub armies: Vec<(u32, String)>,
     pub generals: Vec<String>,
@@ -359,7 +359,7 @@ pub struct BattleSide {
 }
 
 /// A day of a land battle: men left, losses, morale and the defender's advantage per nation.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BattleDay {
     pub day: i64,
     pub date: String,
@@ -370,7 +370,7 @@ pub struct BattleDay {
 }
 
 /// One standing agreement between two nations (`Treaty`). Kinds are in `data/diplomacy.json`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Treaty {
     pub id: u32,
     pub kind: String,
@@ -410,7 +410,7 @@ impl Treaty {
 }
 
 /// An ally called up because a neighbour of theirs was alarmed (`GameState.mobilization_calls`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MobilizationCall {
     pub tag: String,
     pub for_tag: String,
@@ -419,7 +419,7 @@ pub struct MobilizationCall {
 }
 
 /// An effort to improve relations (`GameState.relation_projects`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RelationProject {
     pub from: String,
     pub to: String,
@@ -427,7 +427,7 @@ pub struct RelationProject {
 }
 
 /// A casus belli earned in play (`GameState.casus_belli`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CasusBelli {
     /// The day a demand was refused (a casus belli from a crisis), or -1.
     pub refused_day: i64,
@@ -440,7 +440,7 @@ pub struct CasusBelli {
 }
 
 /// A nation's summed province output (`GameState.economy_sums`).
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Sums {
     pub coast: f64,
     pub gdp: f64,
@@ -451,7 +451,7 @@ pub struct Sums {
     pub materials: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GameState {
     pub scenario: String,
     /// In the order the game goes through its nations (`data/nations.json`).
@@ -561,7 +561,7 @@ pub struct GameState {
     pub ai_landing: HashMap<String, crate::ai_navy::Landing>,
     pub ai_landing_wait: HashMap<String, i64>,
     pub ai_navy_need: HashMap<String, String>,
-    pub ai_carrying: std::cell::RefCell<HashSet<u32>>,
+    pub ai_carrying: std::cell::RefCell<std::collections::BTreeSet<u32>>,
     pub ai_navy_caches: std::cell::RefCell<crate::ai_navy::NavyCaches>,
     /// What the AI keeps for the day (`AI._index`, `_threat_cache`, `_worth_cache`): the armies in each province as they stood when the first
     /// question of the day was asked (it is built again only when the number of armies or wars changes), the threat on a province, and a
@@ -670,7 +670,7 @@ pub struct GameState {
 }
 
 /// An event waiting for the player (`GameState.pending_events`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PendingEvent {
     pub id: u32,
     pub event: String,
@@ -685,13 +685,13 @@ pub struct PendingEvent {
     pub as_b: bool,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct SupplyCache {
     pub stamp: Option<(i64, u64)>,
     pub costs: HashMap<(String, usize), f64>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct HomeCache {
     pub day: i64,
     pub answers: HashMap<(String, usize), bool>,
@@ -699,7 +699,7 @@ pub struct HomeCache {
 
 
 /// One squadron of a fleet (`Ship`): strength is the share of it still afloat and fit to fight, morale is 0 to 1.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Ship {
     pub kind: String,
     pub strength: f64,
@@ -713,7 +713,7 @@ impl Ship {
 }
 
 /// A stack of ships under one flag (`Fleet`): in a port (`port` > 0, `zone` 0) or in a sea zone (`zone` > 0, `port` 0).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Fleet {
     pub id: u32,
     pub tag: String,
@@ -765,7 +765,7 @@ impl Fleet {
 }
 
 /// A battle at sea, kept while it lasts and then filed (`GameState.sea_battles`, `sea_battle_archive`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SeaBattle {
     pub id: u32,
     pub zone: usize,
@@ -786,7 +786,7 @@ pub struct SeaBattle {
 }
 
 /// Who holds a sea zone today (`GameState.sea_control`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SeaControl {
     pub holders: Vec<String>,
     pub contested: bool,
@@ -888,7 +888,7 @@ impl GameState {
             ai_landing: HashMap::new(),
             ai_landing_wait: HashMap::new(),
             ai_navy_need: HashMap::new(),
-            ai_carrying: std::cell::RefCell::new(HashSet::new()),
+            ai_carrying: std::cell::RefCell::new(Default::default()),
             ai_navy_caches: std::cell::RefCell::new(crate::ai_navy::NavyCaches { weight_day: -1, ..Default::default() }),
             ai_index: std::cell::RefCell::new((-1, HashMap::new())),
             ai_threat_cache: std::cell::RefCell::new(HashMap::new()),

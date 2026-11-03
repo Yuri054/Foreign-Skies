@@ -4,7 +4,7 @@
 
 use crate::state::{Data, GameState};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Offensive {
     pub id: u32,
     pub tag: String,

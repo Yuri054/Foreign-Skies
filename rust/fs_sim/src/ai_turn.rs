@@ -7,7 +7,7 @@ use crate::state::{Data, GameState};
 use serde_json::Value;
 
 /// Which parts of the AI's turn are switched on. By default none: the AI does not play.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AiTurn {
     pub budget: bool,
     pub focus: bool,

@@ -17,7 +17,7 @@ pub const WAR_BATTLES_MAX: usize = 300;
 pub const STANDINGS_MAX: usize = 240;
 
 /// A note in the history of the run (`GameState.history_log`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Note {
     pub day: i64,
     pub date: String,
@@ -27,7 +27,7 @@ pub struct Note {
 }
 
 /// A change of owner (`GameState.territory_log`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Territory {
     pub day: i64,
     pub date: String,
@@ -38,7 +38,7 @@ pub struct Territory {
 }
 
 /// One row of figures for a month (`GameState.history_months`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MonthRow {
     pub day: i64,
     pub year: i32,
@@ -53,7 +53,7 @@ pub struct MonthRow {
 }
 
 /// An entry in the log of a war (`War.log`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WarLog {
     pub date: String,
     pub kind: String,
@@ -63,7 +63,7 @@ pub struct WarLog {
 }
 
 /// A finished battle as a war keeps it (`War.battles`): the sides' strengths and losses are in the order the sides joined.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BattleRecord {
     pub id: u32,
     pub province: usize,
@@ -78,7 +78,7 @@ pub struct BattleRecord {
 }
 
 /// How a war ended by an accepted peace (`War.peace`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PeaceRecord {
     pub taker: String,
     pub giver: String,
@@ -90,7 +90,7 @@ pub struct PeaceRecord {
 }
 
 /// The figures of one month for every nation that holds land (`GameState.standings_history`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct StandingsRow {
     pub day: i64,
     pub date: String,
@@ -99,7 +99,7 @@ pub struct StandingsRow {
 }
 
 /// The player's ambition (`GameState.ambition`); `id` is empty for none.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AmbitionState {
     pub id: String,
     pub tag: String,
@@ -111,7 +111,7 @@ pub struct AmbitionState {
 pub const METRICS: [&str; 12] = ["population", "gdp", "industry", "income", "treasury", "army", "navy", "manpower", "provinces", "diplomacy_points", "prestige", "war_support"];
 
 /// Names the texts of the books use, copied from the data when a game is loaded.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Texts {
     pub province_names: Vec<String>,
     pub cb_labels: HashMap<String, String>,

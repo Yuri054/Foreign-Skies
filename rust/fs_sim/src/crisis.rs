@@ -11,7 +11,7 @@ use crate::state::{CasusBelli, Data, GameState, PendingEvent};
 use serde_json::{json, Value};
 
 /// A crisis under way (`GameState.crises`): `a` is the demander, `b` the nation asked.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Crisis {
     pub id: u32,
     pub kind: String,
@@ -30,7 +30,7 @@ pub struct Crisis {
 }
 
 /// A finished crisis (`GameState.crisis_log`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CrisisEnded {
     pub id: u32,
     pub kind: String,
@@ -42,7 +42,7 @@ pub struct CrisisEnded {
 }
 
 /// One demand `a` could make of `b` (`Crisis.demand_options`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DemandOption {
     pub kind: String,
     pub demand: Demand,
