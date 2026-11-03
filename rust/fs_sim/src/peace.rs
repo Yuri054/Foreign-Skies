@@ -202,7 +202,9 @@ impl GameState {
 
     fn sea_link(&self, data: &Data, taker: &str, id: usize) -> bool {
         for zone in data.map.zones_of_port(id) {
-            // (Whether the taker's ships hold the water is not ported: none do.)
+            if self.holds_sea(taker, zone) {
+                return true;
+            }
             if let Some(ports) = data.map.ports_of_zone.get(&zone) {
                 if ports.iter().any(|&q| self.province_owner[q] == taker) {
                     return true;
