@@ -305,3 +305,38 @@ fn germany_in_january_1900() {
 fn the_united_states_in_january_1900() {
     run(3);
 }
+
+#[test]
+fn germany_in_july_1914_to_1922() {
+    run(4);
+}
+
+#[test]
+fn russia_in_july_1914_to_1922() {
+    run(5);
+}
+
+#[test]
+fn italy_in_july_1914_to_1922() {
+    run(6);
+}
+
+#[test]
+fn austria_in_july_1914_to_1922() {
+    run(7);
+}
+
+#[test]
+fn france_in_january_1900_to_1912() {
+    run(8);
+}
+
+#[test]
+fn russia_in_january_1900_to_1912() {
+    run(9);
+}
+
+#[test]
+fn britain_in_january_1900_to_1912() {
+    run(10);
+}

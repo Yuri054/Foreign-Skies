@@ -58,6 +58,14 @@ func _initialize() -> void:
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 900, "every": 10, "player": "GBR", "wars": []},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1800, "every": 10, "player": "GER", "wars": []},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 1800, "every": 10, "player": "USA", "wars": []},
+		# longer games, other players (a different nation is left to the AI each time)
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 3000, "every": 20, "player": "GER", "wars": []},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 3000, "every": 20, "player": "RUS", "wars": []},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 3000, "every": 20, "player": "ITA", "wars": []},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 3000, "every": 20, "player": "AUH", "wars": []},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 4500, "every": 30, "player": "FRA", "wars": []},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 4500, "every": 30, "player": "RUS", "wars": []},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 4500, "every": 30, "player": "GBR", "wars": []},
 	]
 	var result := []
 	for run in runs:
