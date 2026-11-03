@@ -134,6 +134,15 @@ func _initialize() -> void:
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 500, "every": 10, "player": "USA", "wars": [["GBR", "FRA"], ["GER", "RUS"], ["ESP", "ITA"]], "parts": ["defence", "offence", "forces", "navy", "budget"], "nofronts": true},
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "BEL", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "navy", "budget", "focus", "ambition"], "pressure": true, "ai_cfg": LAX_AD},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 800, "every": 10, "player": "FRA", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "navy", "budget", "focus", "ambition"], "ai_cfg": LAX_AD},
+		# war plans put in by hand, so that what the AI does with a plan is tried
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 400, "every": 5, "player": "POR", "wars": [["GER", "FRA"], ["AUH", "SRB"], ["RUS", "GER"]], "parts": ["defence", "offence", "forces", "diplomacy", "budget"], "nofronts": true,
+				"plans": [["GER", "FRA", "offensive"], ["FRA", "GER", "defensive"], ["AUH", "SRB", "offensive"], ["RUS", "GER", "offensive"], ["SRB", "AUH", "defensive"]], "ai_cfg": LAX_D},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 600, "every": 10, "player": "USA", "wars": [["FRA", "GER"], ["RUS", "AUH"]], "parts": ["defence", "offence", "forces", "diplomacy"], "nofronts": true,
+				"plans": [["FRA", "GER", "offensive"], ["GER", "FRA", "defensive"], ["RUS", "AUH", "offensive"], ["AUH", "RUS", "offensive"]], "ai_cfg": LAX_D},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 500, "every": 10, "player": "GBR", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "budget", "ambition"], "pressure": true,
+				"plans": [["GER", "FRA", "offensive"], ["AUH", "SRB", "offensive"], ["RUS", "OTT", "offensive"], ["ITA", "AUH", "offensive"], ["BUL", "SRB", "offensive"]], "ai_cfg": LAX_AD},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 700, "every": 10, "player": "USA", "wars": [], "parts": ["diplomacy", "forces", "defence", "offence", "budget", "ambition"],
+				"plans": [["FRA", "GER", "offensive"], ["GER", "FRA", "offensive"], ["RUS", "AUH", "offensive"], ["AUH", "SRB", "offensive"], ["BUL", "OTT", "offensive"], ["ITA", "AUH", "offensive"]], "ai_cfg": LAX_AD},
 	])
 	var result := []
 	for run in runs:
@@ -174,6 +183,25 @@ func _initialize() -> void:
 				orders_log.append([o[0], a.id, target, ok])
 				if ok:
 					sent += 1
+		var plans_log := []
+		for pl in run.get("plans", []):
+			var border: Array = Mil.border_provinces(gs, pl[1], pl[0])
+			var objs: Array = []
+			var enemy_border: Array = []
+			for id in range(1, gs.province_owner.size()):
+				if gs.province_owner[id] != pl[1]:
+					continue
+				for nb in Mil.neighbors(id):
+					if gs.province_owner[nb] == pl[0]:
+						enemy_border.append(id)
+						break
+			enemy_border.sort()
+			var wts := [1.0, 2.0, 1.0]
+			for i in mini(3, enemy_border.size()):
+				objs.append({"province": enemy_border[i], "weight": wts[i]})
+			var plan := {"nation": pl[0], "enemy": pl[1], "posture": pl[2], "objectives": objs}
+			gs.ai_plans.append(plan)
+			plans_log.append(plan)
 		var groups_log := []
 		var MkGroup: GDScript = load("res://scripts/sim/create_army_group.gd")
 		var MkLine: GDScript = load("res://scripts/sim/create_attack_line.gd")
@@ -199,7 +227,7 @@ func _initialize() -> void:
 			clock.advance_day()
 			if d % run.every == run.every - 1:
 				snaps.append(_snapshot())
-		result.append({"name": run.name, "player": run.player, "wars": run.wars, "purse": run.get("purse", []), "parts": run.get("parts", ["budget", "focus"]), "pressure": run.get("pressure", false), "ai_cfg": run.get("ai_cfg", {}), "setup": setup, "orders": orders_log, "groups": groups_log, "every": run.every, "snaps": snaps})
+		result.append({"name": run.name, "player": run.player, "wars": run.wars, "purse": run.get("purse", []), "parts": run.get("parts", ["budget", "focus"]), "pressure": run.get("pressure", false), "ai_cfg": run.get("ai_cfg", {}), "setup": setup, "orders": orders_log, "groups": groups_log, "plans_set": plans_log, "every": run.every, "snaps": snaps})
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()

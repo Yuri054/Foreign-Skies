@@ -270,6 +270,9 @@ fn run(index: usize) {
         let ok = gs.order_army_to(&data, s(&o[0]), o[1].as_u64().unwrap() as u32, o[2].as_u64().unwrap() as usize);
         assert_eq!(ok, o[3].as_bool().unwrap(), "{name}: order {o}");
     }
+    for plan in run["plans_set"].as_array().unwrap() {
+        gs.ai_plans.push(plan.clone());
+    }
     for g in run["groups"].as_array().unwrap() {
         let ids: Vec<u32> = g[2].as_array().unwrap().iter().map(|x| x.as_u64().unwrap() as u32).collect();
         let gid = gs.create_army_group(&data, s(&g[0]), s(&g[1]), &ids);
@@ -536,4 +539,24 @@ fn everything_with_the_navy_in_july_1914() {
 #[test]
 fn everything_with_the_navy_in_1900() {
     run(46);
+}
+
+#[test]
+fn plans_in_four_wars_of_july_1914() {
+    run(47);
+}
+
+#[test]
+fn plans_in_two_wars_of_1900() {
+    run(48);
+}
+
+#[test]
+fn plans_made_ready_for_july_1914() {
+    run(49);
+}
+
+#[test]
+fn plans_made_ready_for_1900() {
+    run(50);
 }
