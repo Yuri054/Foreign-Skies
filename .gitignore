@@ -13,3 +13,4 @@ __pycache__/
 *.mp4
 *.avi
 rust/fs_sim/tests/golden/ai_turn.json
+rust/fs_sim/tests/golden/ai_game.json

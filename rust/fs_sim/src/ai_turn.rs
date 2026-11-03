@@ -19,6 +19,13 @@ pub struct AiTurn {
     pub navy: bool,
 }
 
+impl AiTurn {
+    /// The whole of the AI's turn, as the game plays it (`GameState.ai_enabled`).
+    pub fn all() -> AiTurn {
+        AiTurn { budget: true, focus: true, forces: true, ambition: true, defence: true, diplomacy: true, offence: true, navy: true }
+    }
+}
+
 fn bf(c: &Value, k: &str) -> f64 {
     c[k].as_f64().unwrap_or_else(|| panic!("ai.json: budget.{k} is not a number"))
 }
