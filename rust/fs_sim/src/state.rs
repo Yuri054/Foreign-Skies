@@ -34,6 +34,42 @@ pub struct Data {
 }
 
 impl Data {
+    /// `Difficulty.apply`: the data for a game of a difficulty (`data/difficulty.json`): the AI's and the crisis generator's numbers as the files
+    /// have them, scaled by the preset. An unknown preset counts as `historical`, which changes nothing.
+    pub fn load_with_difficulty(dir: &Path, preset: &str) -> Result<Data, String> {
+        let mut data = Data::load(dir)?;
+        let text = std::fs::read_to_string(dir.join("difficulty.json")).map_err(|e| format!("difficulty.json: {e}"))?;
+        let cfg: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("difficulty.json is invalid: {e}"))?;
+        let presets = cfg["presets"].as_object().ok_or("difficulty.json: presets")?;
+        let preset = presets.get(preset).unwrap_or_else(|| &presets["historical"]);
+        let mut ai = data.ai.raw.clone();
+        for e in preset.get("ai").and_then(serde_json::Value::as_array).into_iter().flatten() {
+            Self::change(&mut ai, e);
+        }
+        data.ai = crate::ai_peace::AiConfig::from_json_str(&serde_json::to_string(&ai).unwrap())?;
+        for e in preset.get("crisis").and_then(serde_json::Value::as_array).into_iter().flatten() {
+            Self::change(&mut data.crises, e);
+        }
+        Ok(data)
+    }
+
+    /// `Difficulty._change`: multiplies the number at an entry's dotted path, or sets the value there.
+    fn change(root: &mut serde_json::Value, e: &serde_json::Value) {
+        let path = e["path"].as_str().unwrap();
+        let keys: Vec<&str> = path.split('.').collect();
+        let mut node = root;
+        for k in &keys[..keys.len() - 1] {
+            node = &mut node[*k];
+        }
+        let leaf = keys[keys.len() - 1];
+        if let Some(v) = e.get("set") {
+            node[leaf] = v.clone();
+            return;
+        }
+        // the game reads every number of its files as a float
+        node[leaf] = serde_json::json!(node[leaf].as_f64().unwrap() * e["mul"].as_f64().unwrap());
+    }
+
     pub fn load(dir: &Path) -> Result<Data, String> {
         let read = |f: &str| std::fs::read_to_string(dir.join(f)).map_err(|e| format!("{f}: {e}"));
         Ok(Data {

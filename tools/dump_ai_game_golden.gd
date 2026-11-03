@@ -66,10 +66,16 @@ func _initialize() -> void:
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 4500, "every": 30, "player": "FRA", "wars": []},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 4500, "every": 30, "player": "RUS", "wars": []},
 		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 4500, "every": 30, "player": "GBR", "wars": []},
+		# the difficulty presets, which retune the AI and the crisis generator
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 1500, "every": 20, "player": "GBR", "wars": [], "difficulty": "challenging"},
+		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 1500, "every": 20, "player": "GER", "wars": [], "difficulty": "sandbox"},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 3000, "every": 30, "player": "FRA", "wars": [], "difficulty": "challenging"},
+		{"name": "jan_1900", "dir": "res://data/scenarios/jan_1900/", "days": 3000, "every": 30, "player": "RUS", "wars": [], "difficulty": "sandbox"},
 	]
 	var result := []
 	for run in runs:
 		gs.player_tag = ""
+		gs.difficulty = run.get("difficulty", "historical")
 		gs.load_scenario(run.dir)
 		gs.ai_enabled = true
 		gs.set_player(run.player)
@@ -129,7 +135,7 @@ func _initialize() -> void:
 			clock.advance_day()
 			if d % run.every == run.every - 1:
 				snaps.append(_snapshot())
-		result.append({"name": run.name, "player": run.player, "wars": run.wars, "pressure": gs.pressure_ai, "ai_cfg": run.get("ai_cfg", {}), "setup": setup, "orders": orders_log, "groups": groups_log, "every": run.every, "snaps": snaps})
+		result.append({"name": run.name, "player": run.player, "wars": run.wars, "pressure": gs.pressure_ai, "difficulty": run.get("difficulty", "historical"), "ai_cfg": run.get("ai_cfg", {}), "setup": setup, "orders": orders_log, "groups": groups_log, "every": run.every, "snaps": snaps})
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()

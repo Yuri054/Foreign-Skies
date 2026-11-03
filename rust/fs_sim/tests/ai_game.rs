@@ -227,10 +227,10 @@ fn golden() -> &'static Value {
 }
 
 fn run(index: usize) {
-    let mut data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
     let all = golden();
     let run = &all[index];
     let name = s(&run["name"]);
+    let mut data = Data::load_with_difficulty(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data"), s(&run["difficulty"])).unwrap();
     fn merge(dst: &mut Value, src: &Value) {
         for (k, v) in src.as_object().unwrap() {
             if v.is_object() && dst.get(k).map(Value::is_object).unwrap_or(false) {
@@ -339,4 +339,24 @@ fn russia_in_january_1900_to_1912() {
 #[test]
 fn britain_in_january_1900_to_1912() {
     run(10);
+}
+
+#[test]
+fn britain_in_july_1914_challenging() {
+    run(11);
+}
+
+#[test]
+fn germany_in_july_1914_sandbox() {
+    run(12);
+}
+
+#[test]
+fn france_in_january_1900_challenging() {
+    run(13);
+}
+
+#[test]
+fn russia_in_january_1900_sandbox() {
+    run(14);
 }
