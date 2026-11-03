@@ -12,3 +12,4 @@ __pycache__/
 # Rendered trailers (see the README)
 *.mp4
 *.avi
+rust/fs_sim/tests/golden/ai_turn.json

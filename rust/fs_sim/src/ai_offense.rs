@@ -161,8 +161,10 @@ impl GameState {
         let o = &data.ai.raw["offense"];
         let reach = self.hops_from(data, target, of(o, "support_hops") as i64);
         let mut around = 0.0;
+        self.ai_refresh_index();
         for (id, _) in reach {
-            for a in self.armies.iter().filter(|a| a.province == id) {
+            for aid in self.ai_index_at(id) {
+                let a = self.army_ref(aid);
                 if a.tag != tag && self.at_war(tag, &a.tag) {
                     around += a.power(&data.military);
                 }

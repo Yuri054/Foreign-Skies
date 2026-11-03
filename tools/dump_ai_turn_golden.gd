@@ -5,6 +5,7 @@ extends SceneTree
 ## some with wars begun and a front drawn for each side, run for hundreds of days; every few days the nations' policies, money, works,
 ## foci and the months of their last budget are written down. Floats are the bits of their 64-bit value.
 ##   godot --headless --path . -s res://tools/dump_ai_turn_golden.gd -- rust/fs_sim/tests/golden/ai_turn.json
+##   gzip -9 -f rust/fs_sim/tests/golden/ai_turn.json    # the test reads ai_turn.json.gz (the plain file is over GitHub's size limit)
 
 var gs: Node
 var clock: Node

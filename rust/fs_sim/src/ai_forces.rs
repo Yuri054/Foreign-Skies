@@ -5,6 +5,7 @@
 use crate::gd::{maxf, clampf};
 use crate::state::{Data, GameState};
 use serde_json::Value;
+use std::collections::HashMap;
 
 fn ff(c: &Value, k: &str) -> f64 {
     c[k].as_f64().unwrap_or_else(|| panic!("ai.json: {k} is not a number"))
@@ -38,14 +39,36 @@ impl GameState {
         let near = self.hops_from(data, province, t["hops"].as_i64().unwrap());
         let decay = ff(t, "hop_decay");
         let mut power = 0.0;
+        self.ai_refresh_index();
         for (id, hops) in near {
-            for a in self.armies.iter().filter(|a| a.province == id) {
+            for aid in self.ai_index_at(id) {
+                let a = self.army_ref(aid);
                 if a.tag != tag && self.at_war(tag, &a.tag) {
                     power += a.power(&data.military) * decay.powf(hops as f64);
                 }
             }
         }
         power
+    }
+
+    /// `AI.armies_by_province`: builds the day's index of armies by province if the day, the number of armies or wars, or the next army's
+    /// number is not what it was built for (an army that moves afterwards stays where it was listed).
+    pub fn ai_refresh_index(&self) {
+        let key = self.calendar.days_elapsed as i64 * 1000003 + self.armies.len() as i64 * 1009 + self.next_army_id as i64 * 7 + self.wars.len() as i64;
+        let mut idx = self.ai_index.borrow_mut();
+        if idx.0 != key {
+            let mut map: HashMap<usize, Vec<u32>> = HashMap::new();
+            for a in &self.armies {
+                map.entry(a.province).or_default().push(a.id);
+            }
+            *idx = (key, map);
+            self.ai_threat_cache.borrow_mut().clear();
+        }
+    }
+
+    /// The armies listed in a province by the day's index.
+    pub fn ai_index_at(&self, province: usize) -> Vec<u32> {
+        self.ai_index.borrow().1.get(&province).cloned().unwrap_or_default()
     }
 
     /// `AI.value`: what a province is worth to its owner, 0 to about 1.5.
@@ -57,10 +80,20 @@ impl GameState {
         if n.population > 0 {
             people = self.province_population[province] as f64 / n.population as f64;
         }
-        let mut total = 0.0;
-        for &id in &n.provinces {
-            total += self.province_gdp[id] as f64 + self.province_industry[id] as f64;
-        }
+        // a nation's output, kept for the day and while its land is unchanged (`AI._output_total`)
+        let key = self.calendar.days_elapsed as i64 * 1000003 + self.owner_version as i64;
+        let cached = self.ai_worth_cache.borrow().get(owner.as_str()).filter(|e| e.0 == key).map(|e| e.1);
+        let total = match cached {
+            Some(t) => t,
+            None => {
+                let mut t = 0.0;
+                for &id in &n.provinces {
+                    t += self.province_gdp[id] as f64 + self.province_industry[id] as f64;
+                }
+                self.ai_worth_cache.borrow_mut().insert(owner.clone(), (key, t));
+                t
+            }
+        };
         if total > 0.0 {
             output = (self.province_gdp[province] as f64 + self.province_industry[province] as f64) / total;
         }
@@ -73,7 +106,13 @@ impl GameState {
 
     /// `AI.threat`: the enemy power bearing on a province held by `tag`, times 1 + stakes * value(province).
     pub fn ai_threat(&self, data: &Data, tag: &str, province: usize) -> f64 {
-        self.ai_enemy_power(data, tag, province) * (1.0 + ff(&data.ai.raw["threat"], "stakes") * self.ai_value(data, province))
+        self.ai_refresh_index();
+        if let Some(t) = self.ai_threat_cache.borrow().get(&(tag.to_string(), province)) {
+            return *t;
+        }
+        let t = self.ai_enemy_power(data, tag, province) * (1.0 + ff(&data.ai.raw["threat"], "stakes") * self.ai_value(data, province));
+        self.ai_threat_cache.borrow_mut().insert((tag.to_string(), province), t);
+        t
     }
 
     // ---------------------------------------------------------------- recruiting

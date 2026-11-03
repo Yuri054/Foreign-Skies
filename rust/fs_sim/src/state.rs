@@ -436,6 +436,12 @@ pub struct GameState {
     pub ai_seed: i64,
     /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
     pub ai_budget_stamp: HashMap<String, i64>,
+    /// What the AI keeps for the day (`AI._index`, `_threat_cache`, `_worth_cache`): the armies in each province as they stood when the first
+    /// question of the day was asked (it is built again only when the number of armies or wars changes), the threat on a province, and a
+    /// nation's output. They are forgotten when a province changes hands.
+    pub ai_index: std::cell::RefCell<(i64, HashMap<usize, Vec<u32>>)>,
+    pub ai_threat_cache: std::cell::RefCell<HashMap<(String, usize), f64>>,
+    pub ai_worth_cache: std::cell::RefCell<HashMap<String, (i64, f64)>>,
     /// The campaigns the AI runs: the main one and the others against other enemies, and the day each nation may look for another (`ai_campaign`).
     pub ai_campaign: HashMap<String, crate::ai_offense::Campaign>,
     pub ai_campaign_extra: HashMap<String, Vec<crate::ai_offense::Campaign>>,
@@ -735,6 +741,9 @@ impl GameState {
             ai_traits: HashMap::new(),
             ai_seed: 0,
             ai_budget_stamp: HashMap::new(),
+            ai_index: std::cell::RefCell::new((-1, HashMap::new())),
+            ai_threat_cache: std::cell::RefCell::new(HashMap::new()),
+            ai_worth_cache: std::cell::RefCell::new(HashMap::new()),
             ai_campaign: HashMap::new(),
             ai_campaign_extra: HashMap::new(),
             ai_campaign_wait: HashMap::new(),
@@ -1691,6 +1700,10 @@ impl GameState {
         *self.supply_cache.borrow_mut() = SupplyCache::default();
         *self.home_cache.borrow_mut() = HomeCache { day: -1, answers: HashMap::new() };
         *self.aura_cache.borrow_mut() = None;
+        // `AI.invalidate_caches`
+        *self.ai_index.borrow_mut() = (-1, HashMap::new());
+        self.ai_threat_cache.borrow_mut().clear();
+        self.ai_worth_cache.borrow_mut().clear();
     }
 
     /// `GameState._rebuild_nation_provinces`: each nation's provinces (by id) and people.

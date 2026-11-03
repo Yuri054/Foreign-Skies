@@ -175,10 +175,25 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
     }
 }
 
+/// The golden file, read once for all the tests.
+fn golden() -> &'static Value {
+    static GOLDEN: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
+    GOLDEN.get_or_init(|| {
+        let path = std::env::var("AI_GOLDEN").unwrap_or(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/ai_turn.json.gz").to_string());
+        let text = if path.ends_with(".gz") {
+            let mut text = String::new();
+            std::io::Read::read_to_string(&mut flate2::read::GzDecoder::new(std::fs::File::open(&path).unwrap()), &mut text).unwrap();
+            text
+        } else {
+            std::fs::read_to_string(&path).unwrap()
+        };
+        serde_json::from_str(&text).unwrap()
+    })
+}
+
 fn run(index: usize) {
     let mut data = Data::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data")).unwrap();
-    let text = std::fs::read_to_string(std::env::var("AI_GOLDEN").unwrap_or(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/ai_turn.json").to_string())).unwrap();
-    let all: Value = serde_json::from_str(&text).unwrap();
+    let all = golden();
     let run = &all[index];
     let name = s(&run["name"]);
     fn merge(dst: &mut Value, src: &Value) {
