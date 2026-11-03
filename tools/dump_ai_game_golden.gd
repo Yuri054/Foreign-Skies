@@ -79,9 +79,6 @@ func _initialize() -> void:
 		gs.load_scenario(run.dir)
 		gs.ai_enabled = true
 		gs.set_player(run.player)
-		AIc.load_config()
-		for section in run.get("ai_cfg", {}):
-			_merge(AIc.cfg[section], run.ai_cfg[section])
 		var setup := []
 		var purse: Array = run.get("purse", [])
 		if not purse.is_empty():
