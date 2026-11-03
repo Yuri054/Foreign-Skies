@@ -7,7 +7,7 @@ The version lives in `project.godot` (`application/config/version`), shows in th
 the Windows build the CI attaches to each release.
 From 0.10.2 on, every entry's heading gives the date and time it was released, in UTC: `## 0.10.2 (2026-10-26 17:11 UTC)`.
 
-## 0.18.0 (TIMESTAMP)
+## 0.18.0 (2026-11-03 15:45 UTC)
 
 The second and third stages of the big rework (docs/REWORK.md, R2 and R3): one currency, **gold**, and **construction
 points** take the place of the resource economy. Saves from 0.17 and earlier do not load.
