@@ -1,10 +1,8 @@
 # Foreign Skies simulation in Rust (`fs_sim`)
 
-A port of `scripts/sim` (GDScript, about 13,700 lines) to Rust. The game stays in Godot; this crate is the simulation
-alone, so it can run without an engine (balance runs, servers, tests) and later be called from the game.
+A port of `scripts/sim` and `scripts/ai` (GDScript, about 17,000 lines; the port is about 17,300 lines of Rust) to Rust. The game stays in Godot; this crate is the simulation alone, so it can run without an engine (balance runs, servers, tests) and later be called from the game.
 
-**This is the start of the port, not the whole of it.** It goes system by system, and each piece is checked against the
-original before the next one begins.
+**The rules are all here, the AI included.** A whole game, with the AI playing every nation but one and a player who plays the other (about twenty kinds of command), runs day by day in the port and agrees with the real GDScript game bit for bit, over games of up to 4,500 days. What is not here is what the screens read and what is saved (the history book, standings, briefing, intel, the player's ambition, save files); see "What is not ported". It was built system by system, and each piece was checked against the original before the next one began.
 
 ## How a piece is checked
 
