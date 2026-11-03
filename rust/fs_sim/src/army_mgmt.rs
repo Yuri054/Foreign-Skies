@@ -253,7 +253,7 @@ impl GameState {
                         break;
                     }
                     let u = &self.armies[ai].units[i];
-                    let guns = mil.unit_type(&u.unit_type).shells;
+                    let guns = mil.unit_type(&u.unit_type).guns;
                     if guns != pass_guns {
                         continue;
                     }

@@ -2,8 +2,8 @@
 //! of the original code. Floats are stored as the decimal text of their 64-bit patterns.
 
 use fs_sim::clock::{days_in_month, Calendar};
-use fs_sim::config::{EconomyConfig, Effects};
-use fs_sim::economy::{self, EconNation};
+use fs_sim::config::EconomyConfig;
+use fs_sim::economy;
 use fs_sim::population;
 use serde_json::Value;
 
@@ -50,15 +50,6 @@ fn finish(name: &str, cases: usize, fails: Vec<String>) {
         panic!("{name}: {} differences in {cases} cases, e.g.\n{}", fails.len(), shown.join("\n"));
     }
     println!("{name}: {cases} cases agree with the GDScript");
-}
-
-fn effects(v: &Value) -> Effects {
-    let get = |k: &str| v.get(k).map(bits).unwrap_or(0.0);
-    Effects { gdp: get("gdp"), industry: get("industry"), food: get("food"), trade: get("trade"), growth: get("growth") }
-}
-
-fn buildings(v: &Value) -> Vec<(String, i32)> {
-    v.as_array().unwrap().iter().map(|p| (p[0].as_str().unwrap().to_string(), int(&p[1]) as i32)).collect()
 }
 
 #[test]
@@ -110,125 +101,87 @@ fn clock_date_strings() {
 }
 
 #[test]
-fn modifiers_match() {
+fn base_income_matches() {
     let (g, cfg) = (golden(), config());
     let mut fails = vec![];
-    let rows = g["modifiers"].as_array().unwrap();
+    let rows = g["base_income"].as_array().unwrap();
     for r in rows {
-        let b = buildings(&r["buildings"]);
-        let b: Vec<(&str, i32)> = b.iter().map(|(k, l)| (k.as_str(), *l)).collect();
-        let got = economy::modifiers(&cfg, &b, &effects(&r["fx"]));
-        let o = &r["out"];
-        for (k, v) in [("gdp", got.gdp), ("industry", got.industry), ("food", got.food), ("trade", got.trade), ("growth", got.growth)] {
-            check(&format!("modifiers {k} {r}"), v, bits(&o[k]), 0, &mut fails);
-        }
+        let pop = bits(&r["pop"]);
+        check(&format!("base income of {pop}"), economy::base_income(&cfg, pop), bits(&r["income"]), 0, &mut fails);
     }
-    finish("modifiers", rows.len(), fails);
+    finish("base_income", rows.len(), fails);
 }
 
 #[test]
-fn province_output_matches() {
+fn build_plans_match() {
     let (g, cfg) = (golden(), config());
     let mut fails = vec![];
-    let rows = g["province_output"].as_array().unwrap();
-    for r in rows {
-        let b = buildings(&r["buildings"]);
-        let b: Vec<(&str, i32)> = b.iter().map(|(k, l)| (k.as_str(), *l)).collect();
-        let dep: Vec<(&str, f64)> = r["deposit"].as_object().unwrap().iter().map(|(k, v)| (k.as_str(), bits(v))).collect();
-        let n = EconNation { development: bits(&r["dev"]), agri_yield: bits(&r["agri"]), focus_fx: effects(&r["fx"]), ..Default::default() };
-        let got = economy::province_output(&cfg, int(&r["pop"]), bits(&r["area"]), &n, &b, &dep);
-        let o = &r["out"];
-        // gdp and what follows from it go through pow(): allow a couple of units in the last place.
-        for (k, v) in [("gdp", got.gdp), ("industry", got.industry), ("food", got.food), ("trade", got.trade), ("pool", got.pool), ("materials", got.materials)] {
-            check(&format!("province_output {k} pop {} area {}", r["pop"], bits(&r["area"])), v, bits(&o[k]), 4, &mut fails);
+    let rows = g["build_plan"].as_array().unwrap();
+    assert_eq!(rows.len(), cfg.buildings.len(), "every building type, in file order");
+    for (r, def) in rows.iter().zip(&cfg.buildings) {
+        assert_eq!(r["type"].as_str().unwrap(), def.id);
+        let plan = economy::build_plan(def);
+        check(&format!("{} gold", def.id), plan.gold, bits(&r["gold"]), 0, &mut fails);
+        check(&format!("{} cp", def.id), plan.cp, bits(&r["cp"]), 0, &mut fails);
+        if plan.days as i64 != int(&r["days"]) {
+            fails.push(format!("{} days: {} vs {}", def.id, plan.days, r["days"]));
         }
     }
-    finish("province_output", rows.len(), fails);
+    finish("build_plan", rows.len(), fails);
 }
 
 #[test]
-fn growth_matches() {
+fn budgets_match() {
     let (g, cfg) = (golden(), config());
+    let data = fs_sim::state::Data::load(std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../data"))).unwrap();
+    let mut gs = fs_sim::state::GameState::load_scenario(&data, "july_1914").unwrap();
     let mut fails = vec![];
-    let rows = g["growth"].as_array().unwrap();
-    for r in rows {
-        let gdp = r["gdp"].as_str().unwrap();
-        let n = EconNation {
-            tax_rate: bits(&r["rate"]),
-            investment: bits(&r["invest"]),
-            budget_gdp: if gdp.is_empty() { None } else { Some(bits(&r["gdp"])) },
-            focus_fx: effects(&r["fx"]),
-            ..Default::default()
+    let rows = g["budget"].as_array().unwrap();
+    for (k, r) in rows.iter().enumerate() {
+        let f = |v: &Value, key: &str| v.get(key).map(bits).unwrap_or(0.0);
+        let raw = fs_sim::state::Sums {
+            base: f(&r["raw"], "base"),
+            occupied: f(&r["raw"], "occupied"),
+            factories: f(&r["raw"], "factories"),
+            ports: f(&r["raw"], "ports"),
+            upkeep: f(&r["raw"], "upkeep"),
+            cp: f(&r["raw"], "cp"),
+            pool: f(&r["raw"], "pool"),
+            levels: vec![],
         };
-        let tag = format!("rate {} invest {} gdp {gdp}", bits(&r["rate"]), bits(&r["invest"]));
-        check(&format!("strain {tag}"), economy::tax_strain(&cfg, &n), bits(&r["strain"]), 0, &mut fails);
-        check(&format!("relief {tag}"), economy::tax_relief(&cfg, &n), bits(&r["relief"]), 0, &mut fails);
-        check(&format!("investment_growth {tag}"), economy::investment_growth(&cfg, &n), bits(&r["investment_growth"]), 0, &mut fails);
-        check(&format!("growth_rate {tag}"), economy::growth_rate(&cfg, &n), bits(&r["growth_rate"]), 0, &mut fails);
-    }
-    finish("growth", rows.len(), fails);
-}
-
-#[test]
-fn worker_share_matches() {
-    let (g, cfg) = (golden(), config());
-    let mut fails = vec![];
-    let rows = g["worker_share"].as_array().unwrap();
-    for r in rows {
-        let n = EconNation {
-            men_in_units: int(&r["men"]),
-            population: int(&r["pop"]),
-            weariness: bits(&r["weariness"]),
-            starving: int(&r["starving"]) == 1,
-            ..Default::default()
-        };
-        check(&format!("worker_share {r}"), economy::worker_share(&cfg, &n), bits(&r["share"]), 0, &mut fails);
-    }
-    finish("worker_share", rows.len(), fails);
-}
-
-#[test]
-fn building_costs_match() {
-    let (g, cfg) = (golden(), config());
-    let mut fails = vec![];
-    let rows = g["building_cost"].as_array().unwrap();
-    for r in rows {
-        let def = cfg.building(r["type"].as_str().unwrap());
-        // The picture of the province's output: gdp and industry as the 32-bit floats the game keeps.
-        let mut gdp = vec![0.0f32; 8];
-        let mut ind = vec![0.0f32; 8];
-        let id = if r.get("outside").is_some() { 99 } else { 1 };
-        gdp[1] = bits(&r["gdp"]) as f32;
-        ind[1] = bits(&r["industry"]) as f32;
-        assert_eq!(gdp[1] as f64, bits(&r["gdp"]), "the golden gdp is a 32-bit float");
-        let sf = economy::size_factor(&cfg, id, def, &gdp, &ind);
-        check(&format!("size_factor {r}"), sf, bits(&r["size_factor"]), 0, &mut fails);
-        if r.get("outside").is_some() {
-            continue;
+        let n = &mut gs.nations[0];
+        n.mobilization = bits(&r["mobilization"]);
+        n.blockade = bits(&r["blockade"]);
+        n.treasury = bits(&r["treasury"]);
+        n.peacetime_army = int(&r["peacetime_army"]);
+        n.naval_budget = bits(&r["naval_budget"]);
+        n.focus_income = f(&r["fx"], "income");
+        n.focus_cp = f(&r["fx"], "cp");
+        let held = int(&r["capital"]) == 1;
+        let b = fs_sim::budget::nation_budget(&cfg, n, &raw, bits(&r["war_mult"]), bits(&r["army"]), held);
+        let o = &r["out"];
+        for (name, got) in [
+            ("base", b.base), ("factories", b.factories), ("ports", b.ports), ("occupied", b.occupied), ("income", b.income),
+            ("administration", b.administration), ("army", b.army), ("navy", b.navy), ("buildings", b.buildings),
+            ("interest", b.interest), ("expenses", b.expenses), ("net", b.net), ("cp", b.cp),
+            ("manpower_pool", b.manpower_pool), ("manpower_max", b.manpower_max),
+        ] {
+            check(&format!("case {k} {name}"), got, bits(&o[name]), 0, &mut fails);
         }
-        let def = def.unwrap();
-        let level = int(&r["level"]) as i32;
-        check(&format!("level_cost {r}"), economy::level_cost(def, level, sf), bits(&r["level_cost"]), 2, &mut fails);
-        let plan = economy::build_plan(&cfg, def, level, sf);
-        check(&format!("plan.ic {r}"), plan.ic, bits(&r["ic"]), 2, &mut fails);
-        check(&format!("plan.gold {r}"), plan.gold, bits(&r["gold"]), 2, &mut fails);
-        check(&format!("plan.total {r}"), plan.total, bits(&r["total"]), 2, &mut fails);
-        assert_eq!(plan.days as i64, int(&r["days"]));
     }
-    finish("building_cost", rows.len(), fails);
+    finish("budget", rows.len(), fails);
 }
 
 #[test]
 fn population_rounding_matches() {
-    let (g, cfg) = (golden(), config());
+    let g = golden();
     let mut fails = vec![];
     let mut steps = 0;
     for r in g["population_add"].as_array().unwrap() {
         let mut pop = vec![0i32, int(&r["start"]) as i32];
         let mut frac = vec![0.0f32, 0.0];
         for (i, s) in r["steps"].as_array().unwrap().iter().enumerate() {
-            let whole = population::add(&cfg, &mut pop, &mut frac, 1, bits(&s["delta"]));
-            check(&format!("start {} step {i} whole", r["start"]), whole, bits(&s["whole"]), 0, &mut fails);
+            population::add(&mut pop, &mut frac, 1, bits(&s["delta"]));
             if pop[1] as i64 != int(&s["pop"]) {
                 fails.push(format!("start {} step {i}: population {} vs GDScript {}", r["start"], pop[1], s["pop"]));
             }

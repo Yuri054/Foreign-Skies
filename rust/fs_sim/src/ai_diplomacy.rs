@@ -87,7 +87,7 @@ impl GameState {
             v += j("w_odds") * ((mine / (mine + theirs)) - 0.5) * 2.0;
         }
         v += j("w_support") * (n.war_support - 50.0) / 50.0;
-        let monthly_revenue = maxf(n.budget.revenue, 1.0) / 12.0;
+        let monthly_revenue = maxf(n.budget.income, 1.0 / 12.0);
         v -= j("w_debt") * minf(1.0, maxf(0.0, -n.treasury) / monthly_revenue);
         let cost = data.diplomacy.join_decline.iter().find(|(k, _)| *k == d.kind).map(|(_, c)| *c).unwrap();
         v += j("w_decline") * (cost.ally_relations.abs() / 40.0 + cost.prestige.abs() / 10.0) / 2.0;

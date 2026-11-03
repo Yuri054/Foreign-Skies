@@ -217,9 +217,9 @@ impl GameState {
     }
 
     /// `AIOffense._eta`: roughly how many days an army needs to reach a province.
-    fn ai_eta(&self, data: &Data, tag: &str, army: u32, target: usize) -> f64 {
+    fn ai_eta(&self, data: &Data, _tag: &str, army: u32, target: usize) -> f64 {
         let a = self.army_ref(army);
-        Self::ai_km(data, a.province, target) / a.speed(&data.military) / (1.0 + data.military.movement.home_rail * self.nation(tag).development)
+        Self::ai_km(data, a.province, target) / a.speed(&data.military) / (1.0 + data.military.movement.home_rail)
     }
 
     /// `AIOffense._pick_force`: the armies, nearest first, that reach `required` together without going over the budget.

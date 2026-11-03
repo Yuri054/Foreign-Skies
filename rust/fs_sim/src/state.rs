@@ -1,12 +1,10 @@
-//! The game state (`scripts/sim/game_state.gd`) as far as it is ported: the provinces' owners, people, works and
-//! deposits, the nations, and what the economy works out from them. Armies, fleets, wars, treaties and the rest of the
-//! state are not here yet (see `rust/README.md`).
-
+//! The game state (`scripts/sim/game_state.gd`): the provinces' owners, people and buildings, the nations, and what the
+//! economy works out from them, with the rest of the state (armies, fleets, wars, treaties and more).
 use crate::budget::{self, Budget};
 use crate::clock::Calendar;
 use crate::diplomacy::is_equal_approx;
-use crate::config::{PressureConfig, DiplomacyConfig, EconomyConfig, Effects, FocusConfig, FocusEffects, MilitaryConfig, NavyConfig, WarSupportConfig};
-use crate::economy::{self, EconNation, Job};
+use crate::config::{PressureConfig, DiplomacyConfig, EconomyConfig, FocusConfig, FocusEffects, MilitaryConfig, NavyConfig, WarSupportConfig};
+use crate::economy::{self, Job};
 use crate::gd::{clampf, maxf};
 use crate::map::MapData;
 use crate::military::{self, Army};
@@ -117,17 +115,14 @@ pub struct Nation {
     pub display_name: String,
     pub treasury: f64,
     pub capital: i64,
-    pub development: f64,
-    pub agri_yield: f64,
-    pub tax_rate: f64,
-    pub pop_growth: f64,
     pub peacetime_army: i64,
     pub naval_budget: f64,
-    pub materials_need_mult: f64,
     pub mobilization: f64,
-    pub focus_fx: Effects,
-    /// What the national focus adds to the construction points a day.
-    pub focus_construction: f64,
+    /// Construction points in hand.
+    pub cp: f64,
+    /// What the national focus adds to base income (a fraction) and to the construction points a day.
+    pub focus_income: f64,
+    pub focus_cp: f64,
     /// What the national focus adds to the diplomacy points a month.
     pub focus_diplomacy: f64,
     /// The focus being worked on, the foci done, and how many times the repeatable ones were taken.
@@ -148,11 +143,7 @@ pub struct Nation {
     pub home_capital: i64,
     /// Men lost in battle so far this month.
     pub men_lost_month: f64,
-    /// Monthly state investment (GBP millions).
-    pub investment: f64,
-    pub weariness: f64,
-    pub starving: bool,
-    /// How much of the nation's trade the blockade cuts, 0 to 1.
+    /// How much of the nation's port and factory income the blockade cuts, 0 to 1.
     pub blockade: f64,
     pub blockade_target: f64,
     pub blockade_pinned: f64,
@@ -163,45 +154,16 @@ pub struct Nation {
     pub manpower: i64,
     pub men_in_units: i64,
     pub men_exercising: i64,
-    pub arms_share: f64,
-    /// The munitions stockpile, in IC.
-    pub munitions: f64,
-    pub munitions_used_last: f64,
-    pub civil_mult: f64,
-    pub civil_base: f64,
-    pub civil_index: f64,
-    pub wage: f64,
     /// The part of the naval budget that is not ships: dockyards, bases, sailors ashore.
     pub naval_overhead: f64,
     pub budget: Budget,
-    /// Works under construction, and hulls on the slips, in the order they were started.
+    /// The construction queue, in order (projects waiting and under way), and hulls on the slips.
     pub construction: Vec<Job>,
     pub shipbuilding: Vec<Job>,
     pub recruiting: Vec<crate::military::Recruit>,
-    /// The IC the last day's work took.
-    pub construction_used: f64,
     /// Men killed this month, and in the war so far.
     pub deaths_month: f64,
     pub war_dead: f64,
-    pub munitions_used_month: f64,
-}
-
-impl Nation {
-    /// What the economy reads of this nation, for the pure rules in `economy`.
-    pub fn econ(&self) -> EconNation {
-        EconNation {
-            development: self.development,
-            agri_yield: self.agri_yield,
-            focus_fx: self.focus_fx,
-            tax_rate: self.tax_rate,
-            population: self.population,
-            investment: self.investment,
-            budget_gdp: Some(self.budget.gdp),
-            men_in_units: self.men_in_units,
-            weariness: self.weariness,
-            starving: self.starving,
-        }
-    }
 }
 
 /// The focus a nation is working on (`Nation.focus`).
@@ -439,16 +401,25 @@ pub struct CasusBelli {
     pub goal: Value,
 }
 
-/// A nation's summed province output (`GameState.economy_sums`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+/// A nation's summed provinces (`GameState.economy_sums`): base income of those it holds, its share of enemy ground it
+/// occupies, factory and port income, building upkeep, construction points a day, the manpower pool, and the levels of
+/// each building (in the order first met).
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Sums {
-    pub coast: f64,
-    pub gdp: f64,
-    pub industry: f64,
-    pub food: f64,
-    pub trade: f64,
+    pub base: f64,
+    pub occupied: f64,
+    pub factories: f64,
+    pub ports: f64,
+    pub upkeep: f64,
+    pub cp: f64,
     pub pool: f64,
-    pub materials: f64,
+    pub levels: Vec<(String, f64)>,
+}
+
+impl Sums {
+    pub fn level(&self, kind: &str) -> f64 {
+        self.levels.iter().find(|(k, _)| k == kind).map(|(_, v)| *v).unwrap_or(0.0)
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -465,16 +436,10 @@ pub struct GameState {
     pub province_pop_frac: Vec<f32>,
     /// Building type and level, in the order the works were added.
     pub province_buildings: Vec<Vec<(String, i32)>>,
-    /// Resource id and potential output (kt a year), in the economy file's resource order.
-    pub province_deposit: Vec<Vec<(String, f64)>>,
-    pub province_gdp: Vec<f32>,
-    pub province_industry: Vec<f32>,
-    pub province_food: Vec<f32>,
-    pub province_pool: Vec<f32>,
+    /// Each province's base income, gold a month, from its people at the start (the game keeps it as a 32-bit float).
+    pub province_base_income: Vec<f32>,
     /// One per nation, in `nations` order.
     pub economy_sums: Vec<Sums>,
-    /// Kt of raw materials a year one GBP million of industrial output needs (`Economy.calibrate_materials`).
-    pub materials_k: f64,
     /// The armies, in the order they were raised (their ids rise with it).
     pub armies: Vec<Army>,
     pub next_army_id: u32,
@@ -793,14 +758,6 @@ pub struct SeaControl {
     pub power: Vec<(String, f64)>,
 }
 
-fn refs_b(v: &[(String, i32)]) -> Vec<(&str, i32)> {
-    v.iter().map(|(k, l)| (k.as_str(), *l)).collect()
-}
-
-fn refs_d(v: &[(String, f64)]) -> Vec<(&str, f64)> {
-    v.iter().map(|(k, x)| (k.as_str(), *x)).collect()
-}
-
 impl GameState {
     pub fn nation(&self, tag: &str) -> &Nation {
         &self.nations[self.nation_index[tag]]
@@ -824,13 +781,8 @@ impl GameState {
             province_population: vec![0; count],
             province_pop_frac: vec![0.0; count],
             province_buildings: vec![vec![]; count],
-            province_deposit: vec![vec![]; count],
-            province_gdp: vec![0.0; count],
-            province_industry: vec![0.0; count],
-            province_food: vec![0.0; count],
-            province_pool: vec![0.0; count],
+            province_base_income: vec![0.0; count],
             economy_sums: vec![],
-            materials_k: 0.0,
             armies: vec![],
             next_army_id: 1,
             fronts: vec![],
@@ -961,12 +913,6 @@ impl GameState {
             tension_history: vec![],
             claims: vec![],
         };
-        for row in Table::read(&dir.join("resources.tsv"))?.rows() {
-            let id = row.int("id") as usize;
-            for r in &data.economy.resource_ids {
-                set_deposit(&mut gs.province_deposit[id], r, row.float(r));
-            }
-        }
         for id in 1..count {
             gs.province_owner[id] = data.map.provinces[id].owner.clone();
             gs.province_controller[id] = data.map.provinces[id].owner.clone();
@@ -975,7 +921,7 @@ impl GameState {
         for id in 1..count {
             by_name.insert(data.map.provinces[id].name.as_str(), id);
         }
-        // The works a scenario's big cities already have.
+        // The buildings each nation starts with (tools/make_start_economy.py).
         if let Some(works) = scenario.get("buildings").and_then(Value::as_object) {
             for (pname, types) in works {
                 let id = *by_name.get(pname.as_str()).ok_or_else(|| format!("scenario building: no province {pname}"))?;
@@ -1012,16 +958,12 @@ impl GameState {
                 display_name: info.name.clone(),
                 treasury: f("treasury", 0.0),
                 capital: f("capital", 0.0) as i64,
-                development: f("development", 1.0),
-                agri_yield: f("agri_yield", 1.0),
-                tax_rate: f("tax_rate", data.economy.default_tax_rate),
-                pop_growth: f("pop_growth", 0.01),
                 peacetime_army: f("peacetime_army", 0.0) as i64,
                 naval_budget: f("naval_budget", 0.0),
-                materials_need_mult: f("materials_need_mult", 1.0),
                 mobilization: f("mobilization", 0.0),
-                focus_fx: Effects::default(),
-                focus_construction: 0.0,
+                cp: 0.0,
+                focus_income: 0.0,
+                focus_cp: 0.0,
                 focus_diplomacy: 0.0,
                 focus: None,
                 focus_done: vec![],
@@ -1040,9 +982,6 @@ impl GameState {
                 capitulated: false,
                 home_capital: 0,
                 men_lost_month: 0.0,
-                investment: 0.0,
-                weariness: 0.0,
-                starving: false,
                 blockade: 0.0,
                 blockade_target: 0.0,
                 blockade_pinned: -1.0,
@@ -1052,33 +991,22 @@ impl GameState {
                 manpower: f("peacetime_army", 0.0) as i64,
                 men_in_units: 0,
                 men_exercising: 0,
-                arms_share: 0.0,
-                munitions: 0.0,
-                munitions_used_last: 0.0,
-                civil_mult: 1.0,
-                civil_base: 0.0,
-                civil_index: 1.0,
-                wage: 0.0,
                 naval_overhead: 0.0,
                 budget: Budget::default(),
                 construction: vec![],
                 shipbuilding: vec![],
                 recruiting: vec![],
-                construction_used: 0.0,
                 deaths_month: 0.0,
                 war_dead: 0.0,
-                munitions_used_month: 0.0,
             });
         }
         for n in &mut gs.nations {
             n.war_support_base = n.war_support;
         }
         gs.rebuild_nation_provinces()?;
-        gs.materials_k = 0.0;
         gs.deploy_starting_armies(data, scenario.get("deployment").unwrap_or(&no_nations))?;
         gs.deploy_starting_fleets(data, &dir)?;
-        gs.load_munitions(data, &scenario);
-        gs.absorb_works(data);
+        gs.economy_load_scenario(data);
         gs.recompute(data);
         gs.load_diplomacy(data, &scenario)?;
         gs.load_pressure(data, &scenario);
@@ -1294,35 +1222,6 @@ impl GameState {
         }
     }
 
-    /// `Munitions.load_scenario`: each nation's arms share and a stockpile of `days` of the general war the scenario sets.
-    pub fn load_munitions(&mut self, data: &Data, scenario: &Value) {
-        let cfg = &data.economy;
-        let share = scenario.get("munitions").and_then(|m| m.get("share")).and_then(Value::as_f64).unwrap_or(cfg.munitions_default_share);
-        let days = scenario.get("munitions").and_then(|m| m.get("days")).and_then(Value::as_f64).unwrap_or(0.0);
-        for i in 0..self.nations.len() {
-            let expected = self.expected_daily(data, i);
-            let n = &mut self.nations[i];
-            n.arms_share = clampf(share, 0.0, 1.0);
-            n.munitions_used_last = 0.0;
-            n.munitions = days * expected;
-        }
-    }
-
-    /// `Munitions.war_need`: what a nation's armies would burn in a day if every one of them were fighting.
-    pub fn war_need(&self, data: &Data, tag: &str) -> f64 {
-        let mut guns = 0.0;
-        for a in self.armies.iter().filter(|a| a.tag == tag) {
-            guns += a.power(&data.military) * a.shelling_share(&data.military);
-        }
-        guns * data.economy.munitions_per_gun_power
-    }
-
-    /// `Munitions.expected_daily`: what a nation can expect to burn a day in a war.
-    pub fn expected_daily(&self, data: &Data, nation: usize) -> f64 {
-        let n = &self.nations[nation];
-        maxf(n.munitions_used_last / 30.0, self.war_need(data, &n.tag) * data.economy.munitions_engaged_share)
-    }
-
     /// `WarSupport.economy_mult`: the multiplier on tax and recruitment; 1 in peace.
     pub fn war_economy_mult(&self, data: &Data, tag: &str) -> f64 {
         if !self.is_at_war(tag) {
@@ -1331,37 +1230,44 @@ impl GameState {
         data.war_support.economy_mult_at(self.nation(tag).war_support)
     }
 
-    /// `Economy._budgets`: every nation's budget, from the last province sums.
+    /// `Economy._budgets`: every nation's budget, from the last province sums, with its units' upkeep.
     pub fn compute_budgets(&mut self, data: &Data) {
         self.refresh_upkeep(data);
+        let army = self.army_upkeep(data);
         for i in 0..self.nations.len() {
-            let tax_mult = self.war_economy_mult(data, &self.nations[i].tag.clone());
-            let raw = self.economy_sums[i];
-            let mut n = self.nations[i].clone();
-            n.budget = budget::nation_budget(&data.economy, &data.military, self.materials_k, &mut n, &raw, tax_mult);
-            self.nations[i] = n;
+            let tag = self.nations[i].tag.clone();
+            let war_mult = self.war_economy_mult(data, &tag);
+            let capital = self.nations[i].capital;
+            let capital_held = capital > 0 && (capital as usize) < self.province_controller.len() && self.province_controller[capital as usize] == tag;
+            let empty = Sums::default();
+            let raw = self.economy_sums.get(i).unwrap_or(&empty);
+            let b = budget::nation_budget(&data.economy, &self.nations[i], raw, war_mult, army[i], capital_held);
+            self.nations[i].budget = b;
         }
     }
 
-    /// `Economy.calibrate`: at a scenario's start, the raw-materials constant and each nation's civil spending, so that
-    /// its budget starts with a small surplus (`start_surplus` of its revenue) for the nation to spend as it chooses.
-    pub fn calibrate(&mut self, data: &Data) {
-        self.calibrate_materials(data);
-        for n in &mut self.nations {
-            n.civil_mult = 1.0;
-            n.civil_base = 0.0;
-            n.civil_index = 1.0;
-            n.wage = 0.0;
-        }
-        self.compute_budgets(data);
-        for n in &mut self.nations {
-            let civil = n.budget.civil;
-            if civil > 0.0 {
-                let surplus = n.budget.revenue * data.economy.start_surplus;
-                n.civil_mult = clampf((n.budget.net + civil - surplus) / civil, 0.1, 4.0);
+    /// `Economy.army_upkeep`: what each nation's army costs a month, every unit's upkeep, in armies (more for those on
+    /// exercise) and in training. One per nation, in `nations` order.
+    pub fn army_upkeep(&self, data: &Data) -> Vec<f64> {
+        let mil = &data.military;
+        let mut out = vec![0.0; self.nations.len()];
+        for a in &self.armies {
+            let mut sum = 0.0;
+            for u in &a.units {
+                sum += mil.unit_type(&u.unit_type).upkeep;
             }
-            n.civil_base = 0.0; // worked out again from the calibrated multiplier
+            let root = if a.parent_id == 0 { Some(a) } else { self.armies.iter().find(|b| b.id == a.parent_id) };
+            if root.is_some_and(|r| r.training) {
+                sum *= 1.0 + mil.training_cost_share;
+            }
+            out[self.nation_index[&a.tag]] += sum;
         }
+        for (i, n) in self.nations.iter().enumerate() {
+            for job in &n.recruiting {
+                out[i] += mil.unit_type(&job.unit_type).upkeep;
+            }
+        }
+        out
     }
 
     /// `GameState.at_war`: whether two nations are at war with each other.
@@ -1452,88 +1358,88 @@ impl GameState {
         (self.economy_sums[nation].pool * data.economy.standing_share) as i64
     }
 
-    /// `Economy._pressures`: war weariness (the share of the workers lost for every 100,000 men lost, easing in peace) and
-    /// starvation (a nation that needs imports and gets under a third of them through the blockade loses output and war
-    /// support).
-    pub fn pressures(&mut self, data: &Data) {
+    /// `Economy.load_scenario`: every nation gets at least one civilian factory and one construction sector (in its
+    /// capital, or its first province).
+    pub fn economy_load_scenario(&mut self, data: &Data) {
         let cfg = &data.economy;
         for i in 0..self.nations.len() {
-            let tag = self.nations[i].tag.clone();
-            let at_war = self.is_at_war(&tag);
-            let n = &mut self.nations[i];
-            let target = crate::gd::minf(cfg.weariness_max, (n.war_dead + n.deaths_month) / 100000.0 * cfg.weariness_per_100k);
-            if !at_war {
-                n.weariness = maxf(0.0, n.weariness - cfg.weariness_ease_per_day);
-            } else {
-                n.weariness = maxf(n.weariness, target);
+            let n = &self.nations[i];
+            if n.provinces.is_empty() {
+                continue;
             }
-            let b = &n.budget;
-            let mut needs_imports = b.food_need > b.food_production;
-            if !needs_imports && b.materials.need > b.materials.own {
-                needs_imports = true;
-            }
-            n.starving = needs_imports && (1.0 - n.blockade) < cfg.starvation_below;
-            if n.starving {
-                self.change_war_support(&tag, -cfg.starvation_support_per_day);
+            let home = if n.capital > 0 && n.provinces.contains(&(n.capital as usize)) { n.capital as usize } else { n.provinces[0] };
+            let provinces = n.provinces.clone();
+            for (kind, least) in [("civilian_factory", cfg.min_civilian_factories), ("construction_sector", cfg.min_construction_sectors)] {
+                let mut have = 0;
+                for &id in &provinces {
+                    have += building_level(&self.province_buildings[id], kind);
+                }
+                if have < least {
+                    let now = building_level(&self.province_buildings[home], kind);
+                    set_building(&mut self.province_buildings[home], kind, now + least - have);
+                }
             }
         }
     }
 
-    /// `Economy.step_day`: refreshes the budgets, puts the day's industry into munitions, hulls and buildings, and
-    /// completes the buildings that are done.
+    /// `Economy.province_busy`: whether a province has a project under way (not one waiting in the queue).
+    pub fn province_busy(n: &Nation, id: usize) -> bool {
+        n.construction.iter().any(|j| j.province == id && j.started)
+    }
+
+    /// `Economy.start_queued`: starts the projects waiting in a nation's queue, in order: each whose province is free and
+    /// held, paying its gold and CP. The first that cannot be paid for stops the rest.
+    pub fn start_queued(&mut self, data: &Data, nation: usize) {
+        let tag = self.nations[nation].tag.clone();
+        for k in 0..self.nations[nation].construction.len() {
+            let job = &self.nations[nation].construction[k];
+            if job.started || self.province_controller[job.province] != tag || Self::province_busy(&self.nations[nation], job.province) {
+                continue;
+            }
+            let plan = economy::build_plan(data.economy.building(&job.kind).expect("building"));
+            let n = &mut self.nations[nation];
+            if n.treasury < plan.gold || n.cp < plan.cp {
+                return;
+            }
+            n.treasury -= plan.gold;
+            n.cp -= plan.cp;
+            n.construction[k].started = true;
+        }
+    }
+
+    /// `Economy.step_day`: construction points from the sectors, the projects under way count down (and are finished),
+    /// the queue starts what it can, and the hulls on the slips count down.
     pub fn step_day(&mut self, data: &Data) {
-        self.pressures(data);
         if !self.economy_sums.is_empty() {
             self.compute_budgets(data);
         }
         let mut finished = false;
         for ni in 0..self.nations.len() {
-            let n = &mut self.nations[ni];
-            let pool = n.budget.construction_points;
-            // Munitions first, by the arms share; then the queue is served in order, each project taking what it can use
-            // of what is left. Hulls on the slips come first, then the buildings.
-            let arms = {
-                let made = pool * clampf(n.arms_share, 0.0, 1.0);
-                n.munitions += made;
-                made
-            };
-            if n.construction.is_empty() && n.shipbuilding.is_empty() {
-                n.construction_used = arms;
-                continue;
-            }
-            let mut left = pool - arms;
-            for job in &mut n.shipbuilding {
-                let give = crate::gd::minf(crate::gd::minf(job.rate, left), job.points_left);
-                left -= give;
-                job.points_left -= give;
-                job.given = give;
-                job.days_left = if give > 0.0 && job.points_left > 0.0 {
-                    (job.points_left / give - 0.0001).ceil() as i32
-                } else if job.points_left <= 0.0 {
-                    0
-                } else {
-                    9999
-                };
-            }
-            for job in &mut n.construction {
-                let give = crate::gd::minf(crate::gd::minf(job.rate, left), job.points_left);
-                left -= give;
-                job.points_left -= give;
-                job.given = give;
-            }
-            n.construction_used = pool - left;
-            for i in (0..n.construction.len()).rev() {
-                if n.construction[i].points_left <= 0.0001 {
-                    let job = n.construction.remove(i);
+            let tag = self.nations[ni].tag.clone();
+            let gain = self.nations[ni].budget.cp;
+            self.nations[ni].cp += gain;
+            for i in (0..self.nations[ni].construction.len()).rev() {
+                let province = self.nations[ni].construction[i].province;
+                if self.province_owner[province] != tag {
+                    self.nations[ni].construction.remove(i); // ceded: the project is lost
+                    continue;
+                }
+                let job = &mut self.nations[ni].construction[i];
+                if !job.started {
+                    continue;
+                }
+                job.days_left -= 1;
+                if job.days_left <= 0 {
+                    let job = self.nations[ni].construction.remove(i);
                     let owned = &mut self.province_buildings[job.province];
-                    let level = owned.iter().find(|(k, _)| *k == job.kind).map(|(_, l)| *l).unwrap_or(0);
+                    let level = building_level(owned, &job.kind);
                     set_building(owned, &job.kind, level + 1);
                     finished = true;
-                } else {
-                    let job = &mut n.construction[i];
-                    let rate_now = if job.given > 0.0 { job.given } else { 0.0 };
-                    job.days_left = if rate_now > 0.0 { (job.points_left / rate_now - 0.0001).ceil() as i32 } else { 9999 };
                 }
+            }
+            self.start_queued(data, ni);
+            for job in &mut self.nations[ni].shipbuilding {
+                job.days_left = (job.days_left - 1).max(0);
             }
         }
         if finished {
@@ -1541,31 +1447,24 @@ impl GameState {
         }
     }
 
-    /// `Population.step_month`: each province grows by its nation's rate, less what famine, occupation and the war dead
-    /// take.
-    pub fn population_step_month(&mut self, data: &Data) {
-        let cfg = &data.economy;
+    /// `Population.step_month`: the war dead leave the nation's provinces in proportion to their people (the people no
+    /// longer grow).
+    pub fn population_step_month(&mut self) {
+        if self.province_pop_frac.len() != self.province_population.len() {
+            self.province_pop_frac.resize(self.province_population.len(), 0.0);
+        }
         for ni in 0..self.nations.len() {
             if self.nations[ni].provinces.is_empty() {
                 continue;
             }
-            let tag = self.nations[ni].tag.clone();
-            let rate = crate::population::growth_rate(cfg, self.nations[ni].pop_growth, self.nations[ni].budget.food_shortage);
-            let dead = self.nations[ni].deaths_month * cfg.death_share;
+            let dead = self.nations[ni].deaths_month;
             let before = self.nations[ni].population as f64;
             let provinces = self.nations[ni].provinces.clone();
-            for &id in &provinces {
-                let pop = self.province_population[id] as f64;
-                let mut yearly = rate;
-                let holder = &self.province_controller[id];
-                if *holder != tag && self.at_war(&tag, holder) {
-                    yearly -= cfg.occupation_decline;
+            if dead > 0.0 && before > 0.0 {
+                for &id in &provinces {
+                    let delta = -dead * self.province_population[id] as f64 / before;
+                    crate::population::add(&mut self.province_population, &mut self.province_pop_frac, id, delta);
                 }
-                let mut delta = pop * yearly / 12.0;
-                if dead > 0.0 && before > 0.0 {
-                    delta -= dead * pop / before;
-                }
-                crate::population::add(cfg, &mut self.province_population, &mut self.province_pop_frac, id, delta);
             }
             let n = &mut self.nations[ni];
             n.war_dead += n.deaths_month;
@@ -1578,17 +1477,10 @@ impl GameState {
         }
     }
 
-    /// `Economy.step_month`: pays the budget, grows the economy and the people, and refills manpower toward its cap.
+    /// `Economy.step_month`: pays the budget and refills manpower toward its cap.
     pub fn step_month(&mut self, data: &Data) {
         let cfg = &data.economy;
-        self.population_step_month(data);
-        // Munitions: the stockpile ages, and this month's use starts again.
-        let decay = cfg.munitions_decay_per_year / 12.0;
-        for n in &mut self.nations {
-            n.munitions *= 1.0 - decay;
-            n.munitions_used_last = n.munitions_used_month;
-            n.munitions_used_month = 0.0;
-        }
+        self.population_step_month();
         for i in 0..self.nations.len() {
             let (lo, hi) = self.mobilization_range(data, &self.nations[i].tag.clone());
             self.nations[i].mobilization = clampf(self.nations[i].mobilization, lo, hi);
@@ -1598,23 +1490,7 @@ impl GameState {
         for i in 0..self.nations.len() {
             let tag = self.nations[i].tag.clone();
             let b = self.nations[i].budget;
-            let growth = economy::growth_rate(cfg, &self.nations[i].econ()) / 12.0;
-            {
-                let n = &mut self.nations[i];
-                n.treasury += b.net / 12.0;
-                n.development *= 1.0 + growth;
-                n.civil_index *= 1.0 + (cfg.baseline_growth + n.pop_growth) / 12.0;
-                n.wage *= 1.0 + cfg.baseline_growth / 12.0;
-            }
-            // The peacetime army of an AI nation grows with its people and its output while its budget can pay for it, up
-            // to the standing cap (the player sets their own).
-            if tag != self.player_tag && !self.is_at_war(&tag) && b.net > 0.0 {
-                let n = &self.nations[i];
-                let grown = (n.peacetime_army as f64 * (1.0 + (growth + n.pop_growth / 12.0) * cfg.army_growth_share)) as i64;
-                let cap = self.standing_cap(data, i);
-                let n = &mut self.nations[i];
-                n.peacetime_army = n.peacetime_army.max(grown.min(cap));
-            }
+            self.nations[i].treasury += b.net;
             // The cap covers everyone in service; what is not under arms is the reserve.
             let mult = self.war_economy_mult(data, &tag);
             let n = &mut self.nations[i];
@@ -1764,39 +1640,24 @@ impl GameState {
         self.apply_focus_effects(data, tag, &fx);
     }
 
-    /// `Focus.apply_effects`: lasting effects are summed into the nation's bonuses; one-off ones (prestige, points, money,
-    /// war support, army size, relations, claims) happen now.
+    /// `Focus.apply_effects`: lasting effects (income, diplomacy, construction points) are summed into the nation's
+    /// bonuses; one-off ones (prestige, points, money, civilian factories, war support, army size, relations, claims) happen
+    /// now.
     pub fn apply_focus_effects(&mut self, data: &Data, tag: &str, fx: &FocusEffects) {
         let i = self.nation_index[tag];
         let mut lasting = false;
         {
             let n = &mut self.nations[i];
-            if let Some(x) = fx.gdp {
-                n.focus_fx.gdp += x;
-                lasting = true;
-            }
-            if let Some(x) = fx.industry {
-                n.focus_fx.industry += x;
-                lasting = true;
-            }
-            if let Some(x) = fx.food {
-                n.focus_fx.food += x;
-                lasting = true;
-            }
-            if let Some(x) = fx.trade {
-                n.focus_fx.trade += x;
-                lasting = true;
-            }
-            if let Some(x) = fx.growth {
-                n.focus_fx.growth += x;
+            if let Some(x) = fx.income {
+                n.focus_income += x;
                 lasting = true;
             }
             if let Some(x) = fx.diplomacy {
                 n.focus_diplomacy += x;
                 lasting = true;
             }
-            if let Some(x) = fx.construction {
-                n.focus_construction += x;
+            if let Some(x) = fx.cp {
+                n.focus_cp += x;
                 lasting = true;
             }
         }
@@ -1808,6 +1669,14 @@ impl GameState {
         }
         if let Some(x) = fx.treasury {
             self.nations[i].treasury += x;
+        }
+        if let Some(count) = fx.civilian_factories {
+            // Built at once, one each in the nation's best provinces with room (`Focus._grant_factories`).
+            for id in self.mass_candidates(data, tag, "civilian_factory").into_iter().take(count.max(0) as usize) {
+                let level = building_level(&self.province_buildings[id], "civilian_factory");
+                set_building(&mut self.province_buildings[id], "civilian_factory", level + 1);
+            }
+            lasting = true;
         }
         if let Some(x) = fx.war_support {
             self.change_war_support(tag, x);
@@ -1894,104 +1763,60 @@ impl GameState {
         Ok(())
     }
 
-    /// `Economy.absorb_works`: a scenario's starting works are already in the figures it was fitted to, so each nation's
-    /// development is eased by what they would add on top.
-    pub fn absorb_works(&mut self, data: &Data) {
-        let cfg = &data.economy;
-        for n in 0..self.nations.len() {
-            let econ = self.nations[n].econ();
-            let (mut base, mut gain) = (0.0, 0.0);
-            for &id in &self.nations[n].provinces {
-                let area = data.map.provinces[id].area_km2();
-                let pop = self.province_population[id] as i64;
-                let plain = economy::province_output(cfg, pop, area, &econ, &[], &[]).gdp;
-                base += plain;
-                if !self.province_buildings[id].is_empty() {
-                    let b = refs_b(&self.province_buildings[id]);
-                    gain += economy::province_output(cfg, pop, area, &econ, &b, &[]).gdp - plain;
-                }
-            }
-            if base > 0.0 && gain > 0.0 {
-                self.nations[n].development /= 1.0 + gain / base;
-            }
+    /// `Economy.province_income`: what a province earns its owner a month before the nation's modifiers: its base income
+    /// and its buildings' income.
+    pub fn province_income(&self, data: &Data, id: usize) -> f64 {
+        let mut total = if id < self.province_base_income.len() { self.province_base_income[id] as f64 } else { 0.0 };
+        for (kind, level) in &self.province_buildings[id] {
+            total += data.economy.building(kind).and_then(|b| b.income).unwrap_or(0.0) * *level as f64;
         }
+        total
     }
 
-    /// `Economy.recompute`, the part that works out each province's output and each nation's sums. (The budgets it ends
-    /// with are not ported yet.)
+    /// `Economy.recompute`: each province's base income, and every nation's sums and budget.
     pub fn recompute(&mut self, data: &Data) {
         let cfg = &data.economy;
         let count = self.province_owner.len();
-        self.province_gdp.resize(count, 0.0);
-        self.province_industry.resize(count, 0.0);
-        self.province_food.resize(count, 0.0);
-        self.province_pool.resize(count, 0.0);
+        self.province_base_income.resize(count, 0.0);
+        for id in 1..count {
+            let pop = if id < self.province_pop_base.len() { self.province_pop_base[id] } else { self.province_population[id] };
+            self.province_base_income[id] = economy::base_income(cfg, pop as f64) as f32;
+        }
         let mut sums = vec![Sums::default(); self.nations.len()];
-        let econ: Vec<EconNation> = self.nations.iter().map(Nation::econ).collect();
         for id in 1..count {
             let tag = self.nation_index[&self.province_owner[id]];
-            let b = refs_b(&self.province_buildings[id]);
-            let d = refs_d(&self.province_deposit[id]);
-            let o = economy::province_output(
-                cfg,
-                self.province_population[id] as i64,
-                data.map.provinces[id].area_km2(),
-                &econ[tag],
-                &b,
-                &d,
-            );
-            self.province_gdp[id] = o.gdp as f32;
-            self.province_industry[id] = o.industry as f32;
-            self.province_food[id] = o.food as f32;
-            self.province_pool[id] = o.pool as f32;
             let holder = self.nation_index[&self.province_controller[id]];
-            if holder == tag {
-                let s = &mut sums[tag];
-                s.gdp += o.gdp;
-                s.industry += o.industry;
-                s.food += o.food;
-                s.trade += o.trade;
-                s.pool += o.pool;
-                s.materials += o.materials;
-                if data.map.provinces[id].coastal {
-                    s.coast += 1.0;
+            sums[tag].pool += self.province_population[id] as f64 * cfg.manpower_share;
+            if holder != tag {
+                sums[holder].occupied += self.province_base_income[id] as f64 * cfg.occupied_share;
+                continue;
+            }
+            let s = &mut sums[tag];
+            s.base += self.province_base_income[id] as f64;
+            for (kind, level) in &self.province_buildings[id] {
+                let Some(def) = cfg.building(kind) else { continue };
+                let level = *level as f64;
+                match s.levels.iter_mut().find(|(k, _)| k == kind) {
+                    Some(slot) => slot.1 += level,
+                    None => s.levels.push((kind.clone(), level)),
                 }
-            } else {
-                // Occupied: the owner loses the output and the occupier collects a share of the tax.
-                sums[holder].gdp += o.gdp * data.military.occupation_income_share;
+                s.upkeep += def.upkeep * level;
+                s.cp += def.cp_per_day * level;
+                if kind == "port" {
+                    s.ports += def.income.unwrap_or(0.0) * level;
+                } else if let Some(income) = def.income {
+                    s.factories += income * level;
+                }
             }
         }
         self.economy_sums = sums;
-        if self.materials_k <= 0.0 {
-            self.calibrate(data);
-        }
         self.compute_budgets(data);
-    }
-
-    /// `Economy._calibrate_materials`: the kt of raw materials a year one GBP million of industrial output needs, so
-    /// that the world just balances (all deposits against all industry).
-    pub fn calibrate_materials(&mut self, data: &Data) {
-        let cfg = &data.economy;
-        let (mut own, mut industry) = (0.0, 0.0);
-        for id in 1..self.province_owner.len() {
-            let mut sum = 0.0;
-            for (_, v) in &self.province_deposit[id] {
-                if *v >= cfg.materials_min_deposit {
-                    sum += *v;
-                }
-            }
-            own += sum * cfg.materials_extraction_base;
-            industry += self.province_industry[id] as f64;
-        }
-        self.materials_k = if industry > 0.0 { own / industry } else { cfg.materials_need_per_industry };
     }
 }
 
-fn set_deposit(list: &mut Vec<(String, f64)>, id: &str, value: f64) {
-    match list.iter_mut().find(|(k, _)| k == id) {
-        Some(slot) => slot.1 = value,
-        None => list.push((id.to_string(), value)),
-    }
+/// A building's level in a province's list, or 0.
+pub fn building_level(list: &[(String, i32)], id: &str) -> i32 {
+    list.iter().find(|(k, _)| k == id).map(|(_, l)| *l).unwrap_or(0)
 }
 
 fn set_building(list: &mut Vec<(String, i32)>, id: &str, level: i32) {

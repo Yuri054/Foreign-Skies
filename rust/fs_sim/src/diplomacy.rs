@@ -406,15 +406,15 @@ impl GameState {
 
     // ---------------------------------------------------------------- the month
 
-    /// `Standings.value` for output: what the economy produces each month.
-    fn gdp_standing(&self, tag: &str) -> f64 {
-        self.nation(tag).budget.gdp / 12.0
+    /// `Standings.value` for income: the gold the nation takes in each month.
+    fn income_standing(&self, tag: &str) -> f64 {
+        self.nation(tag).budget.income
     }
 
-    /// `Standings.rank_of` for output: 1 for the best, or 0 if the nation holds no land. Ties keep tag order.
+    /// `Standings.rank_of` for income: 1 for the best, or 0 if the nation holds no land. Ties keep tag order.
     pub fn output_rank(&self, tag: &str) -> usize {
         let mut list: Vec<(&str, f64)> =
-            self.nations.iter().filter(|n| !n.provinces.is_empty()).map(|n| (n.tag.as_str(), self.gdp_standing(&n.tag))).collect();
+            self.nations.iter().filter(|n| !n.provinces.is_empty()).map(|n| (n.tag.as_str(), self.income_standing(&n.tag))).collect();
         // an insertion sort by the game's comparison (best output first, then tag order)
         let before = |a: &(&str, f64), b: &(&str, f64)| if !is_equal_approx(a.1, b.1) { a.1 > b.1 } else { a.0 < b.0 };
         for i in 1..list.len() {
@@ -533,21 +533,16 @@ impl GameState {
 
     /// `WarSupport.monthly_changes`: what moves a nation's war support this month, by cause, in the game's order.
     pub fn war_support_changes(&self, data: &Data, tag: &str) -> Vec<(&'static str, f64)> {
-        let (c, e) = (&data.war_support, &data.economy);
+        let c = &data.war_support;
         let n = self.nation(tag);
-        let econ = n.econ();
-        let strain = crate::economy::tax_strain(e, &econ);
         if !self.is_at_war(tag) {
-            // Heavy taxes lower the level the people settle at; light ones raise it a little.
-            let settle = n.war_support_base - e.tax_strain_support_penalty * strain + e.tax_relief_support_bonus * crate::economy::tax_relief(e, &econ);
-            return vec![("settling back", clampf(settle - n.war_support, -c.recovery_per_month, c.recovery_per_month))];
+            return vec![("settling back", clampf(n.war_support_base - n.war_support, -c.recovery_per_month, c.recovery_per_month))];
         }
         let total_men = (n.manpower + n.men_in_units) as f64;
         let lost = n.men_lost_month / maxf(total_men + n.men_lost_month, 1.0);
-        let debt = maxf(-n.treasury, 0.0) / maxf(n.budget.revenue, 1.0);
+        let debt = maxf(-n.treasury, 0.0) / maxf(12.0 * n.budget.income, 1.0);
         vec![
             ("the war itself", -c.weariness),
-            ("heavy taxes", -e.tax_strain_war_weariness * strain),
             ("men lost", -c.casualty_weight * lost),
             ("blockade", -c.blockade_weight * n.blockade),
             ("ground lost", -c.occupied_weight * self.people_occupied_share(tag)),

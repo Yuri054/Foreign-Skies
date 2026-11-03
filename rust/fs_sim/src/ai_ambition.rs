@@ -62,7 +62,7 @@ impl GameState {
             return None;
         }
         let mut best: Option<(String, f64)> = None;
-        let own_gdp = maxf(self.nation(tag).budget.gdp, 0.01);
+        let own_income = maxf(self.nation(tag).budget.income, 0.01);
         for target in self.neighbor_nations(data, tag) {
             if !self.declare_block(data, tag, &target).is_empty() || self.in_truce(data, tag, &target) {
                 continue;
@@ -70,7 +70,7 @@ impl GameState {
             if self.odds_against(data, tag, &target) < self.required_odds(data, tag) * af(c, "odds_margin") {
                 continue;
             }
-            let score = self.ai_ambition_score(data, tag, &target, own_gdp);
+            let score = self.ai_ambition_score(data, tag, &target, own_income);
             if score >= af(c, "threshold") && best.as_ref().map(|b| score > b.1 + 0.000001).unwrap_or(true) {
                 best = Some((target, score));
             }
@@ -79,13 +79,13 @@ impl GameState {
     }
 
     /// `AIAmbition.score_of`.
-    pub fn ai_ambition_score(&self, data: &Data, tag: &str, target: &str, own_gdp: f64) -> f64 {
+    pub fn ai_ambition_score(&self, data: &Data, tag: &str, target: &str, own_income: f64) -> f64 {
         let c = &data.ai.raw["ambition"];
         let options = self.casus_belli_options(data, tag, target);
         let claim = if options[0] != "none" { 1.0 } else { 0.0 };
         let hostile = clampf(-self.relation(data, tag, target) / 100.0, 0.0, 1.0);
         let grievance = clampf(self.grievance_of(tag, target) / 100.0, 0.0, 1.0);
-        let weak = clampf(1.0 - self.nation(target).budget.gdp / own_gdp, 0.0, 1.0);
+        let weak = clampf(1.0 - self.nation(target).budget.income / own_income, 0.0, 1.0);
         let margin = self.odds_against(data, tag, target) / maxf(self.required_odds(data, tag), 0.01);
         let opportunity = clampf(maxf(margin, 1.0).ln() / 10f64.ln(), 0.0, 1.0);
         let w_tension = c.get("w_tension").and_then(Value::as_f64).unwrap_or(0.0);

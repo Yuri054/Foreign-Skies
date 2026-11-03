@@ -114,7 +114,7 @@ impl Army {
         for u in &self.units {
             let p = u.power(cfg);
             all += p;
-            if cfg.unit_type(&u.unit_type).shells {
+            if cfg.unit_type(&u.unit_type).guns {
                 guns += p;
             }
         }

@@ -159,3 +159,13 @@ pub fn is_equal_approx(a: f64, b: f64) -> bool {
     }
     (a - b).abs() < tolerance
 }
+
+/// `roundi`: rounds half away from zero, as Godot does.
+pub fn roundi(x: f64) -> i64 {
+    x.round() as i64
+}
+
+/// A float with `decimals` digits after the point, as GDScript's "%.Nf" writes it.
+pub fn format_f(x: f64, decimals: usize) -> String {
+    format!("{x:.decimals$}")
+}

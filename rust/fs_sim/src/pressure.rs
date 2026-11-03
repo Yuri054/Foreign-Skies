@@ -383,7 +383,7 @@ impl GameState {
                     }
                     self.relation(data, tag, &me)
                 }
-                "$trade_partner" => self.nation(tag).budget.gdp,
+                "$trade_partner" => self.nation(tag).budget.income,
                 _ => {
                     if !near.contains(tag) {
                         continue;
@@ -599,7 +599,7 @@ impl GameState {
         let i = self.nation_index[tag];
         match key {
             "treasury" => self.nations[i].treasury += v,
-            "revenue" => self.nations[i].treasury += v * self.nations[i].budget.revenue / 12.0,
+            "revenue" => self.nations[i].treasury += v * self.nations[i].budget.income,
             "prestige" => self.gain_prestige(tag, v),
             "war_support" => self.nations[i].war_support = clampf(self.nations[i].war_support + v, 0.0, 100.0),
             "points" => self.gain_points(data, tag, v),

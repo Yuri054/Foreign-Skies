@@ -770,16 +770,18 @@ impl GameState {
         if n.treasury - plan_total < nf(b, "build_floor") {
             return;
         }
-        // The slips draw on the construction pool: hulls already building plus this one may take only a share of it.
-        let pool = n.budget.construction_points;
-        let mut rate = def.ic / maxf(def.build_days as f64, 1.0);
+        // The hulls on the slips may cost at most income_share of a month's income spread over their build days, and the
+        // ship's upkeep must not sink the budget past deficit_tolerance of the income.
+        let income = maxf(n.budget.income, 0.0);
+        let mut rate = plan_total / maxf(def.build_days as f64 / 30.0, 1.0);
         for job in &n.shipbuilding {
-            rate += job.rate;
+            let d = data.navy.def(&job.kind);
+            rate += d.cost / maxf(d.build_days as f64 / 30.0, 1.0);
         }
-        if rate > nf(b, "income_share") * pool {
+        if rate > nf(b, "income_share") * income {
             return;
         }
-        if n.budget.net - def.upkeep < -nf(b, "deficit_tolerance") * n.budget.revenue {
+        if n.budget.net - def.upkeep / 12.0 < -nf(b, "deficit_tolerance") * income {
             return;
         }
         if self.raise_ships(data, tag, yard, &kind, 1) {

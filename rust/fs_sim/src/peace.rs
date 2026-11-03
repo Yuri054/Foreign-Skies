@@ -696,7 +696,7 @@ impl GameState {
                 names.join(", ")
             }
             Demand::Indemnity { share, months } => {
-                let monthly = share * self.nation(giver).budget.revenue / 12.0;
+                let monthly = share * self.nation(giver).budget.income;
                 self.indemnities.push(Indemnity { payer: giver.to_string(), receiver: taker.to_string(), monthly, months_left: *months });
                 format!("an indemnity of {:.1} a month for {} months", monthly, months)
             }

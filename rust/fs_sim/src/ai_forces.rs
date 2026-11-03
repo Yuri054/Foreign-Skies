@@ -88,14 +88,14 @@ impl GameState {
             None => {
                 let mut t = 0.0;
                 for &id in &n.provinces {
-                    t += self.province_gdp[id] as f64 + self.province_industry[id] as f64;
+                    t += self.province_income(data, id);
                 }
                 self.ai_worth_cache.borrow_mut().insert(owner.clone(), (key, t));
                 t
             }
         };
         if total > 0.0 {
-            output = (self.province_gdp[province] as f64 + self.province_industry[province] as f64) / total;
+            output = self.province_income(data, province) / total;
         }
         let mut score = ff(v, "people") * people + ff(v, "output") * output;
         if province as i64 == n.capital {
@@ -236,7 +236,7 @@ impl GameState {
         for job in &n.recruiting {
             in_training += data.military.unit_type(&job.unit_type).cost;
         }
-        let monthly = maxf(0.0, n.budget.revenue) / 12.0;
+        let monthly = maxf(0.0, n.budget.income);
         in_training <= ff(f, "income_share") * monthly * ff(f, "horizon_months")
     }
 

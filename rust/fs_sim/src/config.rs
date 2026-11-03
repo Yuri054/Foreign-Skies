@@ -1,117 +1,49 @@
-//! `data/economy.json`, read into typed fields: only what the ported rules use. The file's order is kept where the
-//! order of the rules depends on it (the resources, and the buildings).
+//! The data files (`data/*.json`), read into typed fields: only what the ported rules use. The files' order is kept where
+//! the order of the rules depends on it (the buildings, the unit and ship types).
 
 use serde_json::Value;
 
-/// Fractional bonuses (a province's buildings and a nation's focus add up to one of these).
-#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Effects {
-    pub gdp: f64,
-    pub industry: f64,
-    pub food: f64,
-    pub trade: f64,
-    pub growth: f64,
-}
-
+/// One kind of building (`data/economy.json`, buildings), in file order: what a level costs (gold and construction points,
+/// paid when it starts) and takes (days), what it earns or makes, its upkeep, and its effect in battle.
 #[derive(Debug, Clone)]
 pub struct BuildingDef {
     pub id: String,
-    pub effects: Effects,
-    pub ic: f64,
-    pub ic_growth: f64,
-    pub min_days: i32,
-    pub max_level: i32,
-    pub gold_share: Option<f64>,
-    pub size_by_industry: bool,
+    pub gold: f64,
+    pub cp: f64,
+    pub days: i32,
+    pub upkeep: f64,
+    /// Gold a month a level, if the building earns (`income`).
+    pub income: Option<f64>,
+    pub cp_per_day: f64,
     /// What a level of works adds to an army's defence, and takes off a shelling and an assault (trench, fortification).
     pub defense: f64,
     pub shell_reduction: f64,
     pub hard_reduction: f64,
-    /// Whether the works can be started now (`enabled`) and whether it needs a coastal province (`requires`).
-    pub enabled: bool,
+    /// Whether it needs a coastal province (`requires`).
     pub needs_coast: bool,
 }
 
+/// `data/economy.json`: the gold economy (`Economy`).
 #[derive(Debug, Clone)]
 pub struct EconomyConfig {
-    pub gdp_per_capita: f64,
-    pub reference_density: f64,
-    pub density_exponent: f64,
-    pub density_min: f64,
-    pub density_max: f64,
-    pub industry_share_min: f64,
-    pub industry_share_max: f64,
-    pub food_per_km2: f64,
-    pub manpower_share: f64,
-    pub default_tax_rate: f64,
-    pub min_tax_rate: f64,
-    pub max_tax_rate: f64,
-    pub baseline_growth: f64,
-    pub ic_value: f64,
-    pub famine_decline: f64,
-    pub min_province: f64,
-    pub tax_relief_growth_bonus: f64,
-    pub tax_strain_growth_penalty: f64,
-    pub invest_growth_per_share: f64,
-    pub invest_soft_share: f64,
-    pub labor_penalty: f64,
-    pub labor_floor: f64,
-    pub starvation_output: f64,
-    pub construction_gold_share: f64,
-    pub cost_ref_gdp: f64,
-    pub cost_ref_industry: f64,
-    pub cost_min_factor: f64,
-    pub materials_extraction_base: f64,
-    pub materials_min_deposit: f64,
-    pub materials_need_per_industry: f64,
-    pub materials_import_cap: f64,
-    pub materials_import_price: f64,
-    pub materials_import_markup: f64,
-    pub materials_export_share: f64,
-    pub materials_floor: f64,
-    pub mobilization_output_penalty: f64,
-    pub famine_output_penalty: f64,
-    pub blockade_trade_loss: f64,
-    pub tax_drag: f64,
-    pub civil_share: f64,
-    pub start_surplus: f64,
-    pub soldier_upkeep: f64,
-    pub soldier_upkeep_ref: f64,
-    pub wage_min: f64,
-    pub wage_max: f64,
-    pub reserve_upkeep: f64,
-    pub food_import_cost: f64,
-    pub food_state_share: f64,
+    /// Base income: gold a month for each million people, to this power (`income.per_million`, `income.exponent`).
+    pub per_million: f64,
+    pub exponent: f64,
+    pub mobilization_loss: f64,
+    pub blockade_factory_loss: f64,
+    pub occupied_share: f64,
+    pub administration: f64,
+    /// CP a day the capital makes, and the most of one building in a province (`construction`).
+    pub capital_cp: f64,
+    pub max_level: i32,
+    /// What every nation starts with at least (`start`).
+    pub min_civilian_factories: i32,
+    pub min_construction_sectors: i32,
     pub debt_interest: f64,
-    pub munitions_default_share: f64,
-    pub munitions_output_penalty: f64,
-    pub munitions_storage_cost: f64,
-    pub munitions_per_gun_power: f64,
-    pub munitions_engaged_share: f64,
-    pub munitions_idle_share: f64,
-    /// What a unit of munitions costs abroad, GBP millions (`munitions.import_price`).
-    pub munitions_import_price: f64,
-    pub base_ic: f64,
-    pub base_ic_gdp_ref: f64,
-    pub base_ic_min: f64,
-    pub ic_per_industry: f64,
-    pub occupation_decline: f64,
-    pub death_share: f64,
-    pub weariness_max: f64,
-    pub weariness_per_100k: f64,
-    pub weariness_ease_per_day: f64,
-    pub starvation_below: f64,
-    pub starvation_support_per_day: f64,
-    pub munitions_decay_per_year: f64,
+    pub manpower_share: f64,
+    pub standing_share: f64,
     pub mobilization_rate: f64,
     pub mobilization_peace_max: f64,
-    pub standing_share: f64,
-    pub army_growth_share: f64,
-    pub tax_strain_war_weariness: f64,
-    pub tax_strain_support_penalty: f64,
-    pub tax_relief_support_bonus: f64,
-    /// The deposit tables (coal, iron, timber), in file order.
-    pub resource_ids: Vec<String>,
     pub buildings: Vec<BuildingDef>,
 }
 
@@ -126,130 +58,42 @@ fn num(v: &Value, path: &[&str]) -> Result<f64, String> {
 impl EconomyConfig {
     pub fn from_json_str(text: &str) -> Result<EconomyConfig, String> {
         let v: Value = serde_json::from_str(text).map_err(|e| format!("economy.json is invalid: {e}"))?;
-        let resource_ids: Vec<String> = v
-            .get("resources")
-            .and_then(Value::as_object)
-            .ok_or("economy.json: missing resources")?
-            .keys()
-            .filter(|k| !k.starts_with('_'))
-            .cloned()
-            .collect();
         let mut buildings = Vec::new();
         for (id, def) in v.get("buildings").and_then(Value::as_object).ok_or("economy.json: missing buildings")? {
             if id.starts_with('_') {
                 continue;
             }
-            let mut effects = Effects::default();
-            if let Some(map) = def.get("effects").and_then(Value::as_object) {
-                for (k, x) in map {
-                    let x = x.as_f64().ok_or("building effect is not a number")?;
-                    match k.as_str() {
-                        "gdp" => effects.gdp = x,
-                        "industry" => effects.industry = x,
-                        "food" => effects.food = x,
-                        "trade" => effects.trade = x,
-                        "growth" => effects.growth = x,
-                        other => return Err(format!("economy.json: building {id} has an unknown effect {other}")),
-                    }
-                }
-            }
+            let opt = |k: &str| def.get(k).and_then(Value::as_f64);
             buildings.push(BuildingDef {
                 id: id.clone(),
-                effects,
-                ic: num(def, &["ic"])?,
-                ic_growth: def.get("ic_growth").and_then(Value::as_f64).unwrap_or(0.0),
-                min_days: num(def, &["min_days"])? as i32,
-                max_level: num(def, &["max_level"])? as i32,
-                gold_share: def.get("gold_share").and_then(Value::as_f64),
-                size_by_industry: def.get("size_by").and_then(Value::as_str) == Some("industry"),
-                defense: def.get("defense").and_then(Value::as_f64).unwrap_or(0.0),
-                shell_reduction: def.get("shell_reduction").and_then(Value::as_f64).unwrap_or(0.0),
-                hard_reduction: def.get("hard_reduction").and_then(Value::as_f64).unwrap_or(0.0),
-                enabled: def.get("enabled").and_then(Value::as_bool).unwrap_or(true),
+                gold: num(def, &["gold"])?,
+                cp: num(def, &["cp"])?,
+                days: num(def, &["days"])? as i32,
+                upkeep: opt("upkeep").unwrap_or(0.0),
+                income: opt("income"),
+                cp_per_day: opt("cp_per_day").unwrap_or(0.0),
+                defense: opt("defense").unwrap_or(0.0),
+                shell_reduction: opt("shell_reduction").unwrap_or(0.0),
+                hard_reduction: opt("hard_reduction").unwrap_or(0.0),
                 needs_coast: def.get("requires").and_then(Value::as_str) == Some("coastal"),
             });
         }
         Ok(EconomyConfig {
-            gdp_per_capita: num(&v, &["gdp_per_capita"])?,
-            reference_density: num(&v, &["reference_density"])?,
-            density_exponent: num(&v, &["density_exponent"])?,
-            density_min: num(&v, &["density_min"])?,
-            density_max: num(&v, &["density_max"])?,
-            industry_share_min: num(&v, &["industry_share_min"])?,
-            industry_share_max: num(&v, &["industry_share_max"])?,
-            food_per_km2: num(&v, &["food_per_km2"])?,
-            manpower_share: num(&v, &["manpower_share"])?,
-            default_tax_rate: num(&v, &["default_tax_rate"])?,
-            min_tax_rate: num(&v, &["min_tax_rate"])?,
-            max_tax_rate: num(&v, &["max_tax_rate"])?,
-            baseline_growth: num(&v, &["baseline_growth"])?,
-            ic_value: num(&v, &["ic_value"])?,
-            famine_decline: num(&v, &["population", "famine_decline"])?,
-            min_province: num(&v, &["population", "min_province"])?,
-            tax_relief_growth_bonus: num(&v, &["tax_relief", "growth_bonus"])?,
-            tax_strain_growth_penalty: num(&v, &["tax_strain", "growth_penalty"])?,
-            invest_growth_per_share: num(&v, &["invest", "growth_per_share"])?,
-            invest_soft_share: num(&v, &["invest", "soft_share"])?,
-            labor_penalty: num(&v, &["labor", "penalty"])?,
-            labor_floor: num(&v, &["labor", "floor"])?,
-            starvation_output: num(&v, &["starvation", "output"])?,
-            construction_gold_share: v
-                .get("construction")
-                .and_then(|c| c.get("gold_share"))
-                .and_then(Value::as_f64)
-                .unwrap_or(0.0),
-            cost_ref_gdp: num(&v, &["construction", "cost_ref_gdp"])?,
-            cost_ref_industry: num(&v, &["construction", "cost_ref_industry"])?,
-            cost_min_factor: num(&v, &["construction", "cost_min_factor"])?,
-            materials_extraction_base: num(&v, &["materials", "extraction_base"])?,
-            materials_min_deposit: num(&v, &["materials", "min_deposit"])?,
-            materials_need_per_industry: num(&v, &["materials", "need_per_industry"])?,
-            materials_import_cap: num(&v, &["materials", "import_cap"])?,
-            materials_import_price: num(&v, &["materials", "import_price"])?,
-            materials_import_markup: num(&v, &["materials", "import_markup"])?,
-            materials_export_share: num(&v, &["materials", "export_share"])?,
-            materials_floor: num(&v, &["materials", "floor"])?,
-            mobilization_output_penalty: num(&v, &["mobilization_output_penalty"])?,
-            famine_output_penalty: num(&v, &["famine_output_penalty"])?,
-            blockade_trade_loss: num(&v, &["blockade_trade_loss"])?,
-            tax_drag: num(&v, &["tax_drag"])?,
-            civil_share: num(&v, &["civil_share"])?,
-            start_surplus: v.get("start_surplus").and_then(Value::as_f64).unwrap_or(0.0),
-            soldier_upkeep: num(&v, &["soldier_upkeep"])?,
-            soldier_upkeep_ref: num(&v, &["soldier_upkeep_ref"])?,
-            wage_min: num(&v, &["wage_min"])?,
-            wage_max: num(&v, &["wage_max"])?,
-            reserve_upkeep: num(&v, &["reserve_upkeep"])?,
-            food_import_cost: num(&v, &["food_import_cost"])?,
-            food_state_share: num(&v, &["food_state_share"])?,
+            per_million: num(&v, &["income", "per_million"])?,
+            exponent: num(&v, &["income", "exponent"])?,
+            mobilization_loss: num(&v, &["income", "mobilization_loss"])?,
+            blockade_factory_loss: num(&v, &["income", "blockade_factory_loss"])?,
+            occupied_share: num(&v, &["income", "occupied_share"])?,
+            administration: num(&v, &["income", "administration"])?,
+            capital_cp: num(&v, &["construction", "capital_cp"])?,
+            max_level: num(&v, &["construction", "max_level"])? as i32,
+            min_civilian_factories: num(&v, &["start", "min_civilian_factories"])? as i32,
+            min_construction_sectors: num(&v, &["start", "min_construction_sectors"])? as i32,
             debt_interest: num(&v, &["debt", "interest"])?,
-            munitions_default_share: num(&v, &["munitions", "default_share"])?,
-            munitions_output_penalty: num(&v, &["munitions", "output_penalty"])?,
-            munitions_storage_cost: num(&v, &["munitions", "storage_cost"])?,
-            munitions_per_gun_power: num(&v, &["munitions", "per_gun_power"])?,
-            munitions_engaged_share: num(&v, &["munitions", "engaged_share"])?,
-            munitions_idle_share: num(&v, &["munitions", "idle_share"])?,
-            munitions_import_price: num(&v, &["munitions", "import_price"])?,
-            base_ic: num(&v, &["construction", "base_ic"])?,
-            base_ic_gdp_ref: num(&v, &["construction", "base_ic_gdp_ref"])?,
-            base_ic_min: num(&v, &["construction", "base_ic_min"])?,
-            ic_per_industry: num(&v, &["construction", "ic_per_industry"])?,
-            occupation_decline: num(&v, &["population", "occupation_decline"])?,
-            death_share: num(&v, &["population", "death_share"])?,
-            weariness_max: num(&v, &["weariness", "max"])?,
-            weariness_per_100k: num(&v, &["weariness", "per_100k"])?,
-            weariness_ease_per_day: num(&v, &["weariness", "ease_per_day"])?,
-            starvation_below: num(&v, &["starvation", "below"])?,
-            starvation_support_per_day: num(&v, &["starvation", "support_per_day"])?,
-            munitions_decay_per_year: num(&v, &["munitions", "decay_per_year"])?,
+            manpower_share: num(&v, &["manpower_share"])?,
+            standing_share: num(&v, &["standing_share"])?,
             mobilization_rate: num(&v, &["mobilization_rate"])?,
             mobilization_peace_max: num(&v, &["mobilization", "peace_max"])?,
-            standing_share: num(&v, &["standing_share"])?,
-            army_growth_share: num(&v, &["army_growth_share"])?,
-            tax_strain_war_weariness: num(&v, &["tax_strain", "war_weariness"])?,
-            tax_strain_support_penalty: num(&v, &["tax_strain", "support_penalty"])?,
-            tax_relief_support_bonus: num(&v, &["tax_relief", "support_bonus"])?,
-            resource_ids,
             buildings,
         })
     }
@@ -267,11 +111,13 @@ pub struct UnitType {
     pub size: i64,
     pub attack: f64,
     pub speed: f64,
-    /// Whether the unit burns shells (its "shells" value is above zero).
-    pub shells: bool,
+    /// Whether the unit's power is its guns' (its "guns" flag): what trenches take off a shelling.
+    pub guns: bool,
     /// Its share of a starting army's men.
     pub share: f64,
+    /// Gold to raise it, and gold a month to keep it.
     pub cost: f64,
+    pub upkeep: f64,
     pub train_days: i64,
 }
 
@@ -326,7 +172,6 @@ pub struct TerrainDef {
 #[derive(Debug, Clone)]
 pub struct CombatConfig {
     pub casualties_per_point: f64,
-    pub shell_penalty: f64,
     pub morale_loss_per_casualty: f64,
     pub morale_loss_base: f64,
     pub morale_regain: f64,
@@ -380,9 +225,10 @@ impl MilitaryConfig {
                 size: num(d, &["size"])? as i64,
                 attack: num(d, &["attack"])?,
                 speed: num(d, &["speed"])?,
-                shells: d.get("shells").and_then(Value::as_f64).unwrap_or(0.0) > 0.0,
+                guns: d.get("guns").and_then(Value::as_bool).unwrap_or(false),
                 share: num(d, &["share"])?,
                 cost: num(d, &["cost"])?,
+                upkeep: d.get("upkeep").and_then(Value::as_f64).unwrap_or(0.0),
                 train_days: num(d, &["train_days"])? as i64,
             });
         }
@@ -435,7 +281,6 @@ impl MilitaryConfig {
             },
             combat: CombatConfig {
                 casualties_per_point: num(&v, &["combat", "casualties_per_point"])?,
-                shell_penalty: num(&v, &["combat", "shell_penalty"])?,
                 morale_loss_per_casualty: num(&v, &["combat", "morale_loss_per_casualty"])?,
                 morale_loss_base: num(&v, &["combat", "morale_loss_base"])?,
                 morale_regain: num(&v, &["combat", "morale_regain"])?,
@@ -498,7 +343,6 @@ pub struct ShipDef {
     pub detection: f64,
     pub upkeep: f64,
     pub cost: f64,
-    pub ic: f64,
     pub build_days: i32,
     pub min_port: i64,
     pub capacity: i64,
@@ -566,7 +410,6 @@ impl NavyConfig {
                 detection: num(d, &["detection"])?,
                 upkeep: num(d, &["upkeep"])?,
                 cost: num(d, &["cost"])?,
-                ic: num(d, &["ic"])?,
                 build_days: num(d, &["build_days"])? as i32,
                 min_port: num(d, &["min_port"])? as i64,
                 capacity: num(d, &["capacity"])? as i64,
@@ -992,13 +835,12 @@ impl DiplomacyConfig {
 /// the key, not for a value, so a zero that is written is still a lasting effect.
 #[derive(Debug, Clone, Default)]
 pub struct FocusEffects {
-    pub gdp: Option<f64>,
-    pub industry: Option<f64>,
-    pub food: Option<f64>,
-    pub trade: Option<f64>,
-    pub growth: Option<f64>,
+    /// Lasting: a fraction added to base income, diplomacy points a month, construction points a day.
+    pub income: Option<f64>,
     pub diplomacy: Option<f64>,
-    pub construction: Option<f64>,
+    pub cp: Option<f64>,
+    /// One-off: civilian factories built at once in the nation's best provinces.
+    pub civilian_factories: Option<i64>,
     pub prestige: Option<f64>,
     pub points: Option<f64>,
     pub treasury: Option<f64>,
@@ -1057,13 +899,10 @@ fn focus_def(v: &Value) -> Result<FocusDef, String> {
         min_aggression: v.get("min_aggression").and_then(Value::as_f64),
         has_claim: e.get("claim").is_some(),
         effects: FocusEffects {
-            gdp: f("gdp"),
-            industry: f("industry"),
-            food: f("food"),
-            trade: f("trade"),
-            growth: f("growth"),
+            income: f("income"),
             diplomacy: f("diplomacy"),
-            construction: f("construction"),
+            cp: f("cp"),
+            civilian_factories: e.get("civilian_factories").and_then(Value::as_f64).map(|x| x as i64),
             prestige: f("prestige"),
             points: f("points"),
             treasury: f("treasury"),

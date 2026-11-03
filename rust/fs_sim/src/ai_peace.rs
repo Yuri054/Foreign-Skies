@@ -229,7 +229,7 @@ impl GameState {
         parts.score = u;
         parts.support = maxf(0.0, c.support_ref - n.war_support) * c.k_support;
         u += parts.support;
-        let monthly_revenue = maxf(n.budget.revenue, 1.0) / 12.0;
+        let monthly_revenue = maxf(n.budget.income, 1.0 / 12.0);
         parts.debt = c.k_debt * minf(c.debt_cap_months, maxf(0.0, -n.treasury) / monthly_revenue);
         u += parts.debt;
         let today = self.aday();
@@ -294,11 +294,11 @@ impl GameState {
 
     /// `AIPeace.affordable`: whether `giver` can carry the indemnities in `demands` on top of those it already pays.
     pub fn ai_affordable(&self, data: &Data, giver: &str, demands: &[Demand]) -> bool {
-        let revenue = maxf(self.nation(giver).budget.revenue, 0.001);
+        let income = maxf(self.nation(giver).budget.income, 0.001);
         let mut committed = 0.0;
         for ind in &self.indemnities {
             if ind.payer == giver {
-                committed += ind.monthly / (revenue / 12.0);
+                committed += ind.monthly / income;
             }
         }
         for d in demands {
@@ -408,7 +408,7 @@ impl GameState {
         let snapped = (share / 0.01 + 0.5).floor() * 0.01;
         let ind = Demand::Indemnity { share: snapped, months };
         // An indemnity too small to notice is no term at all.
-        if snapped * self.nation(giver).budget.revenue / 12.0 < data.diplomacy.peace.indemnity_min_monthly {
+        if snapped * self.nation(giver).budget.income < data.diplomacy.peace.indemnity_min_monthly {
             return None;
         }
         if self.demand_cost(data, taker, giver, &ind) >= 0.0 && self.ai_affordable(data, giver, &[ind.clone()]) {

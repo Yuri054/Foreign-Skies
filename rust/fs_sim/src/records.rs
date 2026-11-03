@@ -108,7 +108,7 @@ pub struct AmbitionState {
 }
 
 /// The rankable figures of `Standings.METRICS`, in order.
-pub const METRICS: [&str; 12] = ["population", "gdp", "industry", "income", "treasury", "army", "navy", "manpower", "provinces", "diplomacy_points", "prestige", "war_support"];
+pub const METRICS: [&str; 11] = ["population", "income", "factories", "treasury", "army", "navy", "manpower", "provinces", "diplomacy_points", "prestige", "war_support"];
 
 /// Names the texts of the books use, copied from the data when a game is loaded.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -205,7 +205,7 @@ impl GameState {
             provinces: self.history_provinces,
             tension: self.tension,
             crises: self.crises.len(),
-            top: self.standings_ranking(data, "industry").into_iter().take(3).map(|r| r.0).collect(),
+            top: self.standings_ranking(data, "income").into_iter().take(3).map(|r| r.0).collect(),
         };
         self.history_battles_total = battles;
         self.history_losses_total = losses;
@@ -224,9 +224,8 @@ impl GameState {
         let b = &n.budget;
         match id {
             "population" => n.population as f64,
-            "gdp" => b.gdp / 12.0,
-            "industry" => b.industry / 12.0,
-            "income" => b.revenue / 12.0,
+            "income" => b.income,
+            "factories" => self.economy_sums.get(self.nation_index[tag]).map(|s| s.level("civilian_factory")).unwrap_or(0.0),
             "treasury" => n.treasury,
             "army" => self.men_in_service(data, tag) as f64,
             "navy" => self.fleets_of(tag).iter().map(|&i| self.fleets[i].ships.len()).sum::<usize>() as f64,
@@ -268,15 +267,15 @@ impl GameState {
         if !self.nation_index.contains_key(me) || h.len() < 13 {
             return String::new();
         }
-        let gdp = METRICS.iter().position(|m| *m == "gdp").unwrap();
+        let income = METRICS.iter().position(|m| *m == "income").unwrap();
         let (then, now) = (&h[h.len() - 13].values, &h[h.len() - 1].values);
-        let find = |rows: &Vec<(String, Vec<f64>)>, t: &str| rows.iter().find(|r| r.0 == t).map(|r| r.1[gdp]);
+        let find = |rows: &Vec<(String, Vec<f64>)>, t: &str| rows.iter().find(|r| r.0 == t).map(|r| r.1[income]);
         let (Some(t_me), Some(n_me)) = (find(then, me), find(now, me)) else { return String::new() };
         if t_me <= 0.0 {
             return String::new();
         }
         let growth = n_me / t_me - 1.0;
-        let rank_in = |rows: &Vec<(String, Vec<f64>)>, mine: f64, me: &str| 1 + rows.iter().filter(|r| r.0 != me && r.1[gdp] > mine).count() as i64;
+        let rank_in = |rows: &Vec<(String, Vec<f64>)>, mine: f64, me: &str| 1 + rows.iter().filter(|r| r.0 != me && r.1[income] > mine).count() as i64;
         let (rank_then, rank_now) = (rank_in(then, t_me, me), rank_in(now, n_me, me));
         let (mut passed, mut lost): (Vec<String>, Vec<String>) = (vec![], vec![]);
         for (tag, row) in now {
@@ -285,7 +284,7 @@ impl GameState {
                 continue;
             }
             let was_ahead = t_other > t_me;
-            let is_ahead = row[gdp] > n_me;
+            let is_ahead = row[income] > n_me;
             let name = self.nation(tag).display_name.clone();
             if was_ahead && !is_ahead {
                 passed.push(name);
@@ -293,7 +292,7 @@ impl GameState {
                 lost.push(name);
             }
         }
-        let mut line = format!("The year {}: output {:+.1}%, {} largest economy", self.calendar.year - 1, growth * 100.0, ordinal(rank_now));
+        let mut line = format!("The year {}: income {:+.1}%, {} largest economy", self.calendar.year - 1, growth * 100.0, ordinal(rank_now));
         if rank_now != rank_then {
             line += &format!(" ({} last year)", ordinal(rank_then));
         }
@@ -397,7 +396,7 @@ impl GameState {
                 let n = self.nation(tag);
                 let mut rank = 1;
                 for o in &self.nations {
-                    if o.tag != tag && !o.provinces.is_empty() && o.budget.gdp > n.budget.gdp {
+                    if o.tag != tag && !o.provinces.is_empty() && o.budget.income > n.budget.income {
                         rank += 1;
                     }
                 }

@@ -2,7 +2,7 @@
 //! through the commands the player uses. Only the parts named in `AiTurn` are ported; the rest of the turn (defence, offence, forces,
 //! navy, landing, diplomacy, ambition) is not, and does nothing.
 
-use crate::gd::{clampf, is_equal_approx, maxf, minf, snappedf};
+use crate::gd::{clampf, maxf};
 use crate::state::{Data, GameState};
 use serde_json::Value;
 
@@ -128,18 +128,14 @@ impl GameState {
                 return 0.0;
             }
         }
-        let n = self.nation(tag);
         let fx = &f.effects;
         let mut score = f.ai;
         let at_war = !self.wars_of(tag).is_empty();
-        if at_war && (fx.army_size.is_some() || fx.construction.is_some() || fx.war_support.is_some()) {
+        if at_war && (fx.army_size.is_some() || fx.cp.is_some() || fx.war_support.is_some()) {
             score += 1.0;
         }
-        if !at_war && (fx.gdp.is_some() || fx.industry.is_some() || fx.growth.is_some()) {
+        if !at_war && (fx.income.is_some() || fx.civilian_factories.is_some()) {
             score += 0.5;
-        }
-        if fx.food.is_some() && n.budget.food_production < n.population as f64 * 0.9 {
-            score += 1.0;
         }
         if f.has_claim && !at_war {
             score += 0.3;
@@ -149,8 +145,8 @@ impl GameState {
 
     // ---------------------------------------------------------------- budget
 
-    /// `AIBudget.step`: once a month a light budget so that the nation does not drift into ruin. (`AINavy.build`, between the buildings
-    /// and the points, is not ported yet.)
+    /// `AIBudget.step`: once a month, buildings while the gold and construction points allow, the standing army in peace,
+    /// ships (`AINavy.build`, when the navy part of the AI is on) and diplomacy points in a crisis.
     pub fn ai_budget_step(&mut self, data: &Data, tag: &str) {
         let c = &data.ai.raw["budget"];
         let stamp = self.calendar.year as i64 * 12 + self.calendar.month as i64;
@@ -158,103 +154,60 @@ impl GameState {
             return;
         }
         self.ai_budget_stamp.insert(tag.to_string(), stamp);
-        self.ai_taxes(data, tag);
-        self.ai_arms(data, tag);
         self.ai_buildings(data, tag);
+        self.ai_army(data, tag);
         if self.ai_turn.navy {
             self.ai_navy_build(data, tag);
         }
         self.ai_points(data, tag);
     }
 
-    fn monthly_expenses(&self, tag: &str) -> f64 {
-        maxf(self.nation(tag).budget.expenses / 12.0, 0.1)
-    }
-
-    /// `AIBudget.wanted_tax`.
-    pub fn ai_wanted_tax(&self, data: &Data, tag: &str) -> f64 {
+    /// `AIBudget.reserve`: the gold the nation keeps in hand: build_floor, plus cushion_months of a deficit, twice that at
+    /// war.
+    pub fn ai_reserve_gold(&self, data: &Data, tag: &str) -> f64 {
         let c = &data.ai.raw["budget"];
         let n = self.nation(tag);
-        let net_m = n.budget.net / 12.0;
+        let floor_gold = bf(c, "build_floor") + maxf(0.0, -n.budget.net) * bf(c, "cushion_months");
+        floor_gold * if !self.wars_of(tag).is_empty() { 2.0 } else { 1.0 }
+    }
+
+    /// `AIBudget.want`: how much the nation wants a building now, against a civilian factory (1).
+    pub fn ai_want(&self, data: &Data, tag: &str, id: usize, kind: &str) -> f64 {
+        let c = &data.ai.raw["budget"];
+        let n = self.nation(tag);
         let at_war = !self.wars_of(tag).is_empty();
-        let top = if at_war { bf(c, "tax_max_war") } else { bf(c, "tax_max") };
-        let rate = n.tax_rate;
-        let mut short = n.treasury < 0.0 && net_m * bf(c, "repay_months") < -n.treasury;
-        short = short || (net_m < 0.0 && n.treasury < -net_m * bf(c, "cushion_months"));
-        if short {
-            return minf(rate + bf(c, "tax_step"), top);
-        }
-        let rich = net_m > 0.0 && n.treasury > self.monthly_expenses(tag) * bf(c, "rich_months");
-        let tax_min = c.get("tax_min").and_then(Value::as_f64).unwrap_or(data.economy.default_tax_rate);
-        if rich && rate > tax_min + 0.0001 {
-            return maxf(rate - bf(c, "tax_step"), tax_min);
-        }
-        minf(rate, top)
-    }
-
-    /// `AIBudget.wanted_investment`.
-    pub fn ai_wanted_investment(&self, data: &Data, tag: &str) -> f64 {
-        let c = &data.ai.raw["budget"];
-        let n = self.nation(tag);
-        if !self.wars_of(tag).is_empty() || n.treasury <= 0.0 {
-            return 0.0;
-        }
-        let surplus = (n.budget.net + n.budget.investment) / 12.0;
-        if surplus <= 0.0 || n.treasury < self.monthly_expenses(tag) * bf(c, "rich_months") {
-            return 0.0;
-        }
-        let most = n.budget.gdp / 12.0 * c.get("invest_max_share").and_then(Value::as_f64).unwrap_or(1.0);
-        snappedf(minf(surplus * c.get("invest_share").and_then(Value::as_f64).unwrap_or(0.0), most), 0.1)
-    }
-
-    fn ai_taxes(&mut self, data: &Data, tag: &str) {
-        let rate = self.ai_wanted_tax(data, tag);
-        if !is_equal_approx(rate, self.nation(tag).tax_rate) {
-            self.set_economy_policy(data, tag, "tax_rate", rate);
-            self.economy_dirty = true;
-        }
-        let invest = self.ai_wanted_investment(data, tag);
-        if (invest - self.nation(tag).investment).abs() > 0.05 {
-            self.set_economy_policy(data, tag, "investment", invest);
-            self.economy_dirty = true;
-        }
-    }
-
-    /// `AIBudget.wanted_arms_share`.
-    pub fn ai_wanted_arms_share(&self, data: &Data, tag: &str) -> f64 {
-        let c = &data.ai.raw["munitions"];
-        let n = self.nation(tag);
-        if !self.wars_of(tag).is_empty() {
-            return bf(c, "war_share");
-        }
-        let in_crisis = n.mobilization >= data.diplomacy.crisis.alarm_level || self.crises.iter().any(|x| x.a == tag || x.b == tag);
-        if in_crisis {
-            return bf(c, "crisis_share");
-        }
-        clampf(bf(c, "peace_share") + bf(c, "peace_per_tension") * self.tension / 100.0, 0.0, 1.0)
-    }
-
-    fn ai_arms(&mut self, data: &Data, tag: &str) {
-        let c = &data.ai.raw["munitions"];
-        let share = self.ai_wanted_arms_share(data, tag);
-        if (share - self.nation(tag).arms_share).abs() > 0.005 {
-            self.set_economy_policy(data, tag, "arms_share", share);
-            self.economy_dirty = true;
-        }
-        // At war, a stockpile running low is filled from abroad while the treasury can bear it.
-        if self.wars_of(tag).is_empty() {
-            return;
-        }
-        let ni = self.nation_index[tag];
-        let need = self.expected_daily(data, ni);
-        let days_left = if need <= 0.0 { f64::INFINITY } else { self.nations[ni].munitions / need };
-        if days_left >= bf(c, "min_days") {
-            return;
-        }
-        let want = (bf(c, "min_days") * need - self.nations[ni].munitions) * data.economy.munitions_import_price;
-        let spend = minf(want, maxf(0.0, self.nations[ni].treasury) * bf(c, "buy_treasury_share"));
-        if spend > 0.1 && self.buy_munitions(data, tag, spend) {
-            self.economy_dirty = true;
+        match kind {
+            "civilian_factory" => {
+                if at_war {
+                    bf(c, "factory_war")
+                } else {
+                    1.0
+                }
+            }
+            "construction_sector" => {
+                // Gold in hand that CP cannot keep up with: months of gold over months of CP for a factory.
+                let factory = crate::economy::build_plan(data.economy.building("civilian_factory").unwrap());
+                let cp_month = maxf(n.budget.cp * 30.0, 0.01);
+                let gold_month = maxf(n.budget.net, 0.01);
+                let ratio = (factory.cp / cp_month) / maxf(factory.gold / gold_month, 0.01);
+                clampf(ratio - 1.0, 0.0, 1.5)
+            }
+            "port" => bf(c, "port_want"),
+            "railway" => {
+                if at_war && self.ai_near_front(data, tag, id) {
+                    bf(c, "front_railway")
+                } else {
+                    0.0
+                }
+            }
+            "trench" | "fortification" => {
+                if at_war && self.ai_near_front(data, tag, id) {
+                    bf(c, "front_works")
+                } else {
+                    0.0
+                }
+            }
+            _ => 0.0,
         }
     }
 
@@ -273,44 +226,16 @@ impl GameState {
         false
     }
 
-    /// `AIBudget.build_return`: what a building would earn a year in a province, per pound it costs.
-    pub fn ai_build_return(&self, data: &Data, tag: &str, id: usize, kind: &str, total: f64) -> f64 {
-        let c = &data.ai.raw["budget"];
-        let def = data.economy.buildings.iter().find(|b| b.id == kind).unwrap();
-        let e = &def.effects;
-        let (g, ind) = (self.province_gdp[id] as f64, self.province_industry[id] as f64);
-        let output = g + ind;
-        let mut gain = e.gdp * g + e.industry * ind;
-        gain += e.trade * output * 0.5;
-        gain += e.food * output * bf(c, "food_value");
-        if kind == "railway" && self.ai_near_front(data, tag, id) {
-            gain += output * bf(c, "front_railway_bonus");
-        }
-        if (kind == "trench" || kind == "fortification") && !self.wars_of(tag).is_empty() && self.ai_near_front(data, tag, id) {
-            gain += output * bf(c, "front_works_bonus");
-        }
-        if id as i64 == self.nation(tag).capital {
-            gain *= bf(c, "capital_multiplier");
-        }
-        gain / maxf(total, 0.01)
-    }
-
-    /// `AIBudget._buildings`: one building a month, where it earns most.
-    fn ai_buildings(&mut self, data: &Data, tag: &str) {
+    /// `AIBudget._places`: the provinces worth looking at: the best for income, the capital and the ground behind the fronts.
+    fn ai_places(&self, data: &Data, tag: &str) -> Vec<usize> {
         let c = &data.ai.raw["budget"];
         let n = self.nation(tag);
-        if n.construction.len() as i64 >= bf(c, "max_construction") as i64 || n.budget.net < bf(c, "build_min_net") {
-            return;
-        }
-        let mut places: Vec<usize> = vec![];
         let mut owned: Vec<usize> = n.provinces.clone();
-        let out = |x: usize| self.province_gdp[x] as f64 + self.province_industry[x] as f64;
-        crate::gd::sort_custom(&mut owned, |&x, &y| out(x) > out(y) || (out(x) == out(y) && x < y));
-        for &id in owned.iter().take(bf(c, "candidates") as usize) {
-            places.push(id);
-        }
+        let inc = |x: usize| self.province_base_income[x];
+        crate::gd::sort_custom(&mut owned, |&x, &y| inc(x) > inc(y) || (inc(x) == inc(y) && x < y));
+        let mut places: Vec<usize> = owned.iter().take(bf(c, "candidates") as usize).copied().collect();
         let capital = n.capital;
-        if capital > 0 && !places.contains(&(capital as usize)) {
+        if capital > 0 && n.provinces.contains(&(capital as usize)) && !places.contains(&(capital as usize)) {
             places.push(capital as usize);
         }
         for f in &self.fronts {
@@ -324,24 +249,67 @@ impl GameState {
                 }
             }
         }
-        let mut best_id = 0;
-        let mut best_type = String::new();
-        let mut best_value = bf(c, "min_return");
-        for &id in &places {
-            for def in &data.economy.buildings {
-                if !self.build_problem(data, tag, id, &def.id, false).is_empty() {
+        places
+    }
+
+    /// `AIBudget._buildings`: starts buildings, the most wanted per gold first, while the gold (above the reserve) and the
+    /// CP last, at most max_starts a month and max_construction under way.
+    fn ai_buildings(&mut self, data: &Data, tag: &str) {
+        let c = &data.ai.raw["budget"];
+        let places = self.ai_places(data, tag);
+        for _ in 0..bf(c, "max_starts") as i64 {
+            let n = self.nation(tag);
+            if n.construction.len() as i64 >= bf(c, "max_construction") as i64 {
+                return;
+            }
+            let mut best_id = 0;
+            let mut best_type = String::new();
+            let mut best_value = 0.0;
+            for &id in &places {
+                if GameState::province_busy(self.nation(tag), id) {
                     continue;
                 }
-                let (ic, _, _) = self.plan_for(data, id, &def.id);
-                let value = self.ai_build_return(data, tag, id, &def.id, ic * data.economy.ic_value);
-                if value > best_value + 0.000001 {
-                    best_id = id;
-                    best_type = def.id.clone();
-                    best_value = value;
+                for def in &data.economy.buildings {
+                    if !self.build_problem(data, tag, id, &def.id, true).is_empty() {
+                        continue;
+                    }
+                    let plan = crate::economy::build_plan(def);
+                    if self.nation(tag).treasury - plan.gold < self.ai_reserve_gold(data, tag) {
+                        continue;
+                    }
+                    let value = self.ai_want(data, tag, id, &def.id) / maxf(plan.gold, 1.0);
+                    if value > best_value + 0.000001 {
+                        best_id = id;
+                        best_type = def.id.clone();
+                        best_value = value;
+                    }
                 }
             }
+            if best_id == 0 {
+                return;
+            }
+            if self.construct_building(data, tag, best_id, &best_type) {
+                self.economy_dirty = true;
+            }
         }
-        if best_id > 0 && self.construct_building(data, tag, best_id, &best_type) {
+    }
+
+    /// `AIBudget._army`: in peace, with a surplus, the standing army grows by army_growth_per_year (a twelfth a month), as
+    /// long as the upkeep of the men added takes at most army_surplus_share of the surplus, up to the standing cap.
+    fn ai_army(&mut self, data: &Data, tag: &str) {
+        let c = &data.ai.raw["budget"];
+        let ni = self.nation_index[tag];
+        let n = &self.nations[ni];
+        let net = n.budget.net;
+        if !self.wars_of(tag).is_empty() || net <= 0.0 {
+            return;
+        }
+        let infantry = data.military.unit_type("infantry");
+        let per_man = infantry.upkeep / infantry.size as f64;
+        let affordable = (net * bf(c, "army_surplus_share") / maxf(per_man, 0.000001)) as i64;
+        let grown = (n.peacetime_army as f64 * bf(c, "army_growth_per_year") / 12.0) as i64;
+        let target = (n.peacetime_army + grown.min(affordable)).min(self.standing_cap(data, ni));
+        if target > n.peacetime_army && self.set_economy_policy(data, tag, "standing_army", target as f64) {
             self.economy_dirty = true;
         }
     }

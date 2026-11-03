@@ -163,18 +163,10 @@ impl GameState {
         zones.iter().all(|&z| self.blockaders(tag, z).is_empty())
     }
 
-    /// `Military.railway_ok`: whether a nation's railways run (it has at least half of the raw materials its industry needs).
-    pub fn railway_ok(&self, tag: &str) -> bool {
-        match self.nation_index.get(tag) {
-            Some(&i) => self.nations[i].budget.materials.ratio >= 0.5,
-            None => true,
-        }
-    }
-
     /// `Military.hop_cost`: the cost of a supply hop into a province: 1, or less where a railway runs.
-    pub fn hop_cost(&self, data: &Data, tag: &str, id: usize) -> f64 {
+    pub fn hop_cost(&self, data: &Data, _tag: &str, id: usize) -> f64 {
         let level = self.level_of(id, "railway");
-        if level <= 0 || !self.railway_ok(tag) {
+        if level <= 0 {
             return 1.0;
         }
         let s = &data.military.supply;
@@ -194,9 +186,9 @@ impl GameState {
         let dist = (dx * dx + dy * dy).sqrt() as f64;
         let km = dist * KM_PER_PX;
         let mut days = km / speed * mil.terrain_def(&data.map.provinces[to].terrain).move_cost;
-        if self.province_controller[to] == tag && self.railway_ok(tag) {
-            // Built railways, and over everything an industrial nation owns a network of lesser lines.
-            days /= 1.0 + mil.movement.railway_speedup * self.level_of(to, "railway") as f64 + mil.movement.home_rail * self.nation(tag).development;
+        if self.province_controller[to] == tag {
+            // Built railways, and over everything a nation owns a network of lesser lines.
+            days /= 1.0 + mil.movement.railway_speedup * self.level_of(to, "railway") as f64 + mil.movement.home_rail;
         }
         match data.map.sea_links.get(&(from.min(to), from.max(to))).map(String::as_str) {
             Some("sea") => days += mil.movement.sea_link_days,
@@ -593,52 +585,6 @@ impl GameState {
         at
     }
 
-    /// `Munitions.burn`: the day's burning before the fighting. Returns, by nation, the share of the day's need it met.
-    fn burn_munitions(&mut self, data: &Data, fighting: &[usize], at: &[(usize, Vec<usize>)]) -> HashMap<String, f64> {
-        let (mil, cfg) = (&data.military, &data.economy);
-        let mut need: HashMap<String, f64> = HashMap::new();
-        for &i in fighting {
-            let a = &self.armies[i];
-            *need.entry(a.tag.clone()).or_insert(0.0) += a.power(mil) * a.shelling_share(mil) * cfg.munitions_per_gun_power;
-        }
-        for i in 0..self.armies.len() {
-            let a = &self.armies[i];
-            if fighting.contains(&i) || a.embarked() || !self.is_at_war(&a.tag) || !self.facing(data, i, at) {
-                continue;
-            }
-            *need.entry(a.tag.clone()).or_insert(0.0) += a.power(mil) * a.shelling_share(mil) * cfg.munitions_per_gun_power * cfg.munitions_idle_share;
-        }
-        let mut ratios = HashMap::new();
-        for n in &mut self.nations {
-            let want = need.get(&n.tag).copied().unwrap_or(0.0);
-            if want <= 0.0 {
-                // Guns that are not firing are not short.
-                ratios.insert(n.tag.clone(), 1.0);
-                continue;
-            }
-            let used = minf(want, n.munitions);
-            n.munitions -= used;
-            n.munitions_used_month += used;
-            ratios.insert(n.tag.clone(), used / want);
-        }
-        ratios
-    }
-
-    /// Whether an enemy army stands in a province next to army `i`.
-    fn facing(&self, data: &Data, i: usize, at: &[(usize, Vec<usize>)]) -> bool {
-        let a = &self.armies[i];
-        for p in data.map.neighbors(a.province) {
-            if let Some((_, list)) = at.iter().find(|(q, _)| *q == p) {
-                for &b in list {
-                    if self.at_war(&a.tag, &self.armies[b].tag) {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
-    }
-
     /// `Military.naval_support`: what the nation's warships on shore support off a coastal province add to its armies attacking
     /// there (a share of their power).
     fn naval_support(&self, data: &Data, tag: &str, province: usize) -> f64 {
@@ -659,24 +605,6 @@ impl GameState {
         let mil = &data.military;
         let at = self.by_province();
         let mut routed: Vec<usize> = vec![];
-        // The day's munitions: every army in a battle burns its guns' need first.
-        let mut in_battle: Vec<usize> = vec![];
-        for (_, here) in &at {
-            if here.len() < 2 {
-                continue;
-            }
-            for &a in here {
-                for &b in here {
-                    if self.armies[a].tag != self.armies[b].tag && self.at_war(&self.armies[a].tag, &self.armies[b].tag) {
-                        if !in_battle.contains(&a) {
-                            in_battle.push(a);
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-        let shells = self.burn_munitions(data, &in_battle, &at);
         for (id, here) in &at {
             let id = *id;
             if here.len() < 2 {
@@ -698,9 +626,8 @@ impl GameState {
             for (b, targets) in &foes {
                 let bb = &self.armies[*b];
                 let morale = data.war_support_morale_mult(self, &bb.tag);
-                let burn = 1.0 - bb.shelling_share(mil) * mil.combat.shell_penalty * clampf(1.0 - shells.get(&bb.tag).copied().unwrap_or(1.0), 0.0, 1.0);
                 let support = if bb.attacking { 1.0 + self.naval_support(data, &bb.tag, id) } else { 1.0 };
-                let share = bb.power(mil) * morale * burn * support / targets.len() as f64;
+                let share = bb.power(mil) * morale * support / targets.len() as f64;
                 let shelling = bb.shelling_share(mil);
                 for &a in targets {
                     let dealt = share * (1.0 - self.works_reduction(data, &self.armies[a], shelling));

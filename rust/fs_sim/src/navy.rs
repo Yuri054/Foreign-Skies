@@ -211,7 +211,7 @@ impl GameState {
         for ni in 0..self.nations.len() {
             let tag = self.nations[ni].tag.clone();
             for i in (0..self.nations[ni].shipbuilding.len()).rev() {
-                if self.nations[ni].shipbuilding[i].points_left > 0.0001 {
+                if self.nations[ni].shipbuilding[i].days_left > 0 {
                     continue;
                 }
                 let job = self.nations[ni].shipbuilding.remove(i);
@@ -1022,7 +1022,7 @@ impl GameState {
         let ni = self.nation_index[tag];
         self.nations[ni].treasury -= d.cost * count as f64;
         for _ in 0..count {
-            self.nations[ni].shipbuilding.push(crate::economy::new_job(province, kind, d.ic, d.build_days));
+            self.nations[ni].shipbuilding.push(crate::economy::new_job(province, kind, d.build_days));
         }
         true
     }
@@ -1147,7 +1147,7 @@ impl GameState {
                 continue;
             }
             let port = self.level_of(id, "port") as f64;
-            let w = self.province_gdp[id] as f64 * (cfg.base_weight + cfg.per_port_level * port);
+            let w = self.province_base_income[id] as f64 * (cfg.base_weight + cfg.per_port_level * port);
             if zones.len() == 1 {
                 add(&mut out, zones[0], w);
             } else {

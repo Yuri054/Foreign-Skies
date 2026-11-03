@@ -182,7 +182,7 @@ impl GameState {
     /// `Diplomacy.gift_effect`: how much a gift of `amount` would raise the receiver's opinion now.
     pub fn gift_effect(&self, data: &Data, from: &str, to: &str, amount: f64) -> f64 {
         let a = &data.diplomacy.raw_actions;
-        let reference = maxf(f(&a["gift_ref_floor"]), f(&a["gift_ref_share"]) * maxf(0.0, self.nation(to).budget.revenue));
+        let reference = maxf(f(&a["gift_ref_floor"]), f(&a["gift_ref_share"]) * 12.0 * maxf(0.0, self.nation(to).budget.income));
         let recent = self.gift_memory.get(&format!("{from}>{to}")).copied().unwrap_or(0.0);
         f(&a["gift_max_relation"]) * (1.0 - (-amount / reference).exp()) * (-recent / reference).exp()
     }
