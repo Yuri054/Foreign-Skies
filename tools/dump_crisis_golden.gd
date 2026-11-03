@@ -125,7 +125,7 @@ func _snapshot() -> Dictionary:
 		pend.append([p.id, p.event, p.title, p.text, p.options.map(func(o): return [o.label, o.get("text", ""), o.get("tip", ""), o.get("effects", [])])])
 	var ended := []
 	for e in gs.crisis_log:
-		ended.append([e.id, e.kind, e.a, e.b, e.start, e.end_day, e.outcome])
+		ended.append([e.id, e.kind, e.a, e.b, e.start, e.end_day, e.outcome, e.title, e.end_date, e.goal])
 	var ind: Array = gs.indemnities.map(func(i): return [i.payer, i.receiver, B(i.monthly), i.months_left])
 	var rest: Array = gs.restrictions.map(func(r): return [r.nation, r.holder, r.get("kind", ""), r.until_day])
 	return {"day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "wars": wars, "owners": owners, "casus_belli": cb,

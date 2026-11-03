@@ -55,7 +55,7 @@ fn compare(label: &str, gs: &GameState, w: &Value, fails: &mut Vec<String>) {
         fails.push(format!("{label}: crises\n  mine {}\n  want {}", Value::Array(crises), Value::Array(want)));
         return;
     }
-    let ended: Vec<Value> = gs.crisis_log.iter().map(|e| json!([e.id, e.kind, e.a, e.b, e.start, e.end_day, e.outcome])).collect();
+    let ended: Vec<Value> = gs.crisis_log.iter().map(|e| json!([e.id, e.kind, e.a, e.b, e.start, e.end_day, e.outcome, e.title, e.end_date, if e.goal.is_null() { json!({}) } else { norm(&e.goal) }])).collect();
     if norm(&Value::Array(ended.clone())) != norm(&w["ended"]) {
         fails.push(format!("{label}: finished crises {} vs {}", Value::Array(ended), w["ended"]));
         return;

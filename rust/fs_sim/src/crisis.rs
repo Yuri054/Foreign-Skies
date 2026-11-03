@@ -39,6 +39,9 @@ pub struct CrisisEnded {
     pub start: i64,
     pub end_day: i64,
     pub outcome: String,
+    pub title: String,
+    pub end_date: String,
+    pub goal: Value,
 }
 
 /// One demand `a` could make of `b` (`Crisis.demand_options`).
@@ -756,7 +759,7 @@ impl GameState {
         if let Some(i) = self.crisis_find(c.id) {
             self.crises.remove(i);
         }
-        self.crisis_log.push(CrisisEnded { id: c.id, kind: c.kind.clone(), a: c.a.clone(), b: c.b.clone(), start: c.start_day, end_day: self.cday(), outcome: outcome.to_string() });
+        self.crisis_log.push(CrisisEnded { id: c.id, kind: c.kind.clone(), a: c.a.clone(), b: c.b.clone(), start: c.start_day, end_day: self.cday(), outcome: outcome.to_string(), title: c.title.clone(), end_date: self.calendar.date_string(), goal: c.goal.clone() });
         if self.crisis_log.len() > 120 {
             self.crisis_log.remove(0);
         }
