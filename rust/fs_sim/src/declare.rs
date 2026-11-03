@@ -232,22 +232,6 @@ impl GameState {
 
     // ---------------------------------------------------------------- declaring
 
-    /// `GameState.set_war(a, b, true, cb, group, goal)`: `a` starts the war; it joins the conflict `group` (0 starts a new one).
-    pub fn set_war_full(&mut self, a: &str, b: &str, cb: &str, group: u32, goal: Value) {
-        if a == b || self.at_war(a, b) {
-            return;
-        }
-        self.set_war(a, b);
-        let i = self.war_between(a, b).unwrap();
-        self.wars[i].casus_belli = cb.to_string();
-        self.wars[i].goal = goal;
-        if group != 0 {
-            // the war did not start a conflict of its own: give back the number it took
-            self.next_war_group -= 1;
-            self.wars[i].war_group = group;
-        }
-    }
-
     /// `Diplomacy.declare_war`: `a` declares war on `b` with the given casus belli. Returns false (changing nothing) if that is not
     /// allowed. `group` ties the war to a conflict already begun (0 starts one).
     pub fn declare_war(&mut self, data: &Data, a: &str, b: &str, cb: &str, group: u32) -> bool {
@@ -258,7 +242,7 @@ impl GameState {
         // A war with no reason at all on a nation that stood apart shocks the world beyond the usual.
         let on_neutral = cb == "none" && self.is_neutral(data, b);
         let goal = self.goal_for_declaration(data, a, b, cb);
-        self.set_war_full(a, b, cb, group, goal);
+        self.set_war_ext(a, b, cb, group, goal);
         if on_neutral {
             let tags: Vec<String> = self.nations.iter().map(|n| n.tag.clone()).collect();
             for tag in tags {
@@ -327,7 +311,7 @@ impl GameState {
     /// `Diplomacy.start_war`: registers a war that exists from the start of the scenario. With `call_allies` the allies are called at
     /// once.
     pub fn start_war(&mut self, data: &Data, a: &str, b: &str, call_allies: bool) {
-        self.set_war_full(a, b, "", 0, Value::Null);
+        self.set_war_ext(a, b, "", 0, Value::Null);
         let war = self.war_between(a, b).unwrap();
         let g = self.open_group(a, b, self.wars[war].war_group);
         if call_allies {
@@ -496,9 +480,17 @@ impl GameState {
             if e == tag || self.at_war(&tag, &e) {
                 continue;
             }
-            self.set_war_full(&tag, &e, &d.cb, d.group, Value::Null);
+            self.set_war_ext(&tag, &e, &d.cb, d.group, Value::Null);
             self.note_declaration(&tag, &d.cb);
             opened = true;
+            let w = self.war_between(&tag, &e).unwrap();
+            let label = match d.kind.as_str() {
+                "guarantee" => "guarantor",
+                "entente" => "entente partner",
+                _ => "ally",
+            };
+            let text = format!("{} joins the war on the side of {} ({}).", self.nation(&tag).display_name, self.nation(&d.ally).display_name, label);
+            self.war_log_now(w, "join", &text);
             self.change_relation(data, &tag, &e, rules.target_relations);
         }
         if !opened && self.war_groups[gi].side_of(&tag).is_none() {

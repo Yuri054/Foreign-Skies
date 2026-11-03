@@ -188,6 +188,10 @@ impl GameState {
         self.treaties.push(t);
         let bonus = data.diplomacy.treaty_kind(kind).relation_bonus;
         self.shift_baseline(data, a, b, bonus);
+        if kind == "alliance" || kind == "guarantee" {
+            let text = format!("{}: {} and {}.", self.texts.treaty_labels[kind], self.nation(a).display_name, self.nation(b).display_name);
+            self.note("treaty", &text);
+        }
         true
     }
 
@@ -201,6 +205,10 @@ impl GameState {
         let (kind, a, b) = (self.treaties[index].kind.clone(), self.treaties[index].a.clone(), self.treaties[index].b.clone());
         let bonus = data.diplomacy.treaty_kind(&kind).relation_bonus;
         self.shift_baseline(data, &a, &b, -bonus);
+        if kind == "alliance" || kind == "guarantee" {
+            let text = format!("The {} of {} and {} ends.", self.texts.treaty_labels[&kind].to_lowercase(), self.nation(&a).display_name, self.nation(&b).display_name);
+            self.note("treaty", &text);
+        }
     }
 
     /// `Diplomacy.can_afford` and `spend`: a nation's diplomacy points against a price.

@@ -39,6 +39,8 @@ var C_AnswerJoin: GDScript
 var C_AnswerPeace: GDScript
 var C_MergeFleets: GDScript
 var C_SplitFleet: GDScript
+var C_SetAmbition: GDScript
+var Ambi: GDScript
 
 
 func B(x: float) -> String:
@@ -79,6 +81,8 @@ func _initialize() -> void:
 	C_AnswerPeace = load("res://scripts/sim/answer_peace.gd")
 	C_MergeFleets = load("res://scripts/sim/merge_fleets.gd")
 	C_SplitFleet = load("res://scripts/sim/split_fleet.gd")
+	C_SetAmbition = load("res://scripts/sim/set_ambition.gd")
+	Ambi = load("res://scripts/sim/ambition.gd")
 	var runs := [
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "GBR"},
 		{"name": "july_1914", "dir": "res://data/scenarios/july_1914/", "days": 700, "every": 10, "player": "SRB"},
@@ -105,7 +109,7 @@ func _initialize() -> void:
 			clock.advance_day()
 			if d % run.every == run.every - 1:
 				snaps.append(_snapshot())
-		result.append({"name": run.name, "player": run.player, "every": run.every, "days": run.days, "pressure": gs.pressure_ai, "log": log, "snaps": snaps})
+		result.append({"name": run.name, "player": run.player, "every": run.every, "days": run.days, "pressure": gs.pressure_ai, "log": log, "snaps": snaps, "final": _books(true)})
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()
@@ -147,7 +151,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 	var n = gs.nations[me]
 	if n.provinces.is_empty():
 		return
-	var kind := k % 24
+	var kind := k % 25
 	var cmd = null
 	var args: Array = []
 	var name := ""
@@ -219,7 +223,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 		9:
 			name = "treaty"
 			var kinds: Array = ["alliance", "guarantee", "nap", "passage"]
-			args = [_other(me, k * 3), kinds[(k / 24) % 4]]
+			args = [_other(me, k * 3), kinds[(k / 25) % 4]]
 			cmd = C_ProposeTreaty.new(me, args[0], args[1])
 		10:
 			name = "improve"
@@ -251,7 +255,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 			var targets2: Array = Dip.neighbor_nations(gs, me)
 			if targets2.is_empty():
 				return
-			args = [targets2[k % targets2.size()], pk[(k / 24) % 6]]
+			args = [targets2[k % targets2.size()], pk[(k / 25) % 6]]
 			cmd = C_PressDemand.new(me, args[0], args[1])
 		15:
 			name = "peace"
@@ -262,9 +266,9 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 			var foe: String = w.other(me)
 			var mode: String = "offer" if k % 2 == 0 else "demand"
 			var demands: Array = []
-			if (k / 24) % 3 == 1:
+			if (k / 25) % 3 == 1:
 				demands = [{"kind": "indemnity", "share": 0.1, "months": 12}]
-			elif (k / 24) % 3 == 2:
+			elif (k / 25) % 3 == 2:
 				var held: Array = []
 				for id2 in gs.nations[me if mode == "offer" else foe].provinces:
 					if gs.province_controller[id2] == (foe if mode == "offer" else me):
@@ -286,7 +290,7 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 			if ports.is_empty():
 				return
 			var st: Array = ["destroyer", "cruiser", "submarine", "transport", "dreadnought"]
-			args = [ports[k % ports.size()], st[(k / 24) % 5], 1]
+			args = [ports[k % ports.size()], st[(k / 25) % 5], 1]
 			cmd = C_RaiseShips.new(me, args[0], args[1], 1)
 		18:
 			name = "fleet"
@@ -306,12 +310,18 @@ func _play(d: int, k: int, me: String, log: Array) -> void:
 				return
 			var c = gs.crises[k % gs.crises.size()]
 			var acts: Array = ["yield", "refuse", "mobilize", "appeal"] if c.b == me else ["mediate", "back_a", "back_b"]
-			args = [c.id, acts[(k / 24) % acts.size()]]
+			args = [c.id, acts[(k / 25) % acts.size()]]
 			cmd = C_CrisisAction.new(me, c.id, args[1])
 		20:
 			name = "demobilize"
 			args = [0, 1 + k % 3]
 			cmd = C_DemobilizeUnits.new(me, 0, args[1])
+		24:
+			name = "ambition"
+			var offered: Array = Ambi.offered(gs, me)
+			var pool: Array = [""] + offered
+			args = [pool[(k / 25) % pool.size()]]
+			cmd = C_SetAmbition.new(me, args[0])
 		23:
 			name = "split"
 			var big: Array = []
@@ -396,6 +406,65 @@ func _border_target(enemy: String, from: int, index: int) -> int:
 	return found[index] if found.size() > index else (found[0] if not found.is_empty() else 0)
 
 
+func _war_book(w) -> Array:
+	var battles := []
+	for b in w.battles:
+		var strength := []
+		var lost := []
+		for t in b.strength:
+			strength.append([t, B(b.strength[t])])
+		for t in b.lost:
+			lost.append([t, B(b.lost[t])])
+		battles.append([b.id, b.province, b.name, b.date, b.end_date, b.days, b.attacker, b.winner, strength, lost])
+	var log := []
+	for e in w.log:
+		log.append([e.date, e.kind, e.text, e.province, e.battle])
+	var peace = null
+	if not w.peace.is_empty():
+		peace = [w.peace.taker, w.peace.giver, Array(w.peace.terms), w.peace.white, B(w.peace.score), w.peace.forced, w.peace.date]
+	return [w.id, w.start_date, w.end_date, w.end_day, log, battles, peace]
+
+
+func _books(full: bool) -> Dictionary:
+	var METRICS := ["population", "gdp", "industry", "income", "treasury", "army", "navy", "manpower", "provinces", "diplomacy_points", "prestige", "war_support"]
+	var wars := []
+	for w in gs.wars.values():
+		wars.append(_war_book(w))
+	var past := []
+	for w in gs.war_history:
+		past.append(_war_book(w))
+	var out := {"wars": wars, "past": past, "ambition": [gs.ambition.get("id", ""), gs.ambition.get("tag", ""), gs.ambition.get("since", 0), gs.ambition.get("state", "")],
+			"sizes": [gs.history_log.size(), gs.territory_log.size(), gs.history_months.size(), gs.standings_history.size()]}
+	var notes := []
+	var from: int = 0 if full else maxi(0, gs.history_log.size() - 3)
+	for i in range(from, gs.history_log.size()):
+		var e = gs.history_log[i]
+		notes.append([e.day, e.date, e.year, e.kind, e.text])
+	out["notes"] = notes
+	var terr := []
+	from = 0 if full else maxi(0, gs.territory_log.size() - 3)
+	for i in range(from, gs.territory_log.size()):
+		var t = gs.territory_log[i]
+		terr.append([t.day, t.date, t.year, t.province, t.old, t.new])
+	out["territory"] = terr
+	var months := []
+	from = 0 if full else maxi(0, gs.history_months.size() - 2)
+	for i in range(from, gs.history_months.size()):
+		var m = gs.history_months[i]
+		months.append([m.day, m.year, m.month, m.wars, m.battles, B(m.casualties), m.provinces, B(m.tension), m.crises, Array(m.top)])
+	out["months"] = months
+	var stand := []
+	from = 0 if full else maxi(0, gs.standings_history.size() - 2)
+	for i in range(from, gs.standings_history.size()):
+		var r = gs.standings_history[i]
+		var vals := []
+		for tag in r.values:
+			vals.append([tag, METRICS.map(func(mm): return B(r.values[tag][mm]))])
+		stand.append([r.day, r.date, vals])
+	out["standings"] = stand
+	return out
+
+
 func _snapshot() -> Dictionary:
 	var nations := []
 	for tag in gs.nations:
@@ -424,4 +493,4 @@ func _snapshot() -> Dictionary:
 		rel[k] = B(gs.relations[k])
 	return {"day": clock.days_elapsed, "date": clock.date_string(), "nations": nations, "owners": owners, "controllers": controllers, "armies": armies, "fleets": fleets, "wars": wars,
 			"treaties": treaties, "relations": rel, "tension": B(gs.tension), "crises": gs.crises.map(func(c): return [c.id, c.kind, c.a, c.b]), "pending": [gs.pending_events.size(), gs.pending_joins.size(), gs.pending_offers.size()],
-			"chronicle": gs.chronicle.size()}
+			"chronicle": gs.chronicle.size(), "books": _books(false)}

@@ -37,6 +37,7 @@ pub mod navy;
 pub mod offensive;
 pub mod peace;
 pub mod pressure;
+pub mod records;
 pub mod state;
 pub mod war;
 pub mod tsv;

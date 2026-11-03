@@ -31,6 +31,10 @@ pub struct Data {
     pub ai: crate::ai_peace::AiConfig,
     /// `data/crises.json` as the file has it.
     pub crises: serde_json::Value,
+    /// `data/ambitions.json` as the file has it.
+    pub ambitions: serde_json::Value,
+    /// Names the books use (province, casus belli and treaty names).
+    pub texts: crate::records::Texts,
 }
 
 impl Data {
@@ -72,9 +76,26 @@ impl Data {
 
     pub fn load(dir: &Path) -> Result<Data, String> {
         let read = |f: &str| std::fs::read_to_string(dir.join(f)).map_err(|e| format!("{f}: {e}"));
+        let map = MapData::load(dir)?;
+        let diplomacy_json: serde_json::Value = serde_json::from_str(&read("diplomacy.json")?).map_err(|e| format!("diplomacy.json is invalid: {e}"))?;
+        let military_json: serde_json::Value = serde_json::from_str(&read("military.json")?).map_err(|e| format!("military.json is invalid: {e}"))?;
+        let label_map = |v: &serde_json::Value| -> std::collections::HashMap<String, String> {
+            v.as_object().map(|o| o.iter().filter(|(k, _)| !k.starts_with('_')).filter_map(|(k, d)| d.get("label").and_then(serde_json::Value::as_str).map(|l| (k.clone(), l.to_string()))).collect()).unwrap_or_default()
+        };
+        let texts = crate::records::Texts {
+            province_names: map.provinces.iter().map(|p| p.name.clone()).collect(),
+            cb_labels: label_map(&diplomacy_json["war"]["casus_belli"]),
+            treaty_labels: label_map(&diplomacy_json["treaties"]),
+            ship_names: {
+                let navy_json: serde_json::Value = serde_json::from_str(&read("navy.json")?).map_err(|e| format!("navy.json is invalid: {e}"))?;
+                navy_json["types"].as_object().map(|o| o.iter().filter_map(|(k, d)| d.get("name").and_then(serde_json::Value::as_str).map(|l| (k.clone(), l.to_string()))).collect()).unwrap_or_default()
+            },
+            terrain_names: military_json["terrain"].as_object().map(|o| o.iter().filter_map(|(k, d)| d.get("name").and_then(serde_json::Value::as_str).map(|l| (k.clone(), l.to_string()))).collect()).unwrap_or_default(),
+        };
         Ok(Data {
+            texts,
             dir: dir.to_path_buf(),
-            map: MapData::load(dir)?,
+            map,
             economy: EconomyConfig::from_json_str(&read("economy.json")?)?,
             military: MilitaryConfig::from_json_str(&read("military.json")?)?,
             navy: NavyConfig::from_json_str(&read("navy.json")?)?,
@@ -84,6 +105,7 @@ impl Data {
             pressure: PressureConfig::from_json_str(&read("events.json")?)?,
             ai: crate::ai_peace::AiConfig::from_json_str(&read("ai.json")?)?,
             crises: serde_json::from_str(&read("crises.json")?).map_err(|e| format!("crises.json is invalid: {e}"))?,
+            ambitions: serde_json::from_str(&read("ambitions.json")?).map_err(|e| format!("ambitions.json is invalid: {e}"))?,
         })
     }
 }
@@ -217,6 +239,12 @@ pub struct War {
     pub capitulated: HashMap<String, String>,
     /// The day it ended, or -1.
     pub end_day: i64,
+    /// The books of the war (`War.start_date`, `end_date`, `peace`, `log`, `battles`).
+    pub start_date: String,
+    pub end_date: String,
+    pub peace: Option<crate::records::PeaceRecord>,
+    pub log: Vec<crate::records::WarLog>,
+    pub battles: Vec<crate::records::BattleRecord>,
 }
 
 impl War {
@@ -238,6 +266,11 @@ impl War {
             war_group: 0,
             capitulated: HashMap::new(),
             end_day: -1,
+            start_date: String::new(),
+            end_date: String::new(),
+            peace: None,
+            log: vec![],
+            battles: vec![],
         }
     }
 
@@ -291,6 +324,8 @@ pub struct Engagement {
     pub id: u32,
     pub province: usize,
     pub start_day: i64,
+    pub start_date: String,
+    pub name: String,
     pub attacker: String,
     /// The men each side had when it joined the battle, in the order the sides joined.
     pub start_men: Vec<(String, f64)>,
@@ -472,6 +507,16 @@ pub struct GameState {
     pub ai_seed: i64,
     /// The month each nation's budget was last worked over by the AI (`ai_budget_stamp`).
     pub ai_budget_stamp: HashMap<String, i64>,
+    /// The books (see `records.rs`): the history of the run, every change of owner, a row a month, the standings, the player's ambition.
+    pub history_log: Vec<crate::records::Note>,
+    pub territory_log: Vec<crate::records::Territory>,
+    pub history_months: Vec<crate::records::MonthRow>,
+    pub history_provinces: i64,
+    pub history_battles_total: i64,
+    pub history_losses_total: f64,
+    pub standings_history: Vec<crate::records::StandingsRow>,
+    pub ambition: crate::records::AmbitionState,
+    pub texts: crate::records::Texts,
     /// The AI's navy: each nation's fleets and the zone each was sent to (`ai_navy`), the landing being prepared (`ai_landing`) and the day it may
     /// look for another, the ship a nation asks its budget for (`ai_navy_need`), the fleets with armies aboard (`AINavy._carrying`) and what the
     /// AI keeps for the day about the sea.
@@ -786,6 +831,15 @@ impl GameState {
             ai_traits: HashMap::new(),
             ai_seed: 0,
             ai_budget_stamp: HashMap::new(),
+            history_log: vec![],
+            territory_log: vec![],
+            history_months: vec![],
+            history_provinces: 0,
+            history_battles_total: 0,
+            history_losses_total: 0.0,
+            standings_history: vec![],
+            ambition: Default::default(),
+            texts: data.texts.clone(),
             ai_navy: HashMap::new(),
             ai_landing: HashMap::new(),
             ai_landing_wait: HashMap::new(),
@@ -1001,6 +1055,15 @@ impl GameState {
                 gs.ai_traits.insert(tag.clone(), (a, c));
             }
         }
+        // `History.load_scenario`: the books begin here
+        gs.history_log.clear();
+        gs.territory_log.clear();
+        gs.history_months.clear();
+        gs.history_provinces = 0;
+        gs.history_battles_total = 0;
+        gs.history_losses_total = 0.0;
+        gs.standings_history.clear();
+        gs.standings_record(data);
         Ok(gs)
     }
 
@@ -1281,24 +1344,39 @@ impl GameState {
 
     /// `GameState.set_war` with a casus belli and a war goal (`{kind, ids, demand}`).
     pub fn set_war_goal(&mut self, a: &str, b: &str, casus_belli: &str, goal: Value) {
-        self.set_war(a, b);
-        if let Some(i) = self.war_between(a, b) {
-            self.wars[i].casus_belli = casus_belli.to_string();
-            self.wars[i].goal = goal;
-        }
+        self.set_war_ext(a, b, casus_belli, 0, goal);
     }
 
-    /// `GameState.set_war` (starting one): `a` declares war on `b`. The war's log and the notes it makes for the history
-    /// are not kept here.
+    /// `GameState.set_war` (starting one): `a` declares war on `b`.
     pub fn set_war(&mut self, a: &str, b: &str) {
+        self.set_war_ext(a, b, "", 0, Value::Null);
+    }
+
+    /// `GameState.set_war(a, b, true, cb, group, goal)`: `a` starts the war; it joins the conflict `group` (0 starts a new one). The war's log
+    /// and the history are told of it.
+    pub fn set_war_ext(&mut self, a: &str, b: &str, cb: &str, group: u32, goal: Value) {
         if a == b || self.at_war(a, b) {
             return;
         }
         let mut w = War::new(self.next_war_id, a, b, self.calendar.days_elapsed as i64);
         self.next_war_id += 1;
-        w.war_group = self.next_war_group;
-        self.next_war_group += 1;
+        w.start_date = self.calendar.date_string();
+        w.casus_belli = cb.to_string();
+        w.goal = goal;
+        if group == 0 {
+            w.war_group = self.next_war_group;
+            self.next_war_group += 1;
+        } else {
+            w.war_group = group;
+        }
+        let because = match self.texts.cb_labels.get(cb) {
+            Some(l) => format!(" ({})", l.to_lowercase()),
+            None => String::new(),
+        };
+        let text = format!("{} declares war on {}{}.", self.nation(a).display_name, self.nation(b).display_name, because);
+        w.log.push(crate::records::WarLog { date: w.start_date.clone(), kind: "war".to_string(), text: text.clone(), province: 0, battle: 0 });
         self.wars.push(w);
+        self.note("war", &text);
     }
 
     /// `WarSupport.change`: moves a nation's war support, within 0 to 100, ignoring a change too small to see.

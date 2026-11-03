@@ -429,6 +429,12 @@ impl GameState {
 
     /// `Pressure._record`: what happened goes in the chronicle (newest first). The history log and the news are not kept.
     pub(crate) fn record_event(&mut self, title: &str, text: &str) {
+        self.record_event_kind(title, text, "event");
+    }
+
+    /// `Pressure._record` with a kind of its own ("crisis"): the chronicle and the history.
+    pub(crate) fn record_event_kind(&mut self, title: &str, text: &str, kind: &str) {
+        self.note(kind, &format!("{title}: {text}"));
         self.chronicle.insert(0, (self.calendar.date_string(), title.to_string(), text.to_string()));
         self.chronicle.truncate(CHRONICLE_MAX);
     }

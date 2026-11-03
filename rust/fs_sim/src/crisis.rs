@@ -513,7 +513,7 @@ impl GameState {
         self.change_relation(data, a, b, f(&data.crises["open"]["relation"]));
         self.crisis_cooldown.insert(Self::pair_key(a, b), today + f(&g["pair_cooldown_months"]) as i64 * 30);
         let (title, text) = (c.title.clone(), c.text.clone());
-        self.record_event(&title, &text);
+        self.record_event_kind(&title, &text, "crisis");
         self.crises.push(c);
         let ci = self.crises.len() - 1;
         if b == self.player_tag {
@@ -761,7 +761,7 @@ impl GameState {
             self.crisis_log.remove(0);
         }
         self.crisis_cancel_prompt(&c);
-        self.record_event(&c.title, text);
+        self.record_event_kind(&c.title, text, "crisis");
     }
 
     // ---------------------------------------------------------------- the player's side

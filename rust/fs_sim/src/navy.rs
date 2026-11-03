@@ -467,8 +467,12 @@ impl GameState {
             }
         }
         let tag = self.fleets[fi].tag.clone();
+        let (fleet_name, fleet_zone) = (self.fleets[fi].name.clone(), self.fleets[fi].zone);
+        let gone: Vec<crate::state::Ship> = sunk.iter().map(|&i| self.fleets[fi].ships[i].clone()).collect();
         for &i in sunk.iter().rev() {
-            let s = self.fleets[fi].ships.remove(i);
+            self.fleets[fi].ships.remove(i);
+        }
+        for s in gone {
             crew_lost += s.strength * data.navy.def(&s.kind).crew;
             let battle = &mut self.sea_battles[battle_at].1;
             match battle.sunk.iter_mut().find(|(t, _)| *t == tag) {
@@ -477,6 +481,13 @@ impl GameState {
             }
             let ni = self.nation_index[&tag];
             self.nations[ni].ships_lost += 1;
+            let text = format!("{}'s {} lost a {}.", self.nations[ni].display_name, fleet_name, self.texts.ship_names[&s.kind].to_lowercase());
+            let line = format!("{} in the {}.", text.trim_end_matches('.'), data.map.sea_zone_names[fleet_zone]);
+            for e in enemies {
+                if let Some(wi) = self.war_between(&tag, e) {
+                    self.war_log_now(wi, "sinking", &line);
+                }
+            }
         }
         let battle = &mut self.sea_battles[battle_at].1;
         match battle.lost.iter_mut().find(|(t, _)| *t == tag) {
@@ -753,7 +764,7 @@ impl GameState {
         for (fid, list) in aboard {
             let Some(fi) = self.fleet_index(fid) else {
                 for id in &list {
-                    self.drown(data, *id, 1.0);
+                    self.drown(data, *id, 1.0, "was lost with its convoy");
                 }
                 continue;
             };
@@ -766,7 +777,7 @@ impl GameState {
             if men > capacity {
                 let frac = (men - capacity) / men;
                 for id in &list {
-                    self.drown(data, *id, frac);
+                    self.drown(data, *id, frac, "lost men when transports went down");
                 }
             }
             let f = &self.fleets[fi];
@@ -788,7 +799,7 @@ impl GameState {
     }
 
     /// `Navy._drown`.
-    fn drown(&mut self, data: &Data, army_id: u32, frac: f64) {
+    fn drown(&mut self, data: &Data, army_id: u32, frac: f64, what: &str) {
         let Some(ai) = self.armies.iter().position(|a| a.id == army_id) else { return };
         let cfg = &data.military;
         let before = self.armies[ai].men(cfg);
@@ -807,6 +818,10 @@ impl GameState {
         let lost = before - self.armies[ai].men(cfg);
         let tag = self.armies[ai].tag.clone();
         self.add_loss(&tag, &[], lost, "losses");
+        let text = format!("{}'s {} {} ({}k men).", self.nation(&tag).display_name, self.armies[ai].name, what, (lost / 1000.0).round() as i64);
+        for w in self.wars_of(&tag) {
+            self.war_log_now(w, "sinking", &text);
+        }
         if self.armies[ai].units.is_empty() {
             self.armies.remove(ai);
         }

@@ -582,6 +582,10 @@ impl GameState {
             }
         } else {
             self.peace_cooldown.insert(Self::pair_key(&offer.from, &offer.to), self.day_p() + data.diplomacy.peace.refuse_cooldown_days);
+            if let Some(w) = war {
+                let text = format!("{} refuses the peace offered by {}.", self.nation(&offer.to).display_name, self.nation(&offer.from).display_name);
+                self.war_log_now(w, "refuse", &text);
+            }
         }
     }
 
@@ -591,7 +595,14 @@ impl GameState {
     pub fn end_war(&mut self, index: usize) {
         let mut w = self.wars.remove(index);
         w.end_day = self.day_p();
+        w.end_date = self.calendar.date_string();
+        let text = format!("{} and {} make peace.", self.nation(&w.a).display_name, self.nation(&w.b).display_name);
+        w.log.push(crate::records::WarLog { date: w.end_date.clone(), kind: "peace".to_string(), text: text.clone(), province: 0, battle: 0 });
+        if w.log.len() > crate::records::WAR_LOG_MAX {
+            w.log.remove(0);
+        }
         self.war_history.push(w);
+        self.note("peace", &text);
     }
 
     /// `GameState.transfer_province`: transfers ownership (and control) of a province.
@@ -610,6 +621,7 @@ impl GameState {
         self.nations[oi].construction.retain(|j| j.province != id);
         let _ = self.rebuild_nation_provinces();
         self.recompute(data);
+        self.record_territory(id, &old, tag);
     }
 
     /// `Diplomacy.revanche`: ground handed over at a peace leaves the loser a reconquest claim to it, and a lasting resentment
@@ -711,12 +723,12 @@ impl GameState {
     pub fn make_peace(&mut self, data: &Data, war: usize, offer: &Offer) {
         let (taker, giver) = (offer.taker.clone(), offer.giver.clone());
         let score_taker = self.war_score(data, war, &taker);
-        let _ = score_taker;
         let (a, b) = (self.wars[war].a.clone(), self.wars[war].b.clone());
         let war_id_pair = (a.clone(), b.clone(), self.wars[war].war_group);
         self.end_war(war);
+        let mut terms: Vec<String> = vec![];
         for d in &offer.demands {
-            let _ = self.apply_demand(data, &taker, &giver, d, true);
+            terms.push(self.apply_demand(data, &taker, &giver, d, true));
         }
         for id in 1..self.province_owner.len() {
             let (o, c) = (self.province_owner[id].clone(), self.province_controller[id].clone());
@@ -737,6 +749,21 @@ impl GameState {
             self.gain_prestige(&taker, earned);
             self.gain_prestige(&giver, -earned * p.peace_loser_share);
         }
+        let mut text = format!("{} and {} make peace", self.nation(&a).display_name, self.nation(&b).display_name);
+        if !terms.is_empty() {
+            text += &format!(": {} takes {}.", self.nation(&taker).display_name, terms.join("; "));
+        } else {
+            text += " (white peace).";
+        }
+        text += &offer.note;
+        let date = self.calendar.date_string();
+        let wi = self.war_history.len() - 1;
+        self.war_history[wi].peace = Some(crate::records::PeaceRecord { taker: taker.clone(), giver: giver.clone(), terms, white: offer.demands.is_empty(), score: score_taker, forced: offer.forced, date: date.clone() });
+        self.war_history[wi].log.push(crate::records::WarLog { date, kind: "peace".to_string(), text: text.clone(), province: 0, battle: 0 });
+        if self.war_history[wi].log.len() > crate::records::WAR_LOG_MAX {
+            self.war_history[wi].log.remove(0);
+        }
+        self.refine_last("peace", &text);
         self.separate_peace(data, war_id_pair);
     }
 

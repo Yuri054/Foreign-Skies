@@ -772,6 +772,8 @@ impl GameState {
                     id: self.next_battle_id,
                     province: id,
                     start_day: self.day_i(),
+                    start_date: self.calendar.date_string(),
+                    name: self.texts.province_names[id].clone(),
                     attacker: String::new(),
                     start_men: vec![],
                     lost: vec![],
@@ -807,11 +809,29 @@ impl GameState {
         let winner: String = if standing.len() == 1 { standing[0].clone() } else { String::new() };
         let tags: Vec<String> = battle.start_men.iter().map(|(t, _)| t.clone()).collect();
         let get = |list: &[(String, f64)], t: &str| list.iter().find(|(k, _)| k == t).map(|(_, v)| *v).unwrap_or(0.0);
+        let days = self.day_i() - battle.start_day + 1;
+        let end_date = self.calendar.date_string();
         for i in 0..tags.len() {
             for j in i + 1..tags.len() {
                 let Some(w) = self.war_between(&tags[i], &tags[j]) else { continue };
                 let pair = [&tags[i], &tags[j]];
                 let record_winner: &str = if pair.iter().any(|t| **t == winner) { &winner } else { "" };
+                let record = crate::records::BattleRecord {
+                    id: battle.id,
+                    province: id,
+                    name: battle.name.clone(),
+                    date: battle.start_date.clone(),
+                    end_date: end_date.clone(),
+                    days,
+                    attacker: if pair.iter().any(|t| **t == battle.attacker) { battle.attacker.clone() } else { String::new() },
+                    winner: record_winner.to_string(),
+                    strength: pair.iter().map(|t| ((*t).clone(), get(&battle.start_men, t))).collect(),
+                    lost: pair.iter().map(|t| ((*t).clone(), get(&battle.lost, t))).collect(),
+                };
+                self.wars[w].battles.push(record.clone());
+                if self.wars[w].battles.len() > crate::records::WAR_BATTLES_MAX {
+                    self.wars[w].battles.remove(0);
+                }
                 // Peace.record_battle
                 self.wars[w].last_fight_day = self.day_i();
                 if !record_winner.is_empty() {
@@ -831,6 +851,23 @@ impl GameState {
                     self.gain_prestige(record_winner, data.diplomacy.prestige_battle_win);
                     self.change_war_support(&loser, -ws.loss_penalty);
                 }
+                let result = if !record_winner.is_empty() { format!("{} won.", self.nation(record_winner).display_name) } else { "No clear winner.".to_string() };
+                let k = |x: f64| (x / 1000.0).round() as i64;
+                let text = format!(
+                    "Battle of {} ({} day{}): {} lost {}k of {}k, {} lost {}k of {}k. {}",
+                    battle.name,
+                    days,
+                    if days == 1 { "" } else { "s" },
+                    self.nation(&tags[i]).display_name,
+                    k(get(&battle.lost, &tags[i])),
+                    k(get(&battle.start_men, &tags[i])),
+                    self.nation(&tags[j]).display_name,
+                    k(get(&battle.lost, &tags[j])),
+                    k(get(&battle.start_men, &tags[j])),
+                    result
+                );
+                let date = self.calendar.date_string();
+                self.war_log(w, &date, "battle", &text, id, battle.id);
             }
         }
     }
@@ -898,6 +935,14 @@ impl GameState {
             let men = self.armies[a].men(mil);
             self.armies[a].units.clear();
             self.add_loss(&tag, &enemies, men, "surrendered");
+            for e in &enemies {
+                if let Some(wi) = self.war_between(&tag, e) {
+                    let text = format!("{}'s {} was cut off at {} and lost ({}k men).", self.nation(&tag).display_name, self.armies[a].name, self.texts.province_names[self.armies[a].province], (men / 1000.0).round() as i64);
+                    let date = self.calendar.date_string();
+                    let province = self.armies[a].province;
+                    self.war_log(wi, &date, "surrender", &text, province, 0);
+                }
+            }
             return;
         }
         let before = self.armies[a].men(mil);
@@ -1044,6 +1089,9 @@ impl GameState {
                     let e = self.wars[w].captured.get_mut(&occupier).unwrap();
                     e.0 += 1;
                     e.1 += pop;
+                    let text = format!("{} occupied {} ({} people) from {}.", self.nation(&occupier).display_name, self.texts.province_names[id], pop, self.nation(&holder).display_name);
+                    let date = self.calendar.date_string();
+                    self.war_log(w, &date, "capture", &text, id, 0);
                 }
             }
         }
@@ -1074,6 +1122,11 @@ impl GameState {
                 continue;
             }
             self.add_loss(&tag, &[], men, "surrendered");
+            let text = format!("{} holds no land: its armies ({}k men) disband.", self.nations[ni].display_name, (men / 1000.0).round() as i64);
+            for wi in self.wars_of(&tag) {
+                self.war_log_now(wi, "collapse", &text);
+            }
+            self.note("collapse", &text);
         }
     }
 

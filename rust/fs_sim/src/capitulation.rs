@@ -108,10 +108,23 @@ impl GameState {
         if self.nations[i].home_capital <= 0 {
             self.nations[i].home_capital = self.nations[i].capital;
         }
+        let from = self.nations[i].capital;
         self.nations[i].capital = id as i64;
         if self.capital_choice.as_ref().map(|c| c.tag == tag).unwrap_or(false) {
             self.capital_choice = None;
         }
+        let going_home = id as i64 == self.nations[i].home_capital;
+        let name = self.nations[i].display_name.clone();
+        let text = if going_home {
+            format!("{name}'s government returns to {}.", self.texts.province_names[id])
+        } else {
+            format!("{name}'s government leaves {} for {}.", self.texts.province_names[from as usize], self.texts.province_names[id])
+        };
+        for w in self.wars_of(tag) {
+            let date = self.calendar.date_string();
+            self.war_log(w, &date, "capital", &text, id, 0);
+        }
+        self.note("capital", &text);
     }
 
     /// `MoveCapital.execute`: the player's choice of a new capital.
@@ -149,9 +162,12 @@ impl GameState {
         self.nations[i].manpower += men.round() as i64;
         self.refresh_men(data);
         let date = self.calendar.date_string();
+        let text = format!("{} capitulates: its armies ({}k men) lay down their arms.", self.nations[i].display_name, (men / 1000.0).round() as i64);
         for w in self.wars_of(tag) {
             self.wars[w].capitulated.insert(tag.to_string(), date.clone());
+            self.war_log(w, &date, "capitulation", &text, 0, 0);
         }
+        self.note("capitulation", &text);
         self.dictate(data, tag);
     }
 

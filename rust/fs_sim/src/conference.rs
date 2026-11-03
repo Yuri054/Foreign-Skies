@@ -197,6 +197,8 @@ impl GameState {
         self.joint_tags.clear();
         if !chair.is_empty() && done.len() > 1 {
             self.gain_prestige(&chair, data.diplomacy.peace.conference_prestige);
+            let text = format!("{} chaired the conference that ended the war with {} ({} nations at the table).", self.nation(&chair).display_name, self.nation(enemy).display_name, done.len());
+            self.note("peace", &text);
         }
         done
     }

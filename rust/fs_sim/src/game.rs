@@ -23,6 +23,9 @@ impl GameState {
             self.diplomacy_step_month(data);
             self.pressure_step_month(data);
             self.crisis_step_month(data);
+            self.standings_record(data);
+            self.ambition_step_month(data);
+            self.history_step_month(data);
         }
     }
 
